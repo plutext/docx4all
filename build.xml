@@ -1,3 +1,0 @@
-<project name="docx4all" default="build">
-    <target name="build"/>
-</project>
