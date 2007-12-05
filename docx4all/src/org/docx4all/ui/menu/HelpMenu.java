@@ -89,7 +89,7 @@ public class HelpMenu extends UIMenu {
     	
     	String appTitle = rm.getString("Application.title");
     	if (appTitle == null || appTitle.length() == 0) {
-    		appTitle = "WordMLEditor";
+    		appTitle = "docx4all";
     	}
     	
     	String message = 
