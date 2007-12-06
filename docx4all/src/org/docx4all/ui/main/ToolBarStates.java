@@ -324,7 +324,8 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
     	if (log.isDebugEnabled()) {
     		log.debug("insertUpdate():");
     	}
-    	if (_currentEditor.getDocument() == e.getDocument()) {
+    	if (_currentEditor != null 
+        		&& _currentEditor.getDocument() == e.getDocument()) {
     		setDocumentDirty(true);
     	}
     }
@@ -340,7 +341,8 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
     	if (log.isDebugEnabled()) {
     		log.debug("removeUpdate():");
     	}
-    	if (_currentEditor.getDocument() == e.getDocument()) {
+    	if (_currentEditor != null 
+        		&& _currentEditor.getDocument() == e.getDocument()) {
     		setDocumentDirty(true);
     	}
     }
@@ -354,7 +356,8 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
     	if (log.isDebugEnabled()) {
     		log.debug("changedUpdate():");
     	}
-    	if (_currentEditor.getDocument() == e.getDocument()) {
+    	if (_currentEditor != null 
+    		&& _currentEditor.getDocument() == e.getDocument()) {
     		setDocumentDirty(true);
     	}
 	}
