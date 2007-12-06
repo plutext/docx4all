@@ -30,6 +30,7 @@ import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.WordMLStyleConstants;
+import org.docx4all.ui.main.Constants;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.RunContentML;
 
@@ -90,10 +91,10 @@ public class DocUtil {
 					text = text.substring(0, 25);
 				}
 				sb.append("[");
-				int lf = text.indexOf('\n');
+				int lf = text.indexOf(Constants.NEWLINE);
 				if (lf >= 0) {
 					sb.append(text.substring(0, lf));
-					sb.append("<<LF>>");
+					sb.append("<<NEWLINE>>");
 					sb.append(text.substring(lf + 1));
 				} else {
 					sb.append(text);
@@ -125,26 +126,30 @@ public class DocUtil {
 				info.append(elemML.getTag());
 				info.append("> - ");
 				info.append(elemML.getClass().getSimpleName());
+				info.append("@");
+				info.append(elemML.hashCode());
 				
 			} else if (es.getType() == ElementSpec.ContentType) {
 				String text = ((RunContentML) elemML).getText();
-				if (text != null && text.length() > 25) {
+				if (text.length() > 25) {
 					text = text.substring(0, 25);
-					
-					StringBuffer sb = new StringBuffer();
-					int lf = text.indexOf('\n');
-					if (lf >= 0) {
-						sb.append(text.substring(0, lf));
-						sb.append("<<LF>>");
-						sb.append(text.substring(lf + 1));
-					} else {
-						sb.append(text);
-					}
-					text = sb.toString();
 				}
+				
+				StringBuffer sb = new StringBuffer();
+				int lf = text.indexOf(Constants.NEWLINE);
+				if (lf >= 0) {
+					sb.append(text.substring(0, lf));
+					sb.append("<<NEWLINE>>");
+					sb.append(text.substring(lf + 1));
+				} else {
+					sb.append(text);
+				}
+				
 				info.append(getTabSpace(depth + 1));
-				info.append("TEXT - RunContentML[");
-				info.append(text);
+				info.append("TEXT - RunContentML@");
+				info.append(elemML.hashCode());
+				info.append("[");
+				info.append(sb.toString());
 				info.append("]");
 				
 			} else {
@@ -153,6 +158,8 @@ public class DocUtil {
 				info.append(elemML.getTag());
 				info.append("> - ");
 				info.append(elemML.getClass().getSimpleName());
+				info.append("@");
+				info.append(elemML.hashCode());
 			}
 			log.debug(info.toString());
 		}
