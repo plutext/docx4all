@@ -40,22 +40,15 @@ public class ElementMLIterator {
 		this.root = root;
 	}
 	
-    public ElementML first() {
-    	if (root.getChildrenCount() > 0) {
-    		stack = new Stack<StackEntry>();
-    	    stack.push(new StackEntry(root));
-    	}
-    	
-    	return root;
-    }
-
     public boolean hasNext() {
     	boolean hasNext = false;
     	
     	if (stack == null) {
     		hasNext = true;
+    		
     	} else if (stack.isEmpty()) {
     		;//false
+    		
     	} else {
     		StackEntry se = stack.peek();
     		if (se.hasNext()) {
@@ -70,7 +63,9 @@ public class ElementMLIterator {
     
     public ElementML next() {
     	if (stack == null) {
-    		return first();
+       		stack = new Stack<StackEntry>();
+       		stack.push(new StackEntry(root));
+    		return root;
     	}
     	
     	if (stack.isEmpty()) {
@@ -92,7 +87,9 @@ public class ElementMLIterator {
     
     public void cruise(Callback callback) {
     	if (stack == null) {
-    		callback.handleStartElement(first());
+       		stack = new Stack<StackEntry>();
+       		stack.push(new StackEntry(root));
+       		callback.handleStartElement(root);
     		cruise(callback);
     		
     	} else if (!stack.isEmpty()) {
