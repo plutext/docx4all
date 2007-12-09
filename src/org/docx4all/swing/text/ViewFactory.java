@@ -27,7 +27,9 @@ import javax.swing.text.View;
 
 import org.apache.log4j.Logger;
 import org.docx4all.xml.ElementML;
+import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.RunContentML;
+import org.docx4all.xml.RunML;
 import org.docx4all.xml.WordML;
 
 public class ViewFactory implements javax.swing.text.ViewFactory {
@@ -46,12 +48,11 @@ public class ViewFactory implements javax.swing.text.ViewFactory {
 
 		AttributeSet attrs = elem.getAttributes();
 		ElementML elementML = WordMLStyleConstants.getElementML(attrs);
-		WordML.Tag tag = elementML.getTag();
 
-		//TODO: This is an ugly temporary solution
-		if (tag == WordML.Tag.P) {
+		//TODO: Don't quite like this temporary solution
+		if (elementML instanceof ParagraphML && elementML.isDummy()) {
 			theView = new ParagraphView(elem);
-		} else if (tag == WordML.Tag.R) {
+		} else if (elementML instanceof RunML) {
 			theView = new RunView(elem);
 		} else if (elementML instanceof RunContentML) {
 			theView = new LabelView(elem);
