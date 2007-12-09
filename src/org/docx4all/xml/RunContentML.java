@@ -30,16 +30,21 @@ public class RunContentML extends ElementML {
 	
 	private Element element;
 	private String text;
-	private boolean isDummy;
 	
-	public RunContentML(Element elem) {
-		this(elem, false);
+	public RunContentML(Element elem, String text) {
+		this(elem, text, false);
 	}
 	
-	public RunContentML(Element elem, boolean isDummy) {
+	public RunContentML(Element elem, String text, boolean isDummy) {
 		this.element = elem;
-		this.tag = WordML.getTag(elem.getName());
+		if (elem != null) {
+			this.tag = WordML.getTag(elem.getName());
+		} else {
+			//Dummy RunContentML is given this default tag
+			this.tag = WordML.Tag.T;
+		}
 		this.isDummy = isDummy;
+		this.text = text;
 	}
 	
 	public String getText() {
