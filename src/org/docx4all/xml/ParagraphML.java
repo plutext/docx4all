@@ -35,7 +35,6 @@ public class ParagraphML extends ElementML {
 	private static Logger log = Logger.getLogger(ParagraphML.class);
 
 	private Paragraph paragraph;
-	private boolean isDummy;
 	
 	public ParagraphML(Paragraph p) {
 		this(p, false);
@@ -55,42 +54,45 @@ public class ParagraphML extends ElementML {
 	 * @return a ParagraphPropertiesML, if any
 	 *         null, otherwise 
 	 */
-	public ParagraphPropertiesML getParagraphProperties() {
+	public PropertiesContainerML getParagraphProperties() {
 		//According to the specification, 
 		//ParagraphPropertiesML has to be the first child.
 		ElementML firstChild = getChild(0);
-		if (firstChild instanceof ParagraphPropertiesML) {
-			return (ParagraphPropertiesML) firstChild;
+		if (firstChild instanceof PropertiesContainerML) {
+			return (PropertiesContainerML) firstChild;
 		}
 		return null;
 	}
 	
 	private void initChildren() {
-		List pKids = this.paragraph.getParagraphContents();
-		if (!pKids.isEmpty()) {
-			this.children = new ArrayList<ElementML>(pKids.size());
+		this.children = null;
+		if (this.paragraph != null) {
+			List pKids = this.paragraph.getParagraphContents();
+			if (pKids != null && !pKids.isEmpty()) {
+				this.children = new ArrayList<ElementML>(pKids.size());
 
-			for (Object o : pKids) {
-				// TODO: Currently 'paraKids' may contain:
-				// org.docx4j.document.wordprocessingml.ParagraphProperties
-				// org.docx4j.document.wordprocessingml.Run
-				// and/or org.dom4j.Element objects
-				// Watch any future change in Paragraph class
-				ElementML elem;
-				if (o instanceof Run) {
-					Run run = (Run) o;
-					elem = new RunML(run);
-				} else if (o instanceof ParagraphProperties) {
-					ParagraphProperties pPr = (ParagraphProperties) o;
-					elem = new ParagraphPropertiesML(pPr);
-				} else {
-					elem = createDummyRun((Element) o);
-				}
-				
-				elem.setParent(ParagraphML.this);
-				children.add(elem);
-			}// for (Object:o)
-		}// if (!pKids.isEmpty())
+				for (Object o : pKids) {
+					// TODO: Currently 'paraKids' may contain:
+					// org.docx4j.document.wordprocessingml.ParagraphProperties
+					// org.docx4j.document.wordprocessingml.Run
+					// and/or org.dom4j.Element objects
+					// Watch any future change in Paragraph class
+					ElementML elem;
+					if (o instanceof Run) {
+						Run run = (Run) o;
+						elem = new RunML(run);
+					} else if (o instanceof ParagraphProperties) {
+						ParagraphProperties pPr = (ParagraphProperties) o;
+						elem = new ParagraphPropertiesML(pPr);
+					} else {
+						elem = createDummyRun((Element) o);
+					}
+
+					elem.setParent(ParagraphML.this);
+					children.add(elem);
+				}// for (Object:o)
+			}// if (!pKids.isEmpty())
+		}// if (this.paragraph != null)
 	}// initChildren()
 	
 	private RunML createDummyRun(Element unsupportedElem) {
