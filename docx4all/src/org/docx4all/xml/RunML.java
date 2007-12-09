@@ -34,7 +34,6 @@ public class RunML extends ElementML {
 	private static Logger log = Logger.getLogger(RunML.class);
 	
 	private Run run;
-	private boolean isDummy;
 	
 	public RunML(Run run) {
 		this(run, false);
@@ -65,50 +64,56 @@ public class RunML extends ElementML {
 	}
 	
 	private void initChildren() {
-		List rKids = this.run.getRunContents();
-		if (!rKids.isEmpty()) {
-			this.children = new ArrayList<ElementML>(rKids.size());
-			
-			for (Object o : rKids) {
-				// TODO: Currently 'rKids' may contain:
-				// org.docx4j.document.wordprocessingml.RunProperties
-				// and/or org.dom4j.Element objects
-				// Watch any future change in Paragraph class
+		this.children = null;
+		if (this.run != null) {
+			List rKids = this.run.getRunContents();
+			if (!rKids.isEmpty()) {
+				this.children = new ArrayList<ElementML>(rKids.size());
 
-				if (o instanceof RunProperties) {
-					RunProperties rPr = (RunProperties) o;
-					children.add(new RunPropertiesML(rPr));
+				for (Object o : rKids) {
+					// TODO: Currently 'rKids' may contain:
+					// org.docx4j.document.wordprocessingml.RunProperties
+					// and/or org.dom4j.Element objects
+					// Watch any future change in Paragraph class
 
-				} else {
-					Element elem = (Element) o;
-					WordML.Tag tag = WordML.getTag(elem.getName());
-					if ( tag == WordML.Tag.T) {
-						// TODO:Check the xml:space attribute
-						// in order to know whether we should trim
-						// text or not.
-						String txt = elem.getText().trim();
-						if (txt != null && txt.length() > 0) {
-							RunContentML child = new RunContentML(elem);
-							child.setText(txt);
-							children.add(child);
-						}
-					} else if (tag == WordML.Tag.BR) {
-						//TODO: Full support of BR element
-						RunContentML child = new RunContentML(elem);
-						child.setText(org.docx4all.ui.main.Constants.NEWLINE);
-						children.add(child);
-						
-					} else if (tag == WordML.Tag.CR) {
-						RunContentML child = new RunContentML(elem);
-						child.setText(org.docx4all.ui.main.Constants.NEWLINE);
-						children.add(child);
-						
+					if (o instanceof RunProperties) {
+						RunProperties rPr = (RunProperties) o;
+						children.add(new RunPropertiesML(rPr));
+
 					} else {
-						// TODO: Create an unsupported RunContentML ?
+						Element elem = (Element) o;
+						WordML.Tag tag = WordML.getTag(elem.getName());
+						if (tag == WordML.Tag.T) {
+							// TODO:Check the xml:space attribute
+							// in order to know whether we should trim
+							// text or not.
+							String txt = elem.getText().trim();
+							if (txt != null && txt.length() > 0) {
+								RunContentML child = new RunContentML(elem, txt);
+								children.add(child);
+							}
+						} else if (tag == WordML.Tag.BR) {
+							// TODO: Full support of BR element
+							RunContentML child = 
+								new RunContentML(
+									elem,
+									org.docx4all.ui.main.Constants.NEWLINE);
+							children.add(child);
+
+						} else if (tag == WordML.Tag.CR) {
+							RunContentML child = 
+								new RunContentML(
+									elem,
+									org.docx4all.ui.main.Constants.NEWLINE);
+							children.add(child);
+
+						} else {
+							// TODO: Create an unsupported RunContentML ?
+						}
 					}
-				}
-			}// for (Object:o)
-		}// if (!rKids.isEmpty())
+				}// for (Object:o)
+			}// if (!rKids.isEmpty())
+		}
 	}// initChildren()
 	
 }// RunML class
