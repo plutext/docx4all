@@ -27,94 +27,73 @@ import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
-import org.docx4all.ui.main.Constants;
 import org.docx4all.xml.ElementML;
-import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.ElementMLIterator;
 import org.docx4all.xml.ParagraphML;
-import org.docx4all.xml.ParagraphPropertiesML;
 import org.docx4all.xml.PropertiesContainerML;
 import org.docx4all.xml.PropertyML;
-import org.docx4all.xml.RunML;
-import org.docx4all.xml.RunPropertiesML;
 import org.docx4all.xml.RunContentML;
+import org.docx4all.xml.RunML;
 
 public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
-	List<ElementSpec> elementSpecs = new ArrayList<ElementSpec>();
-	MutableAttributeSet paragraphAttrs, runAttrs;
+	private List<ElementSpec> _elementSpecs = new ArrayList<ElementSpec>();
+	private MutableAttributeSet _paragraphAttrs, _runAttrs;
 	
 	public void handleStartElement(ElementML elem) {
-		if (elem instanceof PropertiesContainerML || elem instanceof PropertyML) {
-			//ignore this element
-			return;
-		}
-		
-		SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
-		WordMLStyleConstants.setElementML(elemAttrs, elem);
-		
+		//TODO: Find a better handler
 		if (elem instanceof ParagraphML) {
-			ParagraphML paraML = (ParagraphML) elem;
-			ParagraphPropertiesML pPr = paraML.getParagraphProperties();
-			if (pPr != null) {
-				elemAttrs.addAttributes(pPr.getAttributeSet());
-			}
-			
-			paragraphAttrs = elemAttrs;
-			openElementSpec(paragraphAttrs);
+			openElementSpec((ParagraphML) elem);
 			
 		} else if (elem instanceof RunML) {
-			RunML runML = (RunML) elem;
-			RunPropertiesML rPr = runML.getRunProperties();
-			if (rPr != null) {
-				elemAttrs.addAttributes(rPr.getAttributeSet());
-			}
-			
-			runAttrs = elemAttrs;
-			openElementSpec(runAttrs);
+			openElementSpec((RunML) elem);
 			
 		} else if (elem instanceof RunContentML) {
-			addContentElementSpec(elemAttrs, ((RunContentML) elem).getText());
+			openElementSpec((RunContentML) elem);
+			
+		} else if (elem instanceof PropertiesContainerML) {
+			openElementSpec((PropertiesContainerML) elem);
+				
+		} else if (elem instanceof PropertyML) {
+			openElementSpec((PropertyML) elem);
 			
 		} else {
+			SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
+			WordMLStyleConstants.setElementML(elemAttrs, elem);
 			openElementSpec(elemAttrs);
 		}
 	}
 	
-	public void handleEndElement(ElementML elem) {
-		if (elem instanceof RunContentML 
-			|| elem instanceof PropertiesContainerML
-			|| elem instanceof PropertyML) {
-			return;
-		}
-		
+	public void handleEndElement(ElementML elem) {		
+		//TODO: Find a better handler
 		if (elem instanceof ParagraphML) {
-			//TODO: Check first whether this paragraph already
-			//ends with a newline character.
-			RunML runML = ElementMLFactory.IMPLIED_NEWLINE_RUNML;
-			SimpleAttributeSet runAttrs = new SimpleAttributeSet();
-			WordMLStyleConstants.setElementML(runAttrs, runML);
-			openElementSpec(runAttrs);
+			closeElementSpec((ParagraphML) elem); 
 			
-			RunContentML rcML = (RunContentML) runML.getChild(0);
-			SimpleAttributeSet textAttrs = new SimpleAttributeSet();
-			WordMLStyleConstants.setElementML(textAttrs, rcML);
-			addContentElementSpec(textAttrs, rcML.getText());
+		} else if (elem instanceof RunML) {
+			closeElementSpec((RunML) elem);
 			
-			closeElementSpec(runAttrs.copyAttributes());
+		} else if (elem instanceof RunContentML) {
+			closeElementSpec((RunContentML) elem);
+			
+		} else if (elem instanceof PropertiesContainerML) {
+			closeElementSpec((PropertiesContainerML) elem);
+			
+		} else if (elem instanceof PropertyML) {
+			closeElementSpec((PropertyML) elem);
+			
+		} else {
+			SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
+			WordMLStyleConstants.setElementML(elemAttrs, elem);
+			closeElementSpec(elemAttrs);
 		}
-		
-		SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
-		WordMLStyleConstants.setElementML(elemAttrs, elem);
-		closeElementSpec(elemAttrs);
 	}
 	
 	public List<ElementSpec> getElementSpecs() {
-		return elementSpecs;
+		return _elementSpecs;
 	}
 	
 	private void openElementSpec(AttributeSet attrs) {
 		ElementSpec es = new ElementSpec(attrs, ElementSpec.StartTagType);
-		elementSpecs.add(es);
+		_elementSpecs.add(es);
 	}
 	
 	private void addContentElementSpec(AttributeSet attrs, String text) {
@@ -125,13 +104,133 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 				text.toCharArray(), 
 				0, 
 				text.length());
-		elementSpecs.add(es);
+		_elementSpecs.add(es);
 	}
 	
 	private void closeElementSpec(AttributeSet attrs) {
 		ElementSpec es = new ElementSpec(attrs, ElementSpec.EndTagType);
-		elementSpecs.add(es);
+		_elementSpecs.add(es);
 	}
+	
+	private void openElementSpec(ParagraphML paragraphML) {
+		SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
+		WordMLStyleConstants.setElementML(elemAttrs, paragraphML);
+		openElementSpec(elemAttrs);
+		_paragraphAttrs = elemAttrs;
+		
+		//Insert a DUMMY_PARAGRAPH inside every ParagraphML BLOCK
+		elemAttrs = new SimpleAttributeSet();
+		WordMLStyleConstants.setElementML(elemAttrs, ElementML.DUMMY_PARAGRAPH);
+		openElementSpec(elemAttrs);		
+	}
+	
+	private void closeElementSpec(ParagraphML paragraphML) {
+		closeElementSpec(paragraphML, true);
+	}
+	
+	private void closeElementSpec(ParagraphML paragraphML, boolean resetAttr) {
+		//TODO: Check first whether this paragraph already
+		//ends with a newline character.
+		
+		//End every paragraph with a DUMMY_RUN and DUMMY_NEWLINE
+		RunML runML = ElementML.DUMMY_RUN;
+		SimpleAttributeSet runAttrs = new SimpleAttributeSet();
+		WordMLStyleConstants.setElementML(runAttrs, runML);
+		openElementSpec(runAttrs);
+		
+		RunContentML rcML = (RunContentML) ElementML.DUMMY_NEWLINE;
+		
+		SimpleAttributeSet tempAttrs = new SimpleAttributeSet();
+		WordMLStyleConstants.setElementML(tempAttrs, rcML);
+		addContentElementSpec(tempAttrs, rcML.getText());
+		
+		closeElementSpec(runAttrs.copyAttributes());
+		
+		//Remember to close the inserted DUMMY_PARAGRAPH
+		tempAttrs = new SimpleAttributeSet();
+		WordMLStyleConstants.setElementML(tempAttrs, ElementML.DUMMY_PARAGRAPH);
+		closeElementSpec(tempAttrs);
+		
+		//Close ParagraphML BLOCK
+		tempAttrs = new SimpleAttributeSet();
+		WordMLStyleConstants.setElementML(tempAttrs, paragraphML);
+		closeElementSpec(tempAttrs);
+		
+		if (resetAttr) {
+			_paragraphAttrs = null;
+		}
+	}
+	
+	private void openElementSpec(RunML runML) {
+		SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
+		WordMLStyleConstants.setElementML(elemAttrs, runML);
+		openElementSpec(elemAttrs);
+		_runAttrs = elemAttrs;
+		
+	}
+
+	private void closeElementSpec(RunML runML) {
+		closeElementSpec(runML, true);
+	}
+	
+	private void closeElementSpec(RunML runML, boolean resetAttr) {
+		SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
+		WordMLStyleConstants.setElementML(elemAttrs, runML);
+		closeElementSpec(elemAttrs);
+		
+		if (resetAttr) {
+			_runAttrs = null;
+		}
+	}
+	
+	private void openElementSpec(RunContentML runContentML) {
+		SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
+		WordMLStyleConstants.setElementML(elemAttrs, runContentML);
+		String text = runContentML.getText();
+		addContentElementSpec(elemAttrs, text);
+	}
+	
+	private void closeElementSpec(RunContentML runContentML) {
+		if (runContentML.breaksFlow()) {
+			//Close the current RUN block
+			RunML runML = (RunML) WordMLStyleConstants.getElementML(_runAttrs);
+			SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
+			WordMLStyleConstants.setElementML(elemAttrs, runML);
+			closeElementSpec(runML, false);
+			
+			//Close the inserted DUMMY_PARAGRAPH
+			elemAttrs = new SimpleAttributeSet();
+			WordMLStyleConstants.setElementML(elemAttrs, ElementML.DUMMY_PARAGRAPH);
+			closeElementSpec(elemAttrs);
+			
+			//Open a new DUMMY_PARAGRAPH
+			openElementSpec(elemAttrs.copyAttributes());
+			
+			//Open a copy of RUN block
+			openElementSpec(_runAttrs.copyAttributes());
+		}
+	}
+	
+	private void openElementSpec(PropertiesContainerML propContainerML) {
+		if (_runAttrs != null) {
+			_runAttrs.addAttributes(propContainerML.getAttributeSet());
+		} else if (_paragraphAttrs != null) {
+			_paragraphAttrs.addAttributes(propContainerML.getAttributeSet());
+		}
+	}
+	
+	private void closeElementSpec(PropertiesContainerML propContainerML) {
+		;//do nothing
+	}
+	
+	private void openElementSpec(PropertyML propertyML) {
+		;//do nothing
+	}
+	
+	private void closeElementSpec(PropertyML propertyML) {
+		;//do nothing
+	}
+	
 }// ElementMLIteratorCallback class
 
 
