@@ -21,13 +21,27 @@ package org.docx4all.xml;
 
 import java.util.List;
 
+import org.docx4all.ui.main.Constants;
+
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
  */
-public class ElementML {
+public abstract class ElementML {
+	public final static ParagraphML DUMMY_PARAGRAPH = 
+		new ParagraphML(null, true);
+	public final static RunML DUMMY_RUN = 
+		new RunML(null, true);
+	public final static RunContentML DUMMY_NEWLINE = 
+		new RunContentML(null, Constants.NEWLINE, true);
+	
+	protected boolean isDummy;
 	protected WordML.Tag tag;
 	protected ElementML parent;
 	protected List<ElementML> children;
+	
+	public boolean isDummy() {
+		return isDummy;
+	}
 	
 	public WordML.Tag getTag() {
 		return tag;
@@ -64,6 +78,16 @@ public class ElementML {
 		return getTag().breaksFlow();
 	}
 	
+	public String toString() {
+		String dummy = isDummy() ? "DUMMY_" : "";
+		
+		StringBuffer sb = new StringBuffer(dummy);
+		sb.append(getClass().getSimpleName());
+		sb.append("@");
+		sb.append(hashCode());
+		
+		return sb.toString();
+	}
 } //ElementML class
 
 
