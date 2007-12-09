@@ -125,9 +125,7 @@ public class DocUtil {
 				info.append("OPEN <");
 				info.append(elemML.getTag());
 				info.append("> - ");
-				info.append(elemML.getClass().getSimpleName());
-				info.append("@");
-				info.append(elemML.hashCode());
+				info.append(elemML.toString());
 				
 			} else if (es.getType() == ElementSpec.ContentType) {
 				String text = ((RunContentML) elemML).getText();
@@ -146,8 +144,8 @@ public class DocUtil {
 				}
 				
 				info.append(getTabSpace(depth + 1));
-				info.append("TEXT - RunContentML@");
-				info.append(elemML.hashCode());
+				info.append("TEXT - ");
+				info.append(elemML.toString());
 				info.append("[");
 				info.append(sb.toString());
 				info.append("]");
@@ -157,9 +155,7 @@ public class DocUtil {
 				info.append("CLOSE <");
 				info.append(elemML.getTag());
 				info.append("> - ");
-				info.append(elemML.getClass().getSimpleName());
-				info.append("@");
-				info.append(elemML.hashCode());
+				info.append(elemML.toString());
 			}
 			log.debug(info.toString());
 		}
