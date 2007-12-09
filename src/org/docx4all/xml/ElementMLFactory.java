@@ -44,12 +44,6 @@ import org.dom4j.tree.DefaultElement;
  *	@author Jojada Tirtowidjojo - 30/11/2007
  */
 public class ElementMLFactory {
-	public final static RunML IMPLIED_NEWLINE_RUNML;
-	
-	static {
-		IMPLIED_NEWLINE_RUNML = createRunML(org.docx4all.ui.main.Constants.NEWLINE, true);
-	}
-	
 	
 	public final static DocumentML createEmptyDocumentML() {
 		//====== Create Document ======
