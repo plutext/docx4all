@@ -32,9 +32,8 @@ import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.ParagraphML;
-import org.docx4all.xml.RunML;
 import org.docx4all.xml.RunContentML;
-import org.docx4all.xml.WordML;
+import org.docx4all.xml.RunML;
 
 public class WordMLDocument extends DefaultStyledDocument {
 	private static Logger log = Logger.getLogger(WordMLDocument.class);
@@ -102,9 +101,14 @@ public class WordMLDocument extends DefaultStyledDocument {
 		BlockElement paragraph = new BlockElement(document, a.copyAttributes());
 		a.removeAttributes(a);
 		
+		//Dummy Paragraph
+		a.addAttribute(WordMLStyleConstants.ElementMLAttribute, ElementML.DUMMY_PARAGRAPH);
+		BlockElement dummyParagraph = new BlockElement(paragraph, a.copyAttributes());
+		a.removeAttributes(a);
+		
 		//Run
 		a.addAttribute(WordMLStyleConstants.ElementMLAttribute, runML);
-		BlockElement run = new BlockElement(paragraph, a.copyAttributes());
+		BlockElement run = new BlockElement(dummyParagraph, a.copyAttributes());
 		a.removeAttributes(a);
 
 		//Text
@@ -116,6 +120,9 @@ public class WordMLDocument extends DefaultStyledDocument {
 		run.replace(0, 0, buff);
 		
 		buff[0] = run;
+		dummyParagraph.replace(0, 0, buff);
+		
+		buff[0] = dummyParagraph;
 		paragraph.replace(0, 0, buff);
 		
 		buff[0] = paragraph;
@@ -173,7 +180,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 				StringBuffer sb = new StringBuffer();
 				sb.append("Tag <");
 				sb.append(elem.getTag().getTagName());
-				sb.append("> BlockElement");
+				sb.append(">");
 				return sb.toString();
 			}
 			return super.getName();
@@ -203,7 +210,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 				StringBuffer sb = new StringBuffer();
 				sb.append("Tag <");
 				sb.append(elem.getTag().getTagName());
-				sb.append("> LeafElement");
+				sb.append(">");
 				return sb.toString();
 			}
 			return super.getName();
