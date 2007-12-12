@@ -50,7 +50,7 @@ public class ViewFactory implements javax.swing.text.ViewFactory {
 		ElementML elementML = WordMLStyleConstants.getElementML(attrs);
 
 		//TODO: Don't quite like this temporary solution
-		if (elementML instanceof ParagraphML && elementML.isDummy()) {
+		if (elementML == ElementML.IMPLIED_PARAGRAPH) {
 			theView = new ParagraphView(elem);
 		} else if (elementML instanceof RunML) {
 			theView = new RunView(elem);
