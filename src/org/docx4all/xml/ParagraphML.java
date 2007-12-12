@@ -49,6 +49,18 @@ public class ParagraphML extends ElementML {
 	}
 	
 	/**
+	 * An implied ElementML is an ElementML that
+	 * does not have a DOM element associated with it.
+	 * This kind of ElementML may still have a WordML.Tag.
+	 * 
+	 * @return true, if this is an implied ElementML
+	 *         false, otherwise
+	 */
+	public boolean isImplied() {
+		return this.paragraph == null;
+	}
+
+	/**
 	 * Gets the paragraph property element of this paragraph.
 	 * 
 	 * @return a ParagraphPropertiesML, if any
