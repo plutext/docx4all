@@ -40,13 +40,25 @@ public class RunContentML extends ElementML {
 		if (elem != null) {
 			this.tag = WordML.getTag(elem.getName());
 		} else {
-			//Dummy RunContentML is given this default tag
+			//default tag
 			this.tag = WordML.Tag.T;
 		}
 		this.isDummy = isDummy;
 		this.text = text;
 	}
 	
+	/**
+	 * An implied ElementML is an ElementML that
+	 * does not have a DOM element associated with it.
+	 * This kind of ElementML may still have a WordML.Tag.
+	 * 
+	 * @return true, if this is an implied ElementML
+	 *         false, otherwise
+	 */
+	public boolean isImplied() {
+		return this.element == null;
+	}
+
 	public String getText() {
 		return this.text;
 	}
