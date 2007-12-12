@@ -48,6 +48,18 @@ public class RunML extends ElementML {
 	}
 	
 	/**
+	 * An implied ElementML is an ElementML that
+	 * does not have a DOM element associated with it.
+	 * This kind of ElementML may still have a WordML.Tag.
+	 * 
+	 * @return true, if this is an implied ElementML
+	 *         false, otherwise
+	 */
+	public boolean isImplied() {
+		return this.run == null;
+	}
+
+	/**
 	 * Gets the run property element of this run element.
 	 * 
 	 * @return a RunPropertiesML, if any
