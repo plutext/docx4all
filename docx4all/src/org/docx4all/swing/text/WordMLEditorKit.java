@@ -20,6 +20,7 @@
 package org.docx4all.swing.text;
 
 import java.awt.Cursor;
+import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
@@ -27,8 +28,13 @@ import java.io.Writer;
 
 import javax.swing.Action;
 import javax.swing.JEditorPane;
+import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
+import javax.swing.text.Element;
+import javax.swing.text.MutableAttributeSet;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledEditorKit;
 import javax.swing.text.TextAction;
 
@@ -94,7 +100,12 @@ public class WordMLEditorKit extends StyledEditorKit {
 	 */
 	@Override
 	public Document createDefaultDocument() {
-		return new WordMLDocument();
+		Document doc = new WordMLDocument();
+		if (log.isDebugEnabled()) {
+			log.debug("createDefaultDocument():");
+			DocUtil.displayStructure(doc);
+		}
+		return doc;
 	}
 
 	@Override
@@ -119,6 +130,7 @@ public class WordMLEditorKit extends StyledEditorKit {
 		doc.createElementStructure(result.getElementSpecs());
 		
 		if (log.isDebugEnabled()) {
+			log.debug("read(): File = " + f.getAbsolutePath());
 			DocUtil.displayStructure(result.getElementSpecs());
 			DocUtil.displayStructure(doc);
 		}
@@ -205,6 +217,67 @@ public class WordMLEditorKit extends StyledEditorKit {
 	public Cursor getDefaultCursor() {
 		return defaultCursor;
 	}
+
+	public abstract static class StyledTextAction extends javax.swing.text.StyledEditorKit.StyledTextAction {
+        public StyledTextAction(String nm) {
+    	    super(nm);
+    	}
+        
+		protected final static void setAttributesToParagraph(JEditorPane editor,
+				AttributeSet attr, boolean replace) {
+			int p0 = editor.getSelectionStart();
+			int p1 = editor.getSelectionEnd();
+			WordMLDocument doc = (WordMLDocument) editor.getDocument();
+			
+			while (p0 <= p1) {
+				Element elem = doc.getParagraphMLElement(p0, false);
+				int start = elem.getStartOffset();
+				int end = elem.getEndOffset();
+				
+				doc.setParagraphAttributes(start, (end - start), attr, replace);
+				
+				p0 = end;
+				if (p0 == p1) {
+					//finish
+					p0 = p1 + 1;
+				}
+			}
+		}
+	}
+	
+    public static class AlignmentAction extends StyledTextAction {
+
+		/**
+		 * Creates a new AlignmentAction.
+		 *
+		 * @param nm the action name
+		 * @param a the alignment >= 0
+		 */
+    	private int _alignment;
+    	
+		public AlignmentAction(String name, int alignment) {
+		    super(name);
+		    this._alignment = alignment;
+		}
+
+        public void actionPerformed(ActionEvent e) {
+			JEditorPane editor = getEditor(e);
+			if (editor != null) {
+				int a = this._alignment;
+				if ((e != null) && (e.getSource() == editor)) {
+					String s = e.getActionCommand();
+					try {
+						a = Integer.parseInt(s, 10);
+					} catch (NumberFormatException nfe) {
+					}
+				}
+				MutableAttributeSet attr = new SimpleAttributeSet();
+				StyleConstants.setAlignment(attr, a);
+				setAttributesToParagraph(editor, attr, false);
+			}
+		}
+    	    
+	}// AlignmentAction inner class
 
 }// WordMLEditorKit class
 
