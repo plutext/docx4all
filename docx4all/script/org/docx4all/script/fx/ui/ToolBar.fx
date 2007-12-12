@@ -35,20 +35,24 @@ import javafx.ui.ToolBar as JFXToolBar;
 import javafx.ui.Widget;
 
 //Java objects passed by ScriptEngine into scripting environment
+var toolBarStates = toolBarStates:<<org.docx4all.ui.main.ToolBarStates>>;
 var fileMenu = fileMenu:<<org.docx4all.ui.menu.FileMenu>>;
 var editMenu = editMenu:<<org.docx4all.ui.menu.EditMenu>>;
 var formatMenu = formatMenu:<<org.docx4all.ui.menu.FormatMenu>>;
 
 //Global variables
 var alignLeftButton = ToggleButton {
+    enabledPropertyName: toolBarStates.ALIGNMENT_PROPERTY_NAME
     swingAction: formatMenu.getAction(formatMenu.ALIGN_LEFT_ACTION_NAME)
 };
 
 var alignCtrButton = ToggleButton {
+    enabledPropertyName: toolBarStates.ALIGNMENT_PROPERTY_NAME
     swingAction: formatMenu.getAction(formatMenu.ALIGN_CENTER_ACTION_NAME)
 };
 
 var alignRightButton = ToggleButton {
+    enabledPropertyName: toolBarStates.ALIGNMENT_PROPERTY_NAME
     swingAction: formatMenu.getAction(formatMenu.ALIGN_RIGHT_ACTION_NAME)
 };
 
@@ -71,13 +75,13 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
     }
 
     var saveFileButton = Button {
-        enabledPropertyName: "documentDirty"
+        enabledPropertyName: toolBarStates.DOC_DIRTY_PROPERTY_NAME
         swingAction: fileMenu.getAction(fileMenu.SAVE_FILE_ACTION_NAME)
         enabled: false
     }
     
     var saveAllFilesButton = Button {
-        enabledPropertyName: "allDocumentDirty"
+        enabledPropertyName: toolBarStates.ALL_DOC_DIRTY_PROPERTY_NAME
         swingAction: fileMenu.getAction(fileMenu.SAVE_ALL_FILES_ACTION_NAME)
         enabled: false
     }
@@ -142,31 +146,47 @@ TOOL_BAR_3:JFXToolBar = JFXToolBar {
         var fontNames = 
             GraphicsEnvironment.getLocalGraphicsEnvironment().
                   getAvailableFontFamilyNames()
+        var: self
         selection: select indexof font from font in fontNames
                    where font.startsWith("Times")
         cells: foreach (font in fontNames)
                ComboBoxCell { text: font }
+            
+        action: operation() {
+            var font = self.cells[self.selection].text;
+            toolBarStates.setFontFamily(font);
+        }
+        
+        propertyNameToListen: toolBarStates.FONT_FAMILY_PROPERTY_NAME
         swingAction: formatMenu.getAction(formatMenu.FONT_FAMILY_ACTION_NAME)
     }
     
     var fontSizeCombo = ComboBox {
         var fontSizes = ["8", "10", "12", "14", "16", "18", "20", "22", "24"]
-            
-        selection: 2
+        var: self
+        selection: 1
         cells: foreach (size in fontSizes)
                ComboBoxCell { text: size }
+        action: operation() {
+            var size = self.cells[self.selection].text;
+            toolBarStates.setFontSize(size);
+        }
+        propertyNameToListen: toolBarStates.FONT_SIZE_PROPERTY_NAME
         swingAction: formatMenu.getAction(formatMenu.FONT_SIZE_ACTION_NAME)
     }
     
     var boldButton = ToggleButton {
+        enabledPropertyName: toolBarStates.FONT_BOLD_PROPERTY_NAME
         swingAction: formatMenu.getAction(formatMenu.BOLD_ACTION_NAME)
     }
     
     var italicButton = ToggleButton {
+        enabledPropertyName: toolBarStates.FONT_ITALIC_PROPERTY_NAME
         swingAction: formatMenu.getAction(formatMenu.ITALIC_ACTION_NAME)
     }
     
     var underlineButton = ToggleButton {
+        enabledPropertyName: toolBarStates.FONT_UNDERLINED_PROPERTY_NAME
         swingAction: formatMenu.getAction(formatMenu.UNDERLINE_ACTION_NAME)
     }
     
