@@ -42,7 +42,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
-import javax.swing.text.Document;
+import javax.swing.text.AbstractDocument;
 
 import org.docx4all.script.FxScriptUIHelper;
 import org.docx4all.swing.text.WordMLDocument;
@@ -91,7 +91,7 @@ public class WordMLEditor extends SingleFrameApplication {
         		(JInternalFrame) SwingUtilities.getAncestorOfClass(
         				JInternalFrame.class, 
         				editor);
-        	
+        	iframe.setVisible(true);
         } else {
         	iframe = new JInternalFrame(f.getName(), true, true, true, true);
         	iframe.addInternalFrameListener(_internalFrameListener);
@@ -108,16 +108,17 @@ public class WordMLEditor extends SingleFrameApplication {
         	editor.select(0,0);
         	
         	_editorMap.put(f.getAbsolutePath(), editor);
+        	
+           	iframe.show();
         }
         
-		try {
-        	iframe.show();
+    	try {
+    		iframe.setSelected(true);
 			iframe.setIcon(false);
 			iframe.setMaximum(true);
-			iframe.setSelected(true);
 		} catch (PropertyVetoException exc) {
 			// do nothing
-		}
+		}        	
     }
     
     public JDesktopPane getDesktopPane() {
@@ -139,15 +140,16 @@ public class WordMLEditor extends SingleFrameApplication {
     private JEditorPane createEditor(File f) {
     	JEditorPane editor = new JTextPane();
     	editor.addFocusListener(_toolbarStates);
+    	editor.addCaretListener(_toolbarStates);
     	
     	WordMLEditorKit editorKit = new WordMLEditorKit();
     	editor.setEditorKit(editorKit);
     	
-    	Document doc = null;
+    	AbstractDocument doc = null;
     	if (f.exists()) {
     		try {
     			doc = editorKit.read(f);
-    			doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, f.getAbsoluteFile());
+    			doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, f.getAbsolutePath());
     			
     		} catch (IOException exc) {
     			exc.printStackTrace();
@@ -157,7 +159,7 @@ public class WordMLEditor extends SingleFrameApplication {
     				JOptionPane.ERROR_MESSAGE);
     		}
     	} else {
-    		doc = editorKit.createDefaultDocument();
+    		doc = (AbstractDocument) editorKit.createDefaultDocument();
     	}
     	
     	doc.addDocumentListener(_toolbarStates);
