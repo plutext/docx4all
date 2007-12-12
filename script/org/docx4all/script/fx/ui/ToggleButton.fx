@@ -19,15 +19,23 @@
 
 package org.docx4all.script.fx.ui;
 
+import org.docx4all.ui.main.ToolBarStates;
+
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+
 import javax.swing.Action;
+import javax.swing.text.StyleConstants;
 
 import javafx.ui.ToggleButton as JFXToggleButton;
 import javafx.ui.Image;
 
 public class ToggleButton extends JFXToggleButton {
-    attribute swingAction:<<javax.swing.Action>>;
+    attribute enabledPropertyName: String?;
+    attribute swingAction:<<javax.swing.Action>>?;
 
     private operation setSwingAction(action:<<javax.swing.Action>>);
+    private attribute stateListener: <<java.beans.PropertyChangeListener>>;
 }
 
 operation ToggleButton.setSwingAction(action:<<javax.swing.Action>>) {
@@ -56,8 +64,57 @@ trigger on ToggleButton.swingAction = newAction {
     setSwingAction(newAction);
 }
 
+trigger on ToggleButton.enabledPropertyName[oldName] = newName {
+    //Java objects passed by ScriptEngine into scripting environment
+    var toolBarStates = toolBarStates:<<org.docx4all.ui.main.ToolBarStates>>;
+    
+    if (oldName <> null) {
+        toolBarStates.removePropertyChangeListener((String) oldName, stateListener);
+    }
+    if (newName <> null) {
+        toolBarStates.addPropertyChangeListener((String) newName, stateListener);
+    }
+}
+
 trigger on new ToggleButton {
     setSwingAction(swingAction);
+    
+    var self = this;
+    this.stateListener =  new PropertyChangeListener {
+        operation propertyChange(evt:PropertyChangeEvent) {
+            //Java objects passed by ScriptEngine into scripting environment
+            var toolBarStates = toolBarStates:<<org.docx4all.ui.main.ToolBarStates>>;
+
+            if (toolBarStates.ALIGNMENT_PROPERTY_NAME == evt.getPropertyName()) {
+                var newValue = ((Integer) evt.getNewValue()).intValue();
+            
+                //Java objects passed by ScriptEngine into scripting environment
+                var fm = formatMenu:<<org.docx4all.ui.menu.FormatMenu>>;
+            
+                if (fm.getAction(fm.ALIGN_LEFT_ACTION_NAME) == self.swingAction
+                    and newValue == StyleConstants.ALIGN_LEFT) {
+                    self.selected = true;
+                
+                } else if (fm.getAction(fm.ALIGN_CENTER_ACTION_NAME) == self.swingAction
+                        and newValue == StyleConstants.ALIGN_CENTER) {
+                    self.selected = true;
+                
+                } else if (fm.getAction(fm.ALIGN_RIGHT_ACTION_NAME) == self.swingAction
+                        and newValue == StyleConstants.ALIGN_RIGHT) {
+                    self.selected = true;
+                }
+            } else {
+                self.selected = ((Boolean) evt.getNewValue()).booleanValue();
+            }
+        }
+    };// stateListener
+    
+    if (enabledPropertyName <> null) {
+        //Java objects passed by ScriptEngine into scripting environment
+        var toolBarStates = toolBarStates:<<org.docx4all.ui.main.ToolBarStates>>;
+        toolBarStates.addPropertyChangeListener((String) enabledPropertyName, this.stateListener);
+    }
+    
 }
 
 
