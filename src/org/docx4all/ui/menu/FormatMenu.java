@@ -21,6 +21,16 @@ package org.docx4all.ui.menu;
 
 import java.awt.event.ActionEvent;
 
+import javax.swing.ButtonGroup;
+import javax.swing.JMenuItem;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledEditorKit;
+import javax.swing.text.StyledEditorKit.StyledTextAction;
+
+import org.docx4all.swing.text.WordMLEditorKit;
+import org.docx4all.ui.main.ToolBarStates;
+import org.docx4all.ui.main.WordMLEditor;
+import org.docx4all.util.DocUtil;
 import org.jdesktop.application.Action;
 
 /**
@@ -114,6 +124,8 @@ public class FormatMenu extends UIMenu {
 		ALIGN_RIGHT_ACTION_NAME,
 	};
 	
+	private final ButtonGroup _alignmentButtonGroup = new ButtonGroup();  
+	
 	public static FormatMenu getInstance() {
 		return _instance;
 	}
@@ -132,47 +144,94 @@ public class FormatMenu extends UIMenu {
 		return FORMAT_MENU_NAME;
 	}
 	
+    protected JMenuItem createMenuItem(String actionName) {
+    	JMenuItem theItem = super.createMenuItem(actionName);
+    	
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        ToolBarStates toolbarStates = editor.getToolbarStates();
+        
+    	if (ALIGN_LEFT_ACTION_NAME.equals(actionName)
+    		|| ALIGN_CENTER_ACTION_NAME.equals(actionName)
+    		|| ALIGN_RIGHT_ACTION_NAME.equals(actionName)) {
+    		theItem = new JMenuItem();
+    		theItem.setAction(getAction(actionName));
+    		_alignmentButtonGroup.add(theItem);
+    		
+    		MenuItemStateManager listener = new MenuItemStateManager(theItem);
+    		toolbarStates.addPropertyChangeListener(
+    				ToolBarStates.ALIGNMENT_PROPERTY_NAME, 
+    				listener);
+    	}
+    	
+    	return theItem;
+    }
+    
 	@Action public void font() {
 		//TODO:Font Menu Dialog
 	}
 	
-	@Action public void bold() {
-		//TODO:Bold action
+	@Action public void bold(ActionEvent evt) {
+		StyledTextAction action = new StyledEditorKit.BoldAction();
+		action.actionPerformed(evt);
 	}
 	
-	@Action public void italic() {
-		//TODO:Italic action
+	@Action public void italic(ActionEvent evt) {
+		StyledTextAction action = new StyledEditorKit.ItalicAction();
+		action.actionPerformed(evt);
 	}
 	
-	@Action public void underline() {
-		//TODO:Underline action
-		System.out.println("FormatMenu.underline():");
+	@Action public void underline(ActionEvent evt) {
+		StyledTextAction action = new StyledEditorKit.UnderlineAction();
+		action.actionPerformed(evt);
 	}
 	
-	@Action public void alignLeft() {
-		//TODO:Align Left paragraph
-		System.out.println("FormatMenu.alignLeft():");
+	@Action public void alignLeft(ActionEvent evt) {
+		WordMLEditorKit.AlignmentAction action = 
+			new WordMLEditorKit.AlignmentAction(
+				ALIGN_LEFT_ACTION_NAME, 
+				StyleConstants.ALIGN_LEFT);
+		action.actionPerformed(evt);
 	}
 	
-	@Action public void alignCenter() {
-		//TODO:Align Center paragraph
+	@Action public void alignCenter(ActionEvent evt) {
+		WordMLEditorKit.AlignmentAction action = 
+			new WordMLEditorKit.AlignmentAction(
+				ALIGN_CENTER_ACTION_NAME, 
+				StyleConstants.ALIGN_CENTER);
+		action.actionPerformed(evt);
+		
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+		DocUtil.displayStructure(editor.getCurrentEditor().getDocument());
 	}
 	
-	@Action public void alignRight() {
-		//TODO:Align Right paragraph
+	@Action public void alignRight(ActionEvent evt) {
+		WordMLEditorKit.AlignmentAction action = 
+			new WordMLEditorKit.AlignmentAction(
+				ALIGN_RIGHT_ACTION_NAME,
+				StyleConstants.ALIGN_RIGHT);
+		action.actionPerformed(evt);
 	}
 	
 	@Action public void paragraphStyle(ActionEvent actionEvent) {
-		System.out.println("FormatMenu: paragraphStyle() - source=" + actionEvent.getSource());
-		(new Exception()).printStackTrace();
+		;//TODO: paragraphStyle action
 	}
 	
 	@Action public void fontFamily(ActionEvent actionEvent) {
-		System.out.println("FormatMenu: fontFamily() - source=" + actionEvent.getSource());
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        ToolBarStates toolbarStates = editor.getToolbarStates();
+        
+		StyledEditorKit.FontFamilyAction action =
+			new StyledEditorKit.FontFamilyAction(FONT_FAMILY_ACTION_NAME, toolbarStates.getFontFamily());
+		action.actionPerformed(actionEvent);
 	}
 	
 	@Action public void fontSize(ActionEvent actionEvent) {
-		System.out.println("FormatMenu: fontSize() - source=" + actionEvent.getSource());
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        ToolBarStates toolbarStates = editor.getToolbarStates();
+        
+		StyledEditorKit.FontSizeAction action =
+			new StyledEditorKit.FontSizeAction(FONT_SIZE_ACTION_NAME, toolbarStates.getFontSize());
+		action.actionPerformed(actionEvent);
 	}
 	
 }// FormatMenu class
