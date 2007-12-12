@@ -19,12 +19,71 @@
 
 package org.docx4all.script.fx.ui;
 
+import org.docx4all.ui.main.ToolBarStates;
+
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+
 import javafx.ui.ComboBox as JFXComboBox;
 
 public class ComboBox extends JFXComboBox {
-    public attribute swingAction:<<javax.swing.Action>>;
+    attribute propertyNameToListen: String?;
+    attribute swingAction:<<javax.swing.Action>>?;
+    
+    private operation setSwingAction(action:<<javax.swing.Action>>);
+    private attribute stateListener: <<java.beans.PropertyChangeListener>>;
 }
 
 trigger on ComboBox.swingAction = newAction {
      ((<<javax.swing.JComboBox>>) getComponent()).addActionListener(newAction);
 }
+
+trigger on ComboBox.propertyNameToListen[oldName] = newName {
+    //Java objects passed by ScriptEngine into scripting environment
+    var toolBarStates = toolBarStates:<<org.docx4all.ui.main.ToolBarStates>>;
+    
+    if (oldName <> null) {
+        toolBarStates.removePropertyChangeListener((String) oldName, stateListener);
+    }
+    if (newName <> null) {
+        toolBarStates.addPropertyChangeListener((String) newName, stateListener);
+    }
+}
+
+trigger on (new ComboBox) {
+    var self = this;
+    this.stateListener =  new PropertyChangeListener {
+        operation propertyChange(evt:PropertyChangeEvent) {
+            var newSelectionText = (String) evt.getNewValue();
+            var idx = 
+                select indexof item from item in self.cells
+                    where item.text == newSelectionText;                    
+            self.selection = idx;
+        }
+    };// stateListener
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
