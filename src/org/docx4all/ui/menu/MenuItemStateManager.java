@@ -23,11 +23,17 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
 import javax.swing.JMenuItem;
+import javax.swing.text.StyleConstants;
+
+import org.apache.log4j.Logger;
+import org.docx4all.ui.main.ToolBarStates;
 
 /**
  *	@author Jojada Tirtowidjojo - 06/12/2007
  */
 public class MenuItemStateManager implements PropertyChangeListener {
+	private static Logger log = Logger.getLogger(MenuItemStateManager.class);
+	
 	private final JMenuItem _menuItem;
 	
 	public MenuItemStateManager(JMenuItem item) {
@@ -41,8 +47,41 @@ public class MenuItemStateManager implements PropertyChangeListener {
      */
 
     public void propertyChange(PropertyChangeEvent evt) {
-    	boolean newValue = ((Boolean) evt.getNewValue()).booleanValue();
-    	_menuItem.setEnabled(newValue);
+    	String name = evt.getPropertyName();
+    	
+    	if (log.isDebugEnabled()) {
+    		log.debug("propertyChange(): evt.getPropertyName()=" 
+    			+ name 
+    			+ " new value=" 
+    			+ evt.getNewValue());
+    	}
+    	
+    	if (ToolBarStates.DOC_DIRTY_PROPERTY_NAME.equals(name)
+    		|| ToolBarStates.ALL_DOC_DIRTY_PROPERTY_NAME.equals(name)) {
+        	boolean newValue = ((Boolean) evt.getNewValue()).booleanValue();
+        	_menuItem.setEnabled(newValue);
+        	
+    	} else if (ToolBarStates.ALIGNMENT_PROPERTY_NAME.equals(name)) {
+    		Integer newValue = (Integer) evt.getNewValue();
+    		
+    		FormatMenu fm = FormatMenu.getInstance();
+    		if (fm.getAction(FormatMenu.ALIGN_LEFT_ACTION_NAME) == _menuItem.getAction()
+    				&& newValue.intValue() == StyleConstants.ALIGN_LEFT) {
+    			_menuItem.setEnabled(false);
+    			
+    		} else if (fm.getAction(FormatMenu.ALIGN_CENTER_ACTION_NAME) == _menuItem.getAction()
+    					&& newValue.intValue() == StyleConstants.ALIGN_CENTER) {
+    			_menuItem.setEnabled(false);
+    			
+    		} else if (fm.getAction(FormatMenu.ALIGN_RIGHT_ACTION_NAME) == _menuItem.getAction()
+    					&& newValue.intValue() == StyleConstants.ALIGN_RIGHT) {
+    			_menuItem.setEnabled(false);
+   			
+    		} else {
+    			_menuItem.setEnabled(true);
+    		}
+    	}
+    	
     }
 
 }// MenuItemStateManager class
