@@ -44,6 +44,25 @@ public class WordMLDocument extends DefaultStyledDocument {
 		super();
 	}
 	
+	public Element getParagraphMLElement(int pos, boolean impliedParagraph) {
+		Element elem = getRunMLElement(pos);
+		if (elem != null) {
+			elem = elem.getParentElement();
+			if (!impliedParagraph) {
+				elem = elem.getParentElement();
+			}
+		}
+		return elem;
+	}
+	
+	public Element getRunMLElement(int pos) {
+		Element elem = getCharacterElement(pos);
+		if (elem != null) {
+			elem = elem.getParentElement();
+		}
+		return elem;
+	}
+	
 	protected void createElementStructure(List<ElementSpec> list) {
 		ElementSpec[] specs = new ElementSpec[list.size()];
 		list.toArray(specs);
@@ -101,14 +120,14 @@ public class WordMLDocument extends DefaultStyledDocument {
 		BlockElement paragraph = new BlockElement(document, a.copyAttributes());
 		a.removeAttributes(a);
 		
-		//Dummy Paragraph
-		a.addAttribute(WordMLStyleConstants.ElementMLAttribute, ElementML.DUMMY_PARAGRAPH);
-		BlockElement dummyParagraph = new BlockElement(paragraph, a.copyAttributes());
+		//Implied Paragraph
+		a.addAttribute(WordMLStyleConstants.ElementMLAttribute, ElementML.IMPLIED_PARAGRAPH);
+		BlockElement impliedParagraph = new BlockElement(paragraph, a.copyAttributes());
 		a.removeAttributes(a);
 		
 		//Run
 		a.addAttribute(WordMLStyleConstants.ElementMLAttribute, runML);
-		BlockElement run = new BlockElement(dummyParagraph, a.copyAttributes());
+		BlockElement run = new BlockElement(impliedParagraph, a.copyAttributes());
 		a.removeAttributes(a);
 
 		//Text
@@ -120,9 +139,9 @@ public class WordMLDocument extends DefaultStyledDocument {
 		run.replace(0, 0, buff);
 		
 		buff[0] = run;
-		dummyParagraph.replace(0, 0, buff);
+		impliedParagraph.replace(0, 0, buff);
 		
-		buff[0] = dummyParagraph;
+		buff[0] = impliedParagraph;
 		paragraph.replace(0, 0, buff);
 		
 		buff[0] = paragraph;
