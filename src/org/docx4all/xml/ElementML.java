@@ -27,11 +27,11 @@ import org.docx4all.ui.main.Constants;
  *	@author Jojada Tirtowidjojo - 30/11/2007
  */
 public abstract class ElementML {
-	public final static ParagraphML DUMMY_PARAGRAPH = 
+	public final static ParagraphML IMPLIED_PARAGRAPH = 
 		new ParagraphML(null, true);
-	public final static RunML DUMMY_RUN = 
+	public final static RunML IMPLIED_RUN = 
 		new RunML(null, true);
-	public final static RunContentML DUMMY_NEWLINE = 
+	public final static RunContentML IMPLIED_NEWLINE = 
 		new RunContentML(null, Constants.NEWLINE, true);
 	
 	protected boolean isDummy;
@@ -39,8 +39,26 @@ public abstract class ElementML {
 	protected ElementML parent;
 	protected List<ElementML> children;
 	
+	/**
+	 * An implied ElementML is an ElementML that
+	 * does not have a DOM element associated with it.
+	 * This kind of ElementML may still have a WordML.Tag.
+	 * 
+	 * @return true, if this is an implied ElementML
+	 *         false, otherwise
+	 */
+	public abstract boolean isImplied();
+	
+	/**
+	 * A dummy ElementML is an ElementML that is implied 
+	 * or declared as dummy.
+	 * This kind of ElementML may still have a WordML.Tag.
+	 * 
+	 * @return true, if this is an implied ElementML
+	 *         false, otherwise
+	 */
 	public boolean isDummy() {
-		return isDummy;
+		return isImplied() || isDummy;
 	}
 	
 	public WordML.Tag getTag() {
@@ -79,7 +97,12 @@ public abstract class ElementML {
 	}
 	
 	public String toString() {
-		String dummy = isDummy() ? "DUMMY_" : "";
+		String dummy = "";
+		if (isImplied()) {
+			dummy = "IMPLIED_";
+		} else if (isDummy()) {
+			dummy = "DUMMY_";
+		}
 		
 		StringBuffer sb = new StringBuffer(dummy);
 		sb.append(getClass().getSimpleName());
@@ -88,6 +111,7 @@ public abstract class ElementML {
 		
 		return sb.toString();
 	}
+	
 } //ElementML class
 
 
