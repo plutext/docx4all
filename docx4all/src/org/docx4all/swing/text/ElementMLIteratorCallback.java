@@ -118,10 +118,11 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		openElementSpec(elemAttrs);
 		_paragraphAttrs = elemAttrs;
 		
-		//Insert a DUMMY_PARAGRAPH inside every ParagraphML BLOCK
+		//Insert IMPLIED_PARAGRAPH inside every ParagraphML BLOCK
 		elemAttrs = new SimpleAttributeSet();
-		WordMLStyleConstants.setElementML(elemAttrs, ElementML.DUMMY_PARAGRAPH);
-		openElementSpec(elemAttrs);		
+		WordMLStyleConstants.setElementML(elemAttrs,
+				ElementML.IMPLIED_PARAGRAPH);
+		openElementSpec(elemAttrs);
 	}
 	
 	private void closeElementSpec(ParagraphML paragraphML) {
@@ -132,13 +133,13 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		//TODO: Check first whether this paragraph already
 		//ends with a newline character.
 		
-		//End every paragraph with a DUMMY_RUN and DUMMY_NEWLINE
-		RunML runML = ElementML.DUMMY_RUN;
+		//End every paragraph with a IMPLIED_RUN and IMPLIED_NEWLINE
+		RunML runML = ElementML.IMPLIED_RUN;
 		SimpleAttributeSet runAttrs = new SimpleAttributeSet();
 		WordMLStyleConstants.setElementML(runAttrs, runML);
 		openElementSpec(runAttrs);
 		
-		RunContentML rcML = (RunContentML) ElementML.DUMMY_NEWLINE;
+		RunContentML rcML = (RunContentML) ElementML.IMPLIED_NEWLINE;
 		
 		SimpleAttributeSet tempAttrs = new SimpleAttributeSet();
 		WordMLStyleConstants.setElementML(tempAttrs, rcML);
@@ -146,9 +147,9 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		
 		closeElementSpec(runAttrs.copyAttributes());
 		
-		//Remember to close the inserted DUMMY_PARAGRAPH
+		//Remember to close the inserted IMPLIED_PARAGRAPH
 		tempAttrs = new SimpleAttributeSet();
-		WordMLStyleConstants.setElementML(tempAttrs, ElementML.DUMMY_PARAGRAPH);
+		WordMLStyleConstants.setElementML(tempAttrs, ElementML.IMPLIED_PARAGRAPH);
 		closeElementSpec(tempAttrs);
 		
 		//Close ParagraphML BLOCK
@@ -198,12 +199,12 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 			WordMLStyleConstants.setElementML(elemAttrs, runML);
 			closeElementSpec(runML, false);
 			
-			//Close the inserted DUMMY_PARAGRAPH
+			//Close the inserted IMPLIED_PARAGRAPH
 			elemAttrs = new SimpleAttributeSet();
-			WordMLStyleConstants.setElementML(elemAttrs, ElementML.DUMMY_PARAGRAPH);
+			WordMLStyleConstants.setElementML(elemAttrs, ElementML.IMPLIED_PARAGRAPH);
 			closeElementSpec(elemAttrs);
 			
-			//Open a new DUMMY_PARAGRAPH
+			//Open a new IMPLIED_PARAGRAPH
 			openElementSpec(elemAttrs.copyAttributes());
 			
 			//Open a copy of RUN block
