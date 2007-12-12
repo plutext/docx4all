@@ -76,7 +76,6 @@ trigger on (new Button) {
     this.stateListener =  new PropertyChangeListener {
         operation propertyChange(evt:PropertyChangeEvent) {
             self.enabled = ((Boolean) evt.getNewValue()).booleanValue();
-            <<java.lang.System>>.out.println("Button.fx: new property value = {self.enabled}");
         }
     };// stateListener
     
