@@ -42,6 +42,18 @@ public class DocumentML extends ElementML {
 		initChildren();
 	}
 
+	/**
+	 * An implied ElementML is an ElementML that
+	 * does not have a DOM element associated with it.
+	 * This kind of ElementML may still have a WordML.Tag.
+	 * 
+	 * @return true, if this is an implied ElementML
+	 *         false, otherwise
+	 */
+	public boolean isImplied() {
+		return this.doc == null;
+	}
+
 	private void initChildren() {
 		List bodyKids = doc.getBody();
 		if (!bodyKids.isEmpty()) {
