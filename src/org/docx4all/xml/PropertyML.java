@@ -53,6 +53,18 @@ public class PropertyML extends ElementML {
 		initAttributeTable();
 	}
 	
+	/**
+	 * An implied ElementML is an ElementML that
+	 * does not have a DOM element associated with it.
+	 * This kind of ElementML may still have a WordML.Tag.
+	 * 
+	 * @return true, if this is an implied ElementML
+	 *         false, otherwise
+	 */
+	public boolean isImplied() {
+		return this.elem == null;
+	}
+
 	public String getAttributeValue(WordML.Attribute key) {
 		return getAttributeML(key).getValue();
 	}
