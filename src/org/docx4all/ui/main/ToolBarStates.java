@@ -27,10 +27,15 @@ import java.util.Hashtable;
 
 import javax.swing.JEditorPane;
 import javax.swing.JInternalFrame;
+import javax.swing.event.CaretEvent;
+import javax.swing.event.CaretListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
+import javax.swing.text.Element;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 
 import org.apache.log4j.Logger;
 import org.docx4all.util.SwingUtil;
@@ -38,7 +43,7 @@ import org.docx4all.util.SwingUtil;
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
  */
-public class ToolBarStates extends InternalFrameAdapter implements FocusListener, DocumentListener {
+public class ToolBarStates extends InternalFrameAdapter implements FocusListener, DocumentListener, CaretListener {
 	private static Logger log = Logger.getLogger(ToolBarStates.class);
 	
 	/**
@@ -50,14 +55,32 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
 	public final static String DOC_DIRTY_PROPERTY_NAME = "documentDirty";
 	public final static String ALL_DOC_DIRTY_PROPERTY_NAME = "allDocumentDirty";
 	
+	public final static String FONT_FAMILY_PROPERTY_NAME = "fontFamily";
+	public final static String FONT_SIZE_PROPERTY_NAME = "fontSize";
+	public final static String FONT_BOLD_PROPERTY_NAME = "fontBold";
+	public final static String FONT_ITALIC_PROPERTY_NAME = "fontItalic";
+	public final static String FONT_UNDERLINED_PROPERTY_NAME = "fontUnderlined";
+	
+	public final static String PARAGRAPH_STYLE_PROPERTY_NAME = "paragraphStyle";
+	public final static String ALIGNMENT_PROPERTY_NAME = "alignment";
 	
 	private final Hashtable<JEditorPane, Boolean> _dirtyTable;
 	private volatile JEditorPane _currentEditor;
+	private volatile String _fontFamily;
+	private volatile int _fontSize;
+	private volatile boolean _fontBold, _fontItalic, _fontUnderlined;
+	
+	private volatile String _paraStyle;
+	private volatile int _alignment;
 	
 	private PropertyChangeSupport changeSupport = null;
 	
 	public ToolBarStates() {
 		_dirtyTable = new Hashtable<JEditorPane, Boolean>(5);
+		_fontBold = false;
+		_fontItalic = false;
+		_fontUnderlined = false;
+		_alignment = -1;
 	}
 	
 	public boolean isDocumentDirty() {
@@ -107,6 +130,131 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
 		newDirty = Boolean.valueOf(dirty);
 		firePropertyChange(ALL_DOC_DIRTY_PROPERTY_NAME, Boolean.valueOf(oldAllDirty), newDirty);
 	}
+	
+	public String getParagraphStyle() {
+		return _paraStyle;
+	}
+	
+	public void setParagraphStyle(String paraStyle) {
+		if (log.isDebugEnabled()) {
+			log.debug("setParagraphStyle(): _paraStyle = " + _paraStyle + " fontFamily param = " + paraStyle);
+		}
+	
+		if (_paraStyle == paraStyle
+			|| (_paraStyle != null && _paraStyle.equals(paraStyle))) {
+			return;
+		}
+		
+		String oldValue = _paraStyle;
+		_paraStyle = paraStyle;
+		firePropertyChange(PARAGRAPH_STYLE_PROPERTY_NAME, oldValue, paraStyle);
+	}
+	
+	public int getAlignment() {
+		return _alignment;
+	}
+	
+	public void setAlignment(int alignment) {
+		if (log.isDebugEnabled()) {
+			log.debug("setAlignment(): _alignment = " + _alignment + " alignment param = " + alignment);
+		}
+	
+		if (_alignment == alignment
+			|| alignment < StyleConstants.ALIGN_LEFT
+			|| alignment > StyleConstants.ALIGN_JUSTIFIED) {
+			return;
+		}
+		int oldValue = _alignment;
+		_alignment = alignment;
+		firePropertyChange(
+			ALIGNMENT_PROPERTY_NAME, 
+			Integer.valueOf(oldValue), 
+			Integer.valueOf(alignment));
+	}
+	
+	public String getFontFamily() {
+		return _fontFamily;
+	}
+	
+	public void setFontFamily(String fontFamily) {
+		if (log.isDebugEnabled()) {
+			log.debug("setFontFamily(): _fontFamily = " + _fontFamily + " fontFamily param = " + fontFamily);
+		}
+	
+		if (_fontFamily == fontFamily
+			|| (_fontFamily != null && _fontFamily.equals(fontFamily))) {
+			return;
+		}
+		
+		String oldValue = _fontFamily;
+		_fontFamily = fontFamily;
+		firePropertyChange(FONT_FAMILY_PROPERTY_NAME, oldValue, fontFamily);
+	}
+	
+	public int getFontSize() {
+		return _fontSize;
+	}
+	
+	public void setFontSize(String fontSize) {
+		setFontSize(Integer.parseInt(fontSize));
+	}
+	
+	public void setFontSize(int fontSize) {
+		if (log.isDebugEnabled()) {
+			log.debug("setFontSize(): _fontSize = " + _fontSize + " fontSize param = " + fontSize);
+		}
+	
+		if (_fontSize == fontSize) {
+			return;
+		}
+		int oldValue = _fontSize;
+		_fontSize = fontSize;
+		firePropertyChange(
+			FONT_SIZE_PROPERTY_NAME, Integer.toString(oldValue), Integer.toString(fontSize));
+	}
+	
+	public boolean isFontBold() {
+		return _fontBold;
+	}
+	
+	public void setFontBold(boolean bold) {
+		if (log.isDebugEnabled()) {
+			log.debug("setFontBold(): _fontBold = " + _fontBold + " bold param = " + bold);
+		}
+	
+		if (_fontBold == bold) {
+			return;
+		}
+		boolean oldValue = _fontBold;
+		_fontBold = bold;
+		firePropertyChange(FONT_BOLD_PROPERTY_NAME, oldValue, bold);
+	}
+	
+	public boolean isFontItalic() {
+		return _fontItalic;
+	}
+	
+	public void setFontItalic(boolean italic) {
+		if (_fontItalic == italic) {
+			return;
+		}
+		boolean oldValue = _fontItalic;
+		_fontItalic = italic;
+		firePropertyChange(FONT_ITALIC_PROPERTY_NAME, oldValue, italic);
+	}
+	
+	public boolean isFontUnderlined() {
+		return _fontUnderlined;
+	}
+	
+	public void setFontUnderlined(boolean underlined) {
+		if (_fontUnderlined == underlined) {
+			return;
+		}
+		boolean oldValue = _fontUnderlined;
+		_fontUnderlined = underlined;
+		firePropertyChange(FONT_UNDERLINED_PROPERTY_NAME, oldValue, underlined);
+	}	
 	
 	public JEditorPane getCurrentEditor() {
 		return _currentEditor;
@@ -261,6 +409,32 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
 		}
 	}
 
+    private void setFormatInfo(JEditorPane editor) {
+    	StyledDocument doc = (StyledDocument) editor.getDocument();
+    	
+    	int pos = Math.min(editor.getSelectionStart(), editor.getSelectionEnd());
+    	Element paragraph = doc.getParagraphElement(pos);
+    	Element text = null;
+	    // If nothing is selected, get the attributes from the character
+	    // before the start of the selection, otherwise get the attributes
+	    // from the character element at the start of the selection.
+	    if (paragraph.getStartOffset() == pos 
+	    	|| editor.getSelectionStart() != editor.getSelectionEnd()) {
+			// Get the attributes from the character at the selection
+			// if in a different paragrah!
+	    	text = doc.getCharacterElement(pos);
+		} else {
+			text = doc.getCharacterElement(Math.max(pos-1, 0));
+		}
+  
+	    setFontFamily(StyleConstants.getFontFamily(text.getAttributes()));
+	    setFontSize(StyleConstants.getFontSize(text.getAttributes()));
+	    setFontBold(StyleConstants.isBold(text.getAttributes()));
+	    setFontItalic(StyleConstants.isItalic(text.getAttributes()));
+	    setFontUnderlined(StyleConstants.isUnderline(text.getAttributes()));
+	    
+	    setAlignment(StyleConstants.getAlignment(paragraph.getAttributes()));
+    }
 
 	// ============================
 	// FocusListener Implementation
@@ -276,6 +450,8 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
     	}
 
     	JEditorPane newEditor = (JEditorPane) e.getSource();
+    	setFormatInfo(newEditor);
+    	
 		Boolean newDirty = _dirtyTable.get(newEditor);
 		if (newDirty == null) {
 			newDirty = Boolean.FALSE;
@@ -327,6 +503,7 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
     	if (_currentEditor != null 
         		&& _currentEditor.getDocument() == e.getDocument()) {
     		setDocumentDirty(true);
+    		setFormatInfo(_currentEditor);
     	}
     }
 
@@ -344,6 +521,7 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
     	if (_currentEditor != null 
         		&& _currentEditor.getDocument() == e.getDocument()) {
     		setDocumentDirty(true);
+    		setFormatInfo(_currentEditor);
     	}
     }
 
@@ -359,6 +537,7 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
     	if (_currentEditor != null 
     		&& _currentEditor.getDocument() == e.getDocument()) {
     		setDocumentDirty(true);
+    		setFormatInfo(_currentEditor);
     	}
 	}
 
@@ -377,6 +556,15 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
     	}
     }
 
+	//====================================
+	//CaretListener Implementation
+	//====================================
+
+    public void caretUpdate(CaretEvent e) {
+    	if (_currentEditor == (JEditorPane) e.getSource()) {
+    		setFormatInfo(_currentEditor);
+    	}
+    }
 
 }// ToolBarStates class
 
