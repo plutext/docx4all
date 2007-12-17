@@ -65,12 +65,12 @@ public class RunML extends ElementML {
 	 * @return a RunPropertiesML, if any
 	 *         null, otherwise 
 	 */
-	public RunPropertiesML getRunProperties() {
+	public PropertiesContainerML getRunProperties() {
 		//According to the specification, 
 		//RunPropertiesML has to be the first child.
 		ElementML firstChild = getChild(0);
-		if (firstChild instanceof RunPropertiesML) {
-			return (RunPropertiesML) firstChild;
+		if (firstChild instanceof PropertiesContainerML) {
+			return (PropertiesContainerML) firstChild;
 		}
 		return null;
 	}
