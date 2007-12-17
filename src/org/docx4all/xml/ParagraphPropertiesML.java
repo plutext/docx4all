@@ -24,8 +24,10 @@ import java.util.List;
 
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.text.WordMLStyleConstants;
 import org.docx4j.document.wordprocessingml.PStyle;
 import org.docx4j.document.wordprocessingml.ParagraphProperties;
 import org.dom4j.Element;
@@ -44,7 +46,6 @@ public class ParagraphPropertiesML extends ElementML implements PropertiesContai
 		this.tag = WordML.Tag.pPr;
 		
 		initChildren();
-		initAttributes();
 	}
 	
 	/**
@@ -63,31 +64,46 @@ public class ParagraphPropertiesML extends ElementML implements PropertiesContai
 		return this.attrs;
 	}
 	
-	private void initChildren() {
-		List props = this.pPr.getProperties();
-		if (!props.isEmpty()) {
-			this.children = new ArrayList<ElementML>(props.size());
-			for (Object o : props) {
-				if (o instanceof PStyle) {
-					;// TODO: Future support
-				} else {
-					Element elem = (Element) o;
-					WordML.Tag eTag = WordML.getTag(elem.getName());
-					if (eTag != null && eTag.isPropertyTag()) {
-						// supported property tag;
-						// see:WordML.getSupportedTags()
-						PropertyML propML = new PropertyML(elem);
-						propML.setParent(ParagraphPropertiesML.this);
-						this.children.add(propML);
-					}// if (eTag != null)
-				}// if (o instanceof PStyle)
-			}// for (Object o)
+	public void addChild(PropertyML prop) {
+		if (this.children == null) {
+			this.children = new ArrayList<ElementML>();
 		}
-	}// initChildren()
-	
-	private void initAttributes() {
-		//TODO: Later implementation
+
+		prop.setParent(ParagraphPropertiesML.this);
+		this.children.add(prop);
+		
+		addAttribute(prop);
 	}
+	
+	private void addAttribute(PropertyML prop) {
+		int align = WordMLStyleConstants.getAlignment(prop);
+		if (align > -1) {
+			StyleConstants.setAlignment(this.attrs, align);
+		}
+	}
+	
+	private void initChildren() {
+		if (this.pPr != null) {
+			List props = this.pPr.getProperties();
+			if (!props.isEmpty()) {
+				this.children = new ArrayList<ElementML>(props.size());
+				for (Object o : props) {
+					if (o instanceof PStyle) {
+						;// TODO: Future support
+					} else {
+						Element elem = (Element) o;
+						WordML.Tag eTag = WordML.getTag(elem.getName());
+						if (eTag != null && eTag.isPropertyTag()) {
+							// supported property tag;
+							// see:WordML.getSupportedTags()
+							PropertyML propML = new PropertyML(elem);
+							addChild(propML);
+						}// if (eTag != null)
+					}// if (o instanceof PStyle)
+				}// for (Object o)
+			}// if (!props.isEmpty())
+		}// if (this.pPr != null)
+	}// initChildren()
 	
 }// ParagraphPropertiesML class
 
