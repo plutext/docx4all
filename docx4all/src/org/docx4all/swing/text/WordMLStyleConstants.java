@@ -21,9 +21,12 @@ package org.docx4all.swing.text;
 
 import javax.swing.text.AttributeSet;
 import javax.swing.text.MutableAttributeSet;
+import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
 
+import org.docx4all.ui.main.Constants;
 import org.docx4all.xml.ElementML;
+import org.docx4all.xml.PropertyML;
 import org.docx4all.xml.WordML;
 
 public class WordMLStyleConstants {
@@ -89,6 +92,77 @@ public class WordMLStyleConstants {
         a.addAttribute(WordMLTagAttribute, tag);
     }
 
+    public static int getAlignment(PropertyML prop) {
+    	int theAlignment = -1;
+    	if (prop.getTag() == WordML.Tag.JC) {
+    		String s = prop.getAttributeValue(WordML.Attribute.VAL);
+    		if (Constants.ALIGN_BOTH_VALUE.equalsIgnoreCase(s)) {
+    			theAlignment = StyleConstants.ALIGN_JUSTIFIED;
+    		} else if (Constants.ALIGN_CENTER_VALUE.equalsIgnoreCase(s)) {
+    			theAlignment = StyleConstants.ALIGN_CENTER;
+    		} else if (Constants.ALIGN_LEFT_VALUE.equalsIgnoreCase(s)) {
+    			theAlignment = StyleConstants.ALIGN_LEFT;
+    		} else if (Constants.ALIGN_RIGHT_VALUE.equalsIgnoreCase(s)) {
+    			theAlignment = StyleConstants.ALIGN_RIGHT;
+    		}
+    	}
+    	return theAlignment;
+    }
+    
+    public static boolean isBold(PropertyML prop) {
+    	return booleanValueOf(prop, (StyleConstants) StyleConstants.Bold);
+    }
+    
+    public static boolean isItalic(PropertyML prop) {
+    	return booleanValueOf(prop, (StyleConstants) StyleConstants.Italic);
+    }
+    
+    public static boolean isUnderlined(PropertyML prop) {
+    	return booleanValueOf(prop, (StyleConstants) StyleConstants.Underline);
+    }
+    
+    public static String getFontFamily(PropertyML prop) {
+    	String theFont = null;
+    	if (prop.getTag() == WordML.Tag.rFONTS) {
+    		theFont = prop.getAttributeValue(WordML.Attribute.ASCII);
+    	}
+    	return theFont;
+    }
+    
+    public static String getFontSize(PropertyML prop) {
+    	String theFont = null;
+    	if (prop.getTag() == WordML.Tag.SZ) {
+    		theFont = prop.getAttributeValue(WordML.Attribute.VAL);
+    	}
+    	return theFont;
+    }
+    
+    private static boolean booleanValueOf(PropertyML prop, StyleConstants sc) {
+    	boolean theValue = false;
+		if (prop.getTag() == WordML.getTag(sc)) {
+			String value = prop.getAttributeValue(WordML.Attribute.VAL);
+			if (value == null) {
+				//true by default. See:OOXML spec
+				theValue = true;
+			} else {
+				theValue = booleanValueOf(value);
+			}
+		}
+    	return theValue;
+    }
+    
+    private static boolean booleanValueOf(String s) {
+    	boolean theValue = false;
+    	if (Constants.ON_VALUE.equalsIgnoreCase(s)) {
+    		theValue = true;
+    	} else if (Constants.OFF_VALUE.equalsIgnoreCase(s)) {
+    		;//false;
+    	} else {
+    		theValue = Boolean.valueOf(s);
+    	}
+    	return theValue;
+    }
+    
     private final String name;
     
     private WordMLStyleConstants(String name) {
