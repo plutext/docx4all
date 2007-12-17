@@ -28,7 +28,7 @@ public class AttributeML {
 	private static Logger log = Logger.getLogger(AttributeML.class);
 	
 	private final WordML.Attribute key;
-	private String value;
+	private final String value;
 	
 	public AttributeML(WordML.Attribute key, String value) {
 		this.key = key;
@@ -41,9 +41,5 @@ public class AttributeML {
 	
 	public String getValue() {
 		return this.value;
-	}
-	
-	public void setValue(String v) {
-		this.value = v;
 	}
 }// AttributeML class
