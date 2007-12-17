@@ -21,6 +21,7 @@ package org.docx4all.xml;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import org.docx4j.Namespaces;
 import org.docx4j.document.wordprocessingml.Constants;
@@ -96,6 +97,12 @@ public class ElementMLFactory {
 		return new RunML(r, isDummy);
 	}
 	
+	public final static PropertyML createPropertyML(
+		WordML.PropertyTag tag, List<AttributeML> attrs) {
+		Element elem = createPropertyElement(tag.getTagName(), attrs);
+		return new PropertyML(elem);
+	}
+	
 	private final static Element createParagraphElement(String textContent) {
 		Element p = new DefaultElement(new QName(Constants.PARAGRAPH_BODY_TAG_NAME,
 				Namespaces.namespaceWord));
@@ -125,6 +132,15 @@ public class ElementMLFactory {
 		r.content().add(rcontent);
 		
 		return r;
+	}
+	
+	private final static Element createPropertyElement(String elementName, List<AttributeML> attrs) {
+		Element theElem = new DefaultElement(new QName(elementName, Namespaces.namespaceWord));
+		for (AttributeML at : attrs) {
+			QName qname = new QName(at.getKey().getAttributeName(), Namespaces.namespaceWord);
+			theElem.addAttribute(qname, at.getValue());
+		}
+		return theElem;
 	}
 
 	private ElementMLFactory() {
