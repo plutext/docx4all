@@ -21,13 +21,20 @@ package org.docx4all.swing.text;
 
 import java.awt.Cursor;
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
 
 import javax.swing.Action;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
 import javax.swing.JEditorPane;
+import javax.swing.KeyStroke;
+import javax.swing.UIManager;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
@@ -48,6 +55,14 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public class WordMLEditorKit extends StyledEditorKit {
 	private static Logger log = Logger.getLogger(WordMLEditorKit.class);
+
+    /**
+     * Name of the action to place a soft line break into
+     * the document.  If there is a selection, it is removed before
+     * the break is added.
+     * @see #getActions
+     */
+    public static final String insertSoftBreakAction = "insert-soft-break";
 
 	private static final Cursor MoveCursor = Cursor
 			.getPredefinedCursor(Cursor.HAND_CURSOR);
@@ -174,11 +189,8 @@ public class WordMLEditorKit extends StyledEditorKit {
 	 */
 	@Override
 	public void install(JEditorPane c) {
-		// TODO: FIX ME
-		// c.addMouseListener(linkHandler);
-		// c.addMouseMotionListener(linkHandler);
-		// c.addCaretListener(nextLinkAction);
 		super.install(c);
+		initKeyBindings(c);
 		theEditor = c;
 	}
 
@@ -218,6 +230,20 @@ public class WordMLEditorKit extends StyledEditorKit {
 		return defaultCursor;
 	}
 
+	private void initKeyBindings(JEditorPane editor) {
+		ActionMap myActionMap = new ActionMap();
+		InputMap myInputMap = new InputMap();
+
+		KeyStroke enter = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.SHIFT_MASK);
+		myActionMap.put(insertSoftBreakAction, new InsertSoftBreakAction(insertSoftBreakAction));
+		myInputMap.put(enter, insertSoftBreakAction);
+
+		myActionMap.setParent(editor.getActionMap());
+		myInputMap.setParent(editor.getInputMap());
+		editor.setActionMap(myActionMap);
+		editor.setInputMap(JComponent.WHEN_FOCUSED, myInputMap);
+	}
+	  
 	public abstract static class StyledTextAction extends javax.swing.text.StyledEditorKit.StyledTextAction {
         public StyledTextAction(String nm) {
     	    super(nm);
@@ -276,8 +302,50 @@ public class WordMLEditorKit extends StyledEditorKit {
 				setAttributesToParagraph(editor, attr, false);
 			}
 		}
-    	    
 	}// AlignmentAction inner class
 
+    public static class InsertSoftBreakAction extends StyledTextAction {
+    	public InsertSoftBreakAction(String name) {
+    		super(name);
+    	}
+    	
+    	public void actionPerformed(ActionEvent e) {
+			JEditorPane editor = getEditor(e);
+			if (editor != null) {
+				if ((! editor.isEditable()) || (! editor.isEnabled())) {
+				    UIManager.getLookAndFeel().provideErrorFeedback(editor);
+				    return;
+				}
+				
+				if (log.isDebugEnabled()) {
+					log.debug("InsertSoftBreakAction.actionPerformed()");
+				}
+			}
+    	}
+    }// InsertSoftBreakAction inner class
+    
 }// WordMLEditorKit class
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
