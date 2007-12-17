@@ -31,6 +31,14 @@ public interface Constants {
 	public final static String LAST_OPENED_FILE  = "last.opened.file";
 	public final static String UNTITLED_FILE_NAME = "untitled.file.name";
 	
+	public final static String ON_VALUE = "on";
+	public final static String OFF_VALUE = "off";
+	
+	public final static String ALIGN_LEFT_VALUE = "left";
+	public final static String ALIGN_RIGHT_VALUE = "right";
+	public final static String ALIGN_CENTER_VALUE = "center";
+	public final static String ALIGN_BOTH_VALUE = "both";
+	
 	//=====================
 	//Resource property keys
 	//=====================
