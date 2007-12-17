@@ -27,6 +27,7 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.text.WordMLStyleConstants;
 import org.docx4j.document.wordprocessingml.PStyle;
 import org.docx4j.document.wordprocessingml.RunProperties;
 import org.dom4j.Element;
@@ -45,7 +46,6 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 		this.tag = WordML.Tag.rPr;
 		
 		initChildren();
-		initAttributes();
 	}
 	
 	/**
@@ -64,10 +64,40 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 		return this.attrs;
 	}
 	
+	public void addChild(PropertyML prop) {
+		if (this.children == null) {
+			this.children = new ArrayList<ElementML>();
+		}
+
+		prop.setParent(RunPropertiesML.this);
+		this.children.add(prop);
+		
+		addAttribute(prop);
+	}
+	
+	private void addAttribute(PropertyML prop) {
+		if (WordMLStyleConstants.isBold(prop)) {
+			StyleConstants.setBold(this.attrs, true);
+			
+		} else if (WordMLStyleConstants.isItalic(prop)) {
+			StyleConstants.setItalic(this.attrs, true);
+			
+		} else if (WordMLStyleConstants.isUnderlined(prop)) {
+			StyleConstants.setUnderline(this.attrs, true);
+			
+		} else if (WordMLStyleConstants.getFontFamily(prop) != null) {
+			String font = WordMLStyleConstants.getFontFamily(prop);
+			StyleConstants.setFontFamily(this.attrs, font);
+			
+		} else if (WordMLStyleConstants.getFontSize(prop) != null) {
+			String size = WordMLStyleConstants.getFontSize(prop);
+			StyleConstants.setFontSize(this.attrs, Integer.parseInt(size));
+		}
+	}
+	
 	private void initChildren() {
 		List props = this.rPr.getProperties();
 		if (!props.isEmpty()) {
-			this.children = new ArrayList<ElementML>(props.size());
 			for (Object o : props) {
 				if (o instanceof PStyle) {
 					;// TODO: Future support
@@ -78,32 +108,13 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 						// supported property tag;
 						// see:WordML.getSupportedTags()
 						PropertyML propML = new PropertyML(elem);
-						propML.setParent(RunPropertiesML.this);
-						this.children.add(propML);
+						addChild(propML);
 					}// if (eTag != null)
 				}// if (o instanceof PStyle)
 			}// for (Object o)
 		}
 	}// initChildren()
 	
-	private void initAttributes() {
-		for (ElementML child: this.children) {
-			PropertyML prop = (PropertyML) child;
-			if (prop.getTag() == WordML.getTag((StyleConstants) StyleConstants.Bold)) {
-				StyleConstants.setBold(this.attrs, true);
-			} else if (prop.getTag() == WordML.getTag((StyleConstants) StyleConstants.Italic)) {
-				StyleConstants.setItalic(this.attrs, true);
-			} else if (prop.getTag() == WordML.getTag((StyleConstants) StyleConstants.Underline)) {
-				StyleConstants.setUnderline(this.attrs, true);
-			} else if (prop.getTag() == WordML.getTag((StyleConstants) StyleConstants.FontFamily)) {
-				String s = prop.getAttributeValue(WordML.Attribute.ASCII);
-				StyleConstants.setFontFamily(this.attrs, s);
-			} else if (prop.getTag() == WordML.getTag((StyleConstants) StyleConstants.FontSize)) {
-				String s = prop.getAttributeValue(WordML.Attribute.SZ);
-				StyleConstants.setFontSize(this.attrs, Integer.parseInt(s));
-			}
-		}
-	}
 
 }// RunPropertiesML class
 
