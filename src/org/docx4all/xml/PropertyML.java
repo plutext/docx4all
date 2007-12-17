@@ -66,7 +66,8 @@ public class PropertyML extends ElementML {
 	}
 
 	public String getAttributeValue(WordML.Attribute key) {
-		return getAttributeML(key).getValue();
+		AttributeML attr = getAttributeML(key);
+		return (attr == null) ? null : attr.getValue();
 	}
 	
 	private AttributeML getAttributeML(WordML.Attribute key) {
