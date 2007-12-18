@@ -101,7 +101,7 @@ public class RunML extends ElementML {
 							// text or not.
 							String txt = elem.getText().trim();
 							if (txt != null && txt.length() > 0) {
-								RunContentML child = new RunContentML(elem, txt);
+								RunContentML child = new RunContentML(elem, txt, this.isDummy);
 								children.add(child);
 							}
 						} else if (tag == WordML.Tag.BR) {
@@ -109,14 +109,16 @@ public class RunML extends ElementML {
 							RunContentML child = 
 								new RunContentML(
 									elem,
-									org.docx4all.ui.main.Constants.NEWLINE);
+									org.docx4all.ui.main.Constants.NEWLINE,
+									this.isDummy);
 							children.add(child);
 
 						} else if (tag == WordML.Tag.CR) {
 							RunContentML child = 
 								new RunContentML(
 									elem,
-									org.docx4all.ui.main.Constants.NEWLINE);
+									org.docx4all.ui.main.Constants.NEWLINE,
+									this.isDummy);
 							children.add(child);
 
 						} else {
