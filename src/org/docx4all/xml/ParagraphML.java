@@ -92,7 +92,7 @@ public class ParagraphML extends ElementML {
 					ElementML elem;
 					if (o instanceof Run) {
 						Run run = (Run) o;
-						elem = new RunML(run);
+						elem = new RunML(run, this.isDummy);
 					} else if (o instanceof ParagraphProperties) {
 						ParagraphProperties pPr = (ParagraphProperties) o;
 						elem = new ParagraphPropertiesML(pPr);
