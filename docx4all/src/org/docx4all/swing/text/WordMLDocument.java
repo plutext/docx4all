@@ -22,6 +22,7 @@ package org.docx4all.swing.text;
 import java.util.List;
 
 import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.Element;
 import javax.swing.text.MutableAttributeSet;
@@ -63,6 +64,17 @@ public class WordMLDocument extends DefaultStyledDocument {
 		return elem;
 	}
 	
+    public void replace(int offset, int length, String text,
+            AttributeSet attrs) throws BadLocationException {
+    	log.debug("replace(): offset = " + offset + " length = " + length + " text = " + text);
+    	super.replace(offset, length, text, attrs);
+    }
+    
+    public void insertString(int offs, String str, AttributeSet a) throws BadLocationException {
+    	log.debug("insertString(): offset = " + offs + " text = " + str);
+    	super.insertString(offs, str, a);
+    }
+    
 	protected void createElementStructure(List<ElementSpec> list) {
 		ElementSpec[] specs = new ElementSpec[list.size()];
 		list.toArray(specs);
@@ -188,7 +200,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 
 	//============= INNER CLASS SECTION =============
 
-    public class BlockElement extends BranchElement {
+    public class BlockElement extends BranchElement implements DocumentElement {
 		public BlockElement(Element parent, AttributeSet a) {
 			super(parent, a);
 		}
@@ -196,11 +208,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 		public String getName() {
 			ElementML elem = getElementML();
 			if (elem != null) {
-				StringBuffer sb = new StringBuffer();
-				sb.append("Tag <");
-				sb.append(elem.getTag().getTagName());
-				sb.append(">");
-				return sb.toString();
+				return elem.getClass().getSimpleName();
 			}
 			return super.getName();
 		}
@@ -209,12 +217,34 @@ public class WordMLDocument extends DefaultStyledDocument {
 			return (ElementML) getAttribute(WordMLStyleConstants.ElementMLAttribute);
 		}
 		
+		public boolean isEditable() {
+			ElementML elemML = getElementML();
+			
+			if ((elemML instanceof ParagraphML) && elemML.isImplied()) {
+				DocumentElement parent = (DocumentElement) getParentElement();
+				return parent.isEditable();
+			}
+			
+			boolean isEditable = !elemML.isDummy();
+			if (isEditable) {
+				DocumentElement parent = (DocumentElement) getParentElement();
+				isEditable = (parent == null || parent.isEditable());
+			}
+			return isEditable;
+		}
+		
 		public AttributeSet getResolveParent() {
 			return null;
 		}
+		
+		public void save() {
+			;//TODO: Saving 
+			log.debug("save(): this=" + this);
+		}
+
 	}// BlockElement inner class
 
-    public class TextElement extends LeafElement {
+    public class TextElement extends LeafElement implements DocumentElement {
 		public TextElement(Element parent, AttributeSet a, int offs0, int offs1) {
 			super(parent, a, offs0, offs1);
 		}
@@ -223,18 +253,30 @@ public class WordMLDocument extends DefaultStyledDocument {
 			return (ElementML) getAttribute(WordMLStyleConstants.ElementMLAttribute);
 		}
 		
+		public boolean isEditable() {
+			ElementML elemML = getElementML();
+			
+			boolean isEditable = !elemML.isDummy();
+			if (isEditable) {
+				DocumentElement parent = (DocumentElement) getParentElement();
+				isEditable = parent.isEditable();
+			}
+			
+			return isEditable;
+		}
+		
 		public String getName() {
 			ElementML elem = getElementML();
 			if (elem != null) {
-				StringBuffer sb = new StringBuffer();
-				sb.append("Tag <");
-				sb.append(elem.getTag().getTagName());
-				sb.append(">");
-				return sb.toString();
+				return elem.getClass().getSimpleName();
 			}
 			return super.getName();
 		}
 
+		public void save() {
+			;//TODO: Saving 
+			log.debug("save(): this=" + this);
+		}
 	}// TextElement inner class
 
 
