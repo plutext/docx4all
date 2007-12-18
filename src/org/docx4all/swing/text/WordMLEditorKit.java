@@ -35,6 +35,7 @@ import javax.swing.JComponent;
 import javax.swing.JEditorPane;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
+import javax.swing.event.CaretEvent;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
@@ -74,15 +75,16 @@ public class WordMLEditorKit extends StyledEditorKit {
 	// TODO: Later implementation
 	private static final Action[] defaultActions = {};
 
-	private JEditorPane theEditor;
 	private Cursor defaultCursor = DefaultCursor;
-
+	private CaretListener caretListener;
+	
 	/**
 	 * Constructs an WordMLEditorKit, creates a StyleContext, and loads the
 	 * style sheet.
 	 */
 	public WordMLEditorKit() {
 		super();
+		caretListener = new CaretListener();
 	}
 
 	/**
@@ -190,8 +192,11 @@ public class WordMLEditorKit extends StyledEditorKit {
 	@Override
 	public void install(JEditorPane c) {
 		super.install(c);
+
+		c.addCaretListener(caretListener);
+
 		initKeyBindings(c);
-		theEditor = c;
+		
 	}
 
 	/**
@@ -202,12 +207,8 @@ public class WordMLEditorKit extends StyledEditorKit {
 	 *            the JEditorPane
 	 */
 	public void deinstall(JEditorPane c) {
-		// TODO: FIX ME
-		// c.removeMouseListener(linkHandler);
-		// c.removeMouseMotionListener(linkHandler);
-		// c.removeCaretListener(nextLinkAction);
-		// super.deinstall(c);
-		theEditor = null;
+		super.deinstall(c);
+		c.removeCaretListener(caretListener);
 	}
 
 	/**
@@ -243,7 +244,44 @@ public class WordMLEditorKit extends StyledEditorKit {
 		editor.setActionMap(myActionMap);
 		editor.setInputMap(JComponent.WHEN_FOCUSED, myInputMap);
 	}
-	  
+	
+	//**************************
+	//*****  INNER CLASSES *****
+	//**************************
+	private class CaretListener implements javax.swing.event.CaretListener {
+		private DocumentElement caretElement;
+		
+	    public void caretUpdate(CaretEvent evt) {
+	    	JEditorPane editor = (JEditorPane) evt.getSource();
+	    	WordMLDocument doc = (WordMLDocument) editor.getDocument();
+	    	
+	    	int dot = evt.getDot();
+	    	
+    		DocumentElement elem = (DocumentElement) doc.getCharacterElement(dot);
+    		if (caretElement != null && caretElement != elem) {
+    			caretElement.save();
+    		}
+    		caretElement = elem;
+	    	
+	    	int mark = evt.getMark();
+	    	if (dot != mark) {
+	    		try {
+	    			int start = Math.min(dot, mark);
+	    			int end = Math.max(dot, mark);
+	    			new TextSelector(doc, start, end-start);
+	    		} catch (BadSelectionException exc) {
+	    	        //WordMLEditor win = WordMLEditor.getInstance(WordMLEditor.class);
+	    	        //win.showMessageDialog(
+	    	        //	"Text Selection Error", 
+	    	        //	exc.getMessage(), 
+	    	        //	JOptionPane.ERROR_MESSAGE);
+	    	        editor.moveCaretPosition(mark);
+	    		}
+	    	} 
+	    }
+	    
+	}// CaretListener inner class
+	
 	public abstract static class StyledTextAction extends javax.swing.text.StyledEditorKit.StyledTextAction {
         public StyledTextAction(String nm) {
     	    super(nm);
@@ -269,7 +307,7 @@ public class WordMLEditorKit extends StyledEditorKit {
 				}
 			}
 		}
-	}
+	}// StyledTextAction inner class
 	
     public static class AlignmentAction extends StyledTextAction {
 
