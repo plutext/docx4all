@@ -19,6 +19,7 @@
 
 package org.docx4all.util;
 
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 
@@ -41,6 +42,20 @@ public class DocUtil {
 	private static Logger log = Logger.getLogger(DocUtil.class);
 
 	private final static String TAB = "    ";
+	
+	public static List<String> getElementNamePath(Element elem, int pos) {
+		List<String> thePath = null;
+		if (elem.getStartOffset() <= pos && pos < elem.getEndOffset()) {
+			thePath = new ArrayList<String>();
+			thePath.add(elem.getName());
+			while (!elem.isLeaf()) {
+				int idx = elem.getElementIndex(pos);
+				elem = elem.getElement(idx);
+				thePath.add(elem.getName());
+			}
+		}
+		return thePath;
+	}
 	
     public static void displayStructure(Document doc) {
           Element e = doc.getDefaultRootElement();
