@@ -90,7 +90,9 @@ public class RunML extends ElementML {
 
 					if (o instanceof RunProperties) {
 						RunProperties rPr = (RunProperties) o;
-						children.add(new RunPropertiesML(rPr));
+						RunPropertiesML elem = new RunPropertiesML(rPr);
+						elem.setParent(RunML.this);
+						children.add(elem);
 
 					} else {
 						Element elem = (Element) o;
@@ -102,6 +104,7 @@ public class RunML extends ElementML {
 							String txt = elem.getText().trim();
 							if (txt != null && txt.length() > 0) {
 								RunContentML child = new RunContentML(elem, txt, this.isDummy);
+								child.setParent(RunML.this);
 								children.add(child);
 							}
 						} else if (tag == WordML.Tag.BR) {
@@ -111,6 +114,7 @@ public class RunML extends ElementML {
 									elem,
 									org.docx4all.ui.main.Constants.NEWLINE,
 									this.isDummy);
+							child.setParent(RunML.this);
 							children.add(child);
 
 						} else if (tag == WordML.Tag.CR) {
@@ -119,6 +123,7 @@ public class RunML extends ElementML {
 									elem,
 									org.docx4all.ui.main.Constants.NEWLINE,
 									this.isDummy);
+							child.setParent(RunML.this);
 							children.add(child);
 
 						} else {
