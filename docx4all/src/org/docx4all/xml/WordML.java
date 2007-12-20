@@ -37,13 +37,15 @@ public class WordML {
     static {
     	tagMap = new HashMap<String, Tag>(Tag.supportedTags.length);
     	for (int i = 0; i < Tag.supportedTags.length; i++ ) {
-    		tagMap.put(Tag.supportedTags[i].getTagName(), Tag.supportedTags[i]);
+    		tagMap.put(Tag.supportedTags[i].getTagName().toLowerCase(), Tag.supportedTags[i]);
     		StyleContext.registerStaticAttributeKey(Tag.supportedTags[i]);
     	}
     	
     	attrMap = new HashMap<String, Attribute>(Attribute.supportedAttributes.length);
     	for (int i = 0; i < Attribute.supportedAttributes.length; i++) {
-    		attrMap.put(Attribute.supportedAttributes[i].getAttributeName(), Attribute.supportedAttributes[i]);
+    		attrMap.put(
+    			Attribute.supportedAttributes[i].getAttributeName().toLowerCase(), 
+    			Attribute.supportedAttributes[i]);
     		StyleContext.registerStaticAttributeKey(Attribute.supportedAttributes[i]);
     	}
     	
@@ -69,7 +71,7 @@ public class WordML {
 	}
 
     public static Tag getTag(String tagName) {
-		return (Tag) tagMap.get(tagName);
+		return (Tag) tagMap.get(tagName.toLowerCase());
 	}
 
     public static Tag getTag(StyleConstants sc) {
@@ -77,7 +79,7 @@ public class WordML {
     }
 
     public static Attribute getAttribute(String attName) {
-    	return (Attribute) attrMap.get(attName);
+    	return (Attribute) attrMap.get(attName.toLowerCase());
     }
 
     public static class Tag {
