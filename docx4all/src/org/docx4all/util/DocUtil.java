@@ -143,7 +143,7 @@ public class DocUtil {
 				info.append(elemML.toString());
 				
 			} else if (es.getType() == ElementSpec.ContentType) {
-				String text = ((RunContentML) elemML).getText();
+				String text = ((RunContentML) elemML).getTextContent();
 				if (text.length() > 25) {
 					text = text.substring(0, 25);
 				}
