@@ -22,6 +22,7 @@ package org.docx4all.xml;
 import java.util.List;
 
 import org.docx4all.ui.main.Constants;
+import org.docx4j.jaxb.document.ObjectFactory;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007

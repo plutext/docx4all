@@ -23,10 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.docx4j.document.wordprocessingml.Paragraph;
-import org.docx4j.document.wordprocessingml.ParagraphProperties;
-import org.docx4j.document.wordprocessingml.Run;
-import org.dom4j.Element;
+import org.docx4j.XmlUtils;
+import org.docx4j.jaxb.document.PPr;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -34,17 +32,19 @@ import org.dom4j.Element;
 public class ParagraphML extends ElementML {
 	private static Logger log = Logger.getLogger(ParagraphML.class);
 
-	private Paragraph paragraph;
+	private org.docx4j.jaxb.document.P paragraph;
+	private PropertiesContainerML pPr;
 	
-	public ParagraphML(Paragraph p) {
+	public ParagraphML(org.docx4j.jaxb.document.P p) {
 		this(p, false);
 	}
 	
-	public ParagraphML(Paragraph p, boolean isDummy) {
+	public ParagraphML(org.docx4j.jaxb.document.P p, boolean isDummy) {
 		this.paragraph = p;
 		this.tag = WordML.Tag.P;
 		this.isDummy = isDummy;
 		
+		initParagraphProperties();
 		initChildren();
 	}
 	
@@ -67,57 +67,50 @@ public class ParagraphML extends ElementML {
 	 *         null, otherwise 
 	 */
 	public PropertiesContainerML getParagraphProperties() {
-		//According to the specification, 
-		//ParagraphPropertiesML has to be the first child.
-		ElementML firstChild = getChild(0);
-		if (firstChild instanceof PropertiesContainerML) {
-			return (PropertiesContainerML) firstChild;
+		return this.pPr;
+	}
+	
+	private void initParagraphProperties() {
+		this.pPr = null;
+		if (this.paragraph != null) {
+			//if not an implied ParagraphML
+			PPr pProp = this.paragraph.getPPr();
+			if (pProp != null) {
+				this.pPr = new ParagraphPropertiesML(pProp);
+			}
 		}
-		return null;
 	}
 	
 	private void initChildren() {
 		this.children = null;
-		if (this.paragraph != null) {
-			List pKids = this.paragraph.getParagraphContents();
-			if (pKids != null && !pKids.isEmpty()) {
-				this.children = new ArrayList<ElementML>(pKids.size());
+		if (this.paragraph == null) {
+			//if an implied ParagraphML
+			return;
+		}
+		
+		List<Object> pKids = this.paragraph.getParagraphContent();
+		if (!pKids.isEmpty()) {
+			this.children = new ArrayList<ElementML>(pKids.size());
+			for (Object o : pKids) {
+				ElementML elem;
+				if (o instanceof org.docx4j.jaxb.document.R) {
+					org.docx4j.jaxb.document.R run = (org.docx4j.jaxb.document.R) o;
+					elem = new RunML(run, this.isDummy);
 
-				for (Object o : pKids) {
-					// TODO: Currently 'paraKids' may contain:
-					// org.docx4j.document.wordprocessingml.ParagraphProperties
-					// org.docx4j.document.wordprocessingml.Run
-					// and/or org.dom4j.Element objects
-					// Watch any future change in Paragraph class
-					ElementML elem;
-					if (o instanceof Run) {
-						Run run = (Run) o;
-						elem = new RunML(run, this.isDummy);
-					} else if (o instanceof ParagraphProperties) {
-						ParagraphProperties pPr = (ParagraphProperties) o;
-						elem = new ParagraphPropertiesML(pPr);
-					} else {
-						elem = createDummyRun((Element) o);
-					}
+					// } else if (o instanceof
+					// org.docx4j.jaxb.document.RunTrackChange) {
+					// TODO: To support RunTrackChange
+				} else {
+					// TODO: A more informative information in the implied Run.
+					String textContent = XmlUtils.marshaltoString(o, true);
+					elem = ElementMLFactory.createRunML(textContent, true);
+				}
 
-					elem.setParent(ParagraphML.this);
-					children.add(elem);
-				}// for (Object:o)
-			}// if (!pKids.isEmpty())
-		}// if (this.paragraph != null)
+				elem.setParent(ParagraphML.this);
+				this.children.add(elem);
+			}
+		}// if (!pKids.isEmpty())
 	}// initChildren()
-	
-	private RunML createDummyRun(Element unsupportedElem) {
-		//Create an implied Run that contains a piece of information
-		//about this unsupported element
-		//TODO: A more informative information in the implied Run.
-		StringBuffer text = new StringBuffer();
-		text.append("UNSUPPORTED '");
-		text.append(unsupportedElem.getName());
-		text.append("' tag element inside paragraph");
-		return ElementMLFactory.createRunML(text.toString(), true);
-	}
-	
 }// ParagraphML class
 
 

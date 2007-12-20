@@ -22,10 +22,10 @@ package org.docx4all.xml;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.bind.JAXBElement;
+
 import org.apache.log4j.Logger;
-import org.docx4j.document.wordprocessingml.Run;
-import org.docx4j.document.wordprocessingml.RunProperties;
-import org.dom4j.Element;
+import org.docx4j.jaxb.document.RPr;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -33,17 +33,19 @@ import org.dom4j.Element;
 public class RunML extends ElementML {
 	private static Logger log = Logger.getLogger(RunML.class);
 	
-	private Run run;
+	private org.docx4j.jaxb.document.R run;
+	private PropertiesContainerML rPr;
 	
-	public RunML(Run run) {
+	public RunML(org.docx4j.jaxb.document.R run) {
 		this(run, false);
 	}
 	
-	public RunML(Run run, boolean isDummy) {
+	public RunML(org.docx4j.jaxb.document.R run, boolean isDummy) {
 		this.run = run;
 		this.tag = WordML.Tag.R;
 		this.isDummy = isDummy;
 		
+		initRunProperties();
 		initChildren();
 	}
 	
@@ -66,73 +68,69 @@ public class RunML extends ElementML {
 	 *         null, otherwise 
 	 */
 	public PropertiesContainerML getRunProperties() {
-		//According to the specification, 
-		//RunPropertiesML has to be the first child.
-		ElementML firstChild = getChild(0);
-		if (firstChild instanceof PropertiesContainerML) {
-			return (PropertiesContainerML) firstChild;
+		return this.rPr;
+	}
+	
+	private void initRunProperties() {
+		this.rPr = null;
+		if (this.run != null) {
+			//if not an implied RunML
+			RPr rPr = this.run.getRPr();
+			if (rPr != null) {
+				this.rPr = new RunPropertiesML(rPr);
+			}
 		}
-		return null;
 	}
 	
 	private void initChildren() {
 		this.children = null;
-		if (this.run != null) {
-			List rKids = this.run.getRunContents();
-			if (!rKids.isEmpty()) {
-				this.children = new ArrayList<ElementML>(rKids.size());
-
-				for (Object o : rKids) {
-					// TODO: Currently 'rKids' may contain:
-					// org.docx4j.document.wordprocessingml.RunProperties
-					// and/or org.dom4j.Element objects
-					// Watch any future change in Paragraph class
-
-					if (o instanceof RunProperties) {
-						RunProperties rPr = (RunProperties) o;
-						RunPropertiesML elem = new RunPropertiesML(rPr);
-						elem.setParent(RunML.this);
-						children.add(elem);
-
-					} else {
-						Element elem = (Element) o;
-						WordML.Tag tag = WordML.getTag(elem.getName());
-						if (tag == WordML.Tag.T) {
-							// TODO:Check the xml:space attribute
-							// in order to know whether we should trim
-							// text or not.
-							String txt = elem.getText().trim();
-							if (txt != null && txt.length() > 0) {
-								RunContentML child = new RunContentML(elem, txt, this.isDummy);
-								child.setParent(RunML.this);
-								children.add(child);
-							}
-						} else if (tag == WordML.Tag.BR) {
-							// TODO: Full support of BR element
-							RunContentML child = 
-								new RunContentML(
-									elem,
-									org.docx4all.ui.main.Constants.NEWLINE,
-									this.isDummy);
-							child.setParent(RunML.this);
-							children.add(child);
-
-						} else if (tag == WordML.Tag.CR) {
-							RunContentML child = 
-								new RunContentML(
-									elem,
-									org.docx4all.ui.main.Constants.NEWLINE,
-									this.isDummy);
-							child.setParent(RunML.this);
-							children.add(child);
-
-						} else {
-							// TODO: Create an unsupported RunContentML ?
-						}
-					}
-				}// for (Object:o)
-			}// if (!rKids.isEmpty())
+		if (this.run == null) {
+			//if an implied RunML
+			return;
 		}
+
+		List<Object> rKids = this.run.getRunContent();
+		if (!rKids.isEmpty()) {
+			this.children = new ArrayList<ElementML>(rKids.size());
+
+			for (Object o : rKids) {
+				if (o instanceof org.docx4j.jaxb.document.Br) {
+					// TODO: Full support of BR element
+					RunContentML child = 
+						new BrML(
+							(org.docx4j.jaxb.document.Br) o,
+							this.isDummy);
+					child.setParent(RunML.this);
+					this.children.add(child);
+					
+				} else if (o instanceof org.docx4j.jaxb.document.Cr) {
+					// TODO: Full support of BR element
+					RunContentML child = 
+						new CrML(
+							(org.docx4j.jaxb.document.Cr) o,
+							this.isDummy);
+					child.setParent(RunML.this);
+					this.children.add(child);
+					
+				} else if (o instanceof JAXBElement<?>) {
+					JAXBElement<?> jaxbElem = (JAXBElement<?>) o;
+					String typeName = jaxbElem.getDeclaredType().getName();
+					if ("org.docx4j.jaxb.document.Text".equals(typeName)) {
+						org.docx4j.jaxb.document.Text t = 
+							(org.docx4j.jaxb.document.Text) 
+								jaxbElem.getValue();
+						String s = t.getValue();
+						if (s != null && s.length() > 0) {
+							RunContentML child = new TextML(t, this.isDummy);
+							child.setParent(RunML.this);
+							this.children.add(child);
+						}
+					} else {
+						// TODO: Create an unsupported RunContentML ?
+					}
+				}// if (o instanceof JAXBElement<?>)
+			}// for (Object o : rKids)
+		}// if (!rKids.isEmpty())
 	}// initChildren()
 	
 }// RunML class

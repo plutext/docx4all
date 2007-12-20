@@ -19,8 +19,9 @@
 
 package org.docx4all.xml;
 
+import javax.xml.bind.JAXBElement;
+
 import org.apache.log4j.Logger;
-import org.dom4j.Element;
 
 /**
  *	@author Jojada Tirtowidjojo - 06/12/2007
@@ -28,23 +29,20 @@ import org.dom4j.Element;
 public class RunContentML extends ElementML {
 	private static Logger log = Logger.getLogger(RunContentML.class);
 	
-	private Element element;
-	private String text;
+	private JAXBElement<?> jaxbElem;
+	protected String textContent;
 	
-	public RunContentML(Element elem, String text) {
-		this(elem, text, false);
+	public RunContentML(JAXBElement<?> elem, String textContent) {
+		this(elem, textContent, false);
 	}
 	
-	public RunContentML(Element elem, String text, boolean isDummy) {
-		this.element = elem;
+	public RunContentML(JAXBElement<?> elem, String textContent, boolean isDummy) {
+		this.jaxbElem = elem;
 		if (elem != null) {
-			this.tag = WordML.getTag(elem.getName());
-		} else {
-			//default tag
-			this.tag = WordML.Tag.T;
+			this.tag = WordML.getTag(elem.getName().getLocalPart());
 		}
 		this.isDummy = isDummy;
-		this.text = text;
+		this.textContent = textContent;
 	}
 	
 	/**
@@ -56,15 +54,15 @@ public class RunContentML extends ElementML {
 	 *         false, otherwise
 	 */
 	public boolean isImplied() {
-		return this.element == null;
+		return this.jaxbElem == null;
 	}
 
-	public String getText() {
-		return this.text;
+	public String getTextContent() {
+		return this.textContent;
 	}
 	
-	public void setText(String text) {
-		this.text = text;
+	public void setTextContent(String textContent) {
+		this.textContent = textContent;
 	}
 	
 }// RunContentML class

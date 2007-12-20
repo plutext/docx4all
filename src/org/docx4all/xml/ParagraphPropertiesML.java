@@ -19,18 +19,16 @@
 
 package org.docx4all.xml;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import javax.swing.text.AttributeSet;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
 import org.apache.log4j.Logger;
-import org.docx4all.swing.text.WordMLStyleConstants;
-import org.docx4j.document.wordprocessingml.PStyle;
-import org.docx4j.document.wordprocessingml.ParagraphProperties;
-import org.dom4j.Element;
+import org.docx4j.jaxb.document.Jc;
+import org.docx4j.jaxb.document.ObjectFactory;
+import org.docx4j.jaxb.document.PPr;
+import org.docx4j.jaxb.document.STJc;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -38,14 +36,15 @@ import org.dom4j.Element;
 public class ParagraphPropertiesML extends ElementML implements PropertiesContainerML {
 	private static Logger log = Logger.getLogger(ParagraphPropertiesML.class);
 
-	private final ParagraphProperties pPr;
-	private final MutableAttributeSet attrs = new SimpleAttributeSet();
+	private final PPr pPr;
+	private final MutableAttributeSet attrs;
 	
-	public ParagraphPropertiesML(ParagraphProperties pPr) {
+	public ParagraphPropertiesML(PPr pPr) {
 		this.pPr = pPr;
 		this.tag = WordML.Tag.pPr;
+		this.attrs = new SimpleAttributeSet();
 		
-		initChildren();
+		initAttributes();
 	}
 	
 	/**
@@ -60,50 +59,61 @@ public class ParagraphPropertiesML extends ElementML implements PropertiesContai
 		return this.pPr == null;
 	}
 
+    public void addAttribute(Object name, Object value) {
+    	this.attrs.addAttribute(name, value);
+    }
+    
+	public void addAttribute(AttributeSet attrs) {
+		this.attrs.addAttributes(attrs);
+	}
+	
 	public MutableAttributeSet getAttributeSet() {
-		return this.attrs;
+		return new SimpleAttributeSet(this.attrs);
 	}
 	
-	public void addChild(PropertyML prop) {
-		if (this.children == null) {
-			this.children = new ArrayList<ElementML>();
+	public void save() {
+		ObjectFactory jaxbFactory = ElementMLFactory.getJaxbObjectFactory();
+		//ALIGNMENT attribute
+        Integer align = 
+        	(Integer) this.attrs.getAttribute(StyleConstants.Alignment);
+        if (align != null) {
+    		Jc jc = jaxbFactory.createJc();
+			if (align.intValue() == StyleConstants.ALIGN_LEFT) {
+				jc.setVal(STJc.LEFT);
+			} else if (align.intValue() == StyleConstants.ALIGN_RIGHT) {
+				jc.setVal(STJc.RIGHT);
+			} else if (align.intValue() == StyleConstants.ALIGN_CENTER) {
+				jc.setVal(STJc.CENTER);
+			} else if (align.intValue() == StyleConstants.ALIGN_JUSTIFIED) {
+				jc.setVal(STJc.BOTH);
+			}
+			this.pPr.setJc(jc);
 		}
-
-		prop.setParent(ParagraphPropertiesML.this);
-		this.children.add(prop);
-		
-		addAttribute(prop);
 	}
 	
-	private void addAttribute(PropertyML prop) {
-		int align = WordMLStyleConstants.getAlignment(prop);
-		if (align > -1) {
-			StyleConstants.setAlignment(this.attrs, align);
+	private void initAttributes() {
+		//ALIGNMENT attribute
+		Jc jc = this.pPr.getJc();
+		if (jc != null) {
+			if (jc.getVal() == STJc.LEFT) {
+				StyleConstants.setAlignment(
+						this.attrs,
+						StyleConstants.ALIGN_LEFT);
+			} else if (jc.getVal() == STJc.RIGHT) {
+				StyleConstants.setAlignment(
+						this.attrs,
+						StyleConstants.ALIGN_RIGHT);
+			} else if (jc.getVal() == STJc.CENTER) {
+				StyleConstants.setAlignment(
+						this.attrs,
+						StyleConstants.ALIGN_CENTER);
+			} else if (jc.getVal() == STJc.BOTH) {
+				StyleConstants.setAlignment(
+						this.attrs,
+						StyleConstants.ALIGN_JUSTIFIED);
+			}
 		}
 	}
-	
-	private void initChildren() {
-		if (this.pPr != null) {
-			List props = this.pPr.getProperties();
-			if (!props.isEmpty()) {
-				this.children = new ArrayList<ElementML>(props.size());
-				for (Object o : props) {
-					if (o instanceof PStyle) {
-						;// TODO: Future support
-					} else {
-						Element elem = (Element) o;
-						WordML.Tag eTag = WordML.getTag(elem.getName());
-						if (eTag != null && eTag.isPropertyTag()) {
-							// supported property tag;
-							// see:WordML.getSupportedTags()
-							PropertyML propML = new PropertyML(elem);
-							addChild(propML);
-						}// if (eTag != null)
-					}// if (o instanceof PStyle)
-				}// for (Object o)
-			}// if (!props.isEmpty())
-		}// if (this.pPr != null)
-	}// initChildren()
 	
 }// ParagraphPropertiesML class
 
