@@ -19,18 +19,18 @@
 
 package org.docx4all.xml;
 
-import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.text.AttributeSet;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
 import org.apache.log4j.Logger;
-import org.docx4all.swing.text.WordMLStyleConstants;
-import org.docx4j.document.wordprocessingml.PStyle;
-import org.docx4j.document.wordprocessingml.RunProperties;
-import org.dom4j.Element;
+import org.docx4j.jaxb.document.BooleanDefaultTrue;
+import org.docx4j.jaxb.document.ObjectFactory;
+import org.docx4j.jaxb.document.RPr;
+import org.docx4j.jaxb.document.Underline;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -38,14 +38,15 @@ import org.dom4j.Element;
 public class RunPropertiesML extends ElementML implements PropertiesContainerML {
 	private static Logger log = Logger.getLogger(RunPropertiesML.class);
 	
-	private final RunProperties rPr;
-	private final MutableAttributeSet attrs = new SimpleAttributeSet();
+	private final RPr rPr;
+	private final MutableAttributeSet attrs;
 	
-	public RunPropertiesML(RunProperties rPr) {
+	public RunPropertiesML(RPr rPr) {
 		this.rPr = rPr;
 		this.tag = WordML.Tag.rPr;
+		this.attrs = new SimpleAttributeSet();
 		
-		initChildren();
+		initAttributes();
 	}
 	
 	/**
@@ -60,62 +61,88 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 		return this.rPr == null;
 	}
 
+    public void addAttribute(Object name, Object value) {
+    	this.attrs.addAttribute(name, value);
+    }
+    
+	public void addAttribute(AttributeSet attrs) {
+		this.attrs.addAttributes(attrs);
+	}
+	
 	public MutableAttributeSet getAttributeSet() {
-		return this.attrs;
+		return new SimpleAttributeSet(this.attrs);
 	}
 	
-	public void addChild(PropertyML prop) {
-		if (this.children == null) {
-			this.children = new ArrayList<ElementML>();
+	public void save() {
+		ObjectFactory jaxbFactory = ElementMLFactory.getJaxbObjectFactory();
+		//BOLD Attribute
+		BooleanDefaultTrue bdt = jaxbFactory.createBooleanDefaultTrue();
+		if (StyleConstants.isBold(this.attrs)) {
+			bdt.setVal(Boolean.TRUE);
+		} else {
+			bdt.setVal(false);
 		}
-
-		prop.setParent(RunPropertiesML.this);
-		this.children.add(prop);
+		this.rPr.setB(bdt);
 		
-		addAttribute(prop);
-	}
-	
-	private void addAttribute(PropertyML prop) {
-		if (WordMLStyleConstants.isBold(prop)) {
-			StyleConstants.setBold(this.attrs, true);
-			
-		} else if (WordMLStyleConstants.isItalic(prop)) {
-			StyleConstants.setItalic(this.attrs, true);
-			
-		} else if (WordMLStyleConstants.isUnderlined(prop)) {
-			StyleConstants.setUnderline(this.attrs, true);
-			
-		} else if (WordMLStyleConstants.getFontFamily(prop) != null) {
-			String font = WordMLStyleConstants.getFontFamily(prop);
-			StyleConstants.setFontFamily(this.attrs, font);
-			
-		} else if (WordMLStyleConstants.getFontSize(prop) != null) {
-			String size = WordMLStyleConstants.getFontSize(prop);
-			StyleConstants.setFontSize(this.attrs, Integer.parseInt(size));
+		//ITALIC Attribute
+		bdt = jaxbFactory.createBooleanDefaultTrue();
+		if (StyleConstants.isItalic(this.attrs)) {
+			bdt.setVal(Boolean.TRUE);
+		} else {
+			bdt.setVal(false);
+		}
+		this.rPr.setI(bdt);
+		
+		//UNDERLINE Attribute
+		if (StyleConstants.isUnderline(this.attrs)
+			&& !rPrHasUnderlineSet()) {
+			//As we do not support underline style
+			//and color yet we do not touch the 
+			//original setting of rPr underline
+			List<String> val = this.rPr.getU().getVal();
+			val.add("single");
+			this.rPr.getU().setColor("auto");
 		}
 	}
 	
-	private void initChildren() {
-		List props = this.rPr.getProperties();
-		if (!props.isEmpty()) {
-			for (Object o : props) {
-				if (o instanceof PStyle) {
-					;// TODO: Future support
-				} else {
-					Element elem = (Element) o;
-					WordML.Tag eTag = WordML.getTag(elem.getName());
-					if (eTag != null && eTag.isPropertyTag()) {
-						// supported property tag;
-						// see:WordML.getSupportedTags()
-						PropertyML propML = new PropertyML(elem);
-						addChild(propML);
-					}// if (eTag != null)
-				}// if (o instanceof PStyle)
-			}// for (Object o)
+	private void initAttributes() {
+		//BOLD Attribute
+		BooleanDefaultTrue bdt = this.rPr.getB();
+		if (bdt != null && bdt.isVal()) {
+			StyleConstants.setBold(this.attrs, Boolean.TRUE);
 		}
-	}// initChildren()
-	
 
+		//ITALIC Attribute
+		bdt = this.rPr.getI();
+		if (bdt != null && bdt.isVal()) {
+			StyleConstants.setItalic(this.attrs, Boolean.TRUE);
+		}
+		
+		//UNDERLINE Attribute
+		//TODO: To support underline style and color
+		if (rPrHasUnderlineSet()) {
+			StyleConstants.setUnderline(this.attrs, Boolean.TRUE);
+		}
+		
+	}// initAttributes()
+
+	private boolean rPrHasUnderlineSet() {
+		boolean hasUnderlineSet = false;
+		
+		Underline u = this.rPr.getU();
+		if (u != null) {
+			String none = null;
+			for (String s : u.getVal()) {
+				if (s.equalsIgnoreCase("none")) {
+					none = s;
+				}
+			}
+			hasUnderlineSet = (none == null && !u.getVal().isEmpty());
+		}
+		
+		return hasUnderlineSet;
+	}
+	
 }// RunPropertiesML class
 
 

@@ -22,10 +22,13 @@ package org.docx4all.xml;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.bind.JAXBElement;
+import javax.xml.namespace.QName;
+
 import org.apache.log4j.Logger;
-import org.docx4j.document.wordprocessingml.Paragraph;
+import org.docx4j.jaxb.document.Body;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
-import org.dom4j.Element;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -33,10 +36,10 @@ import org.dom4j.Element;
 public class DocumentML extends ElementML {
 	private static Logger log = Logger.getLogger(DocumentML.class);
 	
-	private final MainDocumentPart doc;
+	private final WordprocessingMLPackage docPackage;
 	
-	public DocumentML(MainDocumentPart doc) {
-		this.doc = doc;
+	public DocumentML(WordprocessingMLPackage docPackage) {
+		this.docPackage = docPackage;
 		this.tag = WordML.Tag.DOCUMENT;
 		
 		initChildren();
@@ -51,45 +54,65 @@ public class DocumentML extends ElementML {
 	 *         false, otherwise
 	 */
 	public boolean isImplied() {
-		return this.doc == null;
+		return this.docPackage == null;
 	}
 
 	private void initChildren() {
-		List bodyKids = doc.getBody();
-		if (!bodyKids.isEmpty()) {
-			this.children = new ArrayList<ElementML>(bodyKids.size());
-			
-			for (Object o : bodyKids) {
-				// TODO: Currently 'bodyKids' may contain:
-				// org.docx4j.document.wordprocessingml.Paragraph
-				// and/or org.dom4j.Element objects
-				// Watch any future change in MainDocumentPart class
-				ParagraphML p;
-				if (o instanceof Paragraph) {
-					p = new ParagraphML((Paragraph) o);
-				} else {
-					p = createDummyParagraph((Element) o);
-				}
+		MainDocumentPart documentPart = this.docPackage.getMainDocumentPart();			
+		
+		org.docx4j.jaxb.document.Document doc = documentPart.getDocumentObj();
+		Body body = doc.getBody();
 
-				p.setParent(DocumentML.this);
-				children.add(p);
-			}// for (Object o:)
-		}// if (!bodyKids.isEmpty())
+		List <Object> bodyChildren = body.getBlockLevelElements();
+		if (!bodyChildren.isEmpty()) {
+			this.children = new ArrayList<ElementML>(bodyChildren.size());
+			
+			for (Object o : bodyChildren) {
+				if (o instanceof JAXBElement<?>) {
+					JAXBElement<?> jaxbElem = (JAXBElement<?>) o;
+
+					ParagraphML paraML;
+
+					String typeName = jaxbElem.getDeclaredType().getName();
+					if ("org.docx4j.jaxb.document.P".equals(typeName)) {
+						org.docx4j.jaxb.document.P p = (org.docx4j.jaxb.document.P) jaxbElem
+								.getValue();
+						paraML = new ParagraphML(p);
+
+					} else {
+						// TODO: A more informative text content in the dummy
+						// paragraph.
+						QName name = jaxbElem.getName();
+						StringBuffer sb = new StringBuffer();
+						sb.append("<");
+						sb.append(name.getNamespaceURI());
+						sb.append(":");
+						sb.append(name.getLocalPart());
+						sb.append(">");
+						sb.append("</");
+						sb.append(name.getNamespaceURI());
+						sb.append(":");
+						sb.append(name.getLocalPart());
+						sb.append(">");
+						paraML = ElementMLFactory.createParagraphML(sb.toString(),
+								true);
+					}
+
+					paraML.setParent(DocumentML.this);
+					this.children.add(paraML);
+					
+				} else if (o instanceof org.docx4j.jaxb.document.Sdt) {
+					String s = "<w:sdt></w:sdt>";
+					ParagraphML paraML = 
+						ElementMLFactory.createParagraphML(s, true);
+					paraML.setParent(DocumentML.this);
+					this.children.add(paraML);
+					
+				}// if (o instanceof JAXBElement<?>)
+			}// for (Object o : bodyChildren )
+		}
 	}// initChildren()
 	
-	private ParagraphML createDummyParagraph(Element unsupportedElem) {
-		//Create a Dummy Paragraph that contains a piece of information
-		//about this unsupported element
-		//TODO: A more informative text content in the dummy paragraph.
-		StringBuffer text = new StringBuffer();
-		text.append("UNSUPPORTED '");
-		text.append(unsupportedElem.getName());
-		text.append("' tag element");
-		
-		return ElementMLFactory.createParagraphML(text.toString(), true);
-	}
-	
-
 }// DocumentML class
 
 

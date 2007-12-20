@@ -21,51 +21,41 @@ package org.docx4all.xml;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 import org.docx4j.Namespaces;
-import org.docx4j.document.wordprocessingml.Constants;
-import org.docx4j.document.wordprocessingml.Paragraph;
-import org.docx4j.document.wordprocessingml.Run;
+import org.docx4j.jaxb.document.ObjectFactory;
+import org.docx4j.openpackaging.URIHelper;
+import org.docx4j.openpackaging.contenttype.ContentType;
+import org.docx4j.openpackaging.contenttype.ContentTypeManager;
+import org.docx4j.openpackaging.contenttype.ContentTypeManagerImpl;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.exceptions.InvalidFormatException;
 import org.docx4j.openpackaging.io.LoadFromZipFile;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
+import org.docx4j.openpackaging.parts.Part;
 import org.docx4j.openpackaging.parts.PartName;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
+import org.docx4j.openpackaging.parts.relationships.RelationshipsPart;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
 import org.dom4j.Namespace;
 import org.dom4j.QName;
-import org.dom4j.tree.DefaultElement;
 
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
  */
 public class ElementMLFactory {
+	private final static ObjectFactory _jaxbFactory = new ObjectFactory();
+	
+	public final static ObjectFactory getJaxbObjectFactory() {
+		return _jaxbFactory;
+	}
 	
 	public final static DocumentML createEmptyDocumentML() {
-		//====== Create Document ======
-		Document doc = DocumentHelper.createDocument();
-		Namespace nsWordprocessingML = new Namespace("w",
-				"http://schemas.openxmlformats.org/wordprocessingml/2006/main");
-		Element elDocument = doc.addElement(new QName("document",
-				nsWordprocessingML));
-		Element elBody = elDocument.addElement(new QName(Constants.WORD_DOC_BODY_TAG_NAME,
-				Namespaces.namespaceWord));
-		elBody.add(createParagraphElement(org.docx4all.ui.main.Constants.NEWLINE));
-		
-		//====== Create MainDocumentPart ======
-		MainDocumentPart docPart = null;
-		try {
-			docPart = new MainDocumentPart( new PartName( "/word/document.xml" ));
-		} catch (InvalidFormatException exc) {
-			;//do nothing
-		}
-		docPart.setDocument(doc);
-		return new DocumentML(docPart);
+		WordprocessingMLPackage docPackage = createEmptyDocumentPackage();
+		return new DocumentML(docPackage);
 	}
 	
 	public final static DocumentML createDocumentML(File f) throws IOException {
@@ -78,8 +68,7 @@ public class ElementMLFactory {
 			LoadFromZipFile loader = new LoadFromZipFile();
 			WordprocessingMLPackage wordMLPackage = 
 				(WordprocessingMLPackage) loader.get(f);
-			MainDocumentPart documentPart = wordMLPackage.getMainDocumentPart();
-			docML = new DocumentML(documentPart);
+			docML = new DocumentML(wordMLPackage);
 		} catch (Docx4JException exc) {
 			throw new IOException(exc);
 		}
@@ -88,61 +77,89 @@ public class ElementMLFactory {
 	}
 	
 	public final static ParagraphML createParagraphML(String textContent, boolean isDummy) {
-		Paragraph p = new Paragraph(createParagraphElement(textContent));
+		org.docx4j.jaxb.document.P p = createP(textContent);
 		return new ParagraphML(p, isDummy);
 	}
 	
 	public final static RunML createRunML(String textContent, boolean isDummy) {
-		Run r = new Run(createRunElement(textContent));
+		org.docx4j.jaxb.document.R r = createR(textContent);
 		return new RunML(r, isDummy);
 	}
 	
-	public final static PropertyML createPropertyML(
-		WordML.PropertyTag tag, List<AttributeML> attrs) {
-		Element elem = createPropertyElement(tag.getTagName(), attrs);
-		return new PropertyML(elem);
-	}
-	
-	private final static Element createParagraphElement(String textContent) {
-		Element p = new DefaultElement(new QName(Constants.PARAGRAPH_BODY_TAG_NAME,
-				Namespaces.namespaceWord));
-		
-		Element r = createRunElement(textContent);	
-
-		p.content().add(r);
-		
+	private final static org.docx4j.jaxb.document.P createP(String textContent) {
+		org.docx4j.jaxb.document.P p = _jaxbFactory.createP();
+		org.docx4j.jaxb.document.R r = createR(textContent);
+		p.getParagraphContent().add(r);
+		r.setParent(p);
 		return p;
 	}
 	
-	private final static Element createRunElement(String textContent) {
-		Element r = new DefaultElement(new QName(Constants.PARAGRAPH_RUN_TAG_NAME,
-				Namespaces.namespaceWord));
-
-		Element rcontent = null;
-		if (org.docx4all.ui.main.Constants.NEWLINE.equals(textContent)) {
-			rcontent = 
-				new DefaultElement(
-						new QName(Constants.CR, Namespaces.namespaceWord));
-		} else {
-			rcontent = 
-				new DefaultElement(
-						new QName(Constants.RUN_TEXT,	Namespaces.namespaceWord));
-			rcontent.setText(textContent);		
-		}
-		r.content().add(rcontent);
+	private final static org.docx4j.jaxb.document.R createR(String textContent) {
+		org.docx4j.jaxb.document.R r = _jaxbFactory.createR();
 		
+		if (org.docx4all.ui.main.Constants.NEWLINE.equals(textContent)) {
+			org.docx4j.jaxb.document.Cr cr = _jaxbFactory.createCr();
+			r.getRunContent().add(cr);
+			cr.setParent(r);
+		} else {
+			org.docx4j.jaxb.document.Text text = _jaxbFactory.createText();
+			text.setValue(textContent);
+			r.getRunContent().add(text);
+			text.setParent(r);
+		}
 		return r;
 	}
 	
-	private final static Element createPropertyElement(String elementName, List<AttributeML> attrs) {
-		Element theElem = new DefaultElement(new QName(elementName, Namespaces.namespaceWord));
-		for (AttributeML at : attrs) {
-			QName qname = new QName(at.getKey().getAttributeName(), Namespaces.namespaceWord);
-			theElem.addAttribute(qname, at.getValue());
-		}
-		return theElem;
-	}
+	private final static WordprocessingMLPackage createEmptyDocumentPackage() {
+		// Create a package
+		WordprocessingMLPackage thePackage = new WordprocessingMLPackage();
 
+		// Add a ContentTypeManager to it
+		ContentTypeManager ctm = new ContentTypeManagerImpl();
+		thePackage.setContentTypeManager(ctm);
+
+		// Create main document part content
+		Document doc = DocumentHelper.createDocument();
+		Namespace nsWordprocessinML = new Namespace("w",
+				"http://schemas.openxmlformats.org/wordprocessingml/2006/main");
+		Element elDocument = doc.addElement(new QName("document",
+				nsWordprocessinML));
+		Element elBody = elDocument.addElement(new QName("body",
+				nsWordprocessinML));
+		Element elParagraph = elBody.addElement(new QName("p",
+				nsWordprocessinML));
+		Element elRun = elParagraph
+				.addElement(new QName("r", nsWordprocessinML));
+		Element elText = elRun.addElement(new QName("t", nsWordprocessinML));
+		elText.setText(org.docx4all.ui.main.Constants.NEWLINE);
+
+		try {
+			/* Main Document part */
+			PartName corePartName = URIHelper
+					.createPartName("/word/document.xml");
+			Part corePart = new MainDocumentPart(corePartName);
+			corePart.setDocument(doc);
+
+			corePart
+					.setContentType(new ContentType(
+							"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"));
+
+			// Create the PackageRelationships part
+			RelationshipsPart rp = new RelationshipsPart(new PartName(
+					"/_rels/.rels"));
+			// Add it to the package
+			thePackage.setRelationships(rp);
+			thePackage.setPartShortcut(corePart, Namespaces.DOCUMENT);
+
+			// Add it to the collection of parts
+			rp.addPart(corePart);
+		} catch (InvalidFormatException exc) {
+			;// do nothing
+		}
+
+		return thePackage;
+	}
+	
 	private ElementMLFactory() {
 		;//uninstantiable
 	}
