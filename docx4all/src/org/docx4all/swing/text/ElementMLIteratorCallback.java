@@ -31,7 +31,6 @@ import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLIterator;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.PropertiesContainerML;
-import org.docx4all.xml.PropertyML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
 
@@ -50,12 +49,6 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		} else if (elem instanceof RunContentML) {
 			openElementSpec((RunContentML) elem);
 			
-		} else if (elem instanceof PropertiesContainerML) {
-			openElementSpec((PropertiesContainerML) elem);
-				
-		} else if (elem instanceof PropertyML) {
-			openElementSpec((PropertyML) elem);
-			
 		} else {
 			SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
 			WordMLStyleConstants.setElementML(elemAttrs, elem);
@@ -73,12 +66,6 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 			
 		} else if (elem instanceof RunContentML) {
 			closeElementSpec((RunContentML) elem);
-			
-		} else if (elem instanceof PropertiesContainerML) {
-			closeElementSpec((PropertiesContainerML) elem);
-			
-		} else if (elem instanceof PropertyML) {
-			closeElementSpec((PropertyML) elem);
 			
 		} else {
 			SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
@@ -113,13 +100,18 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	}
 	
 	private void openElementSpec(ParagraphML paragraphML) {
-		SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
-		WordMLStyleConstants.setElementML(elemAttrs, paragraphML);
-		openElementSpec(elemAttrs);
-		_paragraphAttrs = elemAttrs;
+		_paragraphAttrs = new SimpleAttributeSet();
+		WordMLStyleConstants.setElementML(_paragraphAttrs, paragraphML);
+		
+		PropertiesContainerML pc = paragraphML.getParagraphProperties();
+		if (pc != null) {
+			_paragraphAttrs.addAttributes(pc.getAttributeSet());
+		}
+		
+		openElementSpec(_paragraphAttrs);
 		
 		//Insert IMPLIED_PARAGRAPH inside every ParagraphML BLOCK
-		elemAttrs = new SimpleAttributeSet();
+		SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
 		WordMLStyleConstants.setElementML(elemAttrs,
 				ElementML.IMPLIED_PARAGRAPH);
 		openElementSpec(elemAttrs);
@@ -143,7 +135,7 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		
 		SimpleAttributeSet tempAttrs = new SimpleAttributeSet();
 		WordMLStyleConstants.setElementML(tempAttrs, rcML);
-		addContentElementSpec(tempAttrs, rcML.getText());
+		addContentElementSpec(tempAttrs, rcML.getTextContent());
 		
 		closeElementSpec(runAttrs.copyAttributes());
 		
@@ -163,11 +155,15 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	}
 	
 	private void openElementSpec(RunML runML) {
-		SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
-		WordMLStyleConstants.setElementML(elemAttrs, runML);
-		openElementSpec(elemAttrs);
-		_runAttrs = elemAttrs;
+		_runAttrs = new SimpleAttributeSet();
+		WordMLStyleConstants.setElementML(_runAttrs, runML);
 		
+		PropertiesContainerML pc = runML.getRunProperties();
+		if (pc != null) {
+			_runAttrs.addAttributes(pc.getAttributeSet());
+		}
+		
+		openElementSpec(_runAttrs);
 	}
 
 	private void closeElementSpec(RunML runML) {
@@ -187,7 +183,7 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	private void openElementSpec(RunContentML runContentML) {
 		SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
 		WordMLStyleConstants.setElementML(elemAttrs, runContentML);
-		String text = runContentML.getText();
+		String text = runContentML.getTextContent();
 		addContentElementSpec(elemAttrs, text);
 	}
 	
@@ -211,27 +207,7 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 			openElementSpec(_runAttrs.copyAttributes());
 		}
 	}
-	
-	private void openElementSpec(PropertiesContainerML propContainerML) {
-		if (_runAttrs != null) {
-			_runAttrs.addAttributes(propContainerML.getAttributeSet());
-		} else if (_paragraphAttrs != null) {
-			_paragraphAttrs.addAttributes(propContainerML.getAttributeSet());
-		}
-	}
-	
-	private void closeElementSpec(PropertiesContainerML propContainerML) {
-		;//do nothing
-	}
-	
-	private void openElementSpec(PropertyML propertyML) {
-		;//do nothing
-	}
-	
-	private void closeElementSpec(PropertyML propertyML) {
-		;//do nothing
-	}
-	
+		
 }// ElementMLIteratorCallback class
 
 
