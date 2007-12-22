@@ -22,7 +22,7 @@ package org.docx4all.xml;
 import java.io.File;
 import java.io.IOException;
 
-import org.docx4j.Namespaces;
+import org.docx4j.openpackaging.parts.relationships.Namespaces;
 import org.docx4j.jaxb.document.ObjectFactory;
 import org.docx4j.openpackaging.URIHelper;
 import org.docx4j.openpackaging.contenttype.ContentType;
@@ -119,40 +119,47 @@ public class ElementMLFactory {
 		thePackage.setContentTypeManager(ctm);
 
 		// Create main document part content
-		Document doc = DocumentHelper.createDocument();
-		Namespace nsWordprocessinML = new Namespace("w",
-				"http://schemas.openxmlformats.org/wordprocessingml/2006/main");
-		Element elDocument = doc.addElement(new QName("document",
-				nsWordprocessinML));
-		Element elBody = elDocument.addElement(new QName("body",
-				nsWordprocessinML));
-		Element elParagraph = elBody.addElement(new QName("p",
-				nsWordprocessinML));
-		Element elRun = elParagraph
-				.addElement(new QName("r", nsWordprocessinML));
-		Element elText = elRun.addElement(new QName("t", nsWordprocessinML));
-		elText.setText(org.docx4all.ui.main.Constants.NEWLINE);
+		org.docx4j.jaxb.document.ObjectFactory factory = new org.docx4j.jaxb.document.ObjectFactory();
+
+		org.docx4j.jaxb.document.Text  t = factory.createText();
+		t.setValue(org.docx4all.ui.main.Constants.NEWLINE);
+
+		org.docx4j.jaxb.document.R  run = factory.createR();
+		run.getRunContent().add(t);		
+		
+		org.docx4j.jaxb.document.P  para = factory.createP();
+		para.getParagraphContent().add(run);
+		
+		org.docx4j.jaxb.document.Body  body = factory.createBody();
+		body.getBlockLevelElements().add(para);
+		
+		org.docx4j.jaxb.document.Document wmlDocumentEl = factory.createDocument();
+		wmlDocumentEl.setBody(body);		
 
 		try {
-			/* Main Document part */
-			PartName corePartName = URIHelper
-					.createPartName("/word/document.xml");
-			Part corePart = new MainDocumentPart(corePartName);
-			corePart.setDocument(doc);
-
-			corePart
-					.setContentType(new ContentType(
-							"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"));
-
-			// Create the PackageRelationships part
-			RelationshipsPart rp = new RelationshipsPart(new PartName(
-					"/_rels/.rels"));
+			// Create main document part
+			Part corePart = new org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart(new PartName("/word/document.xml"));
+			
+			// Put the content in the part
+			((org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart)corePart).setDocumentObj(wmlDocumentEl);
+			
+			corePart.setContentType(new  org.docx4j.openpackaging.contenttype.ContentType( org.docx4j.openpackaging.contenttype.ContentTypes.WORDPROCESSINGML_DOCUMENT));
+			corePart.setRelationshipType(Namespaces.DOCUMENT);
+			
+			// Make getMainDocumentPart() work
+			thePackage.setPartShortcut(corePart, corePart.getRelationshipType());
+			
+			// Create the PackageRelationships part	
+			RelationshipsPart rp = new RelationshipsPart( new PartName("/_rels/.rels"), thePackage );
+			
+			// Make sure content manager knows how to handle .rels
+			ctm.addDefaultContentType("rels", org.docx4j.openpackaging.contenttype.ContentTypes.RELATIONSHIPS_PART);
+			
 			// Add it to the package
 			thePackage.setRelationships(rp);
-			thePackage.setPartShortcut(corePart, Namespaces.DOCUMENT);
 
 			// Add it to the collection of parts
-			rp.addPart(corePart);
+			rp.addPart(corePart, thePackage.getContentTypeManager());
 		} catch (InvalidFormatException exc) {
 			;// do nothing
 		}
