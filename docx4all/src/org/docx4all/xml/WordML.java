@@ -125,11 +125,6 @@ public class WordML {
 			JC, IND			
 		};
 
-		static {
-			// Force WordML's static initializer to be loaded.
-			getTag("document");
-		}
-
 		private final boolean isBlockTag;
 		private final boolean breaksFlow;
 		
