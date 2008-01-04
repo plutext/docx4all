@@ -27,8 +27,8 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
 import org.apache.log4j.Logger;
+import org.docx4j.XmlUtils;
 import org.docx4j.jaxb.document.BooleanDefaultTrue;
-import org.docx4j.jaxb.document.ObjectFactory;
 import org.docx4j.jaxb.document.RPr;
 import org.docx4j.jaxb.document.Underline;
 
@@ -38,29 +38,12 @@ import org.docx4j.jaxb.document.Underline;
 public class RunPropertiesML extends ElementML implements PropertiesContainerML {
 	private static Logger log = Logger.getLogger(RunPropertiesML.class);
 	
-	private final RPr rPr;
-	private final MutableAttributeSet attrs;
+	private MutableAttributeSet attrs;
 	
 	public RunPropertiesML(RPr rPr) {
-		this.rPr = rPr;
-		this.tag = WordML.Tag.rPr;
-		this.attrs = new SimpleAttributeSet();
-		
-		initAttributes();
+		super(rPr, false);
 	}
 	
-	/**
-	 * An implied ElementML is an ElementML that
-	 * does not have a DOM element associated with it.
-	 * This kind of ElementML may still have a WordML.Tag.
-	 * 
-	 * @return true, if this is an implied ElementML
-	 *         false, otherwise
-	 */
-	public boolean isImplied() {
-		return this.rPr == null;
-	}
-
     public void addAttribute(Object name, Object value) {
     	this.attrs.addAttribute(name, value);
     }
@@ -74,62 +57,124 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 	}
 	
 	public void save() {
-		ObjectFactory jaxbFactory = ElementMLFactory.getJaxbObjectFactory();
-		//BOLD Attribute
-		BooleanDefaultTrue bdt = jaxbFactory.createBooleanDefaultTrue();
-		if (StyleConstants.isBold(this.attrs)) {
-			bdt.setVal(Boolean.TRUE);
-		} else {
-			bdt.setVal(false);
+		if (this.docxObject == null) {
+			return;
 		}
-		this.rPr.setB(bdt);
+		
+		RPr rPr = (RPr) this.docxObject;
+		
+		BooleanDefaultTrue bdt = null;
+		
+		//BOLD Attribute
+		Boolean bvalue = (Boolean) this.attrs.getAttribute(StyleConstants.Bold);
+		if (bvalue != null) {
+			bdt = ObjectFactory.createBooleanDefaultTrue(bvalue);
+			rPr.setB(bdt);
+		} else {
+			rPr.setB(null);
+		}
 		
 		//ITALIC Attribute
-		bdt = jaxbFactory.createBooleanDefaultTrue();
-		if (StyleConstants.isItalic(this.attrs)) {
-			bdt.setVal(Boolean.TRUE);
+		bvalue = (Boolean) this.attrs.getAttribute(StyleConstants.Italic);
+		if (bvalue != null) {
+			bdt = ObjectFactory.createBooleanDefaultTrue(bvalue);
+			rPr.setI(bdt);
 		} else {
-			bdt.setVal(false);
+			rPr.setI(null);
 		}
-		this.rPr.setI(bdt);
 		
 		//UNDERLINE Attribute
-		if (StyleConstants.isUnderline(this.attrs)
-			&& !rPrHasUnderlineSet()) {
-			//As we do not support underline style
-			//and color yet we do not touch the 
-			//original setting of rPr underline
-			List<String> val = this.rPr.getU().getVal();
-			val.add("single");
-			this.rPr.getU().setColor("auto");
+		bvalue = (Boolean) this.attrs.getAttribute(StyleConstants.Underline);
+		if (bvalue != null) {
+			if (bvalue.booleanValue()) {
+				if (hasUnderlineSet(rPr)) {
+					//As we do not support underline style
+					//and color yet we do not touch the 
+					//original setting of rPr underline
+				} else {
+					org.docx4j.jaxb.document.Underline u = 
+						ObjectFactory.createUnderline("single", "auto");
+					rPr.setU(u);
+				}
+			} else {
+				rPr.setU(null);
+			}
+		} else {
+			rPr.setU(null);
 		}
 	}
 	
-	private void initAttributes() {
+	public Object clone() {
+		RPr obj = null;
+		if (this.docxObject != null) {
+			obj = (RPr) XmlUtils.deepCopy(this.docxObject);
+		}
+		return new RunPropertiesML(obj);
+	}
+	
+	public boolean canAddChild(int idx, ElementML child) {
+		return false;
+	}
+	
+	public void addChild(int idx, ElementML child) {
+		throw new UnsupportedOperationException("Cannot have a child.");
+	}
+		
+	public void setParent(ElementML parent) {
+		if (!(parent instanceof RunML)) {
+			throw new IllegalArgumentException("NOT a RunML.");
+		}
+		this.parent = parent;
+	}
+	
+	public void setDocxParent(Object docxParent) {
+		RPr rPr = (RPr) getDocxObject();
+		if (rPr == null) {
+			;//do nothing
+		} else {
+			rPr.setParent(docxParent);
+		}
+	}
+	
+	public List<Object> getDocxChildren() {
+		return null;//do not have children
+	}
+		
+	protected void init(Object docxObject) {
+		initAttributes((RPr) docxObject);
+	}
+	
+	private void initAttributes(RPr rPr) {
+		this.attrs = new SimpleAttributeSet();
+		
+		if (rPr == null) {
+			return;
+		}
+		
 		//BOLD Attribute
-		BooleanDefaultTrue bdt = this.rPr.getB();
+		BooleanDefaultTrue bdt = rPr.getB();
 		if (bdt != null && bdt.isVal()) {
 			StyleConstants.setBold(this.attrs, Boolean.TRUE);
 		}
 
 		//ITALIC Attribute
-		bdt = this.rPr.getI();
+		bdt = rPr.getI();
 		if (bdt != null && bdt.isVal()) {
 			StyleConstants.setItalic(this.attrs, Boolean.TRUE);
 		}
 		
 		//UNDERLINE Attribute
 		//TODO: To support underline style and color
-		if (rPrHasUnderlineSet()) {
+		if (hasUnderlineSet(rPr)) {
 			StyleConstants.setUnderline(this.attrs, Boolean.TRUE);
 		}
 		
 	}// initAttributes()
 
-	private boolean rPrHasUnderlineSet() {
+	private boolean hasUnderlineSet(RPr rPr) {
 		boolean hasUnderlineSet = false;
 		
-		Underline u = this.rPr.getU();
+		Underline u = rPr.getU();
 		if (u != null) {
 			String none = null;
 			for (String s : u.getVal()) {

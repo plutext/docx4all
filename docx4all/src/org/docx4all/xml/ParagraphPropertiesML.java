@@ -19,14 +19,16 @@
 
 package org.docx4all.xml;
 
+import java.util.List;
+
 import javax.swing.text.AttributeSet;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
 import org.apache.log4j.Logger;
+import org.docx4j.XmlUtils;
 import org.docx4j.jaxb.document.Jc;
-import org.docx4j.jaxb.document.ObjectFactory;
 import org.docx4j.jaxb.document.PPr;
 import org.docx4j.jaxb.document.STJc;
 
@@ -36,29 +38,12 @@ import org.docx4j.jaxb.document.STJc;
 public class ParagraphPropertiesML extends ElementML implements PropertiesContainerML {
 	private static Logger log = Logger.getLogger(ParagraphPropertiesML.class);
 
-	private final PPr pPr;
-	private final MutableAttributeSet attrs;
+	private MutableAttributeSet attrs;
 	
 	public ParagraphPropertiesML(PPr pPr) {
-		this.pPr = pPr;
-		this.tag = WordML.Tag.pPr;
-		this.attrs = new SimpleAttributeSet();
-		
-		initAttributes();
+		super(pPr, false);
 	}
 	
-	/**
-	 * An implied ElementML is an ElementML that
-	 * does not have a DOM element associated with it.
-	 * This kind of ElementML may still have a WordML.Tag.
-	 * 
-	 * @return true, if this is an implied ElementML
-	 *         false, otherwise
-	 */
-	public boolean isImplied() {
-		return this.pPr == null;
-	}
-
     public void addAttribute(Object name, Object value) {
     	this.attrs.addAttribute(name, value);
     }
@@ -72,28 +57,70 @@ public class ParagraphPropertiesML extends ElementML implements PropertiesContai
 	}
 	
 	public void save() {
-		ObjectFactory jaxbFactory = ElementMLFactory.getJaxbObjectFactory();
+		if (this.docxObject == null) {
+			return;
+		}
+		
 		//ALIGNMENT attribute
         Integer align = 
         	(Integer) this.attrs.getAttribute(StyleConstants.Alignment);
-        if (align != null) {
-    		Jc jc = jaxbFactory.createJc();
-			if (align.intValue() == StyleConstants.ALIGN_LEFT) {
-				jc.setVal(STJc.LEFT);
-			} else if (align.intValue() == StyleConstants.ALIGN_RIGHT) {
-				jc.setVal(STJc.RIGHT);
-			} else if (align.intValue() == StyleConstants.ALIGN_CENTER) {
-				jc.setVal(STJc.CENTER);
-			} else if (align.intValue() == StyleConstants.ALIGN_JUSTIFIED) {
-				jc.setVal(STJc.BOTH);
-			}
-			this.pPr.setJc(jc);
+    	org.docx4j.jaxb.document.Jc jc = ObjectFactory.createJc(align);
+    	if (jc != null) {
+        	org.docx4j.jaxb.document.PPr pPr = 
+        		(org.docx4j.jaxb.document.PPr) this.docxObject;
+			pPr.setJc(jc);
 		}
 	}
 	
-	private void initAttributes() {
+	public Object clone() {
+		PPr obj = null;
+		if (this.docxObject != null) {
+			obj = (PPr) XmlUtils.deepCopy(this.docxObject);
+		}
+		return new ParagraphPropertiesML(obj);
+	}
+	
+	public boolean canAddChild(int idx, ElementML child) {
+		return false;
+	}
+	
+	public void addChild(int idx, ElementML child) {
+		throw new UnsupportedOperationException("Cannot have a child.");
+	}
+		
+	public void setParent(ElementML parent) {
+		if (!(parent instanceof ParagraphML)) {
+			throw new IllegalArgumentException("NOT a ParagraphML.");
+		}
+		this.parent = parent;
+	}
+	
+	public void setDocxParent(Object docxParent) {
+		PPr pPr = (PPr) getDocxObject();
+		if (pPr == null) {
+			;//do nothing
+		} else {
+			pPr.setParent(docxParent);
+		}
+	}
+	
+	public List<Object> getDocxChildren() {
+		return null;//do not have children
+	}
+		
+	protected void init(Object docxObject) {
+		initAttributes((PPr) docxObject);
+	}
+	
+	private void initAttributes(PPr pPr) {
+		this.attrs = new SimpleAttributeSet();
+		
+		if (pPr == null) {
+			return;
+		}
+		
 		//ALIGNMENT attribute
-		Jc jc = this.pPr.getJc();
+		Jc jc = pPr.getJc();
 		if (jc != null) {
 			if (jc.getVal() == STJc.LEFT) {
 				StyleConstants.setAlignment(
@@ -113,7 +140,7 @@ public class ParagraphPropertiesML extends ElementML implements PropertiesContai
 						StyleConstants.ALIGN_JUSTIFIED);
 			}
 		}
-	}
+	}// initAttributes()
 	
 }// ParagraphPropertiesML class
 
