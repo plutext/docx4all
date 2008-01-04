@@ -42,6 +42,10 @@ public class TextSelector {
 	
 
     private void select(WordMLDocument doc, int p0, int p1) throws BadSelectionException {
+    	if (p0 >= p1) {
+    		throw new BadSelectionException("Bad Selection", p0, p1-p0);
+    	}
+    	
     	DocumentElement elem = (DocumentElement) doc.getCharacterElement(p0);
     	
 		if (log.isDebugEnabled()) {
@@ -50,28 +54,27 @@ public class TextSelector {
 		}
 		
 		if (elem.getStartOffset() < p0 && !elem.isEditable()) {
-			throw new BadSelectionException(
-						"Bad Start Position", p0, p1-p0);
+			throw new BadSelectionException("Bad Start Position", p0, p1 - p0);
 		}
-    	
-    	elem = (DocumentElement) doc.getCharacterElement(p1);
-    	
+
+		elem = (DocumentElement) doc.getCharacterElement(p1);
+
 		if (log.isDebugEnabled()) {
 			log.debug("select(): [p0, p1] = [" + p0 + ", " + p1 + "]");
 			log.debug("select(): Leaf Element at p1 = " + elem);
 		}
-		
+
 		if (elem.getStartOffset() < p1 && !elem.isEditable()) {
 			throw new BadSelectionException("Bad End Position", p0, p1 - p0);
 		}
-    	
+
 		elem = (DocumentElement) doc.getDefaultRootElement();
-    	List<String> path0 = DocUtil.getElementNamePath(elem, p0);
-    	List<String> path1 = DocUtil.getElementNamePath(elem, p1);
-    	
-    	if (path0 != null && !path0.equals(path1)) {
-    		throw new BadSelectionException("Bad Selection", p0, p1-p0);
-    	}
+		List<String> path0 = DocUtil.getElementNamePath(elem, p0);
+		List<String> path1 = DocUtil.getElementNamePath(elem, p1);
+
+		if (path0 != null && !path0.equals(path1)) {
+			throw new BadSelectionException("Bad Selection", p0, p1 - p0);
+		}
     }
     
 }// TextSelector class
