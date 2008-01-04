@@ -25,6 +25,8 @@ import java.util.List;
 import javax.xml.bind.JAXBElement;
 
 import org.apache.log4j.Logger;
+import org.docx4all.util.XmlUtil;
+import org.docx4j.XmlUtils;
 import org.docx4j.jaxb.document.RPr;
 
 /**
@@ -33,34 +35,16 @@ import org.docx4j.jaxb.document.RPr;
 public class RunML extends ElementML {
 	private static Logger log = Logger.getLogger(RunML.class);
 	
-	private org.docx4j.jaxb.document.R run;
 	private PropertiesContainerML rPr;
 	
-	public RunML(org.docx4j.jaxb.document.R run) {
-		this(run, false);
+	public RunML(Object docxObject) {
+		this(docxObject, false);
 	}
 	
-	public RunML(org.docx4j.jaxb.document.R run, boolean isDummy) {
-		this.run = run;
-		this.tag = WordML.Tag.R;
-		this.isDummy = isDummy;
-		
-		initRunProperties();
-		initChildren();
+	public RunML(Object docxObject, boolean isDummy) {
+		super(docxObject, isDummy);
 	}
 	
-	/**
-	 * An implied ElementML is an ElementML that
-	 * does not have a DOM element associated with it.
-	 * This kind of ElementML may still have a WordML.Tag.
-	 * 
-	 * @return true, if this is an implied ElementML
-	 *         false, otherwise
-	 */
-	public boolean isImplied() {
-		return this.run == null;
-	}
-
 	/**
 	 * Gets the run property element of this run element.
 	 * 
@@ -71,66 +55,147 @@ public class RunML extends ElementML {
 		return this.rPr;
 	}
 	
-	private void initRunProperties() {
+	public Object clone() {
+		Object obj = null;
+		if (this.docxObject != null) {
+			obj = XmlUtils.deepCopy(this.docxObject);
+		}
+		return new RunML(obj);
+	}
+	
+	public boolean canAddChild(int idx, ElementML child) {
+		boolean canAdd = true;
+		
+		if (!(child instanceof RunContentML)) {
+			canAdd = false;
+		} else if (this.children == null) {
+			canAdd = (idx == 0);
+		}
+		
+		return canAdd;
+	}
+	
+	public void addChild(int idx, ElementML child) {
+		if (!(child instanceof RunContentML)) {
+			throw new IllegalArgumentException("NOT a RunContentML");
+		}
+		super.addChild(idx, child);
+	}
+		
+	public void setParent(ElementML parent) {
+		if (!(parent instanceof ParagraphML)) {
+			throw new IllegalArgumentException("NOT a ParagraphML.");
+		}
+		this.parent = parent;
+	}
+	
+	public void setDocxParent(Object docxParent) {
+		if (this.docxObject == null) {
+			;//do nothing
+		} else if (this.docxObject instanceof org.docx4j.jaxb.document.R) {
+			org.docx4j.jaxb.document.R run = 
+				(org.docx4j.jaxb.document.R) this.docxObject;
+			run.setParent(docxParent);
+			
+		} else if (this.docxObject instanceof JAXBElement) {
+			JAXBElement<?> jaxbElem = (JAXBElement<?>) this.docxObject;
+			String typeName = jaxbElem.getDeclaredType().getName();
+
+			if ("org.docx4j.jaxb.document.RunTrackChange".equals(typeName)) {
+				org.docx4j.jaxb.document.RunTrackChange rtc =
+					(org.docx4j.jaxb.document.RunTrackChange) jaxbElem.getValue();
+				rtc.setParent(docxParent);
+			} else {
+				throw new IllegalArgumentException(
+						"Unsupported Docx Object Type = " + typeName);
+			}
+		} else {
+			;//should not come here. See init().
+		}
+	}// setDocxParent()
+	
+	protected List<Object> getDocxChildren() {
+		List<Object> theChildren = null;
+		
+		if (this.docxObject == null) {
+			;//do nothing
+		} else if (this.docxObject instanceof org.docx4j.jaxb.document.R) {
+			org.docx4j.jaxb.document.R run = 
+				(org.docx4j.jaxb.document.R) this.docxObject;
+			theChildren = run.getRunContent();
+			
+		} else if (this.docxObject instanceof JAXBElement) {
+			JAXBElement<?> jaxbElem = (JAXBElement<?>) this.docxObject;
+			String typeName = jaxbElem.getDeclaredType().getName();
+
+			if ("org.docx4j.jaxb.document.RunTrackChange".equals(typeName)) {
+				org.docx4j.jaxb.document.RunTrackChange rtc =
+					(org.docx4j.jaxb.document.RunTrackChange) jaxbElem.getValue();
+				theChildren = rtc.getEGContentRunContent();
+			} else {
+				throw new IllegalArgumentException(
+						"Unsupported Docx Object Type = " + typeName);
+			}
+		} else {
+			;//should not come here. See init().
+		}
+
+		return theChildren;
+	}
+	
+	protected void init(Object docxObject) {
+		org.docx4j.jaxb.document.R run = null;
+		
+		if (docxObject == null) {
+			;//implied RunML
+			
+		} else if (docxObject instanceof org.docx4j.jaxb.document.R) {
+			run = (org.docx4j.jaxb.document.R) docxObject;
+			this.isDummy = false;
+			
+		} else if (docxObject instanceof JAXBElement<?>) {
+			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
+			//Create a dummy RunML for this unsupported element
+			// TODO: A more informative text content in dummy RunML
+			String renderedText = 
+				XmlUtil.getEnclosingTagPair(jaxbElem.getName());
+			run = ObjectFactory.createR(renderedText);
+			this.isDummy = true;
+			
+		} else {
+			throw new IllegalArgumentException("Unsupported Docx Object = " + docxObject);			
+		}
+		
+		initRunProperties(run);
+		initChildren(run);
+	}
+	
+	private void initRunProperties(org.docx4j.jaxb.document.R run) {
 		this.rPr = null;
-		if (this.run != null) {
-			//if not an implied RunML
-			RPr rPr = this.run.getRPr();
+		if (run != null) {
+			RPr rPr = run.getRPr();
 			if (rPr != null) {
 				this.rPr = new RunPropertiesML(rPr);
 			}
 		}
 	}
 	
-	private void initChildren() {
+	private void initChildren(org.docx4j.jaxb.document.R run) {
 		this.children = null;
-		if (this.run == null) {
-			//if an implied RunML
+
+		if (run == null) {
 			return;
 		}
 
-		List<Object> rKids = this.run.getRunContent();
+		List<Object> rKids = run.getRunContent();
 		if (!rKids.isEmpty()) {
 			this.children = new ArrayList<ElementML>(rKids.size());
-
 			for (Object o : rKids) {
-				if (o instanceof org.docx4j.jaxb.document.Br) {
-					// TODO: Full support of BR element
-					RunContentML child = 
-						new BrML(
-							(org.docx4j.jaxb.document.Br) o,
-							this.isDummy);
-					child.setParent(RunML.this);
-					this.children.add(child);
-					
-				} else if (o instanceof org.docx4j.jaxb.document.Cr) {
-					// TODO: Full support of BR element
-					RunContentML child = 
-						new CrML(
-							(org.docx4j.jaxb.document.Cr) o,
-							this.isDummy);
-					child.setParent(RunML.this);
-					this.children.add(child);
-					
-				} else if (o instanceof JAXBElement<?>) {
-					JAXBElement<?> jaxbElem = (JAXBElement<?>) o;
-					String typeName = jaxbElem.getDeclaredType().getName();
-					if ("org.docx4j.jaxb.document.Text".equals(typeName)) {
-						org.docx4j.jaxb.document.Text t = 
-							(org.docx4j.jaxb.document.Text) 
-								jaxbElem.getValue();
-						String s = t.getValue();
-						if (s != null && s.length() > 0) {
-							RunContentML child = new TextML(t, this.isDummy);
-							child.setParent(RunML.this);
-							this.children.add(child);
-						}
-					} else {
-						// TODO: Create an unsupported RunContentML ?
-					}
-				}// if (o instanceof JAXBElement<?>)
-			}// for (Object o : rKids)
-		}// if (!rKids.isEmpty())
+				RunContentML child = new RunContentML(o, this.isDummy);
+				child.setParent(RunML.this);
+				this.children.add(child);
+			}
+		}
 	}// initChildren()
 	
 }// RunML class

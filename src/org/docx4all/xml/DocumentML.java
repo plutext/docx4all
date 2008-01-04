@@ -22,11 +22,8 @@ package org.docx4all.xml;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.xml.bind.JAXBElement;
-import javax.xml.namespace.QName;
-
 import org.apache.log4j.Logger;
-import org.docx4j.jaxb.document.Body;
+import org.docx4j.XmlUtils;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 
@@ -39,77 +36,87 @@ public class DocumentML extends ElementML {
 	private final WordprocessingMLPackage docPackage;
 	
 	public DocumentML(WordprocessingMLPackage docPackage) {
+		super(docPackage.getMainDocumentPart().getDocumentObj(), false);
 		this.docPackage = docPackage;
-		this.tag = WordML.Tag.DOCUMENT;
-		
-		initChildren();
 	}
 
-	/**
-	 * An implied ElementML is an ElementML that
-	 * does not have a DOM element associated with it.
-	 * This kind of ElementML may still have a WordML.Tag.
-	 * 
-	 * @return true, if this is an implied ElementML
-	 *         false, otherwise
-	 */
-	public boolean isImplied() {
-		return this.docPackage == null;
-	}
-
-	private void initChildren() {
-		MainDocumentPart documentPart = this.docPackage.getMainDocumentPart();			
+	public Object clone() {
+		WordprocessingMLPackage clonedPackage = null;
 		
-		org.docx4j.jaxb.document.Document doc = documentPart.getDocumentObj();
-		Body body = doc.getBody();
-
-		List <Object> bodyChildren = body.getBlockLevelElements();
+		if (this.docPackage != null) {
+			MainDocumentPart documentPart = 
+				this.docPackage.getMainDocumentPart();			
+			org.docx4j.jaxb.document.Document doc = 
+				(org.docx4j.jaxb.document.Document)
+				XmlUtils.deepCopy(documentPart.getDocumentObj());
+			clonedPackage = ObjectFactory.createDocumentPackage(doc);
+		}
+		
+		return new DocumentML(clonedPackage);
+	}
+	
+	public boolean canAddChild(int idx, ElementML child) {
+		boolean canAdd = true;
+		
+		if (!(child instanceof ParagraphML)) {
+			canAdd = false;
+		} else if (this.children == null) {
+			canAdd = (idx == 0);
+		}
+		
+		return canAdd;
+	}
+	
+	public void addChild(int idx, ElementML child) {
+		if (!(child instanceof ParagraphML)) {
+			throw new IllegalArgumentException("NOT a ParagraphML");
+		}
+		super.addChild(idx, child);
+	}
+	
+	public boolean canAddSibling(ElementML elem, boolean after) {
+		return false;
+	}
+	
+	public void addSibling(ElementML elem, boolean after) {
+		;//cannot have sibling;
+	}
+	
+	public void setDocxParent(Object docxParent) {
+		;//cannot have docx parent;
+	}
+	
+	public void setParent(ElementML parent) {
+		;//cannot have parent
+	}
+	
+	protected List<Object> getDocxChildren() {
+		if (this.docxObject == null) {
+			return null;
+		}
+		
+		org.docx4j.jaxb.document.Document doc = 
+			(org.docx4j.jaxb.document.Document) this.docxObject;
+		return doc.getBody().getBlockLevelElements();
+	}
+	
+	protected void init(Object docxObject) {
+		initChildren((org.docx4j.jaxb.document.Document) docxObject);
+	}
+	
+	private void initChildren(org.docx4j.jaxb.document.Document doc) {
+		if (doc == null) {
+			return;
+		}
+		
+		List <Object> bodyChildren = doc.getBody().getBlockLevelElements();
 		if (!bodyChildren.isEmpty()) {
 			this.children = new ArrayList<ElementML>(bodyChildren.size());
-			
 			for (Object o : bodyChildren) {
-				if (o instanceof JAXBElement<?>) {
-					JAXBElement<?> jaxbElem = (JAXBElement<?>) o;
-
-					ParagraphML paraML;
-
-					String typeName = jaxbElem.getDeclaredType().getName();
-					if ("org.docx4j.jaxb.document.P".equals(typeName)) {
-						org.docx4j.jaxb.document.P p = (org.docx4j.jaxb.document.P) jaxbElem
-								.getValue();
-						paraML = new ParagraphML(p);
-
-					} else {
-						// TODO: A more informative text content in the dummy
-						// paragraph.
-						QName name = jaxbElem.getName();
-						StringBuffer sb = new StringBuffer();
-						sb.append("<");
-						sb.append(name.getNamespaceURI());
-						sb.append(":");
-						sb.append(name.getLocalPart());
-						sb.append(">");
-						sb.append("</");
-						sb.append(name.getNamespaceURI());
-						sb.append(":");
-						sb.append(name.getLocalPart());
-						sb.append(">");
-						paraML = ElementMLFactory.createParagraphML(sb.toString(),
-								true);
-					}
-
-					paraML.setParent(DocumentML.this);
-					this.children.add(paraML);
-					
-				} else if (o instanceof org.docx4j.jaxb.document.Sdt) {
-					String s = "<w:sdt></w:sdt>";
-					ParagraphML paraML = 
-						ElementMLFactory.createParagraphML(s, true);
-					paraML.setParent(DocumentML.this);
-					this.children.add(paraML);
-					
-				}// if (o instanceof JAXBElement<?>)
-			}// for (Object o : bodyChildren )
+				ParagraphML paraML = new ParagraphML(o);
+				paraML.setParent(DocumentML.this);
+				this.children.add(paraML);
+			}
 		}
 	}// initChildren()
 	
