@@ -39,6 +39,8 @@ public interface Constants {
 	public final static String ALIGN_CENTER_VALUE = "center";
 	public final static String ALIGN_BOTH_VALUE = "both";
 	
+	public final static String TEXT_ELEMENT_EMPTY_VALUE = ":";
+	
 	//=====================
 	//Resource property keys
 	//=====================
