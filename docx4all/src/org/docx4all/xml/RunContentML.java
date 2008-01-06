@@ -28,6 +28,7 @@ import org.apache.log4j.Logger;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
+import org.docx4j.jaxbcontexts.DocumentContext;
 
 /**
  *	@author Jojada Tirtowidjojo - 06/12/2007
@@ -134,13 +135,13 @@ public class RunContentML extends ElementML {
 										
 		} else if (docxObject instanceof org.docx4j.jaxb.document.NoBreakHyphen) {
 			//Unsupported yet
-			QName name = XmlUtils.getJAXBIntrospector().getElementName(docxObject);
+			QName name = DocumentContext.jc.createJAXBIntrospector().getElementName(docxObject);
 			this.textContent = XmlUtil.getEnclosingTagPair(name);
 			this.isDummy = true;
 
 		} else if (docxObject instanceof org.docx4j.jaxb.document.SoftHyphen) {
 			//Unsupported yet
-			QName name = XmlUtils.getJAXBIntrospector().getElementName(docxObject);
+			QName name = DocumentContext.jc.createJAXBIntrospector().getElementName(docxObject);
 			this.textContent = XmlUtil.getEnclosingTagPair(name);
 			this.isDummy = true;
 
