@@ -82,7 +82,7 @@ public class ObjectFactory {
 
 			// Put the content in the part
 			((org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart) corePart)
-					.setDocumentObj(doc);
+					.setJaxbElement(doc);
 
 			corePart.setContentType(new org.docx4j.openpackaging.contenttype.ContentType(
 							org.docx4j.openpackaging.contenttype.ContentTypes.WORDPROCESSINGML_DOCUMENT));
