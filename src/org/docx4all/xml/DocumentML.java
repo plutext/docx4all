@@ -36,7 +36,7 @@ public class DocumentML extends ElementML {
 	private final WordprocessingMLPackage docPackage;
 	
 	public DocumentML(WordprocessingMLPackage docPackage) {
-		super(docPackage.getMainDocumentPart().getDocumentObj(), false);
+		super(docPackage.getMainDocumentPart().getJaxbElement(), false);
 		this.docPackage = docPackage;
 	}
 
@@ -48,7 +48,7 @@ public class DocumentML extends ElementML {
 				this.docPackage.getMainDocumentPart();			
 			org.docx4j.jaxb.document.Document doc = 
 				(org.docx4j.jaxb.document.Document)
-				XmlUtils.deepCopy(documentPart.getDocumentObj());
+				XmlUtils.deepCopy(documentPart.getJaxbElement());
 			clonedPackage = ObjectFactory.createDocumentPackage(doc);
 		}
 		
