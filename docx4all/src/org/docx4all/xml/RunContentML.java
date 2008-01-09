@@ -52,6 +52,15 @@ public class RunContentML extends ElementML {
 	
 	public void setTextContent(String textContent) {
 		this.textContent = textContent;
+		if (docxObject instanceof JAXBElement<?>) {
+			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
+			String typeName = jaxbElem.getDeclaredType().getName();
+			if ("org.docx4j.jaxb.document.Text".equals(typeName)) {
+				org.docx4j.jaxb.document.Text t = 
+					(org.docx4j.jaxb.document.Text) jaxbElem.getValue();
+				t.setValue(textContent);
+			}
+		}
 	}
 	
 	public Object clone() {
