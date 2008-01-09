@@ -19,10 +19,17 @@
 
 package org.docx4all.swing.text;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import javax.swing.text.BadLocationException;
 
 import org.apache.log4j.Logger;
 import org.docx4all.util.DocUtil;
+import org.docx4all.xml.ElementML;
+import org.docx4all.xml.ObjectFactory;
+import org.docx4all.xml.ParagraphML;
+import org.docx4all.xml.RunContentML;
 
 /**
  *	@author Jojada Tirtowidjojo - 19/12/2007
@@ -32,6 +39,7 @@ public class TextSelector {
 
 	private final WordMLDocument doc;
 	private final int offset, length;
+	private DocumentElement firstLeaf, lastLeaf;
 	
 	public TextSelector(WordMLDocument doc, int offset, int length) throws BadSelectionException {
 		select(doc, offset, offset + length);
@@ -40,40 +48,46 @@ public class TextSelector {
 		this.length = length;
 	}
 	
-
     private void select(WordMLDocument doc, int p0, int p1) throws BadSelectionException {
     	if (p0 >= p1) {
     		throw new BadSelectionException("Bad Selection", p0, p1-p0);
     	}
     	
-    	DocumentElement elem = (DocumentElement) doc.getCharacterElement(p0);
+    	this.firstLeaf = (DocumentElement) doc.getCharacterElement(p0);
     	
 		if (log.isDebugEnabled()) {
 			log.debug("select(): [p0, p1] = [" + p0 + ", " + p1 + "]");
-			log.debug("select(): Leaf Element at p0 = " + elem);
+			log.debug("select(): Leaf Element at p0 = " + this.firstLeaf);
 		}
 		
-		if (elem.getStartOffset() < p0 && !elem.isEditable()) {
+		if (this.firstLeaf.getStartOffset() < p0 && !this.firstLeaf.isEditable()) {
+			this.firstLeaf = null;
 			throw new BadSelectionException("Bad Start Position", p0, p1 - p0);
 		}
 
-		elem = (DocumentElement) doc.getCharacterElement(p1);
+		this.lastLeaf = (DocumentElement) doc.getCharacterElement(p1);
 
 		if (log.isDebugEnabled()) {
 			log.debug("select(): [p0, p1] = [" + p0 + ", " + p1 + "]");
-			log.debug("select(): Leaf Element at p1 = " + elem);
+			log.debug("select(): Leaf Element at p1 = " + this.lastLeaf);
 		}
 
-		if (elem.getStartOffset() < p1 && !elem.isEditable()) {
+		if (this.lastLeaf.getStartOffset() < p1 && !this.lastLeaf.isEditable()) {
+			this.lastLeaf = null;
 			throw new BadSelectionException("Bad End Position", p0, p1 - p0);
 		}
 
-		elem = (DocumentElement) doc.getDefaultRootElement();
-		List<String> path0 = DocUtil.getElementNamePath(elem, p0);
-		List<String> path1 = DocUtil.getElementNamePath(elem, p1);
+		if (this.firstLeaf != this.lastLeaf
+			&& (this.firstLeaf.getStartOffset() != p0
+					|| this.lastLeaf.getEndOffset() != p1)) {
+			DocumentElement root = 
+				(DocumentElement) doc.getDefaultRootElement();
+			List<String> path0 = DocUtil.getElementNamePath(root, p0);
+			List<String> path1 = DocUtil.getElementNamePath(root, p1);
 
-		if (path0 != null && !path0.equals(path1)) {
-			throw new BadSelectionException("Bad Selection", p0, p1 - p0);
+			if (path0 != null && !path0.equals(path1)) {
+				throw new BadSelectionException("Bad Selection", p0, p1 - p0);
+			}
 		}
     }
     
