@@ -21,6 +21,9 @@ package org.docx4all.util;
 
 import javax.xml.namespace.QName;
 
+import org.docx4all.xml.ElementML;
+import org.docx4all.xml.ElementMLIterator;
+
 /**
  *	@author Jojada Tirtowidjojo - 04/01/2008
  */
@@ -43,6 +46,39 @@ public class XmlUtil {
 		sb.append(">");
 		
 		return sb.toString();
+	}
+	
+	public final static int getIteratedIndex(ElementML root, ElementML target) {
+		int theIdx = -1;
+		
+		ElementMLIterator it = new ElementMLIterator(root);
+		int i = -1;
+		while (it.hasNext() && theIdx == -1) {
+			i++;
+			ElementML elem = it.next();
+			if (elem == target) {
+				theIdx = i;
+			}
+		}
+		
+		return theIdx;
+	}
+	
+	public final static ElementML getElementMLAtIteratedIndex(ElementML root, int idx) {
+		ElementML theElem = null;
+		
+		ElementMLIterator it = new ElementMLIterator(root);
+		int i = -1;
+		while (it.hasNext() && i < idx) {
+			i++;
+			theElem = it.next();
+		}
+		
+		if (i != idx) {
+			theElem = null;
+		}
+		
+		return theElem;
 	}
 	
 	private XmlUtil() {
