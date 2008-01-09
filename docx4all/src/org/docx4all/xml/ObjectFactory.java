@@ -20,10 +20,13 @@
 package org.docx4all.xml;
 
 import javax.swing.text.StyleConstants;
+import javax.xml.bind.JAXBElement;
 
 import org.docx4all.ui.main.Constants;
 import org.docx4j.jaxb.document.BooleanDefaultTrue;
+import org.docx4j.jaxb.document.P;
 import org.docx4j.jaxb.document.STJc;
+import org.docx4j.jaxb.document.Text;
 import org.docx4j.openpackaging.contenttype.ContentTypeManager;
 import org.docx4j.openpackaging.contenttype.ContentTypeManagerImpl;
 import org.docx4j.openpackaging.exceptions.InvalidFormatException;
@@ -41,11 +44,18 @@ public class ObjectFactory {
 	private final static org.docx4j.jaxb.document.ObjectFactory _jaxbFactory = 
 		new org.docx4j.jaxb.document.ObjectFactory();
 
+	public final static JAXBElement<P> createPara(String textContent) {
+		org.docx4j.jaxb.document.P p = createP(textContent);
+		return _jaxbFactory.createP(p);
+	}
+	
 	public final static org.docx4j.jaxb.document.P createP(String textContent) {
 		org.docx4j.jaxb.document.P p = _jaxbFactory.createP();
-		org.docx4j.jaxb.document.R r = createR(textContent);
-		p.getParagraphContent().add(r);
-		r.setParent(p);
+		if (textContent != null) {
+			org.docx4j.jaxb.document.R r = createR(textContent);
+			p.getParagraphContent().add(r);
+			r.setParent(p);
+		}
 		return p;
 	}
 	
@@ -63,6 +73,12 @@ public class ObjectFactory {
 			text.setParent(r);
 		}
 		return r;
+	}
+	
+	public final static JAXBElement<Text> createT(String textContent) {
+		org.docx4j.jaxb.document.Text text = _jaxbFactory.createText();
+		text.setValue(textContent);
+		return _jaxbFactory.createT(text);
 	}
 	
 	public final static WordprocessingMLPackage createDocumentPackage(
