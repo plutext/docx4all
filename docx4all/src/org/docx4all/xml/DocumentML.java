@@ -36,7 +36,7 @@ public class DocumentML extends ElementML {
 	private final WordprocessingMLPackage docPackage;
 	
 	public DocumentML(WordprocessingMLPackage docPackage) {
-		super(docPackage.getMainDocumentPart().getJaxbElement(), false);
+		super((docPackage != null) ? docPackage.getMainDocumentPart().getJaxbElement() : null, false);
 		this.docPackage = docPackage;
 	}
 
@@ -58,19 +58,28 @@ public class DocumentML extends ElementML {
 	public boolean canAddChild(int idx, ElementML child) {
 		boolean canAdd = true;
 		
-		if (!(child instanceof ParagraphML)) {
+		if (!(child instanceof BodyML)) {
 			canAdd = false;
-		} else if (this.children == null) {
-			canAdd = (idx == 0);
+		} else {
+			canAdd = super.canAddChild(idx, child);
 		}
 		
 		return canAdd;
 	}
 	
 	public void addChild(int idx, ElementML child) {
-		if (!(child instanceof ParagraphML)) {
-			throw new IllegalArgumentException("NOT a ParagraphML");
+		if (!(child instanceof BodyML)) {
+			throw new IllegalArgumentException("NOT a BodyML");
 		}
+		
+		if (child.getParent() != null) {
+			throw new IllegalArgumentException("Not an orphan.");
+		}
+		
+		if (idx != 0) {
+			throw new IllegalArgumentException("idx=" + idx + ". Zero is expected.");
+		}
+		
 		super.addChild(idx, child);
 	}
 	
@@ -79,15 +88,15 @@ public class DocumentML extends ElementML {
 	}
 	
 	public void addSibling(ElementML elem, boolean after) {
-		;//cannot have sibling;
+		throw new UnsupportedOperationException("DocumentML cannot have sibling.");
 	}
 	
 	public void setDocxParent(Object docxParent) {
-		;//cannot have docx parent;
+		throw new UnsupportedOperationException("DocumentML is root.");
 	}
 	
 	public void setParent(ElementML parent) {
-		;//cannot have parent
+		throw new UnsupportedOperationException("DocumentML is root.");
 	}
 	
 	protected List<Object> getDocxChildren() {
@@ -95,13 +104,25 @@ public class DocumentML extends ElementML {
 			return null;
 		}
 		
+		List<Object> theChildren = new ArrayList<Object>(1);
 		org.docx4j.jaxb.document.Document doc = 
 			(org.docx4j.jaxb.document.Document) this.docxObject;
-		return doc.getBody().getBlockLevelElements();
+		theChildren.add(doc.getBody());
+		return theChildren;
 	}
 	
 	protected void init(Object docxObject) {
-		initChildren((org.docx4j.jaxb.document.Document) docxObject);
+		org.docx4j.jaxb.document.Document doc = null;
+		
+		if (docxObject == null) {
+			;//implied DocumentML
+		} else if (docxObject instanceof org.docx4j.jaxb.document.Document) {
+			doc = (org.docx4j.jaxb.document.Document) docxObject;
+		} else {
+			throw new IllegalArgumentException("Unsupported Docx Object = " + docxObject);			
+		}
+			
+		initChildren(doc);
 	}
 	
 	private void initChildren(org.docx4j.jaxb.document.Document doc) {
@@ -109,14 +130,11 @@ public class DocumentML extends ElementML {
 			return;
 		}
 		
-		List <Object> bodyChildren = doc.getBody().getBlockLevelElements();
-		if (!bodyChildren.isEmpty()) {
-			this.children = new ArrayList<ElementML>(bodyChildren.size());
-			for (Object o : bodyChildren) {
-				ParagraphML paraML = new ParagraphML(o);
-				paraML.setParent(DocumentML.this);
-				this.children.add(paraML);
-			}
+		if (doc.getBody() != null) {
+			this.children = new ArrayList<ElementML>(1);
+			BodyML bodyML = new BodyML(doc.getBody());
+			bodyML.setParent(DocumentML.this);
+			this.children.add(bodyML);
 		}
 	}// initChildren()
 	
