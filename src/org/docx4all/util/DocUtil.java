@@ -30,6 +30,7 @@ import javax.swing.text.Element;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLStyleConstants;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.xml.ElementML;
@@ -43,15 +44,17 @@ public class DocUtil {
 
 	private final static String TAB = "    ";
 	
-	public static List<String> getElementNamePath(Element elem, int pos) {
+	public static List<String> getElementNamePath(DocumentElement elem, int pos) {
 		List<String> thePath = null;
 		if (elem.getStartOffset() <= pos && pos < elem.getEndOffset()) {
 			thePath = new ArrayList<String>();
-			thePath.add(elem.getName());
+			String name = elem.getElementML().getClass().getSimpleName();
+			thePath.add(name);
 			while (!elem.isLeaf()) {
 				int idx = elem.getElementIndex(pos);
-				elem = elem.getElement(idx);
-				thePath.add(elem.getName());
+				elem = (DocumentElement) elem.getElement(idx);
+				name = elem.getElementML().getClass().getSimpleName();
+				thePath.add(name);
 			}
 		}
 		return thePath;
