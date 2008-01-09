@@ -35,7 +35,7 @@ import org.docx4j.jaxb.document.RPr;
 public class RunML extends ElementML {
 	private static Logger log = Logger.getLogger(RunML.class);
 	
-	private PropertiesContainerML rPr;
+	private RunPropertiesML rPr;
 	
 	public RunML(Object docxObject) {
 		this(docxObject, false);
@@ -55,6 +55,28 @@ public class RunML extends ElementML {
 		return this.rPr;
 	}
 	
+	public void setRunProperties(RunPropertiesML rPr) {
+		if (rPr.getParent() != null) {
+			throw new IllegalArgumentException("Not an orphan.");
+		}
+		
+		this.rPr = rPr;
+		if (this.docxObject instanceof org.docx4j.jaxb.document.R) {
+			org.docx4j.jaxb.document.RPr newDocxRPr = null;
+			if (rPr != null) {
+				rPr.setParent(RunML.this);
+				newDocxRPr = 
+					(org.docx4j.jaxb.document.RPr) rPr.getDocxObject();
+			}
+			org.docx4j.jaxb.document.R run = 
+				(org.docx4j.jaxb.document.R) this.docxObject;
+			run.setRPr(newDocxRPr);
+			if (newDocxRPr != null) {
+				newDocxRPr.setParent(run);
+			}
+		}
+	}
+	
 	public Object clone() {
 		Object obj = null;
 		if (this.docxObject != null) {
@@ -68,8 +90,8 @@ public class RunML extends ElementML {
 		
 		if (!(child instanceof RunContentML)) {
 			canAdd = false;
-		} else if (this.children == null) {
-			canAdd = (idx == 0);
+		} else {
+			canAdd = super.canAddChild(idx, child);
 		}
 		
 		return canAdd;
@@ -78,6 +100,9 @@ public class RunML extends ElementML {
 	public void addChild(int idx, ElementML child) {
 		if (!(child instanceof RunContentML)) {
 			throw new IllegalArgumentException("NOT a RunContentML");
+		}
+		if (child.getParent() != null) {
+			throw new IllegalArgumentException("Not an orphan.");
 		}
 		super.addChild(idx, child);
 	}
@@ -176,6 +201,7 @@ public class RunML extends ElementML {
 			RPr rPr = run.getRPr();
 			if (rPr != null) {
 				this.rPr = new RunPropertiesML(rPr);
+				this.rPr.setParent(RunML.this);
 			}
 		}
 	}
