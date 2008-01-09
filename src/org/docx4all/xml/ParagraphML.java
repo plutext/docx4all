@@ -35,7 +35,7 @@ import org.docx4j.jaxb.document.PPr;
 public class ParagraphML extends ElementML {
 	private static Logger log = Logger.getLogger(ParagraphML.class);
 
-	private PropertiesContainerML pPr;
+	private ParagraphPropertiesML pPr;
 	
 	public ParagraphML(Object docxObject) {
 		this(docxObject, false);
@@ -55,11 +55,35 @@ public class ParagraphML extends ElementML {
 		return this.pPr;
 	}
 	
+	public void setParagraphProperties(ParagraphPropertiesML pPr) {
+		if (pPr.getParent() != null) {
+			throw new IllegalArgumentException("Not an orphan.");
+		}
+		
+		this.pPr = pPr;
+		if (this.docxObject instanceof org.docx4j.jaxb.document.P) {
+			org.docx4j.jaxb.document.PPr newDocxPPr = null;
+			if (pPr != null) {
+				pPr.setParent(ParagraphML.this);
+				newDocxPPr = 
+					(org.docx4j.jaxb.document.PPr) pPr.getDocxObject();
+			}
+			org.docx4j.jaxb.document.P p = 
+				(org.docx4j.jaxb.document.P) this.docxObject;
+			p.setPPr(newDocxPPr);
+			
+			if (newDocxPPr != null) {
+				newDocxPPr.setParent(p);
+			}
+		}
+	}
+	
 	public Object clone() {
 		Object obj = null;
 		if (this.docxObject != null) {
 			obj = XmlUtils.deepCopy(this.docxObject);
 		}
+		
 		return new ParagraphML(obj);
 	}
 	
@@ -68,8 +92,8 @@ public class ParagraphML extends ElementML {
 		
 		if (!(child instanceof RunML)) {
 			canAdd = false;
-		} else if (this.children == null) {
-			canAdd = (idx == 0);
+		} else {
+			canAdd = super.canAddChild(idx, child);
 		}
 		
 		return canAdd;
@@ -79,17 +103,20 @@ public class ParagraphML extends ElementML {
 		if (!(child instanceof RunML)) {
 			throw new IllegalArgumentException("NOT a RunML");
 		}
+		if (child.getParent() != null) {
+			throw new IllegalArgumentException("Not an orphan.");
+		}
 		super.addChild(idx, child);
 	}
 		
 	public void setParent(ElementML parent) {
-		if (!(parent instanceof DocumentML)) {
-			throw new IllegalArgumentException("NOT a DocumentML.");
+		if (!(parent instanceof BodyML)) {
+			throw new IllegalArgumentException("NOT a BodyML.");
 		}
 		this.parent = parent;
 	}
 	
-	public void setDocxParent(Object docxParent) {
+	public void setDocxParent(Object docxParent) {		
 		if (this.docxObject == null) {
 			;//do nothing
 		} else if (this.docxObject instanceof JAXBElement) {
@@ -207,6 +234,7 @@ public class ParagraphML extends ElementML {
 			PPr pProp = para.getPPr();
 			if (pProp != null) {
 				this.pPr = new ParagraphPropertiesML(pProp);
+				this.pPr.setParent(ParagraphML.this);
 			}
 		}
 	}
