@@ -64,13 +64,24 @@ public abstract class ElementML implements Cloneable {
 		init(docxObject);
 	}
 	
-	public abstract boolean canAddChild(int idx, ElementML child);
 	public abstract void setParent(ElementML parent);
 	public abstract void setDocxParent(Object docxParent);
 	public abstract Object clone();
 
 	protected abstract void init(Object docxObject);
 	protected abstract List<Object> getDocxChildren();
+	
+	public boolean canAddChild(int idx, ElementML child) {
+		boolean canAdd = true;
+		
+		if (child.getParent() != null) {
+			canAdd = false;
+		} else if (this.children == null) {
+			canAdd = (idx == 0);
+		}
+		
+		return canAdd;
+	}
 	
 	public boolean canAddSibling(ElementML elem, boolean after) {
 		boolean canAdd = true;
@@ -128,7 +139,7 @@ public abstract class ElementML implements Cloneable {
 	public void addChild(int idx, ElementML child) {
 		if (this.children == null) {
 			if (idx == 0) {
-				//Add to this DocumentML's children
+				//Add to this ElementML's children
 				this.children = new ArrayList<ElementML>();
 				this.children.add(child);
 				child.setParent(ElementML.this);
@@ -144,7 +155,7 @@ public abstract class ElementML implements Cloneable {
 			}
 			
 		} else {
-			//Add to this DocumentML's children
+			//Add to this ElementML's children
 			this.children.add(idx, child);
 			child.setParent(ElementML.this);
 			
@@ -181,6 +192,35 @@ public abstract class ElementML implements Cloneable {
 				if (siblingIndex == -1) {
 					throw new IndexOutOfBoundsException("SiblingIndex = -1");
 				}
+			}
+		}
+	}
+	
+	public void delete() {
+		if (getParent() == null) {
+			return;
+		}
+		getParent().deleteChild(ElementML.this);
+	}
+	
+	public void deleteChild(ElementML child) {
+		if (this.children == null) {
+			//delete from Docx structure
+			if (getDocxObject() != null && child.getDocxObject() != null) {
+				List<Object> list = getDocxChildren();
+				list.remove(child.getDocxObject());
+				child.setDocxParent(null);
+			}
+		} else {
+			//Delete from this ElementML's children
+			this.children.remove(child);
+			child.setParent(null);
+			
+			//delete from Docx structure
+			if (getDocxObject() != null && child.getDocxObject() != null) {
+				List<Object> list = getDocxChildren();
+				list.remove(child.getDocxObject());
+				child.setDocxParent(null);
 			}
 		}
 	}
