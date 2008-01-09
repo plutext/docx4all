@@ -33,8 +33,6 @@ import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.ParagraphML;
-import org.docx4all.xml.RunContentML;
-import org.docx4all.xml.RunML;
 
 public class WordMLDocument extends DefaultStyledDocument {
 	private static Logger log = Logger.getLogger(WordMLDocument.class);
@@ -64,6 +62,10 @@ public class WordMLDocument extends DefaultStyledDocument {
 		return elem;
 	}
 	
+    public  void insertElementSpecs(int offset, ElementSpec[] specs) throws BadLocationException {
+    	super.insert(offset, specs);
+    }
+    
     public void replace(int offset, int length, String text,
             AttributeSet attrs) throws BadLocationException {
     	log.debug("replace(): offset = " + offset + " length = " + length + " text = " + text);
@@ -91,23 +93,11 @@ public class WordMLDocument extends DefaultStyledDocument {
     protected AbstractElement createDefaultRoot() {
 		DocumentML docML = ElementMLFactory.createEmptyDocumentML();
 		
-		ParagraphML paraML = (ParagraphML) docML.getChild(0);
-		RunML runML = null;
-		for (ElementML elem: paraML.getChildren()) {
-			if (elem instanceof RunML) {
-				runML = (RunML) elem;
-				break;
-			}
-		}
-		
-		RunContentML rcML = null;
-		for (ElementML elem: runML.getChildren()) {
-			if (elem instanceof RunContentML) {
-				rcML = (RunContentML) elem;
-				break;
-			}
-		}
-		
+		ElementML bodyML = docML.getChild(0);
+		ElementML paraML = bodyML.getChild(0);
+		ElementML runML = paraML.getChild(0);
+		ElementML rcML = runML.getChild(0);
+				
 		if (runML == null || rcML == null) {
 			//Very unlikely but just in case
 			throw new RuntimeException("Invalid default DocumentML");
@@ -208,7 +198,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 		public String getName() {
 			ElementML elem = getElementML();
 			if (elem != null) {
-				return elem.getClass().getSimpleName();
+				return elem.toString();
 			}
 			return super.getName();
 		}
@@ -268,7 +258,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 		public String getName() {
 			ElementML elem = getElementML();
 			if (elem != null) {
-				return elem.getClass().getSimpleName();
+				return elem.toString();
 			}
 			return super.getName();
 		}
@@ -279,33 +269,5 @@ public class WordMLDocument extends DefaultStyledDocument {
 		}
 	}// TextElement inner class
 
-
 }// WordMLDocument class
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
