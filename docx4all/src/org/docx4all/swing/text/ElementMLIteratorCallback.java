@@ -27,6 +27,7 @@ import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
+import org.docx4all.xml.BodyML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLIterator;
 import org.docx4all.xml.ParagraphML;
@@ -40,14 +41,17 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	
 	public void handleStartElement(ElementML elem) {
 		//TODO: Find a better handler
-		if (elem instanceof ParagraphML) {
-			openElementSpec((ParagraphML) elem);
+		if (elem instanceof RunContentML) {
+			openElementSpec((RunContentML) elem);
 			
 		} else if (elem instanceof RunML) {
 			openElementSpec((RunML) elem);
 			
-		} else if (elem instanceof RunContentML) {
-			openElementSpec((RunContentML) elem);
+		} else if (elem instanceof ParagraphML) {
+			openElementSpec((ParagraphML) elem);
+			
+		} else if (elem instanceof BodyML) {
+			;//bypass
 			
 		} else {
 			SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
@@ -58,14 +62,17 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	
 	public void handleEndElement(ElementML elem) {		
 		//TODO: Find a better handler
-		if (elem instanceof ParagraphML) {
-			closeElementSpec((ParagraphML) elem); 
+		if (elem instanceof RunContentML) {
+			closeElementSpec((RunContentML) elem); 
 			
 		} else if (elem instanceof RunML) {
 			closeElementSpec((RunML) elem);
 			
-		} else if (elem instanceof RunContentML) {
-			closeElementSpec((RunContentML) elem);
+		} else if (elem instanceof ParagraphML) {
+			closeElementSpec((ParagraphML) elem);
+			
+		} else if (elem instanceof BodyML) {
+			;//bypass
 			
 		} else {
 			SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
