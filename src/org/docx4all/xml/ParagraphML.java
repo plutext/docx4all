@@ -110,7 +110,7 @@ public class ParagraphML extends ElementML {
 	}
 		
 	public void setParent(ElementML parent) {
-		if (!(parent instanceof BodyML)) {
+		if (parent != null && !(parent instanceof BodyML)) {
 			throw new IllegalArgumentException("NOT a BodyML.");
 		}
 		this.parent = parent;
