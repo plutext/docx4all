@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jnlp spec="1.5+"
+      codebase="http://dev.plutext.org/docx4all/"
+      href="docx4all.jnlp">
+   
+    <information>
+    <title>docx4all</title>
+        <vendor>Plutext</vendor>
+        <homepage href="http://dev.plutext.org/docx4all/"/>
+        <description>cross platform WYSIWYG editor for docx files</description>
+        <offline-allowed/>
+    </information>
+
+    <security>
+        <all-permissions/>
+    </security>
+
+    <resources>
+        <j2se version="1.6+" href="http://java.sun.com/products/autodl/j2se">
+        </j2se>
+
+        <jar href="javafxrt.jar"/>
+        <jar href="docx4all-20080110.jar" main="true" />          
+        <jar href="docx4j-20080110.jar"/>
+        
+        <jar href="parent-pointer-plugin-1.0-SNAPSHOT.jar"/>
+        
+        <jar href="AppFramework-1.03.jar"/>
+        <jar href="swing-worker.jar"/> <!-- AppFramework -->
+        <jar href="swing-layout.jar"/> <!-- OpenJFX -->
+        
+        <jar href="dom4j-1.6.1.jar"/>
+        <jar href="log4j-1.2.13.jar"/>
+        
+        <jar href="xml-apis-1.0.b2.jar"/>
+        
+        <!-- docx4j dependencies -->
+        <jar href="xercesImpl-2.8.1.jar"/>        
+        <jar href="jcr-1.0.jar"/>        
+        <jar href="jackrabbit-api-1.3.jar"/>
+        <jar href="jackrabbit-core-1.3.jar"/>
+        <!-- and -->
+        <jar href="commons-collections-3.1.jar"/>
+        <jar href="concurrent-1.3.4.jar"/>
+        <jar href="nekohtml-0.9.4.jar"/>
+        <jar href="derby-10.2.1.6.jar"/>
+        <jar href="geronimo-jta_1.0.1B_spec-1.0.1.jar"/>
+        <jar href="jackrabbit-jcr-commons-1.3.jar"/>
+        <jar href="jackrabbit-text-extractors-1.3.jar"/>
+        <jar href="lucene-core-2.0.0.jar"/>
+        <jar href="slf4j-api-1.3.0.jar"/>
+        <jar href="tm-extractors-0.4.jar"/>
+        <jar href="pdfbox-0.6.4.jar"/>
+        <jar href="poi-2.5.1-final-20040804.jar"/>
+        <jar href="xml-apis-1.3.03.jar"/>
+        
+                  
+    </resources>
+    
+    <application-desc main-class="org.docx4all.ui.main.WordMLEditor">
+        <!--argument>HelloWebStart</argument-->
+    </application-desc>
+</jnlp>
