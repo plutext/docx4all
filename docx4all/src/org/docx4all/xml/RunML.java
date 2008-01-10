@@ -108,7 +108,7 @@ public class RunML extends ElementML {
 	}
 		
 	public void setParent(ElementML parent) {
-		if (!(parent instanceof ParagraphML)) {
+		if (parent != null && !(parent instanceof ParagraphML)) {
 			throw new IllegalArgumentException("NOT a ParagraphML.");
 		}
 		this.parent = parent;

@@ -81,7 +81,7 @@ public class RunContentML extends ElementML {
 	}
 	
 	public void setParent(ElementML parent) {
-		if (!(parent instanceof RunML)) {
+		if (parent != null && !(parent instanceof RunML)) {
 			throw new IllegalArgumentException("NOT a RunML.");
 		}
 		this.parent = parent;
