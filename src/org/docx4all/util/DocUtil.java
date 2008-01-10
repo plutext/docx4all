@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 
+import javax.swing.SwingUtilities;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
@@ -31,10 +32,14 @@ import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.DocumentElement;
+import org.docx4all.swing.text.ElementMLIteratorCallback;
+import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLStyleConstants;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.xml.ElementML;
+import org.docx4all.xml.ElementMLIterator;
 import org.docx4all.xml.RunContentML;
+import org.docx4j.XmlUtils;
 
 /**
  *	@author Jojada Tirtowidjojo - 27/11/2007
@@ -44,7 +49,37 @@ public class DocUtil {
 
 	private final static String TAB = "    ";
 	
-	public static List<String> getElementNamePath(DocumentElement elem, int pos) {
+	public final static List<ElementSpec> getElementSpecs(ElementML elem) {
+		ElementMLIterator parser = new ElementMLIterator(elem);
+		ElementMLIteratorCallback result = new ElementMLIteratorCallback();
+		parser.cruise(result);
+		return result.getElementSpecs();
+	}
+
+	public final static void insertParagraphs(
+		WordMLDocument doc,
+		int offset, 
+		List<ElementSpec> paragraphSpecs) 
+		throws BadLocationException {
+
+		List<ElementSpec> specList = new ArrayList<ElementSpec>(
+				paragraphSpecs.size() + 3);
+		// Close RunML
+		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
+		// Close Implied ParagraphML
+		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
+		// Close ParagraphML
+		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
+		// New paragraphs
+		specList.addAll(paragraphSpecs);
+
+		ElementSpec[] specsArray = new ElementSpec[specList.size()];
+		specsArray = specList.toArray(specsArray);
+
+		doc.insertElementSpecs(offset, specsArray);
+	}
+
+	public final static List<String> getElementNamePath(DocumentElement elem, int pos) {
 		List<String> thePath = null;
 		if (elem.getStartOffset() <= pos && pos < elem.getEndOffset()) {
 			thePath = new ArrayList<String>();
@@ -60,12 +95,27 @@ public class DocUtil {
 		return thePath;
 	}
 	
-    public static void displayStructure(Document doc) {
+	public final static void displayXml(Document doc) {
+		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+		
+		org.docx4j.jaxb.document.Document jaxbDoc =
+			(org.docx4j.jaxb.document.Document) 
+				root.getElementML().getDocxObject();
+		List<Object> list = jaxbDoc.getBody().getBlockLevelElements();
+		int i = 0;
+		for (Object obj : list) {
+			String s = XmlUtils.marshaltoString(obj, true);
+			log.debug("BodyChild[" + i + "]=" + s);
+			i++;
+		}
+	}
+	
+    public final static void displayStructure(Document doc) {
           Element e = doc.getDefaultRootElement();
           displayStructure(doc, e, 0);
     }
 
-    public static void displayStructure(Document doc, Element elem, int numberOfTabs) {
+    public final static void displayStructure(Document doc, Element elem, int numberOfTabs) {
     	String leftMargin = getTabSpace(numberOfTabs);
     	
     	//====== Display Element class name ======
@@ -130,7 +180,7 @@ public class DocUtil {
 		}
 	}
 
-    public static void displayStructure(List<ElementSpec> list) {
+    public final static void displayStructure(List<ElementSpec> list) {
 		int depth = -1;
 
 		for (int i = 0; i < list.size(); i++) {
@@ -179,7 +229,7 @@ public class DocUtil {
 		}
 	}
 
-    private static String getTabSpace(int numberOfTabs) {
+    private final static String getTabSpace(int numberOfTabs) {
 		StringBuffer theSpace = new StringBuffer();
 		for (int i = 0; i < numberOfTabs; i++) {
 			theSpace.append(TAB);
