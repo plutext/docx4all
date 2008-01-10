@@ -79,7 +79,7 @@ public class BodyML extends ElementML {
 	}
 	
 	public void setParent(ElementML parent) {
-		if (!(parent instanceof DocumentML)) {
+		if (parent != null && !(parent instanceof DocumentML)) {
 			throw new IllegalArgumentException("NOT a DocumentML.");
 		}
 		this.parent = parent;
