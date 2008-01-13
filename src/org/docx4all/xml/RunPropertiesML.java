@@ -28,9 +28,9 @@ import javax.swing.text.StyleConstants;
 
 import org.apache.log4j.Logger;
 import org.docx4j.XmlUtils;
-import org.docx4j.jaxb.document.BooleanDefaultTrue;
-import org.docx4j.jaxb.document.RPr;
-import org.docx4j.jaxb.document.Underline;
+import org.docx4j.wml.BooleanDefaultTrue;
+import org.docx4j.wml.RPr;
+import org.docx4j.wml.Underline;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -92,7 +92,7 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 					//and color yet we do not touch the 
 					//original setting of rPr underline
 				} else {
-					org.docx4j.jaxb.document.Underline u = 
+					org.docx4j.wml.Underline u = 
 						ObjectFactory.createUnderline("single", "auto");
 					rPr.setU(u);
 				}
