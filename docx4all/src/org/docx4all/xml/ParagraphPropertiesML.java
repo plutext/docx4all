@@ -28,9 +28,9 @@ import javax.swing.text.StyleConstants;
 
 import org.apache.log4j.Logger;
 import org.docx4j.XmlUtils;
-import org.docx4j.jaxb.document.Jc;
-import org.docx4j.jaxb.document.PPr;
-import org.docx4j.jaxb.document.STJc;
+import org.docx4j.wml.Jc;
+import org.docx4j.wml.PPr;
+import org.docx4j.wml.STJc;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -64,10 +64,10 @@ public class ParagraphPropertiesML extends ElementML implements PropertiesContai
 		//ALIGNMENT attribute
         Integer align = 
         	(Integer) this.attrs.getAttribute(StyleConstants.Alignment);
-    	org.docx4j.jaxb.document.Jc jc = ObjectFactory.createJc(align);
+    	org.docx4j.wml.Jc jc = ObjectFactory.createJc(align);
     	if (jc != null) {
-        	org.docx4j.jaxb.document.PPr pPr = 
-        		(org.docx4j.jaxb.document.PPr) this.docxObject;
+        	org.docx4j.wml.PPr pPr = 
+        		(org.docx4j.wml.PPr) this.docxObject;
 			pPr.setJc(jc);
 		}
 	}
