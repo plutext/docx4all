@@ -22,7 +22,7 @@ package org.docx4all.xml;
 import java.io.File;
 import java.io.IOException;
 
-import org.docx4j.jaxb.document.Document;
+import org.docx4j.wml.Document;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.io.LoadFromZipFile;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
