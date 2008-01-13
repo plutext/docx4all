@@ -40,14 +40,18 @@ public class DocumentML extends ElementML {
 		this.docPackage = docPackage;
 	}
 
+	public WordprocessingMLPackage getWordprocessingMLPackage() {
+		return this.docPackage;
+	}
+	
 	public Object clone() {
 		WordprocessingMLPackage clonedPackage = null;
 		
 		if (this.docPackage != null) {
 			MainDocumentPart documentPart = 
 				this.docPackage.getMainDocumentPart();			
-			org.docx4j.jaxb.document.Document doc = 
-				(org.docx4j.jaxb.document.Document)
+			org.docx4j.wml.Document doc = 
+				(org.docx4j.wml.Document)
 				XmlUtils.deepCopy(documentPart.getJaxbElement());
 			clonedPackage = ObjectFactory.createDocumentPackage(doc);
 		}
@@ -105,19 +109,19 @@ public class DocumentML extends ElementML {
 		}
 		
 		List<Object> theChildren = new ArrayList<Object>(1);
-		org.docx4j.jaxb.document.Document doc = 
-			(org.docx4j.jaxb.document.Document) this.docxObject;
+		org.docx4j.wml.Document doc = 
+			(org.docx4j.wml.Document) this.docxObject;
 		theChildren.add(doc.getBody());
 		return theChildren;
 	}
 	
 	protected void init(Object docxObject) {
-		org.docx4j.jaxb.document.Document doc = null;
+		org.docx4j.wml.Document doc = null;
 		
 		if (docxObject == null) {
 			;//implied DocumentML
-		} else if (docxObject instanceof org.docx4j.jaxb.document.Document) {
-			doc = (org.docx4j.jaxb.document.Document) docxObject;
+		} else if (docxObject instanceof org.docx4j.wml.Document) {
+			doc = (org.docx4j.wml.Document) docxObject;
 		} else {
 			throw new IllegalArgumentException("Unsupported Docx Object = " + docxObject);			
 		}
@@ -125,7 +129,7 @@ public class DocumentML extends ElementML {
 		initChildren(doc);
 	}
 	
-	private void initChildren(org.docx4j.jaxb.document.Document doc) {
+	private void initChildren(org.docx4j.wml.Document doc) {
 		if (doc == null) {
 			return;
 		}
