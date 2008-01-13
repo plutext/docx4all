@@ -27,7 +27,7 @@ import javax.xml.bind.JAXBElement;
 import org.apache.log4j.Logger;
 import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
-import org.docx4j.jaxb.document.PPr;
+import org.docx4j.wml.PPr;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -61,15 +61,15 @@ public class ParagraphML extends ElementML {
 		}
 		
 		this.pPr = pPr;
-		if (this.docxObject instanceof org.docx4j.jaxb.document.P) {
-			org.docx4j.jaxb.document.PPr newDocxPPr = null;
+		if (this.docxObject instanceof org.docx4j.wml.P) {
+			org.docx4j.wml.PPr newDocxPPr = null;
 			if (pPr != null) {
 				pPr.setParent(ParagraphML.this);
 				newDocxPPr = 
-					(org.docx4j.jaxb.document.PPr) pPr.getDocxObject();
+					(org.docx4j.wml.PPr) pPr.getDocxObject();
 			}
-			org.docx4j.jaxb.document.P p = 
-				(org.docx4j.jaxb.document.P) this.docxObject;
+			org.docx4j.wml.P p = 
+				(org.docx4j.wml.P) this.docxObject;
 			p.setPPr(newDocxPPr);
 			
 			if (newDocxPPr != null) {
@@ -123,25 +123,25 @@ public class ParagraphML extends ElementML {
 			JAXBElement<?> jaxbElem = (JAXBElement<?>) this.docxObject;
 			String typeName = jaxbElem.getDeclaredType().getName();
 
-			if ("org.docx4j.jaxb.document.P".equals(typeName)) {
-				org.docx4j.jaxb.document.P p = 
-					(org.docx4j.jaxb.document.P) jaxbElem.getValue();
+			if ("org.docx4j.wml.P".equals(typeName)) {
+				org.docx4j.wml.P p = 
+					(org.docx4j.wml.P) jaxbElem.getValue();
 				p.setParent(docxParent);
-			} else if ("org.docx4j.jaxb.document.Tbl".equals(typeName)) {
-				org.docx4j.jaxb.document.Tbl tbl =
-					(org.docx4j.jaxb.document.Tbl) jaxbElem.getValue();
+			} else if ("org.docx4j.wml.Tbl".equals(typeName)) {
+				org.docx4j.wml.Tbl tbl =
+					(org.docx4j.wml.Tbl) jaxbElem.getValue();
 				tbl.setParent(docxParent);
-			} else if ("org.docx4j.jaxb.document.RunTrackChange".equals(typeName)) {
-				org.docx4j.jaxb.document.RunTrackChange rtc =
-					(org.docx4j.jaxb.document.RunTrackChange) jaxbElem.getValue();
+			} else if ("org.docx4j.wml.RunTrackChange".equals(typeName)) {
+				org.docx4j.wml.RunTrackChange rtc =
+					(org.docx4j.wml.RunTrackChange) jaxbElem.getValue();
 				rtc.setParent(docxParent);
 			} else {
 				throw new IllegalArgumentException(
 						"Unsupported Docx Object Type = " + typeName);
 			}
-		} else if (this.docxObject instanceof org.docx4j.jaxb.document.Sdt) {
-			org.docx4j.jaxb.document.Sdt sdt = 
-				(org.docx4j.jaxb.document.Sdt) docxObject;
+		} else if (this.docxObject instanceof org.docx4j.wml.Sdt) {
+			org.docx4j.wml.Sdt sdt = 
+				(org.docx4j.wml.Sdt) docxObject;
 			sdt.setParent(docxParent);
 		} else {
 			;//should not come here. See init().
@@ -157,27 +157,27 @@ public class ParagraphML extends ElementML {
 			JAXBElement<?> jaxbElem = (JAXBElement<?>) this.docxObject;
 			String typeName = jaxbElem.getDeclaredType().getName();
 
-			if ("org.docx4j.jaxb.document.P".equals(typeName)) {
-				org.docx4j.jaxb.document.P p = 
-					(org.docx4j.jaxb.document.P) jaxbElem.getValue();
+			if ("org.docx4j.wml.P".equals(typeName)) {
+				org.docx4j.wml.P p = 
+					(org.docx4j.wml.P) jaxbElem.getValue();
 				theChildren = p.getParagraphContent();
-			} else if ("org.docx4j.jaxb.document.Tbl".equals(typeName)) {
-				org.docx4j.jaxb.document.Tbl tbl =
-					(org.docx4j.jaxb.document.Tbl) jaxbElem.getValue();
+			} else if ("org.docx4j.wml.Tbl".equals(typeName)) {
+				org.docx4j.wml.Tbl tbl =
+					(org.docx4j.wml.Tbl) jaxbElem.getValue();
 				theChildren = new ArrayList<Object>();
 				theChildren.addAll(tbl.getEGContentRowContent());
-			} else if ("org.docx4j.jaxb.document.RunTrackChange".equals(typeName)) {
-				org.docx4j.jaxb.document.RunTrackChange rtc =
-					(org.docx4j.jaxb.document.RunTrackChange) jaxbElem.getValue();
+			} else if ("org.docx4j.wml.RunTrackChange".equals(typeName)) {
+				org.docx4j.wml.RunTrackChange rtc =
+					(org.docx4j.wml.RunTrackChange) jaxbElem.getValue();
 				theChildren = rtc.getEGContentRunContent();
 			} else {
 				throw new IllegalArgumentException(
 						"Unsupported Docx Object Type = " + typeName);
 			}
-		} else if (this.docxObject instanceof org.docx4j.jaxb.document.Sdt) {
-			org.docx4j.jaxb.document.Sdt sdt = 
-				(org.docx4j.jaxb.document.Sdt) docxObject;
-			org.docx4j.jaxb.document.SdtContent content = sdt.getSdtContent();
+		} else if (this.docxObject instanceof org.docx4j.wml.Sdt) {
+			org.docx4j.wml.Sdt sdt = 
+				(org.docx4j.wml.Sdt) docxObject;
+			org.docx4j.wml.SdtContent content = sdt.getSdtContent();
 			if (content != null) {
 				theChildren = new ArrayList<Object>();
 				theChildren.add(content);
@@ -190,7 +190,7 @@ public class ParagraphML extends ElementML {
 	}
 	
 	protected void init(Object docxObject) {
-		org.docx4j.jaxb.document.P para = null;
+		org.docx4j.wml.P para = null;
 		
 		if (docxObject == null) {
 			;//implied ParagraphML
@@ -199,8 +199,8 @@ public class ParagraphML extends ElementML {
 			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
 			String typeName = jaxbElem.getDeclaredType().getName();
 			
-			if ("org.docx4j.jaxb.document.P".equals(typeName)) {
-				para = (org.docx4j.jaxb.document.P) jaxbElem.getValue();
+			if ("org.docx4j.wml.P".equals(typeName)) {
+				para = (org.docx4j.wml.P) jaxbElem.getValue();
 				this.isDummy = false;
 				
 			} else {
@@ -212,7 +212,7 @@ public class ParagraphML extends ElementML {
 				this.isDummy = true;
 			}
 			
-		} else if (docxObject instanceof org.docx4j.jaxb.document.Sdt) {
+		} else if (docxObject instanceof org.docx4j.wml.Sdt) {
 			//Unsupported yet
 			// TODO: A more informative text content in dummy ParagraphML
 			String s = "<w:sdt></w:sdt>";
@@ -227,7 +227,7 @@ public class ParagraphML extends ElementML {
 		initChildren(para);
 	}
 	
-	private void initParagraphProperties(org.docx4j.jaxb.document.P para) {
+	private void initParagraphProperties(org.docx4j.wml.P para) {
 		this.pPr = null;
 		if (para != null) {
 			//if not an implied ParagraphML
@@ -239,7 +239,7 @@ public class ParagraphML extends ElementML {
 		}
 	}
 	
-	private void initChildren(org.docx4j.jaxb.document.P para) {
+	private void initChildren(org.docx4j.wml.P para) {
 		this.children = null;
 		
 		if (para == null) {
