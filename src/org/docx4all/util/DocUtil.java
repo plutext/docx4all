@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 
-import javax.swing.SwingUtilities;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
@@ -98,8 +97,8 @@ public class DocUtil {
 	public final static void displayXml(Document doc) {
 		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
 		
-		org.docx4j.jaxb.document.Document jaxbDoc =
-			(org.docx4j.jaxb.document.Document) 
+		org.docx4j.wml.Document jaxbDoc =
+			(org.docx4j.wml.Document) 
 				root.getElementML().getDocxObject();
 		List<Object> list = jaxbDoc.getBody().getBlockLevelElements();
 		int i = 0;
