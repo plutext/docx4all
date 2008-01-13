@@ -23,51 +23,46 @@ import javax.swing.text.StyleConstants;
 import javax.xml.bind.JAXBElement;
 
 import org.docx4all.ui.main.Constants;
-import org.docx4j.jaxb.document.BooleanDefaultTrue;
-import org.docx4j.jaxb.document.P;
-import org.docx4j.jaxb.document.STJc;
-import org.docx4j.jaxb.document.Text;
-import org.docx4j.openpackaging.contenttype.ContentTypeManager;
-import org.docx4j.openpackaging.contenttype.ContentTypeManagerImpl;
-import org.docx4j.openpackaging.exceptions.InvalidFormatException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
-import org.docx4j.openpackaging.parts.Part;
-import org.docx4j.openpackaging.parts.PartName;
-import org.docx4j.openpackaging.parts.relationships.Namespaces;
-import org.docx4j.openpackaging.parts.relationships.RelationshipsPart;
+import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
+import org.docx4j.openpackaging.parts.WordprocessingML.StyleDefinitionsPart;
+import org.docx4j.wml.BooleanDefaultTrue;
+import org.docx4j.wml.P;
+import org.docx4j.wml.STJc;
+import org.docx4j.wml.Text;
 
 
 /**
  *	@author Jojada Tirtowidjojo - 02/01/2008
  */
 public class ObjectFactory {
-	private final static org.docx4j.jaxb.document.ObjectFactory _jaxbFactory = 
-		new org.docx4j.jaxb.document.ObjectFactory();
+	private final static org.docx4j.wml.ObjectFactory _jaxbFactory = 
+		new org.docx4j.wml.ObjectFactory();
 
 	public final static JAXBElement<P> createPara(String textContent) {
-		org.docx4j.jaxb.document.P p = createP(textContent);
+		org.docx4j.wml.P p = createP(textContent);
 		return _jaxbFactory.createP(p);
 	}
 	
-	public final static org.docx4j.jaxb.document.P createP(String textContent) {
-		org.docx4j.jaxb.document.P p = _jaxbFactory.createP();
+	public final static org.docx4j.wml.P createP(String textContent) {
+		org.docx4j.wml.P p = _jaxbFactory.createP();
 		if (textContent != null) {
-			org.docx4j.jaxb.document.R r = createR(textContent);
+			org.docx4j.wml.R r = createR(textContent);
 			p.getParagraphContent().add(r);
 			r.setParent(p);
 		}
 		return p;
 	}
 	
-	public final static org.docx4j.jaxb.document.R createR(String textContent) {
-		org.docx4j.jaxb.document.R r = _jaxbFactory.createR();
+	public final static org.docx4j.wml.R createR(String textContent) {
+		org.docx4j.wml.R r = _jaxbFactory.createR();
 		
 		if (org.docx4all.ui.main.Constants.NEWLINE.equals(textContent)) {
-			org.docx4j.jaxb.document.Cr cr = _jaxbFactory.createCr();
+			org.docx4j.wml.Cr cr = _jaxbFactory.createCr();
 			r.getRunContent().add(cr);
 			cr.setParent(r);
 		} else {
-			org.docx4j.jaxb.document.Text text = _jaxbFactory.createText();
+			org.docx4j.wml.Text text = _jaxbFactory.createText();
 			text.setValue(textContent);
 			r.getRunContent().add(_jaxbFactory.createT(text));
 			text.setParent(r);
@@ -76,75 +71,61 @@ public class ObjectFactory {
 	}
 	
 	public final static JAXBElement<Text> createT(String textContent) {
-		org.docx4j.jaxb.document.Text text = _jaxbFactory.createText();
+		org.docx4j.wml.Text text = _jaxbFactory.createText();
 		text.setValue(textContent);
 		return _jaxbFactory.createT(text);
 	}
 	
-	public final static WordprocessingMLPackage createDocumentPackage(
-			org.docx4j.jaxb.document.Document doc) {
-
+	public static WordprocessingMLPackage createDocumentPackage(org.docx4j.wml.Document doc) {
 		// Create a package
-		WordprocessingMLPackage thePackage = new WordprocessingMLPackage();
-
-		// Add a ContentTypeManager to it
-		ContentTypeManager ctm = new ContentTypeManagerImpl();
-		thePackage.setContentTypeManager(ctm);
+		WordprocessingMLPackage wmlPack = new WordprocessingMLPackage();
 
 		try {
-			// Create main document part
-			Part corePart = new org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart(
-					new PartName("/word/document.xml"));
-
-			// Put the content in the part
-			((org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart) corePart)
-					.setJaxbElement(doc);
-
-			corePart.setContentType(new org.docx4j.openpackaging.contenttype.ContentType(
-							org.docx4j.openpackaging.contenttype.ContentTypes.WORDPROCESSINGML_DOCUMENT));
-			corePart.setRelationshipType(Namespaces.DOCUMENT);
-
-			// Make getMainDocumentPart() work
-			thePackage.setPartShortcut(corePart, corePart.getRelationshipType());
-
-			// Create the PackageRelationships part
-			RelationshipsPart rp = new RelationshipsPart(new PartName(
-					"/_rels/.rels"), thePackage);
-
-			// Make sure content manager knows how to handle .rels
-			ctm.addDefaultContentType(
-					"rels",
-					org.docx4j.openpackaging.contenttype.ContentTypes.RELATIONSHIPS_PART);
-
-			// Add it to the package
-			thePackage.setRelationships(rp);
-
-			// Add it to the collection of parts
-			rp.addPart(corePart, thePackage.getContentTypeManager());
-		} catch (InvalidFormatException exc) {
-			;// do nothing
+		// Create main document part
+		MainDocumentPart wordDocumentPart = new MainDocumentPart();		
+		
+		// Put the content in the part
+		wordDocumentPart.setJaxbElement(doc);
+						
+		// Add the main document part to the package relationships
+		// (creating it if necessary)
+		wmlPack.addTargetPart(wordDocumentPart);
+				
+		// Create a styles part
+		StyleDefinitionsPart stylesPart = new StyleDefinitionsPart();
+			stylesPart.unmarshalDefaultStyles();
+			
+			// Add the styles part to the main document part relationships
+			// (creating it if necessary)
+			wordDocumentPart.addTargetPart(stylesPart); // NB - add it to main doc part, not package!			
+			
+		} catch (Exception e) {
+			// TODO: Synch with WordprocessingMLPackage.createTestPackage()
+			e.printStackTrace();	
+			wmlPack = null;
 		}
-
-		return thePackage;
-
+		
+		// Return the new package
+		return wmlPack;
+		
 	}
 	
 	public final static WordprocessingMLPackage createEmptyDocumentPackage() {
-		org.docx4j.jaxb.document.P  para = createP(Constants.NEWLINE);
+		org.docx4j.wml.P  para = createP(Constants.NEWLINE);
 		
-		org.docx4j.jaxb.document.Body  body = _jaxbFactory.createBody();
+		org.docx4j.wml.Body  body = _jaxbFactory.createBody();
 		body.getBlockLevelElements().add(_jaxbFactory.createP(para));
 		para.setParent(body);
 		
-		org.docx4j.jaxb.document.Document doc = _jaxbFactory.createDocument();
+		org.docx4j.wml.Document doc = _jaxbFactory.createDocument();
 		doc.setBody(body);
 		body.setParent(doc);
 
 		return createDocumentPackage(doc);
 	}
 	
-	public final static org.docx4j.jaxb.document.Jc createJc(Integer align) {
-		org.docx4j.jaxb.document.Jc theJc = null;
+	public final static org.docx4j.wml.Jc createJc(Integer align) {
+		org.docx4j.wml.Jc theJc = null;
 		
         if (align != null) {
         	theJc = _jaxbFactory.createJc();
@@ -164,14 +145,14 @@ public class ObjectFactory {
         return theJc;
 	}
 	
-	public final static org.docx4j.jaxb.document.BooleanDefaultTrue createBooleanDefaultTrue(Boolean b) {
+	public final static org.docx4j.wml.BooleanDefaultTrue createBooleanDefaultTrue(Boolean b) {
 		BooleanDefaultTrue bdt = _jaxbFactory.createBooleanDefaultTrue();
 		bdt.setVal(b);
 		return bdt;
 	}
 	
-	public final static org.docx4j.jaxb.document.Underline createUnderline(String value, String color) {
-		org.docx4j.jaxb.document.Underline u = _jaxbFactory.createUnderline();
+	public final static org.docx4j.wml.Underline createUnderline(String value, String color) {
+		org.docx4j.wml.Underline u = _jaxbFactory.createUnderline();
 		u.getVal().add(value);
 		u.setColor(color);
 		return u;
