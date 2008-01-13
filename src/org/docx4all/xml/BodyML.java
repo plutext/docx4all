@@ -89,7 +89,7 @@ public class BodyML extends ElementML {
 		if (this.docxObject == null) {
 			;//do nothing
 		} else if (docxParent instanceof WordprocessingMLPackage){
-			((org.docx4j.jaxb.document.Body) this.docxObject).setParent(docxParent);
+			((org.docx4j.wml.Body) this.docxObject).setParent(docxParent);
 		} else {
 			throw new IllegalArgumentException(
 					"docxParent = " + docxParent.getClass().getName());
@@ -101,19 +101,19 @@ public class BodyML extends ElementML {
 			return null;
 		}
 		
-		org.docx4j.jaxb.document.Body body = 
-			(org.docx4j.jaxb.document.Body) this.docxObject;
+		org.docx4j.wml.Body body = 
+			(org.docx4j.wml.Body) this.docxObject;
 		return body.getBlockLevelElements();
 	}
 	
 	protected void init(Object docxObject) {
-		org.docx4j.jaxb.document.Body body = null;
+		org.docx4j.wml.Body body = null;
 		
 		if (docxObject == null) {
 			;//implied BodyML
 			
-		} else if (docxObject instanceof org.docx4j.jaxb.document.Body) {
-			body = (org.docx4j.jaxb.document.Body) docxObject;
+		} else if (docxObject instanceof org.docx4j.wml.Body) {
+			body = (org.docx4j.wml.Body) docxObject;
 			this.isDummy = false;
 
 		} else {
@@ -123,7 +123,7 @@ public class BodyML extends ElementML {
 		initChildren(body);
 	}
 
-	private void initChildren(org.docx4j.jaxb.document.Body body) {
+	private void initChildren(org.docx4j.wml.Body body) {
 		if (body == null) {
 			return;
 		}
