@@ -27,7 +27,7 @@ import javax.xml.bind.JAXBElement;
 import org.apache.log4j.Logger;
 import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
-import org.docx4j.jaxb.document.RPr;
+import org.docx4j.wml.RPr;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -61,15 +61,15 @@ public class RunML extends ElementML {
 		}
 		
 		this.rPr = rPr;
-		if (this.docxObject instanceof org.docx4j.jaxb.document.R) {
-			org.docx4j.jaxb.document.RPr newDocxRPr = null;
+		if (this.docxObject instanceof org.docx4j.wml.R) {
+			org.docx4j.wml.RPr newDocxRPr = null;
 			if (rPr != null) {
 				rPr.setParent(RunML.this);
 				newDocxRPr = 
-					(org.docx4j.jaxb.document.RPr) rPr.getDocxObject();
+					(org.docx4j.wml.RPr) rPr.getDocxObject();
 			}
-			org.docx4j.jaxb.document.R run = 
-				(org.docx4j.jaxb.document.R) this.docxObject;
+			org.docx4j.wml.R run = 
+				(org.docx4j.wml.R) this.docxObject;
 			run.setRPr(newDocxRPr);
 			if (newDocxRPr != null) {
 				newDocxRPr.setParent(run);
@@ -117,18 +117,18 @@ public class RunML extends ElementML {
 	public void setDocxParent(Object docxParent) {
 		if (this.docxObject == null) {
 			;//do nothing
-		} else if (this.docxObject instanceof org.docx4j.jaxb.document.R) {
-			org.docx4j.jaxb.document.R run = 
-				(org.docx4j.jaxb.document.R) this.docxObject;
+		} else if (this.docxObject instanceof org.docx4j.wml.R) {
+			org.docx4j.wml.R run = 
+				(org.docx4j.wml.R) this.docxObject;
 			run.setParent(docxParent);
 			
 		} else if (this.docxObject instanceof JAXBElement) {
 			JAXBElement<?> jaxbElem = (JAXBElement<?>) this.docxObject;
 			String typeName = jaxbElem.getDeclaredType().getName();
 
-			if ("org.docx4j.jaxb.document.RunTrackChange".equals(typeName)) {
-				org.docx4j.jaxb.document.RunTrackChange rtc =
-					(org.docx4j.jaxb.document.RunTrackChange) jaxbElem.getValue();
+			if ("org.docx4j.wml.RunTrackChange".equals(typeName)) {
+				org.docx4j.wml.RunTrackChange rtc =
+					(org.docx4j.wml.RunTrackChange) jaxbElem.getValue();
 				rtc.setParent(docxParent);
 			} else {
 				throw new IllegalArgumentException(
@@ -144,18 +144,18 @@ public class RunML extends ElementML {
 		
 		if (this.docxObject == null) {
 			;//do nothing
-		} else if (this.docxObject instanceof org.docx4j.jaxb.document.R) {
-			org.docx4j.jaxb.document.R run = 
-				(org.docx4j.jaxb.document.R) this.docxObject;
+		} else if (this.docxObject instanceof org.docx4j.wml.R) {
+			org.docx4j.wml.R run = 
+				(org.docx4j.wml.R) this.docxObject;
 			theChildren = run.getRunContent();
 			
 		} else if (this.docxObject instanceof JAXBElement) {
 			JAXBElement<?> jaxbElem = (JAXBElement<?>) this.docxObject;
 			String typeName = jaxbElem.getDeclaredType().getName();
 
-			if ("org.docx4j.jaxb.document.RunTrackChange".equals(typeName)) {
-				org.docx4j.jaxb.document.RunTrackChange rtc =
-					(org.docx4j.jaxb.document.RunTrackChange) jaxbElem.getValue();
+			if ("org.docx4j.wml.RunTrackChange".equals(typeName)) {
+				org.docx4j.wml.RunTrackChange rtc =
+					(org.docx4j.wml.RunTrackChange) jaxbElem.getValue();
 				theChildren = rtc.getEGContentRunContent();
 			} else {
 				throw new IllegalArgumentException(
@@ -169,13 +169,13 @@ public class RunML extends ElementML {
 	}
 	
 	protected void init(Object docxObject) {
-		org.docx4j.jaxb.document.R run = null;
+		org.docx4j.wml.R run = null;
 		
 		if (docxObject == null) {
 			;//implied RunML
 			
-		} else if (docxObject instanceof org.docx4j.jaxb.document.R) {
-			run = (org.docx4j.jaxb.document.R) docxObject;
+		} else if (docxObject instanceof org.docx4j.wml.R) {
+			run = (org.docx4j.wml.R) docxObject;
 			this.isDummy = false;
 			
 		} else if (docxObject instanceof JAXBElement<?>) {
@@ -195,7 +195,7 @@ public class RunML extends ElementML {
 		initChildren(run);
 	}
 	
-	private void initRunProperties(org.docx4j.jaxb.document.R run) {
+	private void initRunProperties(org.docx4j.wml.R run) {
 		this.rPr = null;
 		if (run != null) {
 			RPr rPr = run.getRPr();
@@ -206,7 +206,7 @@ public class RunML extends ElementML {
 		}
 	}
 	
-	private void initChildren(org.docx4j.jaxb.document.R run) {
+	private void initChildren(org.docx4j.wml.R run) {
 		this.children = null;
 
 		if (run == null) {
