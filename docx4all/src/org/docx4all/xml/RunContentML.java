@@ -28,7 +28,7 @@ import org.apache.log4j.Logger;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
-import org.docx4j.jaxbcontexts.DocumentContext;
+import org.docx4j.jaxb.Context;
 
 /**
  *	@author Jojada Tirtowidjojo - 06/12/2007
@@ -55,9 +55,9 @@ public class RunContentML extends ElementML {
 		if (docxObject instanceof JAXBElement<?>) {
 			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
 			String typeName = jaxbElem.getDeclaredType().getName();
-			if ("org.docx4j.jaxb.document.Text".equals(typeName)) {
-				org.docx4j.jaxb.document.Text t = 
-					(org.docx4j.jaxb.document.Text) jaxbElem.getValue();
+			if ("org.docx4j.wml.Text".equals(typeName)) {
+				org.docx4j.wml.Text t = 
+					(org.docx4j.wml.Text) jaxbElem.getValue();
 				t.setValue(textContent);
 			}
 		}
@@ -90,32 +90,32 @@ public class RunContentML extends ElementML {
 	public void setDocxParent(Object docxParent) {
 		if (this.docxObject == null) {
 			;//do nothing
-		} else if (this.docxObject instanceof org.docx4j.jaxb.document.Br) {
-			org.docx4j.jaxb.document.Br br = 
-				(org.docx4j.jaxb.document.Br) this.docxObject;
+		} else if (this.docxObject instanceof org.docx4j.wml.Br) {
+			org.docx4j.wml.Br br = 
+				(org.docx4j.wml.Br) this.docxObject;
 			br.setParent(docxParent);
 
-		} else if (docxObject instanceof org.docx4j.jaxb.document.Cr) {
-			org.docx4j.jaxb.document.Cr cr = 
-				(org.docx4j.jaxb.document.Cr) this.docxObject;
+		} else if (docxObject instanceof org.docx4j.wml.Cr) {
+			org.docx4j.wml.Cr cr = 
+				(org.docx4j.wml.Cr) this.docxObject;
 			cr.setParent(docxParent);
 
-		} else if (docxObject instanceof org.docx4j.jaxb.document.NoBreakHyphen) {
-			org.docx4j.jaxb.document.NoBreakHyphen nbh = 
-				(org.docx4j.jaxb.document.NoBreakHyphen) this.docxObject;
+		} else if (docxObject instanceof org.docx4j.wml.NoBreakHyphen) {
+			org.docx4j.wml.NoBreakHyphen nbh = 
+				(org.docx4j.wml.NoBreakHyphen) this.docxObject;
 			nbh.setParent(docxParent);
 
-		} else if (docxObject instanceof org.docx4j.jaxb.document.SoftHyphen) {
-			org.docx4j.jaxb.document.SoftHyphen sh = 
-				(org.docx4j.jaxb.document.SoftHyphen) this.docxObject;
+		} else if (docxObject instanceof org.docx4j.wml.SoftHyphen) {
+			org.docx4j.wml.SoftHyphen sh = 
+				(org.docx4j.wml.SoftHyphen) this.docxObject;
 			sh.setParent(docxParent);
 
 		} else if (docxObject instanceof JAXBElement<?>) {
 			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
 			String typeName = jaxbElem.getDeclaredType().getName();
-			if ("org.docx4j.jaxb.document.Text".equals(typeName)) {
-				org.docx4j.jaxb.document.Text t = 
-					(org.docx4j.jaxb.document.Text) jaxbElem.getValue();
+			if ("org.docx4j.wml.Text".equals(typeName)) {
+				org.docx4j.wml.Text t = 
+					(org.docx4j.wml.Text) jaxbElem.getValue();
 				t.setParent(docxParent);
 				
 			} else {
@@ -135,31 +135,31 @@ public class RunContentML extends ElementML {
 		if (docxObject == null) {
 			;//implied RunContentML
 			
-		} else if (docxObject instanceof org.docx4j.jaxb.document.Br) {
+		} else if (docxObject instanceof org.docx4j.wml.Br) {
 			// TODO: Full support of BR element
 			this.textContent = Constants.NEWLINE;
 			
-		} else if (docxObject instanceof org.docx4j.jaxb.document.Cr) {
+		} else if (docxObject instanceof org.docx4j.wml.Cr) {
 			this.textContent = Constants.NEWLINE;
 										
-		} else if (docxObject instanceof org.docx4j.jaxb.document.NoBreakHyphen) {
+		} else if (docxObject instanceof org.docx4j.wml.NoBreakHyphen) {
 			//Unsupported yet
-			QName name = DocumentContext.jc.createJAXBIntrospector().getElementName(docxObject);
+			QName name = Context.jc.createJAXBIntrospector().getElementName(docxObject);
 			this.textContent = XmlUtil.getEnclosingTagPair(name);
 			this.isDummy = true;
 
-		} else if (docxObject instanceof org.docx4j.jaxb.document.SoftHyphen) {
+		} else if (docxObject instanceof org.docx4j.wml.SoftHyphen) {
 			//Unsupported yet
-			QName name = DocumentContext.jc.createJAXBIntrospector().getElementName(docxObject);
+			QName name = Context.jc.createJAXBIntrospector().getElementName(docxObject);
 			this.textContent = XmlUtil.getEnclosingTagPair(name);
 			this.isDummy = true;
 
 		} else if (docxObject instanceof JAXBElement<?>) {
 			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
 			String typeName = jaxbElem.getDeclaredType().getName();
-			if ("org.docx4j.jaxb.document.Text".equals(typeName)) {
-				org.docx4j.jaxb.document.Text t = 
-					(org.docx4j.jaxb.document.Text) 
+			if ("org.docx4j.wml.Text".equals(typeName)) {
+				org.docx4j.wml.Text t = 
+					(org.docx4j.wml.Text) 
 						jaxbElem.getValue();
 				String s = t.getValue();
 				if (s != null && s.length() > 0) {
