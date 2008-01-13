@@ -25,7 +25,7 @@ import java.util.List;
 import javax.xml.namespace.QName;
 
 import org.docx4all.ui.main.Constants;
-import org.docx4j.jaxbcontexts.DocumentContext;
+import org.docx4j.jaxb.Context;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -56,7 +56,7 @@ public abstract class ElementML implements Cloneable {
 		this.docxObject = docxObject;
 		this.isDummy = isDummy;
 		if (this.docxObject != null) {
-			QName name = DocumentContext.jc.createJAXBIntrospector().getElementName(docxObject);
+			QName name = Context.jc.createJAXBIntrospector().getElementName(docxObject);
 			if (name != null) {
 				tag = WordML.getTag(name.getLocalPart());
 			}
