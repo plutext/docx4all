@@ -24,14 +24,22 @@ import java.awt.event.ActionEvent;
 import java.io.File;
 import java.util.prefs.Preferences;
 
+import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
+import javax.swing.text.Document;
 
+import org.docx4all.swing.text.DocumentElement;
+import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
+import org.docx4all.xml.DocumentML;
+import org.docx4j.openpackaging.exceptions.Docx4JException;
+import org.docx4j.openpackaging.io.SaveToZipFile;
 import org.jdesktop.application.Action;
 import org.jdesktop.application.ResourceMap;
 
@@ -191,22 +199,14 @@ public class FileMenu extends UIMenu {
         Preferences prefs = Preferences.userNodeForPackage( getClass() );
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         
-        JFileChooser chooser = new JFileChooser();
+        String lastFileName = prefs.get(Constants.LAST_OPENED_FILE, "");
+        File dir = null;
+        if (lastFileName.length() > 0) {
+        	dir = (new File(lastFileName)).getParentFile();
+        }
         
     	ResourceMap rm = editor.getContext().getResourceMap(WordMLEditor.class);
-    	String desc = rm.getString(Constants.DOCX_FILTER_DESC);
-    	if (desc == null || desc.length() == 0) {
-    		desc = "Docx Files";
-    	}
-
-        FileNameExtensionFilter docxFilter = 
-        	new FileNameExtensionFilter(desc, "docx");        
-        chooser.setFileFilter(docxFilter);
-        
-        String lastFileName = prefs.get(Constants.LAST_OPENED_FILE, "");
-        if (lastFileName.length() > 0) {
-        	chooser.setCurrentDirectory(new File(lastFileName).getParentFile());
-        }
+        JFileChooser chooser = createFileChooser(rm, dir);
         
         int returnVal = chooser.showOpenDialog((Component) actionEvent.getSource());
         if (returnVal == JFileChooser.APPROVE_OPTION) {
@@ -217,33 +217,136 @@ public class FileMenu extends UIMenu {
     }
 
     @Action public void saveFile() {
-    	//TODO: Save File Action
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-        editor.getToolbarStates().setDocumentDirty(false);
+        if (editor.getToolbarStates().isDocumentDirty()) {
+			boolean success = 
+				save(editor.getCurrentEditor(), null, SAVE_FILE_ACTION_NAME);
+			if (success) {
+				editor.getToolbarStates().setDocumentDirty(false);
+			}
+		}
     }
 
-    @Action public void saveAsFile() {
-    	//TODO: Save As File Action
+    @Action public void saveAsFile(ActionEvent actionEvent) {
+        Preferences prefs = Preferences.userNodeForPackage( getClass() );
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-        editor.getToolbarStates().setDocumentDirty(false);
-    }
+        
+        JEditorPane editorPane = editor.getCurrentEditor();
+        Document doc = editorPane.getDocument();
+        String filePath = 
+			(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
+        File file = new File(filePath);
+        
+    	ResourceMap rm = editor.getContext().getResourceMap(getClass());
+        JFileChooser chooser = createFileChooser(rm, file.getParentFile());
+        
+        int returnVal = chooser.showSaveDialog((Component) actionEvent.getSource());
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+			File selectedFile = chooser.getSelectedFile();
+			prefs.put(Constants.LAST_OPENED_FILE, file.getAbsolutePath());
+			
+			boolean canSave = true;
+			if (file.exists() && !file.equals(selectedFile)) {
+	            String title = 
+	            	rm.getString(SAVE_AS_FILE_ACTION_NAME + ".Action.text");
+	            String message =
+	            	file.getAbsolutePath() + "\n"
+	            	+ rm.getString(SAVE_AS_FILE_ACTION_NAME + ".Action.confirmMessage");
+	            int answer = 
+	            	editor.showConfirmDialog(
+	            		title, 
+	            		message, 
+	            		JOptionPane.YES_NO_OPTION, 
+	            		JOptionPane.QUESTION_MESSAGE);
+	            canSave = (answer == JOptionPane.YES_OPTION);
+			}// if (file.exists())
+			
+			if (canSave) {
+				boolean success = 
+					save(editorPane, file.getAbsolutePath(), SAVE_AS_FILE_ACTION_NAME);
+				if (success) {
+					editor.getToolbarStates().setDocumentDirty(false);
+					editor.updateInternalFrame(file, selectedFile);
+				}
+			}
+		}//if (returnVal == JFileChooser.APPROVE_OPTION)
+    }// saveAsFile()
     
     @Action public void saveAllFiles() {
-    	//TODO: Save All Files Action
+        WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+    	for (JEditorPane editor: wmlEditor.getAllEditors()) {
+    		if (wmlEditor.getToolbarStates().isDocumentDirty(editor)
+    			&& save(editor, null, SAVE_ALL_FILES_ACTION_NAME)) {
+    			wmlEditor.getToolbarStates().setDocumentDirty(editor, false);
+    		}
+    	}
     }
     
     @Action public void closeFile() {
-    	//TODO: Close File Action
+        WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+        wmlEditor.closeInternalFrame(wmlEditor.getCurrentEditor());
     }
     
     @Action public void closeAllFiles() {
-    	//TODO: Close All Files Action
+        WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+        wmlEditor.closeAllInternalFrames();
     }
     
     @Action public void exit() {
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         editor.exit();
     }
+    
+    private JFileChooser createFileChooser(
+    	ResourceMap resourceMap, 
+    	File showedDir) {
+        JFileChooser chooser = new JFileChooser();
+        
+    	String desc = resourceMap.getString(Constants.DOCX_FILTER_DESC);
+    	if (desc == null || desc.length() == 0) {
+    		desc = "Docx Files";
+    	}
+
+        FileNameExtensionFilter docxFilter = 
+        	new FileNameExtensionFilter(desc, "docx");        
+        chooser.setFileFilter(docxFilter);
+        chooser.setCurrentDirectory(showedDir);
+        
+        return chooser;
+    }
+    
+    public boolean save(JEditorPane editor, String saveAsFilePath, String callerActionName) {
+    	boolean success = true;
+    	
+    	Document doc = editor.getDocument();
+        DocumentElement rootElem = (DocumentElement) doc.getDefaultRootElement();
+		DocumentML rootML = (DocumentML) rootElem.getElementML();
+		if (saveAsFilePath == null) {
+			saveAsFilePath = 
+				(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
+		}
+		
+        try {
+        	SaveToZipFile saver = 
+        		new SaveToZipFile(rootML.getWordprocessingMLPackage());
+        	saver.save(saveAsFilePath);
+
+        } catch (Docx4JException exc) {
+        	success = false;
+            WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);            
+        	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
+
+            String title = 
+            	rm.getString(callerActionName + ".Action.text");
+			String message = 
+				rm.getString(callerActionName + ".Action.errorMessage")
+				+ "\n" 
+				+ saveAsFilePath;
+			wmlEditor.showMessageDialog(title, message, JOptionPane.ERROR_MESSAGE);
+		}
+        
+        return success;
+    }    
 }// FileMenu class
 
 
