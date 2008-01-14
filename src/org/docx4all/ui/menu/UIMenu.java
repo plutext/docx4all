@@ -45,7 +45,7 @@ public abstract class UIMenu {
         javax.swing.Action action = context.getActionMap(getClass(), this).get(actionName);
         
         ResourceMap rm = context.getResourceMap(getClass());
-        Icon selectedIcon = rm.getIcon(actionName + "Action.selected.icon");
+        Icon selectedIcon = rm.getIcon(actionName + ".Action.selected.icon");
         if (selectedIcon != null) {
         	action.putValue("Selected"+javax.swing.Action.SMALL_ICON, selectedIcon);
         }
