@@ -38,6 +38,7 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.util.SwingUtil;
 
 /**
@@ -84,9 +85,13 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
 	}
 	
 	public boolean isDocumentDirty() {
+		return isDocumentDirty(_currentEditor);
+	}
+	
+	public boolean isDocumentDirty(JEditorPane editor) {
 		Boolean isDirty = Boolean.FALSE;
-		if (_currentEditor != null) {
-			isDirty = _dirtyTable.get(_currentEditor);
+		if (editor != null) {
+			isDirty = _dirtyTable.get(editor);
 			if (isDirty == null) {
 				isDirty = Boolean.FALSE;
 			}
@@ -109,26 +114,48 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
 	}
 	
 	public void setDocumentDirty(boolean dirty) {
+		setDocumentDirty(_currentEditor, dirty);
+	}
+	
+	public void setDocumentDirty(JEditorPane editor, boolean dirty) {
+		if (editor == null) {
+			return;
+		}
+		
 		if (log.isDebugEnabled()) {
-			log.debug("setDocumentDirty(): 'dirty' parameter = " + dirty);
+			String file = 
+				(String) editor.getDocument().getProperty(
+					WordMLDocument.FILE_PATH_PROPERTY);
+			log.debug("setDocumentDirty(): File = " + file
+				+ " - 'dirty' parameter = " + dirty);
 		}
 		
-		boolean oldAllDirty = isAllDocumentDirty();
-		boolean oldDirty = isDocumentDirty();
+		//record current isAllDocumentDirty() state for later use
+		Boolean oldAllDirty = Boolean.valueOf(isAllDocumentDirty());
 		
-		if (_currentEditor == null || oldDirty == dirty) {
-			return;
+		Boolean isDirty = _dirtyTable.get(editor);
+		if (isDirty == null) {
+			isDirty = Boolean.FALSE;
 		}
+		
 		Boolean newDirty = Boolean.valueOf(dirty);
-		_dirtyTable.put(_currentEditor, newDirty);
-		firePropertyChange(DOC_DIRTY_PROPERTY_NAME, Boolean.valueOf(oldDirty), newDirty);
-		
-		dirty = isAllDocumentDirty();
-		if (oldAllDirty == dirty) {
+		if (isDirty == newDirty) {
+			//no change
 			return;
 		}
-		newDirty = Boolean.valueOf(dirty);
-		firePropertyChange(ALL_DOC_DIRTY_PROPERTY_NAME, Boolean.valueOf(oldAllDirty), newDirty);
+		
+		_dirtyTable.put(editor, newDirty);
+		if (editor == _currentEditor) {
+			firePropertyChange(DOC_DIRTY_PROPERTY_NAME, Boolean.valueOf(isDirty), newDirty);
+		}
+
+		//Check the resulting isAllDocumentDirty() state
+		newDirty = Boolean.valueOf(isAllDocumentDirty());
+		if (oldAllDirty == newDirty) {
+			//no change
+			return;
+		}
+		firePropertyChange(ALL_DOC_DIRTY_PROPERTY_NAME, oldAllDirty, newDirty);
 	}
 	
 	public String getParagraphStyle() {
