@@ -305,45 +305,43 @@ public class WordMLEditor extends SingleFrameApplication {
     	return panel;
     }
     
-    public int showConfirmClosingEditor(JEditorPane editorPane, String resourceKeyPrefix) {
+    private int showConfirmClosingEditor(JEditorPane editorPane, String resourceKeyPrefix) {
     	int answer = JOptionPane.CANCEL_OPTION;
     	
-		if (getToolbarStates().isDocumentDirty(editorPane)) {
-			String filePath = 
-				(String) editorPane.getDocument().getProperty(
-					WordMLDocument.FILE_PATH_PROPERTY);
+		String filePath = 
+			(String) editorPane.getDocument().getProperty(
+				WordMLDocument.FILE_PATH_PROPERTY);
 			
-			ResourceMap rm = getContext().getResourceMap();
-			String title = 
-				rm.getString(resourceKeyPrefix + ".dialog.title")
-				+ " " 
-				+ filePath.substring(filePath.lastIndexOf(File.separator) + 1);
-			String message = 
-				filePath 
-				+ "\n"
-				+ rm.getString(resourceKeyPrefix + ".confirmMessage");
-			Object[] options = {
-				rm.getString(resourceKeyPrefix + ".confirm.saveNow"),
-				rm.getString(resourceKeyPrefix + ".confirm.dontSave"),
-				rm.getString(resourceKeyPrefix + ".confirm.cancel")
-			};
-			answer = showConfirmDialog(title, message,
-					JOptionPane.YES_NO_CANCEL_OPTION,
-					JOptionPane.QUESTION_MESSAGE,
-					options,
-					options[0]);
-			if (answer == JOptionPane.CANCEL_OPTION) {
-				;
-			} else if (answer == JOptionPane.YES_OPTION) {
-				boolean success = FileMenu.getInstance().save(editorPane, null,
-						FileMenu.SAVE_FILE_ACTION_NAME);
-				if (success) {
-					getToolbarStates().setDocumentDirty(editorPane, false);
-				}
-			} else {
-				//getToolbarStates().setDocumentDirty(editorPane, false);
+		ResourceMap rm = getContext().getResourceMap();
+		String title = 
+			rm.getString(resourceKeyPrefix + ".dialog.title")
+			+ " " 
+			+ filePath.substring(filePath.lastIndexOf(File.separator) + 1);
+		String message = 
+			filePath 
+			+ "\n"
+			+ rm.getString(resourceKeyPrefix + ".confirmMessage");
+		Object[] options = {
+			rm.getString(resourceKeyPrefix + ".confirm.saveNow"),
+			rm.getString(resourceKeyPrefix + ".confirm.dontSave"),
+			rm.getString(resourceKeyPrefix + ".confirm.cancel")
+		};
+		answer = showConfirmDialog(title, message,
+				JOptionPane.YES_NO_CANCEL_OPTION,
+				JOptionPane.QUESTION_MESSAGE,
+				options,
+				options[0]);
+		if (answer == JOptionPane.CANCEL_OPTION) {
+			;
+		} else if (answer == JOptionPane.YES_OPTION) {
+			boolean success = FileMenu.getInstance().save(editorPane, null,
+					FileMenu.SAVE_FILE_ACTION_NAME);
+			if (success) {
+				getToolbarStates().setDocumentDirty(editorPane, false);
 			}
-		}// if (getToolbarStates().isDocumentDirty(editorPane))
+		} else {
+			//getToolbarStates().setDocumentDirty(editorPane, false);
+		}
 		
 		return answer;
     }
@@ -410,8 +408,12 @@ public class WordMLEditor extends SingleFrameApplication {
         public void internalFrameClosing(InternalFrameEvent e) {
 			JInternalFrame iframe = (JInternalFrame) e.getSource();
 			JEditorPane editorPane = SwingUtil.getJEditorPane(iframe);
-			int answer = showConfirmClosingEditor(editorPane, "internalframe.close");
-			if (answer != JOptionPane.CANCEL_OPTION) {
+			if (getToolbarStates().isDocumentDirty(editorPane)) {
+				int answer = showConfirmClosingEditor(editorPane, "internalframe.close");
+				if (answer != JOptionPane.CANCEL_OPTION) {
+					iframe.dispose();
+				}
+			} else {
 				iframe.dispose();
 			}
         }
