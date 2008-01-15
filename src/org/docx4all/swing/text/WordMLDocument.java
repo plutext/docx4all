@@ -91,7 +91,7 @@ public class WordMLDocument extends DefaultStyledDocument {
         	(DocumentElement) rightLeaf.getParentElement().getParentElement();
         
         List<ElementSpec> specs = new ArrayList<ElementSpec>();
-        if (rightImpliedPara.getStartOffset() == rightLeaf.getStartOffset()) {
+        if (rightImpliedPara.getStartOffset() == offset + length) {
         	if (offset > 0) {
         		DocumentElement rightPara = 
         			(DocumentElement) rightImpliedPara.getParentElement();
@@ -344,6 +344,6 @@ public class WordMLDocument extends DefaultStyledDocument {
 			log.debug("save(): this=" + this);
 		}
 	}// TextElement inner class
-
+    
 }// WordMLDocument class
 
