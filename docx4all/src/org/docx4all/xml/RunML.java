@@ -56,7 +56,7 @@ public class RunML extends ElementML {
 	}
 	
 	public void setRunProperties(RunPropertiesML rPr) {
-		if (rPr.getParent() != null) {
+		if (rPr != null && rPr.getParent() != null) {
 			throw new IllegalArgumentException("Not an orphan.");
 		}
 		
