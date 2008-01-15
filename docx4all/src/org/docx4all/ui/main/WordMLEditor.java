@@ -48,6 +48,7 @@ import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
 import javax.swing.text.AbstractDocument;
 
+import org.apache.log4j.Logger;
 import org.docx4all.script.FxScriptUIHelper;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLDocumentFilter;
@@ -65,6 +66,8 @@ import org.jdesktop.application.SingleFrameApplication;
  *	@author Jojada Tirtowidjojo - 13/11/2007
  */
 public class WordMLEditor extends SingleFrameApplication {
+	private static Logger log = Logger.getLogger(WordMLEditor.class);
+	
 	private JDesktopPane _desktop;
 	private Map<String, JEditorPane> _editorMap;
 	private InternalFrameListener _internalFrameListener;
@@ -167,6 +170,7 @@ public class WordMLEditor extends SingleFrameApplication {
         	iframe.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         	iframe.addInternalFrameListener(_internalFrameListener);
         	iframe.addInternalFrameListener(_toolbarStates);
+        	iframe.addPropertyChangeListener(WindowMenu.getInstance());
         	
         	editor = createEditor(f);
         	JPanel panel = FxScriptUIHelper.getInstance().createEditorPanel(editor);
