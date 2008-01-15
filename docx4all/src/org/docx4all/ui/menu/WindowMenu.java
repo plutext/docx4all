@@ -21,6 +21,8 @@ package org.docx4all.ui.menu;
 
 import java.awt.Component;
 import java.awt.Dimension;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.beans.PropertyVetoException;
 
 import javax.swing.JDesktopPane;
@@ -37,7 +39,7 @@ import org.jdesktop.application.Action;
 /**
  *	@author Jojada Tirtowidjojo - 29/11/2007
  */
-public class WindowMenu extends UIMenu {
+public class WindowMenu extends UIMenu implements PropertyChangeListener {
 	private final static WindowMenu _instance = new WindowMenu();
 	
 	//==========
@@ -133,6 +135,16 @@ public class WindowMenu extends UIMenu {
 		item.setSelected(false);
 	}
 	
+    public void propertyChange(PropertyChangeEvent evt) {
+    	if (JInternalFrame.TITLE_PROPERTY == evt.getPropertyName()) {
+    		JMenu wmenu = getWindowJMenu();
+    		JMenuItem item = SwingUtil.getMenuItem(wmenu, (String) evt.getOldValue());
+    		if (item != null) {
+    			item.setText((String) evt.getNewValue());
+    		}
+    	}
+    }
+
 	private JMenu getWindowJMenu() {
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
 		JMenuBar menubar = editor.getMainFrame().getJMenuBar();
