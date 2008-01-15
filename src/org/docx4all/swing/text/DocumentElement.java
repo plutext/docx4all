@@ -27,8 +27,6 @@ import org.docx4all.xml.ElementML;
 public interface DocumentElement extends javax.swing.text.Element {
 	public ElementML getElementML();
 	public boolean isEditable();
-	public void save();
-	
 }// DocumentElement class
 
 
