@@ -56,7 +56,7 @@ public class ParagraphML extends ElementML {
 	}
 	
 	public void setParagraphProperties(ParagraphPropertiesML pPr) {
-		if (pPr.getParent() != null) {
+		if (pPr != null && pPr.getParent() != null) {
 			throw new IllegalArgumentException("Not an orphan.");
 		}
 		
