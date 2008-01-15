@@ -30,7 +30,6 @@ import javax.swing.text.StyledEditorKit.StyledTextAction;
 import org.docx4all.swing.text.WordMLEditorKit;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
-import org.docx4all.util.DocUtil;
 import org.jdesktop.application.Action;
 
 /**
@@ -199,9 +198,6 @@ public class FormatMenu extends UIMenu {
 				ALIGN_CENTER_ACTION_NAME, 
 				StyleConstants.ALIGN_CENTER);
 		action.actionPerformed(evt);
-		
-        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-		DocUtil.displayStructure(editor.getCurrentEditor().getDocument());
 	}
 	
 	@Action public void alignRight(ActionEvent evt) {
