@@ -61,7 +61,7 @@ public class ObjectFactory {
 			org.docx4j.wml.Cr cr = _jaxbFactory.createCr();
 			r.getRunContent().add(cr);
 			cr.setParent(r);
-		} else {
+		} else if (textContent != null) {
 			org.docx4j.wml.Text text = _jaxbFactory.createText();
 			text.setValue(textContent);
 			r.getRunContent().add(_jaxbFactory.createT(text));
