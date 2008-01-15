@@ -86,14 +86,26 @@ public class TextRemover extends TextSelector implements TextProcessor {
 			list.remove(list.size() - 1);
 		}
     	
-    	deleteElementML(list);
+    	DocUtil.deleteElementML(list);
     	
 		DocumentElement firstPara = 
 			(DocumentElement) doc.getParagraphMLElement(offset, false);
-		DocumentElement lastPara = 
-			(DocumentElement) doc.getParagraphMLElement(offset + length - 1, false);
+		DocumentElement lastPara = null;
+		if (offset == firstPara.getEndOffset() - 1 && length == 1) {
+			//deleting an implied newline character
+			lastPara = 
+				(DocumentElement) 
+					doc.getParagraphMLElement(offset + length, false);
+		} else {
+			lastPara = 
+				(DocumentElement)
+					doc.getParagraphMLElement(offset + length - 1, false);
+
+		}
+		
 		if (!isFullySelected(firstPara) && !isFullySelected(lastPara)) {
-			//Merge firstPara and lastPara if both are not fully selected
+			//Merge firstPara and lastPara if both are not fully selected.
+			//Note that both firstPara and lastPara may refer to the same paragraph.
 			mergeElementML(firstPara, lastPara);
 		}
 
@@ -116,7 +128,7 @@ public class TextRemover extends TextSelector implements TextProcessor {
     	}
     	
     	paraML = lastPara.getElementML();
-    	if (paraML.getParent() != null) {
+    	if (firstPara != lastPara && paraML.getParent() != null) {
     		specs.addAll(DocUtil.getElementSpecs(paraML));
     	}
     	
@@ -146,7 +158,7 @@ public class TextRemover extends TextSelector implements TextProcessor {
 	private void mergeElementML(DocumentElement para1, DocumentElement para2) {		
 		//Grab all lastPara's content from offset + length position
 		int start = offset + length;
-		int count = para2.getEndOffset() - start;
+		int count = (para2.getEndOffset() - 1) - start;
 		TextSelector ts = null;
 		try {
 			ts = new TextSelector(doc, start, count);
@@ -156,8 +168,10 @@ public class TextRemover extends TextSelector implements TextProcessor {
 		
 		//Delete the merged para2
 		List<DocumentElement> elemsToMerge = ts.getDocumentElements();
-		deleteElementML(elemsToMerge);
-		para2.getElementML().delete();
+		DocUtil.deleteElementML(elemsToMerge);
+		if (para1 != para2) {
+			para2.getElementML().delete();
+		}
 		
 		//Find element where merging start
 		DocumentElement targetE = (DocumentElement) doc.getCharacterElement(offset - 1);
@@ -173,21 +187,13 @@ public class TextRemover extends TextSelector implements TextProcessor {
 				targetML = targetE.getElementML();
 			}
 			ElementML ml = de.getElementML();
-			targetML.addSibling(ml, true);
-			targetML = ml;
+			if (!ml.isImplied()) {
+				targetML.addSibling(ml, true);
+				targetML = ml;
+			}
 		}
 	}
 	
-	private void deleteElementML(List<DocumentElement> list) {
-    	for (int i=0; i < list.size(); i++) {
-    		DocumentElement tempE = (DocumentElement) list.get(i);
-    		if (log.isDebugEnabled()) {
-    			log.debug("deleteElementML(): elem[" + i + "]=" + tempE);
-    		}
-    		ElementML ml = tempE.getElementML();
-    		ml.delete();
-    	}
-	}
 }// TextRemover class
 
 
