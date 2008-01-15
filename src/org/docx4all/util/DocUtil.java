@@ -48,6 +48,22 @@ public class DocUtil {
 
 	private final static String TAB = "    ";
 	
+	public final static List<ElementML> deleteElementML(List<DocumentElement> list) {
+		List<ElementML> deletedElementMLs = new ArrayList<ElementML>(list.size());
+		
+    	for (int i=0; i < list.size(); i++) {
+    		DocumentElement tempE = (DocumentElement) list.get(i);
+    		if (log.isDebugEnabled()) {
+    			log.debug("deleteElementML(): elem[" + i + "]=" + tempE);
+    		}
+    		ElementML ml = tempE.getElementML();
+    		ml.delete();
+    		deletedElementMLs.add(ml);
+    	}
+    	
+    	return deletedElementMLs;
+	}
+
 	public final static List<ElementSpec> getElementSpecs(ElementML elem) {
 		ElementMLIterator parser = new ElementMLIterator(elem);
 		ElementMLIteratorCallback result = new ElementMLIteratorCallback();
