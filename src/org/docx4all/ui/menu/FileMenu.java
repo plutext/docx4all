@@ -32,11 +32,14 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.text.Document;
 
+import org.apache.log4j.Logger;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
+import org.docx4all.swing.text.WordMLEditorKit;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
+import org.docx4all.util.DocUtil;
 import org.docx4all.xml.DocumentML;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.io.SaveToZipFile;
@@ -47,6 +50,8 @@ import org.jdesktop.application.ResourceMap;
  *	@author Jojada Tirtowidjojo - 27/11/2007
  */
 public class FileMenu extends UIMenu {
+	private static Logger log = Logger.getLogger(FileMenu.class);
+	
 	private final static FileMenu _instance = new FileMenu();
 	
 	/**
@@ -246,11 +251,11 @@ public class FileMenu extends UIMenu {
 			prefs.put(Constants.LAST_OPENED_FILE, file.getAbsolutePath());
 			
 			boolean canSave = true;
-			if (file.exists() && !file.equals(selectedFile)) {
+			if (selectedFile.exists() && !selectedFile.equals(file)) {
 	            String title = 
 	            	rm.getString(SAVE_AS_FILE_ACTION_NAME + ".Action.text");
 	            String message =
-	            	file.getAbsolutePath() + "\n"
+	            	selectedFile.getAbsolutePath() + "\n"
 	            	+ rm.getString(SAVE_AS_FILE_ACTION_NAME + ".Action.confirmMessage");
 	            int answer = 
 	            	editor.showConfirmDialog(
@@ -263,7 +268,7 @@ public class FileMenu extends UIMenu {
 			
 			if (canSave) {
 				boolean success = 
-					save(editorPane, file.getAbsolutePath(), SAVE_AS_FILE_ACTION_NAME);
+					save(editorPane, selectedFile.getAbsolutePath(), SAVE_AS_FILE_ACTION_NAME);
 				if (success) {
 					editor.getToolbarStates().setDocumentDirty(false);
 					editor.updateInternalFrame(file, selectedFile);
@@ -318,6 +323,9 @@ public class FileMenu extends UIMenu {
     public boolean save(JEditorPane editor, String saveAsFilePath, String callerActionName) {
     	boolean success = true;
     	
+    	WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
+    	kit.save();
+    	
     	Document doc = editor.getDocument();
         DocumentElement rootElem = (DocumentElement) doc.getDefaultRootElement();
 		DocumentML rootML = (DocumentML) rootElem.getElementML();
@@ -344,6 +352,11 @@ public class FileMenu extends UIMenu {
 				+ saveAsFilePath;
 			wmlEditor.showMessageDialog(title, message, JOptionPane.ERROR_MESSAGE);
 		}
+        
+        if (log.isDebugEnabled()) {
+        	log.debug("save(): filePath=" + saveAsFilePath);
+        	DocUtil.displayXml(doc);
+        }
         
         return success;
     }    
