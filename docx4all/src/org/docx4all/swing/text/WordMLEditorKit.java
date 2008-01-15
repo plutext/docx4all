@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.util.List;
 
 import javax.swing.Action;
 import javax.swing.ActionMap;
@@ -34,10 +35,12 @@ import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JEditorPane;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.event.CaretEvent;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.Caret;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
 import javax.swing.text.MutableAttributeSet;
@@ -45,12 +48,19 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledEditorKit;
 import javax.swing.text.TextAction;
+import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
 import org.apache.log4j.Logger;
 import org.docx4all.util.DocUtil;
 import org.docx4all.xml.DocumentML;
+import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
-import org.docx4all.xml.ElementMLIterator;
+import org.docx4all.xml.ObjectFactory;
+import org.docx4all.xml.ParagraphML;
+import org.docx4all.xml.ParagraphPropertiesML;
+import org.docx4all.xml.RunContentML;
+import org.docx4all.xml.RunML;
+import org.docx4all.xml.RunPropertiesML;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -65,6 +75,8 @@ public class WordMLEditorKit extends StyledEditorKit {
      */
     public static final String insertSoftBreakAction = "insert-soft-break";
 
+    public static final String enterKeyTypedAction = "enter-key-typed-action";
+    
 	private static final Cursor MoveCursor = Cursor
 			.getPredefinedCursor(Cursor.HAND_CURSOR);
 	private static final Cursor DefaultCursor = Cursor
@@ -87,6 +99,10 @@ public class WordMLEditorKit extends StyledEditorKit {
 		caretListener = new CaretListener();
 	}
 
+	public void save() {
+		save(caretListener.caretElement);
+	}
+	
 	/**
 	 * Get the MIME type of the data that this kit represents support for. This
 	 * kit supports the type <code>text/xml</code>.
@@ -139,16 +155,14 @@ public class WordMLEditorKit extends StyledEditorKit {
      */
 	public WordMLDocument read(File f) throws IOException {
 		DocumentML docML = ElementMLFactory.createDocumentML(f);
-		ElementMLIterator parser = new ElementMLIterator(docML);
-		ElementMLIteratorCallback result = new ElementMLIteratorCallback();
-		parser.cruise(result);
+		List<ElementSpec> specs = DocUtil.getElementSpecs(docML);
 		
 		WordMLDocument doc = (WordMLDocument) createDefaultDocument();
-		doc.createElementStructure(result.getElementSpecs());
+		doc.createElementStructure(specs);
 		
 		if (log.isDebugEnabled()) {
 			log.debug("read(): File = " + f.getAbsolutePath());
-			DocUtil.displayStructure(result.getElementSpecs());
+			DocUtil.displayStructure(specs);
 			DocUtil.displayStructure(doc);
 		}
 			
@@ -231,13 +245,39 @@ public class WordMLEditorKit extends StyledEditorKit {
 		return defaultCursor;
 	}
 
+	private void save(DocumentElement elem) {
+		if (!elem.isLeaf()
+			|| elem.getStartOffset() == elem.getEndOffset()) {
+			return;
+		}
+		
+		RunContentML rcml = (RunContentML) elem.getElementML();
+		if (!rcml.isDummy() && !rcml.isImplied()) {
+			try {
+				int count = elem.getEndOffset() - elem.getStartOffset();
+				String text = elem.getDocument().getText(elem.getStartOffset(), count);
+				rcml.setTextContent(text);
+			} catch (BadLocationException exc) {
+				;//ignore
+			}
+		}
+	}
+	
 	private void initKeyBindings(JEditorPane editor) {
 		ActionMap myActionMap = new ActionMap();
 		InputMap myInputMap = new InputMap();
-
-		KeyStroke enter = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.SHIFT_MASK);
+		
+		KeyStroke ks = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.SHIFT_MASK);
 		myActionMap.put(insertSoftBreakAction, new InsertSoftBreakAction(insertSoftBreakAction));
-		myInputMap.put(enter, insertSoftBreakAction);
+		myInputMap.put(ks, insertSoftBreakAction);
+
+		ks = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0);
+		myActionMap.put(enterKeyTypedAction, new EnterKeyTypedAction(enterKeyTypedAction));
+		myInputMap.put(ks, enterKeyTypedAction);
+		
+		ks = KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0);
+		myActionMap.put(deleteNextCharAction, new DeleteNextCharAction(deleteNextCharAction));
+		myInputMap.put(ks, deleteNextCharAction);
 
 		myActionMap.setParent(editor.getActionMap());
 		myInputMap.setParent(editor.getInputMap());
@@ -249,7 +289,7 @@ public class WordMLEditorKit extends StyledEditorKit {
 	//*****  INNER CLASSES *****
 	//**************************
 	private class CaretListener implements javax.swing.event.CaretListener {
-		private DocumentElement caretElement;
+		private WordMLDocument.TextElement caretElement;
 		
 	    public void caretUpdate(CaretEvent evt) {
 	    	JEditorPane editor = (JEditorPane) evt.getSource();
@@ -257,11 +297,17 @@ public class WordMLEditorKit extends StyledEditorKit {
 	    	
 	    	int dot = evt.getDot();
 	    	
-    		DocumentElement elem = (DocumentElement) doc.getCharacterElement(dot);
+	    	Element elem = doc.getParagraphMLElement(dot, true);
+	    	if (elem.getStartOffset() == dot) {
+	    		elem = doc.getCharacterElement(dot);
+	    	} else {
+	    		elem = doc.getCharacterElement(dot - 1);
+	    	}
+	    	
     		if (caretElement != null && caretElement != elem) {
-    			caretElement.save();
+    			save(caretElement);
     		}
-    		caretElement = elem;
+    		caretElement = (WordMLDocument.TextElement) elem;
 	    	
 	    	int mark = evt.getMark();
 	    	if (dot != mark) {
@@ -270,12 +316,8 @@ public class WordMLEditorKit extends StyledEditorKit {
 	    			int end = Math.max(dot, mark);
 	    			new TextSelector(doc, start, end-start);
 	    		} catch (BadSelectionException exc) {
-	    	        //WordMLEditor win = WordMLEditor.getInstance(WordMLEditor.class);
-	    	        //win.showMessageDialog(
-	    	        //	"Text Selection Error", 
-	    	        //	exc.getMessage(), 
-	    	        //	JOptionPane.ERROR_MESSAGE);
-	    	        editor.moveCaretPosition(mark);
+	    			UIManager.getLookAndFeel().provideErrorFeedback(editor);
+	    			editor.moveCaretPosition(mark);
 	    		}
 	    	} 
 	    }
@@ -362,6 +404,273 @@ public class WordMLEditorKit extends StyledEditorKit {
     	}
     }// InsertSoftBreakAction inner class
     
+    public static class EnterKeyTypedAction extends StyledTextAction {
+    	public EnterKeyTypedAction(String name) {
+    		super(name);
+    	}
+    	
+    	public void actionPerformed(ActionEvent e) {
+			final JEditorPane editor = getEditor(e);
+			if (editor != null) {
+				if ((! editor.isEditable()) || (! editor.isEnabled())) {
+				    UIManager.getLookAndFeel().provideErrorFeedback(editor);
+				    return;
+				}
+				
+				if (log.isDebugEnabled()) {
+					log.debug("EnterKeyTypedAction.actionPerformed(): START");
+				}
+				
+				WordMLDocument doc = (WordMLDocument) editor.getDocument();
+				final int pos = editor.getCaretPosition();
+				
+				DocumentElement paraE = 
+					(DocumentElement) doc.getParagraphMLElement(pos, false);
+				if (paraE.getStartOffset() == pos
+					|| pos == paraE.getEndOffset() - 1) {
+					//Create a new empty paragraph
+		    		boolean before = (paraE.getStartOffset() == pos);
+		    		insertNewEmptyParagraph(paraE, before);
+				} else {
+					splitParagraph(paraE, pos);
+				}
+				
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						editor.setCaretPosition(pos + 1);
+						
+						if (log.isDebugEnabled()) {
+							log.debug("EnterKeyTypedAction.actionPerformed(): Resulting Structure...");
+							DocUtil.displayXml(editor.getDocument());
+							DocUtil.displayStructure(editor.getDocument());
+						}
+					}
+				});
+			}
+    	}
+    	
+    	private void insertNewEmptyParagraph(DocumentElement paraE, boolean before) {
+    		ParagraphML paraML = (ParagraphML) paraE.getElementML();
+        	ParagraphPropertiesML pPr =
+        		(ParagraphPropertiesML) paraML.getParagraphProperties();
+        	if (pPr != null) {
+        		pPr = (ParagraphPropertiesML) pPr.clone();
+        	}
+        	
+    		ParagraphML newParaML = createNewParagraphML(null, pPr, null);    		
+    		paraML.addSibling(newParaML, !before);
+
+			WordMLDocument doc = (WordMLDocument) paraE.getDocument();
+			int pos = before ? paraE.getStartOffset() : paraE.getEndOffset();
+			List<ElementSpec> newParaSpecs = DocUtil.getElementSpecs(newParaML);
+			
+			try {
+				DocUtil.insertParagraphs(doc, pos, newParaSpecs);
+			} catch (BadLocationException exc) {
+				;//ignore
+			}
+    	}
+    	
+    	private void splitParagraph(DocumentElement paraE, int caretPos) {
+			WordMLDocument doc = (WordMLDocument) paraE.getDocument();
+			
+			int length = (paraE.getEndOffset() - 1) - caretPos;
+    		TextSelector ts = null;
+    		try {
+    			ts = new TextSelector(doc, caretPos, length);
+    		} catch (BadSelectionException exc) {
+    			;//ignore
+    		}
+    		
+    		List<ElementML> deletedElementMLs = null;
+    		
+    		List<DocumentElement> list = ts.getDocumentElements();
+    		//Check first element
+        	DocumentElement tempE = list.get(0);
+        	if (tempE.isLeaf() && tempE.getStartOffset() < caretPos) {
+        		//Split into two RunContentMLs
+        		RunContentML leftML = (RunContentML) tempE.getElementML();
+        		RunContentML rightML = (RunContentML) leftML.clone();
+        		
+				try {
+					int start = tempE.getStartOffset();
+					length = tempE.getEndOffset() - start;
+					String text = doc.getText(start, length);
+					String left = text.substring(0, caretPos - start);
+					String right = text.substring(caretPos - start);
+
+					leftML.setTextContent(left);
+					rightML.setTextContent(right);
+				} catch (BadLocationException exc) {
+					;// ignore
+				}
+
+				// Prevent leftML from being deleted
+				list.remove(0);
+				deletedElementMLs = DocUtil.deleteElementML(list);
+				
+				// Include rightML as a deleted ElementML
+				deletedElementMLs.add(0, rightML);
+			} else {
+				deletedElementMLs = DocUtil.deleteElementML(list);
+			}
+        	list = null;
+        	
+        	ParagraphML paraML = (ParagraphML) paraE.getElementML();
+        	ParagraphPropertiesML pPr =
+        		(ParagraphPropertiesML) paraML.getParagraphProperties();
+        	if (pPr != null) {
+        		pPr = (ParagraphPropertiesML) pPr.clone();
+        	}
+        	
+        	tempE = (DocumentElement) doc.getRunMLElement(caretPos);
+        	RunML runML = (RunML) tempE.getElementML();
+        	RunPropertiesML rPr = 
+        		(RunPropertiesML) runML.getRunProperties();
+        	if (rPr != null) {
+        		rPr = (RunPropertiesML) rPr.clone();
+        	}
+        	
+        	ParagraphML newParaML = 
+        		createNewParagraphML(deletedElementMLs, pPr, rPr);
+        	
+        	paraML.addSibling(newParaML, true);
+        	
+			List<ElementSpec> specs = DocUtil.getElementSpecs(paraML);
+			specs.addAll(DocUtil.getElementSpecs(newParaML));
+    		
+			DocUtil.displayStructure(specs);
+			
+			int offset = paraE.getStartOffset();
+			try {
+				length = paraE.getEndOffset() - offset;
+
+				//Disable filter temporarily
+				WordMLDocumentFilter filter = 
+					(WordMLDocumentFilter) doc.getDocumentFilter();
+				filter.setEnabled(false);
+				
+				doc.remove(offset, length);
+				
+				//Remember to enable filter back
+				filter.setEnabled(true);
+			} catch (BadLocationException exc) {
+				;//ignore
+			}
+			
+			insertParagraphsLater(doc, offset, specs);
+    	}
+    	
+    	/**
+    	 * Creates a new ParagraphML whose children are specified in 'contents' param.
+    	 * 
+    	 * @param contents A list of RunContentML and/or RunML objects where 
+    	 * RunContentML objects, if any, have to be on the top of the list.
+    	 * @param newPPr A ParagraphPropertiesML given to the resulting new ParagraphML
+    	 * @param newRPr A RunPropertiesML given to a newly created RunML. 
+    	 * A RunML is newly created if 'contents' parameter contains RunContentML.
+    	 * @return the newly created ParagraphML
+    	 */
+    	private ParagraphML createNewParagraphML(
+    		List<ElementML> contents,
+    		ParagraphPropertiesML newPPr,
+    		RunPropertiesML newRPr) {
+    		
+        	ParagraphML thePara = new ParagraphML(ObjectFactory.createPara(null));
+        	thePara.setParagraphProperties(newPPr);
+        	
+        	if (contents != null && !contents.isEmpty()) {
+				RunML newRunML = new RunML(ObjectFactory.createR(null));
+				newRunML.setRunProperties(newRPr);
+
+				for (ElementML ml : contents) {
+					if (ml instanceof RunContentML) {
+						// RunContentML, if any, have to be on the top of the
+						// list.
+						// Therefore, newRunML can collect all of these
+						// RunContentMLs
+						newRunML.addChild(ml);
+						if (newRunML.getParent() == null) {
+							// Add newRunML to thePara once only.
+							thePara.addChild(newRunML);
+						}
+					} else {
+						thePara.addChild(ml);
+					}
+				}
+			}
+        	
+        	return thePara;
+    	}
+    	
+    	private void insertParagraphsLater(
+    		final WordMLDocument doc, 
+    		final int offset, 
+    		final List<ElementSpec> specs) {
+    		
+    		SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					try {
+						DocUtil.insertParagraphs(doc, offset, specs);
+					} catch (BadLocationException exc) {
+						;//ignore
+					}
+				}
+			});
+    	}
+    	
+    }// EnterKeyTypedAction inner class
+    
+    public static class DeleteNextCharAction extends StyledTextAction {
+
+		/* Create this object with the appropriate identifier. */
+		DeleteNextCharAction(String name) {
+			super(deleteNextCharAction);
+		}
+
+		/** The operation to perform when this action is triggered. */
+		public void actionPerformed(ActionEvent e) {
+			final JEditorPane editor = getEditor(e);
+			if (editor != null) {
+				if ((! editor.isEditable()) || (! editor.isEnabled())) {
+				    UIManager.getLookAndFeel().provideErrorFeedback(editor);
+				    return;
+				}
+				
+				if (log.isDebugEnabled()) {
+					log.debug("DeleteNextCharAction.actionPerformed()");
+				}
+				
+				final WordMLDocument doc = (WordMLDocument) editor.getDocument();
+				Caret caret = editor.getCaret();
+				final int dot = caret.getDot();
+				final int mark = caret.getMark();
+				
+				try {
+					if (dot != mark) {
+						doc.remove(Math.min(dot, mark), Math.abs(dot - mark));
+					} else if (dot < doc.getLength() - 1){
+						doc.remove(dot, 1);
+					}
+				} catch (BadLocationException exc) {
+					;//ignore
+				}
+				
+				
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						editor.setCaretPosition(Math.min(dot, mark));
+						
+						if (log.isDebugEnabled()) {
+							DocUtil.displayXml(doc);
+							DocUtil.displayStructure(doc);
+						}
+					}
+				});
+			}
+		}//actionPerformed()
+	}//DeleteNextCharAction()
+
 }// WordMLEditorKit class
 
 
