@@ -19,6 +19,7 @@
 
 package org.docx4all.swing.text;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.text.AttributeSet;
@@ -29,6 +30,7 @@ import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 
 import org.apache.log4j.Logger;
+import org.docx4all.util.DocUtil;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
@@ -77,6 +79,80 @@ public class WordMLDocument extends DefaultStyledDocument {
     	super.insertString(offs, str, a);
     }
     
+    protected void insertUpdate(DefaultDocumentEvent chng, AttributeSet attr) {
+        int offset = chng.getOffset();
+        int length = chng.getLength();
+        
+        DocumentElement leftLeaf = 
+        	(DocumentElement) getCharacterElement(offset);
+        DocumentElement rightLeaf = 
+        	(DocumentElement) getCharacterElement(offset + length);
+        DocumentElement rightImpliedPara =
+        	(DocumentElement) rightLeaf.getParentElement().getParentElement();
+        
+        List<ElementSpec> specs = new ArrayList<ElementSpec>();
+        if (rightImpliedPara.getStartOffset() == rightLeaf.getStartOffset()) {
+        	if (offset > 0) {
+        		DocumentElement rightPara = 
+        			(DocumentElement) rightImpliedPara.getParentElement();
+        	
+        		// Close RunML
+        		specs.add(new ElementSpec(null, ElementSpec.EndTagType));
+        		// Close Implied ParagraphML
+        		specs.add(new ElementSpec(null, ElementSpec.EndTagType));
+        		if (rightImpliedPara.getStartOffset() == rightPara.getStartOffset()) {
+        			// Close ParagraphML
+        			specs.add(new ElementSpec(null, ElementSpec.EndTagType));
+        			// Open New ParagraphML
+        			ElementSpec es = 
+        				new ElementSpec(
+        						rightPara.getAttributes(), 
+        						ElementSpec.StartTagType);
+        			es.setDirection(ElementSpec.JoinNextDirection);
+        			specs.add(es);
+        		}
+        		//Open new Implied ParagraphML
+        		ElementSpec es = 
+        			new ElementSpec(
+        					rightImpliedPara.getAttributes(), 
+        					ElementSpec.StartTagType);
+        		es.setDirection(ElementSpec.JoinNextDirection);
+        		specs.add(es);
+        		//Open new RunML
+        		es = new ElementSpec(
+        				rightLeaf.getParentElement().getAttributes(), 
+        				ElementSpec.StartTagType);
+        		es.setDirection(ElementSpec.JoinNextDirection);
+        		specs.add(es);
+        	}
+        	
+        	//Add new leaf
+        	ElementSpec es = new ElementSpec(
+        			rightLeaf.getAttributes(), 
+        			ElementSpec.ContentType, 
+        			length);
+        	es.setDirection(ElementSpec.JoinNextDirection);
+        	specs.add(es);
+
+        } else {
+        	ElementSpec es = 
+        		new ElementSpec(
+        			leftLeaf.getAttributes(), 
+        			ElementSpec.ContentType, 
+        			length);
+        	es.setDirection(ElementSpec.JoinPreviousDirection);
+        	specs.add(es);
+        }
+        
+        ElementSpec[] specsArray = new ElementSpec[specs.size()];
+        specsArray = specs.toArray(specsArray);
+        buffer.insert(offset, length, specsArray, chng);
+		
+		if (log.isDebugEnabled()) {
+			DocUtil.displayStructure(this);
+		}
+    } //insertUpdate()
+
 	protected void createElementStructure(List<ElementSpec> list) {
 		ElementSpec[] specs = new ElementSpec[list.size()];
 		list.toArray(specs);
