@@ -84,7 +84,7 @@ public class ParagraphML extends ElementML {
 			obj = XmlUtils.deepCopy(this.docxObject);
 		}
 		
-		return new ParagraphML(obj);
+		return new ParagraphML(obj, this.isDummy);
 	}
 	
 	public boolean canAddChild(int idx, ElementML child) {
