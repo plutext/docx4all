@@ -103,9 +103,10 @@ public class TextRemover extends TextSelector implements TextProcessor {
 
 		}
 		
-		if (!isFullySelected(firstPara) && !isFullySelected(lastPara)) {
+		if (firstPara.getStartOffset() < offset
+			&& offset + length < lastPara.getEndOffset() - 1
+			&& firstPara != lastPara) {
 			//Merge firstPara and lastPara if both are not fully selected.
-			//Note that both firstPara and lastPara may refer to the same paragraph.
 			mergeElementML(firstPara, lastPara);
 		}
 
@@ -168,10 +169,11 @@ public class TextRemover extends TextSelector implements TextProcessor {
 		
 		//Delete the merged para2
 		List<DocumentElement> elemsToMerge = ts.getDocumentElements();
+		//delete the ElementMLs of elemsToMerge
+		//so that they are ready for merging
 		DocUtil.deleteElementML(elemsToMerge);
-		if (para1 != para2) {
-			para2.getElementML().delete();
-		}
+		//Delete the whole para2's ElementML
+		para2.getElementML().delete();
 		
 		//Find element where merging start
 		DocumentElement targetE = (DocumentElement) doc.getCharacterElement(offset - 1);
