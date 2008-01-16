@@ -22,12 +22,15 @@ package org.docx4all.swing.text;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
 
 import org.apache.log4j.Logger;
 import org.docx4all.util.DocUtil;
 import org.docx4all.xml.ElementML;
+import org.docx4all.xml.ObjectFactory;
 import org.docx4all.xml.ParagraphML;
+import org.docx4all.xml.RunContentML;
 
 /**
  *	@author Jojada Tirtowidjojo - 19/12/2007
@@ -45,32 +48,77 @@ public class TextSelector {
 		this.length = length;
 	}
 	
+	public List<ElementML> getElementMLCopies() {
+		List<ElementML> theList = new ArrayList<ElementML>();
+		
+		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+		
+		int startIdx = root.getElementIndex(offset);
+		int endIdx = root.getElementIndex(offset + length - 1);
+		
+		while (startIdx <= endIdx) {
+			DocumentElement para = (DocumentElement) root.getElement(startIdx++);
+			if (isFullySelected(para)) {
+				theList.add((ElementML) para.getElementML().clone());
+			} else {
+				int start = Math.max(offset, para.getStartOffset());
+				int end = Math.min(offset + length, para.getEndOffset());
+				
+				List<DocumentElement> list = getChildren(para, start, end - start);
+				for (DocumentElement tempE : list) {
+					ElementML tempML = (ElementML) tempE.getElementML();
+					if (!tempML.isImplied()) {
+						if (start <= tempE.getStartOffset()
+							&& tempE.getEndOffset() <= end) {
+							//tempE is fully within [start, end]
+							theList.add((ElementML) tempML.clone());
+						} else {
+							//must be a partially selected leaf
+							start = Math.max(start, tempE.getStartOffset());
+							end = Math.min(end, tempE.getEndOffset());
+							try {
+								String text = doc.getText(start, end - start);
+								RunContentML rcml = 
+									new RunContentML(ObjectFactory.createT(text));
+								theList.add(rcml);
+							} catch (BadLocationException exc) {
+								;//ignore
+							}
+						}
+					}
+				}//for (DocumentElement tempE : list) 
+			}
+		}//while (startIdx <= endIdx)
+		
+		return theList;
+	}//getElementMLCopies()
+	
 	public List<DocumentElement> getDocumentElements() {
 		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
-		return getChildren(root);
+		return getChildren(root, offset, length);
 	}
 	
-	private List<DocumentElement> getChildren(DocumentElement elem) {
+	private List<DocumentElement> getChildren(DocumentElement elem, int offset, int length) {
 		List<DocumentElement> theChildren = new ArrayList<DocumentElement>();
 		
-		int startIdx = elem.getElementIndex(offset);
-		int endIdx = elem.getElementIndex(offset + length - 1);
+		int startIdx = elem.getElementIndex(Math.max(offset, elem.getStartOffset()));
+		int endIdx = elem.getElementIndex(Math.min(offset + length - 1, elem.getEndOffset() - 1));
 		
 		while (startIdx <= endIdx) {
 			DocumentElement child = (DocumentElement) elem.getElement(startIdx++);
 			ElementML childML = child.getElementML();
 				
-			if (offset <= child.getStartOffset()
-				&& child.getEndOffset() <= offset + length) {
-				// child is fully selected				
+			if (offset <= child.getStartOffset() 
+	    			&& child.getEndOffset() <= offset + length) {
+				//child is fully selected
 				if (childML instanceof ParagraphML && childML.isImplied()) {
-					theChildren.addAll(getChildren(child));
+					theChildren.addAll(getChildren(child, offset, length));
 				} else {
 					theChildren.add(child);
 				}
 			} else if (!child.isLeaf()) {
 				//partially selected block
-				theChildren.addAll(getChildren(child));
+				theChildren.addAll(getChildren(child, offset, length));
 				
 			} else {
 				//partially selected leaf
