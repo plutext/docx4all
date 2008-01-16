@@ -43,6 +43,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Caret;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
+import javax.swing.text.JTextComponent;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
@@ -279,6 +280,10 @@ public class WordMLEditorKit extends StyledEditorKit {
 		myActionMap.put(deleteNextCharAction, new DeleteNextCharAction(deleteNextCharAction));
 		myInputMap.put(ks, deleteNextCharAction);
 
+		ks = KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0);
+		myActionMap.put(deletePrevCharAction, new DeletePrevCharAction(deletePrevCharAction));
+		myInputMap.put(ks, deletePrevCharAction);
+
 		myActionMap.setParent(editor.getActionMap());
 		myInputMap.setParent(editor.getInputMap());
 		editor.setActionMap(myActionMap);
@@ -351,7 +356,7 @@ public class WordMLEditorKit extends StyledEditorKit {
 		}
 	}// StyledTextAction inner class
 	
-    public static class AlignmentAction extends StyledTextAction {
+	public static class AlignmentAction extends StyledTextAction {
 
 		/**
 		 * Creates a new AlignmentAction.
@@ -384,7 +389,7 @@ public class WordMLEditorKit extends StyledEditorKit {
 		}
 	}// AlignmentAction inner class
 
-    public static class InsertSoftBreakAction extends StyledTextAction {
+    private static class InsertSoftBreakAction extends StyledTextAction {
     	public InsertSoftBreakAction(String name) {
     		super(name);
     	}
@@ -404,7 +409,7 @@ public class WordMLEditorKit extends StyledEditorKit {
     	}
     }// InsertSoftBreakAction inner class
     
-    public static class EnterKeyTypedAction extends StyledTextAction {
+    private static class EnterKeyTypedAction extends StyledTextAction {
     	public EnterKeyTypedAction(String name) {
     		super(name);
     	}
@@ -621,7 +626,7 @@ public class WordMLEditorKit extends StyledEditorKit {
     	
     }// EnterKeyTypedAction inner class
     
-    public static class DeleteNextCharAction extends StyledTextAction {
+    private static class DeleteNextCharAction extends StyledTextAction {
 
 		/* Create this object with the appropriate identifier. */
 		DeleteNextCharAction(String name) {
@@ -643,23 +648,38 @@ public class WordMLEditorKit extends StyledEditorKit {
 				
 				final WordMLDocument doc = (WordMLDocument) editor.getDocument();
 				Caret caret = editor.getCaret();
-				final int dot = caret.getDot();
-				final int mark = caret.getMark();
+				int dot = caret.getDot();
+				int mark = caret.getMark();
 				
 				try {
 					if (dot != mark) {
 						doc.remove(Math.min(dot, mark), Math.abs(dot - mark));
-					} else if (dot < doc.getLength() - 1){
-						doc.remove(dot, 1);
+						dot = Math.min(dot, mark);
+						
+					} else if (dot < doc.getLength() - 2) {
+						int delChars = 1;
+
+						if (dot < doc.getLength() - 1) {
+							String dotChars = doc.getText(dot, 2);
+							char c0 = dotChars.charAt(0);
+							char c1 = dotChars.charAt(1);
+
+							if (c0 >= '\uD800' && c0 <= '\uDBFF'
+									&& c1 >= '\uDC00' && c1 <= '\uDFFF') {
+								delChars = 2;
+							}
+						}
+
+						doc.remove(dot, delChars);
 					}
 				} catch (BadLocationException exc) {
-					;//ignore
+					;// ignore
 				}
 				
-				
+				final int caretPos = dot;
 				SwingUtilities.invokeLater(new Runnable() {
 					public void run() {
-						editor.setCaretPosition(Math.min(dot, mark));
+						editor.setCaretPosition(caretPos);
 						
 						if (log.isDebugEnabled()) {
 							DocUtil.displayXml(doc);
@@ -667,9 +687,77 @@ public class WordMLEditorKit extends StyledEditorKit {
 						}
 					}
 				});
-			}
+			}//if (editor != null)
 		}//actionPerformed()
 	}//DeleteNextCharAction()
+
+    private static class DeletePrevCharAction extends StyledTextAction {
+
+		/* Create this object with the appropriate identifier. */
+    	DeletePrevCharAction(String name) {
+			super(deletePrevCharAction);
+		}
+
+		/** The operation to perform when this action is triggered. */
+		public void actionPerformed(ActionEvent e) {
+			final JEditorPane editor = getEditor(e);
+			if (editor != null) {
+				if ((! editor.isEditable()) || (! editor.isEnabled())) {
+				    UIManager.getLookAndFeel().provideErrorFeedback(editor);
+				    return;
+				}
+				
+				if (log.isDebugEnabled()) {
+					log.debug("DeletePrevCharAction.actionPerformed()");
+				}
+				
+				final WordMLDocument doc = (WordMLDocument) editor.getDocument();
+				Caret caret = editor.getCaret();
+				int dot = caret.getDot();
+				int mark = caret.getMark();
+				
+				try {
+					if (dot != mark) {
+						doc.remove(Math.min(dot, mark), Math.abs(dot - mark));
+						dot = Math.min(dot, mark);
+						
+					} else if (dot > 0){
+	                    int delChars = 1;
+	                    
+	                    if (dot > 1) {
+	                        String dotChars = doc.getText(dot - 2, 2);
+	                        char c0 = dotChars.charAt(0);
+	                        char c1 = dotChars.charAt(1);
+	                        
+	                        if (c0 >= '\uD800' && c0 <= '\uDBFF' &&
+	                            c1 >= '\uDC00' && c1 <= '\uDFFF') {
+	                            delChars = 2;
+	                        }
+	                    }
+	                    
+	                    doc.remove(dot - delChars, delChars);
+	                    dot = dot - delChars;
+					}
+				} catch (BadLocationException exc) {
+					;//ignore
+				}
+				
+				final int caretPos = dot;
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						editor.setCaretPosition(caretPos);
+						
+						if (log.isDebugEnabled()) {
+							DocUtil.displayXml(doc);
+							DocUtil.displayStructure(doc);
+						}
+					}
+				});
+			}//if (editor != null)
+		}//actionPerformed()
+		
+	}//DeletePrevCharAction()
+
 
 }// WordMLEditorKit class
 
