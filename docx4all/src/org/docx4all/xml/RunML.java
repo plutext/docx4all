@@ -82,7 +82,7 @@ public class RunML extends ElementML {
 		if (this.docxObject != null) {
 			obj = XmlUtils.deepCopy(this.docxObject);
 		}
-		return new RunML(obj);
+		return new RunML(obj, this.isDummy);
 	}
 	
 	public boolean canAddChild(int idx, ElementML child) {
