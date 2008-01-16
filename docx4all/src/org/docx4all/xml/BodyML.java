@@ -45,7 +45,7 @@ public class BodyML extends ElementML {
 		if (this.docxObject != null) {
 			obj = XmlUtils.deepCopy(this.docxObject);
 		}
-		return new BodyML(obj);
+		return new BodyML(obj, this.isDummy);
 	}
 	
 	public boolean canAddChild(int idx, ElementML child) {
