@@ -21,6 +21,7 @@ package org.docx4all.xml;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import org.docx4j.wml.Document;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
@@ -58,6 +59,71 @@ public class ElementMLFactory {
 		}
 		
 		return docML;
+	}
+	
+
+	/**
+	 * Creates a ParagraphML whose children are specified in 'contents' param.
+	 * 
+	 * @param contents A list of RunContentML and/or RunML objects.
+	 * @param newPPr A ParagraphPropertiesML given to the resulting new ParagraphML
+	 * @param newRPr A RunPropertiesML given to a newly created RunML. 
+	 * A RunML is newly created if 'contents' parameter contains RunContentML.
+	 * @return the newly created ParagraphML
+	 */
+	public final static ParagraphML createParagraphML(
+		List<ElementML> contents,
+		ParagraphPropertiesML newPPr,
+		RunPropertiesML newRPr) {
+		
+    	ParagraphML thePara = new ParagraphML(ObjectFactory.createPara(null));
+    	thePara.setParagraphProperties(newPPr);
+    	
+		RunML newRunML = null;
+
+		for (ElementML ml : contents) {
+			if (ml instanceof RunContentML) {
+				// collect in one new RunML
+				if (newRunML == null) {
+					newRunML = new RunML(ObjectFactory.createR(null));
+					newRunML.setRunProperties(newRPr);
+				}
+				newRunML.addChild(ml);
+			} else {
+				if (newRunML != null) {
+					// add previously created newRunML first
+					thePara.addChild(newRunML);
+					newRunML = null;
+				}
+				thePara.addChild(ml);
+			}
+		}
+
+		return thePara;
+	}
+	
+	/**
+	 * Creates a RunML whose children are specified in 'contents' param.
+	 * 
+	 * @param contents
+	 *            A list of RunContentML objects.
+	 * @param newRPr
+	 *            A RunPropertiesML given to the resulting RunML.
+	 * @return the newly created RunML
+	 * @throws IllegalArgumentException
+	 */
+	public final static RunML createRunML(
+		List<ElementML> contents,
+		RunPropertiesML newRPr) {
+		
+		RunML theRun = new RunML(ObjectFactory.createR(null));
+		theRun.setRunProperties(newRPr);
+    	
+		for (ElementML ml : contents) {
+			theRun.addChild(ml);
+		}
+    	
+    	return theRun;
 	}
 	
 	private ElementMLFactory() {
