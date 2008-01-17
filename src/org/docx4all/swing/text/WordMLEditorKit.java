@@ -43,7 +43,6 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Caret;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
-import javax.swing.text.JTextComponent;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
@@ -56,12 +55,9 @@ import org.docx4all.util.DocUtil;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
-import org.docx4all.xml.ObjectFactory;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.ParagraphPropertiesML;
 import org.docx4all.xml.RunContentML;
-import org.docx4all.xml.RunML;
-import org.docx4all.xml.RunPropertiesML;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -462,7 +458,7 @@ public class WordMLEditorKit extends StyledEditorKit {
         		pPr = (ParagraphPropertiesML) pPr.clone();
         	}
         	
-    		ParagraphML newParaML = createNewParagraphML(null, pPr, null);    		
+    		ParagraphML newParaML = ElementMLFactory.createParagraphML(null, pPr, null);    		
     		paraML.addSibling(newParaML, !before);
 
 			WordMLDocument doc = (WordMLDocument) paraE.getDocument();
@@ -479,76 +475,16 @@ public class WordMLEditorKit extends StyledEditorKit {
     	private void splitParagraph(DocumentElement paraE, int caretPos) {
 			WordMLDocument doc = (WordMLDocument) paraE.getDocument();
 			
-			int length = (paraE.getEndOffset() - 1) - caretPos;
-    		TextSelector ts = null;
-    		try {
-    			ts = new TextSelector(doc, caretPos, length);
-    		} catch (BadSelectionException exc) {
-    			;//ignore
-    		}
-    		
-    		List<ElementML> deletedElementMLs = null;
-    		
-    		List<DocumentElement> list = ts.getDocumentElements();
-    		//Check first element
-        	DocumentElement tempE = list.get(0);
-        	if (tempE.isLeaf() && tempE.getStartOffset() < caretPos) {
-        		//Split into two RunContentMLs
-        		RunContentML leftML = (RunContentML) tempE.getElementML();
-        		RunContentML rightML = (RunContentML) leftML.clone();
-        		
-				try {
-					int start = tempE.getStartOffset();
-					length = tempE.getEndOffset() - start;
-					String text = doc.getText(start, length);
-					String left = text.substring(0, caretPos - start);
-					String right = text.substring(caretPos - start);
-
-					leftML.setTextContent(left);
-					rightML.setTextContent(right);
-				} catch (BadLocationException exc) {
-					;// ignore
-				}
-
-				// Prevent leftML from being deleted
-				list.remove(0);
-				deletedElementMLs = DocUtil.deleteElementML(list);
-				
-				// Include rightML as a deleted ElementML
-				deletedElementMLs.add(0, rightML);
-			} else {
-				deletedElementMLs = DocUtil.deleteElementML(list);
-			}
-        	list = null;
-        	
-        	ParagraphML paraML = (ParagraphML) paraE.getElementML();
-        	ParagraphPropertiesML pPr =
-        		(ParagraphPropertiesML) paraML.getParagraphProperties();
-        	if (pPr != null) {
-        		pPr = (ParagraphPropertiesML) pPr.clone();
-        	}
-        	
-        	tempE = (DocumentElement) doc.getRunMLElement(caretPos);
-        	RunML runML = (RunML) tempE.getElementML();
-        	RunPropertiesML rPr = 
-        		(RunPropertiesML) runML.getRunProperties();
-        	if (rPr != null) {
-        		rPr = (RunPropertiesML) rPr.clone();
-        	}
-        	
-        	ParagraphML newParaML = 
-        		createNewParagraphML(deletedElementMLs, pPr, rPr);
-        	
-        	paraML.addSibling(newParaML, true);
-        	
-			List<ElementSpec> specs = DocUtil.getElementSpecs(paraML);
+			ElementML newParaML = 
+				DocUtil.splitElementML(paraE, caretPos - paraE.getStartOffset());
+			List<ElementSpec> specs = DocUtil.getElementSpecs(paraE.getElementML());
 			specs.addAll(DocUtil.getElementSpecs(newParaML));
     		
 			DocUtil.displayStructure(specs);
 			
 			int offset = paraE.getStartOffset();
 			try {
-				length = paraE.getEndOffset() - offset;
+				int length = paraE.getEndOffset() - offset;
 
 				//Disable filter temporarily
 				WordMLDocumentFilter filter = 
@@ -564,48 +500,6 @@ public class WordMLEditorKit extends StyledEditorKit {
 			}
 			
 			insertParagraphsLater(doc, offset, specs);
-    	}
-    	
-    	/**
-    	 * Creates a new ParagraphML whose children are specified in 'contents' param.
-    	 * 
-    	 * @param contents A list of RunContentML and/or RunML objects where 
-    	 * RunContentML objects, if any, have to be on the top of the list.
-    	 * @param newPPr A ParagraphPropertiesML given to the resulting new ParagraphML
-    	 * @param newRPr A RunPropertiesML given to a newly created RunML. 
-    	 * A RunML is newly created if 'contents' parameter contains RunContentML.
-    	 * @return the newly created ParagraphML
-    	 */
-    	private ParagraphML createNewParagraphML(
-    		List<ElementML> contents,
-    		ParagraphPropertiesML newPPr,
-    		RunPropertiesML newRPr) {
-    		
-        	ParagraphML thePara = new ParagraphML(ObjectFactory.createPara(null));
-        	thePara.setParagraphProperties(newPPr);
-        	
-        	if (contents != null && !contents.isEmpty()) {
-				RunML newRunML = new RunML(ObjectFactory.createR(null));
-				newRunML.setRunProperties(newRPr);
-
-				for (ElementML ml : contents) {
-					if (ml instanceof RunContentML) {
-						// RunContentML, if any, have to be on the top of the
-						// list.
-						// Therefore, newRunML can collect all of these
-						// RunContentMLs
-						newRunML.addChild(ml);
-						if (newRunML.getParent() == null) {
-							// Add newRunML to thePara once only.
-							thePara.addChild(newRunML);
-						}
-					} else {
-						thePara.addChild(ml);
-					}
-				}
-			}
-        	
-        	return thePara;
     	}
     	
     	private void insertParagraphsLater(
