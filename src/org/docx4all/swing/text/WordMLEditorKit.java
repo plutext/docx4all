@@ -34,6 +34,7 @@ import javax.swing.ActionMap;
 import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JEditorPane;
+import javax.swing.JOptionPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
@@ -51,6 +52,7 @@ import javax.swing.text.TextAction;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
 import org.apache.log4j.Logger;
+import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.util.DocUtil;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
@@ -58,6 +60,7 @@ import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.ParagraphPropertiesML;
 import org.docx4all.xml.RunContentML;
+import org.jdesktop.application.ResourceMap;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -418,12 +421,29 @@ public class WordMLEditorKit extends StyledEditorKit {
 				    return;
 				}
 				
+				WordMLDocument doc = (WordMLDocument) editor.getDocument();
+				final int pos = editor.getCaretPosition();
+				
+				DocumentElement leafE = 
+					(DocumentElement) doc.getCharacterElement(pos);
+				if (!leafE.isEditable()
+					&& leafE.getStartOffset() < pos
+					&& pos < leafE.getEndOffset()) {
+			        WordMLEditor wmlEditor = 
+			        	WordMLEditor.getInstance(WordMLEditor.class);
+			        ResourceMap rm = wmlEditor.getContext().getResourceMap();
+			        String title = 
+			        	rm.getString("Application.edit.info.dialog.title");
+			        String message =
+			        	rm.getString("Application.edit.info.unEditableMessage");
+			        wmlEditor.showMessageDialog(
+			        	title, message, JOptionPane.INFORMATION_MESSAGE);
+			        return;
+				}
+				
 				if (log.isDebugEnabled()) {
 					log.debug("EnterKeyTypedAction.actionPerformed(): START");
 				}
-				
-				WordMLDocument doc = (WordMLDocument) editor.getDocument();
-				final int pos = editor.getCaretPosition();
 				
 				DocumentElement paraE = 
 					(DocumentElement) doc.getParagraphMLElement(pos, false);
