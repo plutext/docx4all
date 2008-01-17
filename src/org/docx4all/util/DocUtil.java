@@ -30,14 +30,21 @@ import javax.swing.text.Element;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.text.BadSelectionException;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.ElementMLIteratorCallback;
+import org.docx4all.swing.text.TextSelector;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLStyleConstants;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.xml.ElementML;
+import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.ElementMLIterator;
+import org.docx4all.xml.ParagraphML;
+import org.docx4all.xml.ParagraphPropertiesML;
 import org.docx4all.xml.RunContentML;
+import org.docx4all.xml.RunML;
+import org.docx4all.xml.RunPropertiesML;
 import org.docx4j.XmlUtils;
 
 /**
@@ -47,6 +54,105 @@ public class DocUtil {
 	private static Logger log = Logger.getLogger(DocUtil.class);
 
 	private final static String TAB = "    ";
+	
+	public final static ElementML splitElementML(DocumentElement elem, int atIndex) {
+		if (elem.getStartOffset() == elem.getEndOffset()
+			|| elem.getElementML().isImplied()
+			|| elem.getParentElement() == null) {
+			throw new IllegalArgumentException("Invalid elem=" + elem);
+		}
+		
+		WordMLDocument doc = (WordMLDocument) elem.getDocument();
+		int offset = elem.getStartOffset() + atIndex;
+		if (offset <= elem.getStartOffset()
+			|| elem.getEndOffset() <= offset) {
+			throw new IllegalArgumentException("Invalid atIndex=" + atIndex);
+		}
+		
+		int length = elem.getEndOffset() - offset;
+		TextSelector ts = null;
+		try {
+			ts = new TextSelector(doc, offset, length);
+		} catch (BadSelectionException exc) {
+			;//ignore
+		}
+		
+		List<ElementML> deletedElementMLs = null;
+		
+		List<DocumentElement> list = ts.getDocumentElements();
+		//Check first element
+    	DocumentElement tempE = list.get(0);
+    	if (tempE.isLeaf() && tempE.getStartOffset() < offset) {
+    		//Split into two RunContentMLs
+    		RunContentML leftML = (RunContentML) tempE.getElementML();
+    		RunContentML rightML = (RunContentML) leftML.clone();
+    		
+    		if (!leftML.isDummy()) {
+				try {
+					int start = tempE.getStartOffset();
+					length = tempE.getEndOffset() - start;
+					String text = doc.getText(start, length);
+					String left = text.substring(0, offset - start);
+					String right = text.substring(offset - start);
+
+					leftML.setTextContent(left);
+					rightML.setTextContent(right);
+				} catch (BadLocationException exc) {
+					;// ignore
+				}
+			}
+			// Prevent leftML from being deleted
+			list.remove(0);
+			deletedElementMLs = DocUtil.deleteElementML(list);
+			
+			// Include rightML as a deleted ElementML
+			deletedElementMLs.add(0, rightML);
+		} else {
+			deletedElementMLs = DocUtil.deleteElementML(list);
+		}
+    	list = null;
+    	
+    	ElementML elemML = elem.getElementML();
+    	ElementML newSibling = null;
+    	
+    	if (elemML instanceof ParagraphML) {
+        	ParagraphML paraML = (ParagraphML) elemML;
+        	ParagraphPropertiesML pPr =
+        		(ParagraphPropertiesML) paraML.getParagraphProperties();
+        	if (pPr != null) {
+        		pPr = (ParagraphPropertiesML) pPr.clone();
+        	}
+        	
+        	DocumentElement runE = 
+        		(DocumentElement) doc.getRunMLElement(offset);
+        	RunML runML = (RunML) runE.getElementML();
+        	RunPropertiesML rPr = 
+        		(RunPropertiesML) runML.getRunProperties();
+        	if (rPr != null) {
+        		rPr = (RunPropertiesML) rPr.clone();
+        	}
+        	
+        	newSibling = ElementMLFactory.createParagraphML(deletedElementMLs, pPr, rPr);
+        	
+    	} else if (elemML instanceof RunML) {
+    		RunML runML = (RunML) elemML;
+        	RunPropertiesML rPr = 
+        		(RunPropertiesML) runML.getRunProperties();
+        	if (rPr != null) {
+        		rPr = (RunPropertiesML) rPr.clone();
+        	}
+        	
+        	newSibling = ElementMLFactory.createRunML(deletedElementMLs, rPr);
+        	
+    	} else {
+    		//must be a RunContentML
+    		newSibling = deletedElementMLs.get(0);
+    	}
+    	
+    	elemML.addSibling(newSibling, true);
+    	
+    	return newSibling;
+	}
 	
 	public final static List<ElementML> deleteElementML(List<DocumentElement> list) {
 		List<ElementML> deletedElementMLs = new ArrayList<ElementML>(list.size());
