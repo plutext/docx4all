@@ -40,7 +40,6 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 import javax.swing.border.EmptyBorder;
@@ -51,6 +50,7 @@ import javax.swing.text.AbstractDocument;
 import org.apache.log4j.Logger;
 import org.docx4all.datatransfer.TransferHandler;
 import org.docx4all.script.FxScriptUIHelper;
+import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLDocumentFilter;
 import org.docx4all.swing.text.WordMLEditorKit;
@@ -271,15 +271,14 @@ public class WordMLEditor extends SingleFrameApplication {
     }
         
     private JEditorPane createEditor(File f) {
-    	JEditorPane editor = new JTextPane();
+    	JEditorPane editor = new WordMLTextPane();
     	editor.addFocusListener(_toolbarStates);
     	editor.addCaretListener(_toolbarStates);
-    	
-    	WordMLEditorKit editorKit = new WordMLEditorKit();
-    	editor.setEditorKit(editorKit);
     	editor.setTransferHandler(new TransferHandler());
     	
+		WordMLEditorKit editorKit = (WordMLEditorKit) editor.getEditorKit();
     	AbstractDocument doc = null;
+    	
     	if (f.exists()) {
     		try {
     			doc = editorKit.read(f);
