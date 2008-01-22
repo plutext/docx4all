@@ -28,8 +28,10 @@ import javax.swing.JComponent;
 import javax.swing.JEditorPane;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 import javax.swing.text.BadLocationException;
 
+import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.BadSelectionException;
 import org.docx4all.swing.text.TextSelector;
 import org.docx4all.swing.text.WordMLDocument;
@@ -47,44 +49,79 @@ public class TransferHandler extends javax.swing.TransferHandler {
     public boolean importData(JComponent c, Transferable t) {
     	DataFlavor[] flavors = t.getTransferDataFlavors();
     	
-        if (!canImport(c, flavors)) {
+        if (!canImport(c, flavors)
+        	|| !(c instanceof WordMLTextPane)) {
             return false;
         }
         
-        boolean success = true;
-        
-        WordMLFragment wmlFragment = getFragment(t, flavors);
+        WordMLFragment wmlFragment = getFragment(t, flavors);        
         if (wmlFragment != null) {
-        	final JEditorPane editor = (JEditorPane) c;
-			final int newCaretPos = 
-				editor.getCaretPosition() + wmlFragment.getText().length();
-			
-			WordMLDocument doc = (WordMLDocument) editor.getDocument();
-			try {
-				doc.insertFragment(editor.getCaretPosition(), wmlFragment);
-				Runnable r = new Runnable() {
-					public void run() {
-						editor.setCaretPosition(newCaretPos);
-					}
-				};
-				SwingUtilities.invokeLater(r);
-				
-			} catch (BadLocationException exc) {
-				success = false;
-
-	            WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);            
-	        	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
-
-	            String title = 
-	            	rm.getString("Application.edit.info.dialog.title");
-				String message = 
-					rm.getString("Application.edit.info.cannotPasteMessage");
-				wmlEditor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
-			}
+        	replaceSelection((WordMLTextPane) c, wmlFragment);
         }
-        return success;
+        
+        //Do not worry about the returned value for now
+        return true;
     }
 
+    public void replaceSelection(
+    	final WordMLTextPane wmlTextPane,
+		final WordMLFragment fragment) {
+
+		if (!wmlTextPane.isEditable()) {
+			UIManager.getLookAndFeel().provideErrorFeedback(wmlTextPane);
+			return;
+		}
+
+		final WordMLDocument doc = (WordMLDocument) wmlTextPane.getDocument();
+		if (doc != null) {
+			try {
+				final int start = wmlTextPane.getSelectionStart();
+				int end = wmlTextPane.getSelectionEnd();
+				
+				if (start < doc.getLength() - 1 && (end - start) > 0) {
+					doc.remove(start, (end - start));
+					
+					SwingUtilities.invokeLater(new Runnable() {
+						public void run() {
+							try {
+								doc.insertFragment(start, fragment);
+							} catch (BadLocationException e) {
+								showPastingErrorMessageDialog();
+							}
+						}
+					});
+					
+				} else {
+					doc.insertFragment(start, fragment);
+				}
+
+				setCaretPositionLater(wmlTextPane, start + fragment.getText().length());
+				
+			} catch (BadLocationException e) {
+				showPastingErrorMessageDialog();
+			}
+		}
+	}
+
+    private void setCaretPositionLater(final WordMLTextPane wmlTextPane, final int pos) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				wmlTextPane.setCaretPosition(pos);
+			}
+		});
+    }
+    
+    private void showPastingErrorMessageDialog() {
+        WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);            
+    	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
+
+        String title = 
+        	rm.getString("Application.edit.info.dialog.title");
+		String message = 
+			rm.getString("Application.edit.info.cannotPasteMessage");
+		wmlEditor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
+    }
+    
     protected void exportDone(JComponent c, Transferable data, int action) {
         if (action == MOVE) {
         	final JEditorPane editor = (JEditorPane) c;
