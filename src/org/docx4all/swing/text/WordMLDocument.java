@@ -22,6 +22,7 @@ package org.docx4all.swing.text;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.SwingUtilities;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
@@ -30,11 +31,18 @@ import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
 import org.docx4all.util.DocUtil;
+import org.docx4all.util.XmlUtil;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
+import org.docx4all.xml.ObjectFactory;
 import org.docx4all.xml.ParagraphML;
+import org.docx4all.xml.ParagraphPropertiesML;
+import org.docx4all.xml.RunContentML;
+import org.docx4all.xml.RunML;
+import org.docx4all.xml.RunPropertiesML;
 
 public class WordMLDocument extends DefaultStyledDocument {
 	private static Logger log = Logger.getLogger(WordMLDocument.class);
@@ -63,18 +71,345 @@ public class WordMLDocument extends DefaultStyledDocument {
 		}
 		return elem;
 	}
+
+	public void insertFragment(int offset, WordMLFragment fragment) 
+		throws BadLocationException {
+		
+		List<ElementMLRecord> paraContentRecords = 
+			fragment.getParagraphContentRecords();
+		List<ElementMLRecord> paragraphRecords = 
+			fragment.getParagraphRecords();
+		if (paraContentRecords == null && paragraphRecords == null) {
+			if (log.isDebugEnabled()) {
+				log.debug("insertFragment(): offset=" + offset
+					+ " fragment's record = NULL");
+			}
+			return;
+		}
+		
+		if (log.isDebugEnabled()) {
+			int i=0;
+			if (paraContentRecords != null) {
+				for (ElementMLRecord rec : paraContentRecords) {
+					List<ElementSpec> list =
+						DocUtil.getElementSpecs(rec.getElementML());
+					log.debug("insertFragment(): records[" 
+							+ (i++)
+							+ "].isFragmented = " + rec.isFragmented());
+					DocUtil.displayStructure(list);
+				}
+			}
+			
+			if (paragraphRecords != null) {
+				for (ElementMLRecord rec : paragraphRecords) {
+					List<ElementSpec> list =
+						DocUtil.getElementSpecs(rec.getElementML());
+					log.debug("insertFragment(): records[" 
+							+ (i++)
+							+ "].isFragmented = " + rec.isFragmented());
+					DocUtil.displayStructure(list);
+				}
+			}
+		}
+		
+		DocumentElement textE = (DocumentElement) getCharacterElement(offset - 1);
+		if (0 < offset 
+			&& offset < textE.getEndOffset()
+			&& (!textE.isEditable()
+				|| (paraContentRecords == null && paragraphRecords != null))) {
+			throw new BadLocationException("Cannot insert here", offset);
+		}
+		
+		DocumentElement paraAtOffset = 
+			(DocumentElement) getParagraphMLElement(offset, false);
+		DocumentElement rootE = (DocumentElement) paraAtOffset.getParentElement();
+		ElementML bodyML = rootE.getElementML().getChild(0);
+		
+		if (paraAtOffset.getEndOffset() == paraAtOffset.getParentElement().getEndOffset()) {
+			//The last paragraph in the document.
+			if (paraContentRecords != null) {
+				List<ElementML> contents = 
+					new ArrayList<ElementML>(paraContentRecords.size());
+				for (ElementMLRecord rec: paraContentRecords) {
+					contents.add(rec.getElementML());
+				}
+				ElementML newParaML = 
+					ElementMLFactory.createParagraphML(contents, null, null);
+				paraAtOffset.getElementML().addSibling(newParaML, false);
+			}
+			
+			if (paragraphRecords != null) {
+				for (ElementMLRecord rec : paragraphRecords) {
+					paraAtOffset.getElementML().addSibling(rec.getElementML(), false);
+				}
+			}
+			
+		} else if (paraContentRecords != null && paragraphRecords == null) {
+			DocumentElement runE = (DocumentElement) textE.getParentElement();
+			if (runE.getEndOffset() == offset) {
+				DocumentElement impliedParaE = 
+					(DocumentElement) runE.getParentElement();
+				if (impliedParaE.getEndOffset() == offset) {
+					//paste at the start of a paragraph
+					ElementML newlineRunML = runE.getElementML();
+					
+					runE = (DocumentElement) getRunMLElement(offset);
+					ElementML runML = runE.getElementML();
+					if (newlineRunML == runML) {
+						//Paste after a soft break
+						RunContentML softBreak = 
+							(RunContentML) textE.getElementML();
+						
+						//Split soft break before pasting
+						List<ElementML> runContents = 
+							new ArrayList<ElementML>(runE.getElementCount());
+						for (int i=0; i < runE.getElementCount(); i++) {
+							DocumentElement tempE = 
+								(DocumentElement) runE.getElement(i);
+							ElementML ml = tempE.getElementML();
+							ml.delete();
+							runContents.add(ml);
+						}
+						
+						RunPropertiesML rPr = 
+							(RunPropertiesML)
+								((RunML) runML).getRunProperties();
+						if (rPr != null) {
+							rPr = (RunPropertiesML) rPr.clone();
+						}
+						RunML newSibling = 
+							ElementMLFactory.createRunML(runContents, rPr);
+						runML.addSibling(newSibling, true);
+						
+						pasteRecordsAfter(softBreak, paraContentRecords);
+						
+					} else {
+						//Paste after a common break.
+						//This is to paste before 'runML' which is
+						//the RunML at 'offset'
+						pasteRecordsBefore((RunML) runML, paraContentRecords);
+					}
+				} else {
+					//paste at somewhere inside a paragraph
+					pasteRecordsAfter((RunContentML) textE.getElementML(), paraContentRecords);
+				}
+			} else {
+				//paste at somewhere inside a run
+				DocUtil.splitElementML(runE, offset	- runE.getStartOffset());
+				pasteRecordsAfter((RunContentML) textE.getElementML(), paraContentRecords);
+			} //if (runE.getEndOffset() == offset) else
+		
+		} else if (paraContentRecords != null && paragraphRecords != null) {
+			if (paraAtOffset.getStartOffset() == offset) {
+				ParagraphML paraML = (ParagraphML) paraAtOffset.getElementML();
+				ParagraphPropertiesML pPr = 
+					(ParagraphPropertiesML) paraML.getParagraphProperties();
+				if (pPr != null) {
+					pPr = (ParagraphPropertiesML) pPr.clone();
+				}
+				
+				List<ElementML> contents = 
+					new ArrayList<ElementML>(paraContentRecords.size());
+				for (ElementMLRecord rec: paraContentRecords) {
+					contents.add(rec.getElementML());
+				}
+				ParagraphML newSibling = 
+					ElementMLFactory.createParagraphML(contents, pPr, null);
+				paraML.addSibling(newSibling, false);
+				
+				pasteRecordsBefore(paraML, paragraphRecords);
+				
+				ElementMLRecord lastRec = 
+					paragraphRecords.get(paragraphRecords.size() - 1);
+				if (lastRec.isFragmented()) {
+					// Join the last fragmented record
+					// with the content of 'paraML'
+					contents = XmlUtil.deleteChildren(paraML);
+					paraML.delete();
+					RunContentML rcml = 
+						XmlUtil.getLastRunContentML(lastRec.getElementML());
+					pasteElementMLsAfter(rcml, contents);
+				}
+			} else {
+				ParagraphML newSibling =
+					(ParagraphML)
+						DocUtil.splitElementML(
+							paraAtOffset, 
+							offset - paraAtOffset.getStartOffset());
+				pasteRecordsAfter(
+						(RunContentML) textE.getElementML(), paraContentRecords);
+				
+				pasteRecordsBefore(newSibling, paragraphRecords);
+				
+				ElementMLRecord lastRec = 
+					paragraphRecords.get(paragraphRecords.size() - 1);
+				if (lastRec.isFragmented()) {
+					// Join the last fragmented record
+					// with the content of 'newSibling'
+					List<ElementML> contents = XmlUtil.deleteChildren(newSibling);
+					newSibling.delete();
+					RunContentML rcml = 
+						XmlUtil.getLastRunContentML(lastRec.getElementML());
+					pasteElementMLsAfter(rcml, contents);
+				}
+			}
+			
+		} else if (paraContentRecords == null && paragraphRecords != null) {
+			pasteRecordsBefore(
+				(ParagraphML) paraAtOffset.getElementML(), paragraphRecords);
+		}
+		
+		int startIdx = -1;
+		int endIdx = bodyML.getChildrenCount() - 1;
+		
+		int idx = rootE.getElementIndex(offset);
+		if (idx > 0) {
+			DocumentElement tempE = (DocumentElement) rootE.getElement(idx - 1);
+			ElementML tempML = tempE.getElementML();
+			startIdx = bodyML.getChildIndex(tempML);
+		}
+		
+		if (idx < rootE.getElementCount() - 1) {
+			//Excludes the end of document implied paragraph element
+			DocumentElement tempE = (DocumentElement) rootE.getElement(idx + 1);
+			ElementML tempML = tempE.getElementML();
+			endIdx = bodyML.getChildIndex(tempML);
+		}
+		
+		List<ElementSpec> specs = new ArrayList<ElementSpec>();
+		idx = 0;
+		for (ElementML para: bodyML.getChildren()) {
+			if (startIdx < idx && idx < endIdx) {
+				specs.addAll(DocUtil.getElementSpecs(para));
+			}
+			if (idx == endIdx) {
+				break;
+			}
+			idx ++;
+		}
+		
+		idx = paraAtOffset.getStartOffset();
+		if (paraAtOffset.getEndOffset() != rootE.getEndOffset()) {
+			//Have to remove 'paraAtOffset' and refresh.
+			WordMLDocumentFilter filter = (WordMLDocumentFilter) getDocumentFilter();
+			filter.setEnabled(false);//Disable temporarily
+
+			remove(idx, paraAtOffset.getEndOffset() - idx);
+
+			// Remember to enable filter back
+			filter.setEnabled(true);
+		}
+		
+		insertParagraphsLater(idx, specs);
+	} //insertFragment
 	
-    public  void insertElementSpecs(int offset, ElementSpec[] specs) throws BadLocationException {
+	private void insertParagraphsLater(
+		final int offset,
+		final List<ElementSpec> specs) {
+
+		final WordMLDocument doc = this;
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					DocUtil.insertParagraphs(doc, offset, specs);
+					
+					if (log.isDebugEnabled()) {
+						log.debug("insertFragment(): Refreshed new specs...");
+						DocUtil.displayStructure(specs);
+						DocUtil.displayStructure(doc);
+					}
+					
+				} catch (BadLocationException exc) {
+					;// ignore
+				}
+			}
+		});
+	}
+    	
+	private void pasteRecordsAfter(RunContentML runContentML, List<ElementMLRecord> records) {
+		List<ElementML> list = new ArrayList<ElementML>(records.size());
+		for (ElementMLRecord rec: records) {
+			list.add(rec.getElementML());
+		}
+		pasteElementMLsAfter(runContentML, list);
+	}
+	
+	private void pasteElementMLsAfter(RunContentML runContentML, List<ElementML> elems) {
+		ElementML target = null;
+		for (ElementML ml: elems) {
+			if (ml instanceof RunContentML) {
+				if (!(target instanceof RunContentML)) {
+					target = runContentML;
+				}
+			} else if (ml instanceof RunML) {
+				if (!(target instanceof RunML)) {
+					target = runContentML.getParent();
+				}
+			} else {
+				//must be a ParagraphML
+				if (!(target instanceof ParagraphML)) {
+					target = runContentML.getParent().getParent();
+				}
+			}
+			target.addSibling(ml, true);
+			target = ml;
+		}
+	}
+	
+	private void pasteRecordsBefore(RunML runML, List<ElementMLRecord> paraContentRecords) {
+		ElementML target = null;
+		//'tempRunML' will hold the leading RunContentML if any
+		ElementML tempRunML = null; 
+		
+		for (int i=paraContentRecords.size()-1; i >= 0; i++) {
+			ElementMLRecord rec = paraContentRecords.get(i);
+			ElementML ml = rec.getElementML();
+			
+			if (ml instanceof RunContentML) {
+				if (tempRunML == null) {
+					tempRunML = new RunML(ObjectFactory.createR(null));
+					target.addSibling(ml, false);
+					target = ml;			
+				}
+				tempRunML.addChild(0, ml);
+				
+			} else {
+				//must be a RunML
+				if (target == null) {
+					target = runML;
+				}
+				
+				target.addSibling(ml, false);
+				target = ml;			
+			}
+		}
+	}
+	
+	private void pasteRecordsBefore(ParagraphML paraML, List<ElementMLRecord> paragraphRecords) {
+		ElementML target = paraML;
+		for (int i=paragraphRecords.size()-1; i >= 0; i--) {
+			ElementMLRecord rec = paragraphRecords.get(i);
+			ElementML ml = rec.getElementML();
+			target.addSibling(ml, false);
+			target = ml;			
+		}
+	}
+
+    public  void insertElementSpecs(int offset, ElementSpec[] specs) 
+    	throws BadLocationException {
     	super.insert(offset, specs);
     }
     
     public void replace(int offset, int length, String text,
             AttributeSet attrs) throws BadLocationException {
-    	log.debug("replace(): offset = " + offset + " length = " + length + " text = " + text);
+    	log.debug("replace(): offset = " + offset 
+    		+ " length = " + length 
+    		+ " text = " + text);
     	super.replace(offset, length, text, attrs);
     }
     
-    public void insertString(int offs, String str, AttributeSet a) throws BadLocationException {
+    public void insertString(int offs, String str, AttributeSet a) 
+    	throws BadLocationException {
     	log.debug("insertString(): offset = " + offs + " text = " + str);
     	super.insertString(offs, str, a);
     }
@@ -157,6 +492,13 @@ public class WordMLDocument extends DefaultStyledDocument {
 		ElementSpec[] specs = new ElementSpec[list.size()];
 		list.toArray(specs);
 		super.create(specs);
+		
+		DocumentElement root = (DocumentElement) getDefaultRootElement();
+		DocumentElement lastPara = 
+			(DocumentElement) root.getElement(root.getElementCount() - 1);
+		ElementML lastParaML = lastPara.getElementML();
+		lastParaML.delete();
+		root.getElementML().getChild(0).addChild(lastParaML);
 	}
 	
     /**
@@ -210,7 +552,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 
 		//Text
 		a.addAttribute(WordMLStyleConstants.ElementMLAttribute, rcML);
-		TextElement text = new TextElement(paragraph, a, 0, 1);
+		TextElement text = new TextElement(run, a, 0, 1);
 
 		Element[] buff = new Element[1];
 		buff[0] = text;
