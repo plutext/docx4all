@@ -19,6 +19,12 @@
 
 package org.docx4all.ui.menu;
 
+import java.awt.event.ActionEvent;
+
+import javax.swing.text.DefaultEditorKit;
+import javax.swing.text.StyleConstants;
+
+import org.docx4all.swing.text.WordMLEditorKit;
 import org.jdesktop.application.Action;
 
 /**
@@ -93,13 +99,22 @@ public class EditMenu extends UIMenu {
 		return EDIT_MENU_NAME;
 	}
 	
-	@Action public void cut() {
+	@Action public void cut(ActionEvent evt) {
+		DefaultEditorKit.CutAction action = 
+			new DefaultEditorKit.CutAction();
+		action.actionPerformed(evt);
 	}
 	
-	@Action public void copy() {
+	@Action public void copy(ActionEvent evt) {
+		DefaultEditorKit.CopyAction action = 
+			new DefaultEditorKit.CopyAction();
+		action.actionPerformed(evt);
 	}
 	
-	@Action public void paste() {
+	@Action public void paste(ActionEvent evt) {
+		DefaultEditorKit.PasteAction action = 
+			new DefaultEditorKit.PasteAction();
+		action.actionPerformed(evt);
 	}
 	
 }// EditMenu class
