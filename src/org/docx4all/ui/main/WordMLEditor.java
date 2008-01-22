@@ -49,6 +49,7 @@ import javax.swing.event.InternalFrameEvent;
 import javax.swing.text.AbstractDocument;
 
 import org.apache.log4j.Logger;
+import org.docx4all.datatransfer.TransferHandler;
 import org.docx4all.script.FxScriptUIHelper;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLDocumentFilter;
@@ -234,6 +235,15 @@ public class WordMLEditor extends SingleFrameApplication {
     	return new ArrayList<JEditorPane>(_editorMap.values());
     }
     
+    public String getUntitledFileName() {
+        ResourceMap rm = getContext().getResourceMap(WordMLEditor.class);
+        String filename = rm.getString(Constants.UNTITLED_FILE_NAME);
+        if (filename == null || filename.length() == 0) {
+        	filename = "Untitled";
+        }
+        return filename;
+    }
+    
     public int showConfirmDialog(
     	String title, 
     	String message, 
@@ -267,12 +277,12 @@ public class WordMLEditor extends SingleFrameApplication {
     	
     	WordMLEditorKit editorKit = new WordMLEditorKit();
     	editor.setEditorKit(editorKit);
+    	editor.setTransferHandler(new TransferHandler());
     	
     	AbstractDocument doc = null;
     	if (f.exists()) {
     		try {
     			doc = editorKit.read(f);
-    			doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, f.getAbsolutePath());
     			
     		} catch (IOException exc) {
     			exc.printStackTrace();
@@ -285,6 +295,7 @@ public class WordMLEditor extends SingleFrameApplication {
     		doc = (AbstractDocument) editorKit.createDefaultDocument();
     	}
     	
+		doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, f.getAbsolutePath());
     	doc.addDocumentListener(_toolbarStates);
     	doc.setDocumentFilter(new WordMLDocumentFilter());
     	editor.setDocument(doc);
