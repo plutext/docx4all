@@ -87,12 +87,11 @@ public class ElementMLFactory {
 				if (newRunML == null) {
 					newRunML = new RunML(ObjectFactory.createR(null));
 					newRunML.setRunProperties(newRPr);
+					thePara.addChild(newRunML);
 				}
 				newRunML.addChild(ml);
 			} else {
 				if (newRunML != null) {
-					// add previously created newRunML first
-					thePara.addChild(newRunML);
 					newRunML = null;
 				}
 				thePara.addChild(ml);
