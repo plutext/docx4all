@@ -19,10 +19,20 @@
 
 package org.docx4all.swing.text;
 
+import java.util.List;
+
+import javax.swing.SwingUtilities;
+import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
+import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
 import org.apache.log4j.Logger;
+import org.docx4all.util.DocUtil;
+import org.docx4all.xml.ElementML;
+import org.docx4all.xml.ObjectFactory;
+import org.docx4all.xml.ParagraphML;
+import org.docx4all.xml.RunML;
 
 /**
  *	@author Jojada Tirtowidjojo - 10/12/2007
@@ -43,11 +53,18 @@ public class WordMLDocumentFilter extends DocumentFilter {
 			throws BadLocationException {
 
 		if (log.isDebugEnabled()) {
-			log.debug("remove(): offset=" + offset + " length=" + length);
+			log.debug("remove(): offset=" + offset 
+				+ " length=" + length
+				+ " doc.getLength()=" + fb.getDocument().getLength());
 		}
 
 		if (!isEnabled()) {
 			super.remove(fb, offset, length);
+			return;
+		}
+		
+		if (length == 0 || offset >= fb.getDocument().getLength() - 1) {
+    		//Cannot delete the end of document
 			return;
 		}
 
@@ -59,6 +76,93 @@ public class WordMLDocumentFilter extends DocumentFilter {
 					+ offset + " length=" + length, offset);
 		}
 	}
+    
+    public void replace(FilterBypass fb, int offset, int length, String text,
+            AttributeSet attrs) throws BadLocationException {
+    	
+		if (!isEnabled()) {
+			super.replace(fb, offset, length, text, attrs);
+			return;
+		}
+		
+		if (length > 0 && offset < fb.getDocument().getLength() - 1) {
+			remove(fb, offset, length);
+			insertStringLater(fb, offset, text, attrs);
+		} else {
+			insertString(fb, offset, text, attrs);
+		}
+    }
+
+    public void insertString(FilterBypass fb, int offset, String text,
+            AttributeSet attrs) throws BadLocationException {
+    	
+		if (!isEnabled()) {
+			super.insertString(fb, offset, text, attrs);
+			return;
+		}
+		
+		if (text == null || text.length() == 0) {
+			return;
+		}
+		
+		WordMLDocument doc = (WordMLDocument) fb.getDocument();
+		DocumentElement elem = 
+			(DocumentElement) doc.getParagraphMLElement(offset, false);
+		if (elem.getEndOffset() == elem.getParentElement().getEndOffset()) {
+			//the last paragraph
+			ElementML newPara = new ParagraphML(ObjectFactory.createPara(text));
+			elem.getElementML().addSibling(newPara, false);
+			
+			List<ElementSpec> specs = DocUtil.getElementSpecs(newPara);
+			DocUtil.insertParagraphs(doc, offset, specs);
+			
+		} else if (elem.getEndOffset() - elem.getStartOffset() == 1){
+			//empty paragraph
+			ElementML para = elem.getElementML();
+			int start = elem.getStartOffset();
+			
+			ElementML newRun = new RunML(ObjectFactory.createR(text));
+			para.addChild(newRun);
+			fb.remove(elem.getStartOffset(), 1);
+			
+			List<ElementSpec> specs = DocUtil.getElementSpecs(para);
+			insertLater(doc, start, specs);
+			
+		} else {
+			super.insertString(fb, offset, text, attrs);
+		}
+    }
+    
+	private void insertLater(final WordMLDocument doc, final int offset,
+			final List<ElementSpec> specs) {
+
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					DocUtil.insertParagraphs(doc, offset, specs);
+				} catch (BadLocationException exc) {
+					;// ignore
+				}
+			}
+		});
+	}
+
+    private void insertStringLater(
+    	final FilterBypass fb, 
+    	final int offset, 
+    	final String text,
+        final AttributeSet attrs) throws BadLocationException {
+    	
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					insertString(fb, offset, text, attrs);
+				} catch (BadLocationException exc) {
+					;// ignore
+				}
+			}
+		});
+    }
     
 }// DocumentFilter class
 
