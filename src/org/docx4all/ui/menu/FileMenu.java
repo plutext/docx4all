@@ -41,6 +41,7 @@ import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.util.DocUtil;
 import org.docx4all.xml.DocumentML;
+import org.docx4all.xml.ElementML;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.io.SaveToZipFile;
 import org.jdesktop.application.Action;
@@ -190,11 +191,7 @@ public class FileMenu extends UIMenu {
         }
 
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-        ResourceMap rm = editor.getContext().getResourceMap(WordMLEditor.class);
-        String filename = rm.getString(Constants.UNTITLED_FILE_NAME);
-        if (filename == null || filename.length() == 0) {
-        	filename = "Untitled";
-        }
+        String filename = editor.getUntitledFileName();
         
         File file = new File(dir, filename + (++_untitledFileNumber) + ".docx");
 		editor.createInternalFrame(file);
@@ -327,8 +324,16 @@ public class FileMenu extends UIMenu {
     	kit.save();
     	
     	Document doc = editor.getDocument();
-        DocumentElement rootElem = (DocumentElement) doc.getDefaultRootElement();
-		DocumentML rootML = (DocumentML) rootElem.getElementML();
+        DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
+		DocumentML rootML = (DocumentML) elem.getElementML();
+
+		//Do not include the last paragraph when saving.
+		//After saving we put it back.
+		elem = (DocumentElement) elem.getElement(elem.getElementCount() - 1);
+		ElementML paraML = elem.getElementML();
+		ElementML bodyML = paraML.getParent();
+		paraML.delete();
+		
 		if (saveAsFilePath == null) {
 			saveAsFilePath = 
 				(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
@@ -357,6 +362,9 @@ public class FileMenu extends UIMenu {
         	log.debug("save(): filePath=" + saveAsFilePath);
         	DocUtil.displayXml(doc);
         }
+        
+        //Remember to put 'paraML' as last paragraph
+        bodyML.addChild(paraML);
         
         return success;
     }    
