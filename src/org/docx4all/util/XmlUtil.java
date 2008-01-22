@@ -19,10 +19,14 @@
 
 package org.docx4all.util;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.namespace.QName;
 
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLIterator;
+import org.docx4all.xml.RunContentML;
 
 /**
  *	@author Jojada Tirtowidjojo - 04/01/2008
@@ -46,6 +50,37 @@ public class XmlUtil {
 		sb.append(">");
 		
 		return sb.toString();
+	}
+	
+	/**
+	 * Empty the children of parent argument
+	 * 
+	 * @param parent the element whose children are to be deleted.
+	 * @return The deleted children
+	 */
+	public final static List<ElementML> deleteChildren(ElementML parent) {
+		List<ElementML> children = new ArrayList<ElementML>(parent.getChildren());
+		for (ElementML elem: children) {
+			elem.delete();
+		}
+		return children;
+	}
+	
+	public final static RunContentML getLastRunContentML(ElementML root) {
+		RunContentML theElem = null;
+		
+		if (root.getChildrenCount() > 0) {
+			ElementML lastChild = root.getChild(root.getChildrenCount() - 1);
+			if (lastChild instanceof RunContentML) {
+				theElem = (RunContentML) lastChild;
+			} else {
+				theElem = getLastRunContentML(lastChild);
+			}
+		} else if (root instanceof RunContentML) {
+			theElem = (RunContentML) root;
+		}
+		
+		return theElem;
 	}
 	
 	public final static int getIteratedIndex(ElementML root, ElementML target) {
