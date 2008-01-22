@@ -26,11 +26,16 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
 import org.docx4all.util.DocUtil;
 import org.docx4all.xml.ElementML;
+import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.ObjectFactory;
 import org.docx4all.xml.ParagraphML;
+import org.docx4all.xml.ParagraphPropertiesML;
 import org.docx4all.xml.RunContentML;
+import org.docx4all.xml.RunML;
+import org.docx4all.xml.RunPropertiesML;
 
 /**
  *	@author Jojada Tirtowidjojo - 19/12/2007
@@ -48,51 +53,211 @@ public class TextSelector {
 		this.length = length;
 	}
 	
-	public List<ElementML> getElementMLCopies() {
-		List<ElementML> theList = new ArrayList<ElementML>();
+	public int getOffset() {
+		return offset;
+	}
+	
+	public int getLength() {
+		return length;
+	}
+	
+	public WordMLDocument getDocument() {
+		return doc;
+	}
+	
+	public String getText() {
+		String theText = null;
+		try {
+			theText = doc.getText(offset, length);
+		} catch (BadLocationException exc) {
+			;//ignore
+		}
+		return theText;
+	}
+	
+	public List<ElementMLRecord> getElementMLRecords() {
+		List<ElementMLRecord> theList = new ArrayList<ElementMLRecord>();
 		
 		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
 		
 		int startIdx = root.getElementIndex(offset);
 		int endIdx = root.getElementIndex(offset + length - 1);
 		
-		while (startIdx <= endIdx) {
-			DocumentElement para = (DocumentElement) root.getElement(startIdx++);
+		for (int idx=startIdx; idx <= endIdx; idx++) {
+			DocumentElement para = (DocumentElement) root.getElement(idx);
 			if (isFullySelected(para)) {
-				theList.add((ElementML) para.getElementML().clone());
-			} else {
-				int start = Math.max(offset, para.getStartOffset());
-				int end = Math.min(offset + length, para.getEndOffset());
+				ElementML ml = (ElementML) para.getElementML().clone();
+				ElementMLRecord rec = new ElementMLRecord(ml, false);
+				theList.add(rec);
 				
-				List<DocumentElement> list = getChildren(para, start, end - start);
-				for (DocumentElement tempE : list) {
-					ElementML tempML = (ElementML) tempE.getElementML();
-					if (!tempML.isImplied()) {
-						if (start <= tempE.getStartOffset()
-							&& tempE.getEndOffset() <= end) {
-							//tempE is fully within [start, end]
-							theList.add((ElementML) tempML.clone());
-						} else {
-							//must be a partially selected leaf
-							start = Math.max(start, tempE.getStartOffset());
-							end = Math.min(end, tempE.getEndOffset());
-							try {
-								String text = doc.getText(start, end - start);
-								RunContentML rcml = 
-									new RunContentML(ObjectFactory.createT(text));
-								theList.add(rcml);
-							} catch (BadLocationException exc) {
-								;//ignore
-							}
-						}
-					}
-				}//for (DocumentElement tempE : list) 
+			} else if (idx == startIdx) {
+				//The first partially selected paragraph
+				theList.addAll(
+					getParagraphContents(
+						para, offset, length, ElementMLRecord.class));
+				
+			} else {
+				//The last partially selected paragraph
+				ElementML tempML = para.getElementML();
+	        	ParagraphPropertiesML pPr =
+	        		(ParagraphPropertiesML) 
+	        		((ParagraphML) tempML).getParagraphProperties();
+	        	if (pPr != null) {
+	        		pPr = (ParagraphPropertiesML) pPr.clone();
+	        	}
+	        	
+	        	DocumentElement runE = 
+	        		(DocumentElement) doc.getRunMLElement(offset + length - 1);
+	        	tempML = runE.getElementML();
+	        	RunPropertiesML rPr = 
+	        		(RunPropertiesML)
+	        		((RunML) tempML).getRunProperties();
+	        	if (rPr != null) {
+	        		rPr = (RunPropertiesML) rPr.clone();
+	        	}
+	        	
+				List<ElementML> children = 
+					getParagraphContents(para, offset, length, ElementML.class);
+	        	tempML = 
+	        		ElementMLFactory.createParagraphML(children, pPr, rPr);
+	        	ElementMLRecord rec = new ElementMLRecord(tempML, true);
+				theList.add(rec);
 			}
-		}//while (startIdx <= endIdx)
+		} //for (idx) loop
 		
 		return theList;
-	}//getElementMLCopies()
+	}
 	
+	private <T> List<T> getParagraphContents(
+			DocumentElement paraE,
+			int offset,
+			int length,
+			Class<T> returnedType) {
+		
+		List<T> theList = new ArrayList<T>();
+		
+		int startIdx = paraE.getElementIndex(Math.max(offset, paraE.getStartOffset()));
+		int endIdx = paraE.getElementIndex(Math.min(offset + length - 1, paraE.getEndOffset() - 1));
+		
+		while (startIdx <= endIdx) {
+			DocumentElement dummyPara = 
+				(DocumentElement) paraE.getElement(startIdx++);
+			theList.addAll(
+				getImpliedParagraphContents(
+					dummyPara, offset, length, returnedType));
+		}
+		
+		return theList;
+	}
+	
+	private <T> List<T> getImpliedParagraphContents(
+			DocumentElement impliedParaE,
+			int offset,
+			int length,
+			Class<T> returnedType) {
+		
+			List<T> theList = new ArrayList<T>();
+			
+			int startIdx = impliedParaE.getElementIndex(Math.max(offset, impliedParaE.getStartOffset()));
+			int endIdx = impliedParaE.getElementIndex(Math.min(offset + length - 1, impliedParaE.getEndOffset() - 1));
+			
+			for (int idx=startIdx; idx <= endIdx; idx++) {
+				DocumentElement run = (DocumentElement) impliedParaE.getElement(idx);
+				RunML runML = (RunML) run.getElementML();
+				
+				if (offset <= run.getStartOffset()
+					&& run.getEndOffset() <= offset + length) {
+					if (!runML.isImplied()) {
+						T obj = null;
+						ElementML ml = (ElementML) runML.clone();
+						if (returnedType == ElementMLRecord.class) {
+							obj = (T) new ElementMLRecord(ml, false);
+						} else if (returnedType == ElementML.class) {
+							obj = (T) ml;
+						}
+						theList.add(obj);
+					}
+				} else if (idx == startIdx) {
+					//The first partially selected run
+					theList.addAll(getRunContents(run, offset, length, returnedType));
+					
+				} else {
+					//The last partially selected run
+		        	RunPropertiesML rPr = 
+		        		(RunPropertiesML) runML.getRunProperties();
+		        	if (rPr != null) {
+		        		rPr = (RunPropertiesML) rPr.clone();
+		        	}
+		        	
+					List<ElementML> children = 
+						getRunContents(run, offset, length, ElementML.class);
+		        	ElementML newRunML = 
+		        		ElementMLFactory.createRunML(children, rPr);
+		        	
+					T obj = null;;
+					if (returnedType == ElementMLRecord.class) {
+						obj = (T) new ElementMLRecord(newRunML, true);
+					} else if (returnedType == ElementML.class) {
+						obj = (T) newRunML;
+					}
+					theList.add(obj);
+				}
+			} //for (idx) loop
+			
+			return theList;
+		}
+		
+	private <T> List<T> getRunContents(DocumentElement runE, int offset,
+			int length, Class<T> returnedType) {
+
+		List<T> theList = new ArrayList<T>();
+
+		int startIdx = runE.getElementIndex(Math.max(offset, runE
+				.getStartOffset()));
+		int endIdx = runE.getElementIndex(Math.min(offset + length - 1, runE
+				.getEndOffset() - 1));
+
+		for (int idx = startIdx; idx <= endIdx; idx++) {
+			DocumentElement leafE = (DocumentElement) runE.getElement(idx);
+			RunContentML leafML = (RunContentML) leafE.getElementML();
+
+			if (offset <= leafE.getStartOffset()
+					&& leafE.getEndOffset() <= offset + length) {
+				if (!leafML.isImplied()) {
+					T obj = null;
+					ElementML ml = (ElementML) leafML.clone();
+					if (returnedType == ElementMLRecord.class) {
+						obj = (T) new ElementMLRecord(ml, false);
+					} else {
+						obj = (T) ml;
+					}
+					theList.add(obj);
+				}
+			} else {
+				// partially selected leaf
+				try {
+					int x = Math.max(offset, leafE.getStartOffset());
+					int y = Math.min(offset + length, leafE.getEndOffset());
+					String text = doc.getText(x, y - x);
+					RunContentML rcml = new RunContentML(ObjectFactory
+							.createT(text));
+
+					T obj = null;
+					if (returnedType == ElementMLRecord.class) {
+						obj = (T) new ElementMLRecord(rcml, true);
+					} else {
+						obj = (T) rcml;
+					}
+					theList.add(obj);
+				} catch (BadLocationException exc) {
+					;// ignore
+				}
+			}
+		} // for (idx) loop
+
+		return theList;
+	}
+		
 	public List<DocumentElement> getDocumentElements() {
 		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
 		return getChildren(root, offset, length);
