@@ -556,32 +556,31 @@ public class WordMLEditorKit extends StyledEditorKit {
 				    return;
 				}
 				
-				if (log.isDebugEnabled()) {
-					log.debug("DeleteNextCharAction.actionPerformed()");
-				}
-				
 				final WordMLDocument doc = (WordMLDocument) editor.getDocument();
 				Caret caret = editor.getCaret();
 				int dot = caret.getDot();
 				int mark = caret.getMark();
+				
+				if (log.isDebugEnabled()) {
+					log.debug("DeleteNextCharAction.actionPerformed(): dot=" + dot
+						+ " doc.getLength()=" + doc.getLength());
+				}
 				
 				try {
 					if (dot != mark) {
 						doc.remove(Math.min(dot, mark), Math.abs(dot - mark));
 						dot = Math.min(dot, mark);
 						
-					} else if (dot < doc.getLength() - 2) {
+					} else if (dot < doc.getLength() - 1) {
 						int delChars = 1;
 
-						if (dot < doc.getLength() - 1) {
-							String dotChars = doc.getText(dot, 2);
-							char c0 = dotChars.charAt(0);
-							char c1 = dotChars.charAt(1);
+						String dotChars = doc.getText(dot, 2);
+						char c0 = dotChars.charAt(0);
+						char c1 = dotChars.charAt(1);
 
-							if (c0 >= '\uD800' && c0 <= '\uDBFF'
-									&& c1 >= '\uDC00' && c1 <= '\uDFFF') {
-								delChars = 2;
-							}
+						if (c0 >= '\uD800' && c0 <= '\uDBFF'
+								&& c1 >= '\uDC00' && c1 <= '\uDFFF') {
+							delChars = 2;
 						}
 
 						doc.remove(dot, delChars);
@@ -621,21 +620,22 @@ public class WordMLEditorKit extends StyledEditorKit {
 				    return;
 				}
 				
-				if (log.isDebugEnabled()) {
-					log.debug("DeletePrevCharAction.actionPerformed()");
-				}
-				
 				final WordMLDocument doc = (WordMLDocument) editor.getDocument();
 				Caret caret = editor.getCaret();
 				int dot = caret.getDot();
 				int mark = caret.getMark();
+				
+				if (log.isDebugEnabled()) {
+					log.debug("DeletePrevCharAction.actionPerformed(): dot=" + dot
+						+ " doc.getLength()=" + doc.getLength());
+				}
 				
 				try {
 					if (dot != mark) {
 						doc.remove(Math.min(dot, mark), Math.abs(dot - mark));
 						dot = Math.min(dot, mark);
 						
-					} else if (dot > 0){
+					} else if (0 < dot && dot < doc.getLength()) {
 	                    int delChars = 1;
 	                    
 	                    if (dot > 1) {
