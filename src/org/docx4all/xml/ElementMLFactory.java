@@ -81,23 +81,25 @@ public class ElementMLFactory {
     	
 		RunML newRunML = null;
 
-		for (ElementML ml : contents) {
-			if (ml instanceof RunContentML) {
-				// collect in one new RunML
-				if (newRunML == null) {
-					newRunML = new RunML(ObjectFactory.createR(null));
-					newRunML.setRunProperties(newRPr);
-					thePara.addChild(newRunML);
+		if (contents != null) {
+			for (ElementML ml : contents) {
+				if (ml instanceof RunContentML) {
+					// collect in one new RunML
+					if (newRunML == null) {
+						newRunML = new RunML(ObjectFactory.createR(null));
+						newRunML.setRunProperties(newRPr);
+						thePara.addChild(newRunML);
+					}
+					newRunML.addChild(ml);
+				} else {
+					if (newRunML != null) {
+						newRunML = null;
+					}
+					thePara.addChild(ml);
 				}
-				newRunML.addChild(ml);
-			} else {
-				if (newRunML != null) {
-					newRunML = null;
-				}
-				thePara.addChild(ml);
 			}
 		}
-
+		
 		return thePara;
 	}
 	
@@ -118,10 +120,12 @@ public class ElementMLFactory {
 		RunML theRun = new RunML(ObjectFactory.createR(null));
 		theRun.setRunProperties(newRPr);
     	
-		for (ElementML ml : contents) {
-			theRun.addChild(ml);
+		if (contents != null) {
+			for (ElementML ml : contents) {
+				theRun.addChild(ml);
+			}
 		}
-    	
+		
     	return theRun;
 	}
 	
