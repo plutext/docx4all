@@ -443,12 +443,10 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
     	Element paragraph = doc.getParagraphElement(pos);
     	Element text = null;
 	    // If nothing is selected, get the attributes from the character
-	    // before the start of the selection, otherwise get the attributes
+	    // before the caret, otherwise get the attributes
 	    // from the character element at the start of the selection.
-	    if (paragraph.getStartOffset() == pos 
+	    if (paragraph.getParentElement().getStartOffset() == pos 
 	    	|| editor.getSelectionStart() != editor.getSelectionEnd()) {
-			// Get the attributes from the character at the selection
-			// if in a different paragrah!
 	    	text = doc.getCharacterElement(pos);
 		} else {
 			text = doc.getCharacterElement(Math.max(pos-1, 0));
