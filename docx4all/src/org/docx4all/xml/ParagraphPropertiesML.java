@@ -48,7 +48,7 @@ public class ParagraphPropertiesML extends ElementML implements PropertiesContai
     	this.attrs.addAttribute(name, value);
     }
     
-	public void addAttribute(AttributeSet attrs) {
+	public void addAttributes(AttributeSet attrs) {
 		this.attrs.addAttributes(attrs);
 	}
 	
@@ -56,6 +56,14 @@ public class ParagraphPropertiesML extends ElementML implements PropertiesContai
 		return new SimpleAttributeSet(this.attrs);
 	}
 	
+    public void removeAttributes(AttributeSet attributes) {
+    	attrs.removeAttributes(attributes);
+	}
+
+    public void removeAttribute(Object name) {
+    	attrs.removeAttribute(name);
+    }
+
 	public void save() {
 		if (this.docxObject == null) {
 			return;
