@@ -29,12 +29,14 @@ import javax.swing.JEditorPane;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.BadSelectionException;
 import org.docx4all.swing.text.TextSelector;
 import org.docx4all.swing.text.WordMLDocument;
+import org.docx4all.swing.text.WordMLEditorKit;
 import org.docx4all.swing.text.WordMLFragment;
 import org.docx4all.ui.main.WordMLEditor;
 import org.jdesktop.application.ResourceMap;
@@ -72,9 +74,13 @@ public class TransferHandler extends javax.swing.TransferHandler {
 			return;
 		}
 
+		final AttributeSet inputAttrs =
+			((WordMLEditorKit) wmlTextPane.getEditorKit()).getInputAttributes();
 		final WordMLDocument doc = (WordMLDocument) wmlTextPane.getDocument();
 		if (doc != null) {
 			try {
+				wmlTextPane.saveCaretText();
+				
 				final int start = wmlTextPane.getSelectionStart();
 				int end = wmlTextPane.getSelectionEnd();
 				
@@ -84,7 +90,7 @@ public class TransferHandler extends javax.swing.TransferHandler {
 					SwingUtilities.invokeLater(new Runnable() {
 						public void run() {
 							try {
-								doc.insertFragment(start, fragment);
+								doc.insertFragment(start, fragment, inputAttrs);
 							} catch (BadLocationException e) {
 								showPastingErrorMessageDialog();
 							}
@@ -92,10 +98,11 @@ public class TransferHandler extends javax.swing.TransferHandler {
 					});
 					
 				} else {
-					doc.insertFragment(start, fragment);
+					doc.insertFragment(start, fragment, inputAttrs);
 				}
 
-				setCaretPositionLater(wmlTextPane, start + fragment.getText().length());
+				end = start + fragment.getText().length();
+				setCaretPositionLater(wmlTextPane, end);
 				
 			} catch (BadLocationException e) {
 				showPastingErrorMessageDialog();
@@ -106,7 +113,8 @@ public class TransferHandler extends javax.swing.TransferHandler {
     private void setCaretPositionLater(final WordMLTextPane wmlTextPane, final int pos) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				wmlTextPane.setCaretPosition(pos);
+				int newPos = Math.min(pos, wmlTextPane.getDocument().getLength());
+				wmlTextPane.setCaretPosition(newPos);
 			}
 		});
     }
@@ -159,20 +167,19 @@ public class TransferHandler extends javax.swing.TransferHandler {
     
     protected Transferable createTransferable(JComponent c) {
     	Transferable theObj = null;    	
-    	if (c instanceof JEditorPane) {
-    		JEditorPane editor = (JEditorPane) c;
-    		if (editor.getDocument() instanceof WordMLDocument) {
-    			WordMLDocument doc = (WordMLDocument) editor.getDocument();
-    			int start = editor.getSelectionStart();
-    			int length = editor.getSelectionEnd() - start;
-    			try {
-    				TextSelector ts = new TextSelector(doc, start, length);
-    				WordMLFragment frag = new WordMLFragment(ts);
-    				theObj = new WordMLTransferable(frag);
-    			} catch (BadSelectionException exc) {
-    				;//ignore
-    			}
-    		}
+    	if (c instanceof WordMLTextPane) {
+    		WordMLTextPane editor = (WordMLTextPane) c;
+			editor.saveCaretText();
+			WordMLDocument doc = (WordMLDocument) editor.getDocument();
+			int start = editor.getSelectionStart();
+			int length = editor.getSelectionEnd() - start;
+			try {
+				TextSelector ts = new TextSelector(doc, start, length);
+				WordMLFragment frag = new WordMLFragment(ts);
+				theObj = new WordMLTransferable(frag);
+			} catch (BadSelectionException exc) {
+				;// ignore
+			}
     	}
         return theObj;
     }
