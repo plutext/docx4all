@@ -321,7 +321,7 @@ public class FileMenu extends UIMenu {
     	boolean success = true;
     	
     	WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
-    	kit.save();
+    	kit.saveCaretText();
     	
     	Document doc = editor.getDocument();
         DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
