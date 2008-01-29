@@ -176,16 +176,28 @@ TOOL_BAR_3:JFXToolBar = JFXToolBar {
     }
     
     var boldButton = ToggleButton {
+        var: self
+        action: operation() {
+            toolBarStates.setFontBold(self.selected);
+        }
         enabledPropertyName: toolBarStates.FONT_BOLD_PROPERTY_NAME
         swingAction: formatMenu.getAction(formatMenu.BOLD_ACTION_NAME)
     }
     
     var italicButton = ToggleButton {
+        var: self
+        action: operation() {
+            toolBarStates.setFontItalic(self.selected);
+        }
         enabledPropertyName: toolBarStates.FONT_ITALIC_PROPERTY_NAME
         swingAction: formatMenu.getAction(formatMenu.ITALIC_ACTION_NAME)
     }
     
     var underlineButton = ToggleButton {
+        var: self
+        action: operation() {
+            toolBarStates.setFontUnderlined(self.selected);
+        }
         enabledPropertyName: toolBarStates.FONT_UNDERLINED_PROPERTY_NAME
         swingAction: formatMenu.getAction(formatMenu.UNDERLINE_ACTION_NAME)
     }
