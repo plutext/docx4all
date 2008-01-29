@@ -22,6 +22,7 @@ package org.docx4all.xml;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.text.AttributeSet;
 import javax.xml.bind.JAXBElement;
 
 import org.apache.log4j.Logger;
@@ -45,6 +46,19 @@ public class ParagraphML extends ElementML {
 		super(docxObject, isDummy);
 	}
 	
+    public void addAttributes(AttributeSet attrs, boolean replace) {
+		if (this.pPr == null) {
+			ParagraphPropertiesML ml = ElementMLFactory.createParagraphPropertiesML(attrs);
+			setParagraphProperties(ml);
+		} else {
+			if (replace) {
+				this.pPr.removeAttributes(attrs);							
+			}
+			this.pPr.addAttributes(attrs);
+			this.pPr.save();
+		}
+    }
+
 	/**
 	 * Gets the paragraph property element of this paragraph.
 	 * 
