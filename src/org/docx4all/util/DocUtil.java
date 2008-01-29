@@ -55,6 +55,24 @@ public class DocUtil {
 
 	private final static String TAB = "    ";
 	
+	public final static void saveTextContentToElementML(WordMLDocument.TextElement elem) {
+		if (elem == null
+			|| elem.getStartOffset() == elem.getEndOffset()) {
+			return;
+		}
+		
+		RunContentML rcml = (RunContentML) elem.getElementML();
+		if (!rcml.isDummy() && !rcml.isImplied()) {
+			try {
+				int count = elem.getEndOffset() - elem.getStartOffset();
+				String text = elem.getDocument().getText(elem.getStartOffset(), count);
+				rcml.setTextContent(text);
+			} catch (BadLocationException exc) {
+				;//ignore
+			}
+		}
+	}
+	
 	public final static ElementML splitElementML(DocumentElement elem, int atIndex) {
 		if (elem.getStartOffset() == elem.getEndOffset()
 			|| elem.getElementML().isImplied()
