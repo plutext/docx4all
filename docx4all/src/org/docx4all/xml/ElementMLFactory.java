@@ -23,10 +23,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-import org.docx4j.wml.Document;
+import javax.swing.text.AttributeSet;
+
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.io.LoadFromZipFile;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
+import org.docx4j.wml.Document;
 
 
 /**
@@ -127,6 +129,20 @@ public class ElementMLFactory {
 		}
 		
     	return theRun;
+	}
+	
+	public final static RunPropertiesML createRunPropertiesML(AttributeSet attrs) {
+		RunPropertiesML theProp = new RunPropertiesML(ObjectFactory.createRPr());
+		theProp.addAttributes(attrs);
+		theProp.save();
+		return theProp;
+	}
+	
+	public final static ParagraphPropertiesML createParagraphPropertiesML(AttributeSet attrs) {
+		ParagraphPropertiesML theProp = new ParagraphPropertiesML(ObjectFactory.createPPr());
+		theProp.addAttributes(attrs);
+		theProp.save();
+		return theProp;
 	}
 	
 	private ElementMLFactory() {
