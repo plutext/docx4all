@@ -19,6 +19,7 @@
 
 package org.docx4all.xml;
 
+import javax.swing.text.AttributeSet;
 import javax.swing.text.MutableAttributeSet;
 
 /**
@@ -26,4 +27,9 @@ import javax.swing.text.MutableAttributeSet;
  */
 public interface PropertiesContainerML {
 	MutableAttributeSet getAttributeSet();
+    void addAttribute(Object name, Object value);
+	void addAttributes(AttributeSet attrs);
+    void removeAttributes(AttributeSet attributes);
+    void removeAttribute(Object name);
+	void save();
 }// PropertiesContainerML interface
