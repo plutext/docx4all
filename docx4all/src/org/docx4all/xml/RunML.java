@@ -22,6 +22,7 @@ package org.docx4all.xml;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.text.AttributeSet;
 import javax.xml.bind.JAXBElement;
 
 import org.apache.log4j.Logger;
@@ -45,6 +46,19 @@ public class RunML extends ElementML {
 		super(docxObject, isDummy);
 	}
 	
+    public void addAttributes(AttributeSet attrs, boolean replace) {
+		if (this.rPr == null) {
+			RunPropertiesML ml = ElementMLFactory.createRunPropertiesML(attrs);
+			setRunProperties(ml);
+		} else {
+			if (replace) {
+				this.rPr.removeAttributes(attrs);							
+			}
+			this.rPr.addAttributes(attrs);
+			this.rPr.save();
+		}
+    }
+
 	/**
 	 * Gets the run property element of this run element.
 	 * 
