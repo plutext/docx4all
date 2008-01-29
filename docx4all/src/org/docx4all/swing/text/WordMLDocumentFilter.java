@@ -25,6 +25,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
+import javax.swing.text.MutableAttributeSet;
+import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
 import org.apache.log4j.Logger;
@@ -32,6 +34,7 @@ import org.docx4all.util.DocUtil;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ObjectFactory;
 import org.docx4all.xml.ParagraphML;
+import org.docx4all.xml.ParagraphPropertiesML;
 import org.docx4all.xml.RunML;
 
 /**
@@ -80,6 +83,14 @@ public class WordMLDocumentFilter extends DocumentFilter {
     public void replace(FilterBypass fb, int offset, int length, String text,
             AttributeSet attrs) throws BadLocationException {
     	
+		if (log.isDebugEnabled()) {
+			log.debug("replace(): offset=" + offset 
+				+ " length=" + length
+				+ " text=" + text
+				+ " attrs=" + attrs
+				+ " doc.getLength()=" + fb.getDocument().getLength());
+		}
+
 		if (!isEnabled()) {
 			super.replace(fb, offset, length, text, attrs);
 			return;
@@ -96,6 +107,13 @@ public class WordMLDocumentFilter extends DocumentFilter {
     public void insertString(FilterBypass fb, int offset, String text,
             AttributeSet attrs) throws BadLocationException {
     	
+		if (log.isDebugEnabled()) {
+			log.debug("insertString(): offset=" + offset 
+				+ " text=" + text
+				+ " attrs=" + attrs
+				+ " doc.getLength()=" + fb.getDocument().getLength());
+		}
+
 		if (!isEnabled()) {
 			super.insertString(fb, offset, text, attrs);
 			return;
@@ -105,31 +123,96 @@ public class WordMLDocumentFilter extends DocumentFilter {
 			return;
 		}
 		
-		WordMLDocument doc = (WordMLDocument) fb.getDocument();
+		final WordMLDocument doc = (WordMLDocument) fb.getDocument();
 		DocumentElement elem = 
 			(DocumentElement) doc.getParagraphMLElement(offset, false);
 		if (elem.getEndOffset() == elem.getParentElement().getEndOffset()) {
 			//the last paragraph
-			ElementML newPara = new ParagraphML(ObjectFactory.createPara(text));
-			elem.getElementML().addSibling(newPara, false);
+			RunML newRun = new RunML(ObjectFactory.createR(text));
+			newRun.addAttributes(attrs, true);
+			
+			ParagraphML newPara = new ParagraphML(ObjectFactory.createPara(null));
+			newPara.addChild(newRun);
+			
+			ParagraphML para = (ParagraphML) elem.getElementML();
+			ParagraphPropertiesML pPr =
+				(ParagraphPropertiesML) para.getParagraphProperties();
+			newPara.setParagraphProperties(pPr);
+			
+			para.addSibling(newPara, false);
 			
 			List<ElementSpec> specs = DocUtil.getElementSpecs(newPara);
 			DocUtil.insertParagraphs(doc, offset, specs);
 			
 		} else if (elem.getEndOffset() - elem.getStartOffset() == 1){
 			//empty paragraph
-			ElementML para = elem.getElementML();
-			int start = elem.getStartOffset();
+			RunML newRun = new RunML(ObjectFactory.createR(text));
+			newRun.addAttributes(attrs, true);
 			
-			ElementML newRun = new RunML(ObjectFactory.createR(text));
+			ElementML para = elem.getElementML();
 			para.addChild(newRun);
-			fb.remove(elem.getStartOffset(), 1);
+
+			int start = elem.getStartOffset();
+			fb.remove(start, 1);
 			
 			List<ElementSpec> specs = DocUtil.getElementSpecs(para);
 			insertLater(doc, start, specs);
 			
+		} else if (attrs != null && attrs.getAttributeCount() > 0){
+			ElementML para = elem.getElementML();
+			int paraStart = elem.getStartOffset();
+			int paraEnd = elem.getEndOffset();
+			
+			elem = (DocumentElement) doc.getParagraphMLElement(offset, true);
+			if (elem.getStartOffset() == offset) {
+				elem = (DocumentElement) doc.getRunMLElement(offset);
+			} else {
+				elem = (DocumentElement) doc.getRunMLElement(offset - 1);
+			}
+			
+			if (elem.getAttributes().containsAttributes(attrs)) {
+				super.insertString(fb, offset, text, attrs);
+			} else {
+				//Needs to save text content first
+				WordMLDocument.TextElement textE = 
+					(WordMLDocument.TextElement)
+						elem.getElement(elem.getElementIndex(offset));
+				DocUtil.saveTextContentToElementML(textE);
+				
+				MutableAttributeSet newAttrs = 
+					new SimpleAttributeSet(elem.getAttributes().copyAttributes());
+				newAttrs.removeAttribute(WordMLStyleConstants.ElementMLAttribute);
+				newAttrs.addAttributes(attrs);
+				RunML newRun = new RunML(ObjectFactory.createR(text));
+				newRun.addAttributes(newAttrs, true);
+				
+				if (elem.getStartOffset() == offset) {
+					elem.getElementML().addSibling(newRun, false);
+				} else if (elem.getEndOffset() == offset) {
+					elem.getElementML().addSibling(newRun, true);
+				} else {
+					int idx = offset - elem.getStartOffset();
+					DocUtil.splitElementML(elem, idx);
+					elem.getElementML().addSibling(newRun, true);
+				}
+				
+				//Refresh the affected paragraph
+				fb.remove(paraStart, (paraEnd-paraStart));
+				
+				List<ElementSpec> specs = DocUtil.getElementSpecs(para);
+				insertLater(doc, paraStart, specs);
+			}
 		} else {
 			super.insertString(fb, offset, text, attrs);
+		}
+		
+		if (log.isDebugEnabled()) {
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					log.debug("insertString(): Resulting structure...");
+					DocUtil.displayStructure(doc);
+				}
+			});
 		}
     }
     
