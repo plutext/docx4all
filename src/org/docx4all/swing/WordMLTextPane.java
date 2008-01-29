@@ -22,6 +22,7 @@ package org.docx4all.swing;
 import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 import javax.swing.text.EditorKit;
@@ -59,7 +60,9 @@ public class WordMLTextPane extends JTextPane {
             	int end = getSelectionEnd();
             	final int newCaretPos = 
             		(content != null) ? start + content.length() : start;
-                doc.replace(start, (end - start), content, null);
+            	
+            	AttributeSet attrs = getInputAttributes().copyAttributes();
+                doc.replace(start, (end - start), content, attrs);
                 
                 SwingUtilities.invokeLater(new Runnable() {
                 	public void run() {
@@ -72,6 +75,10 @@ public class WordMLTextPane extends JTextPane {
         }
     }
 
+    public void saveCaretText() {
+    	((WordMLEditorKit) getEditorKit()).saveCaretText();
+    }
+    
     protected EditorKit createDefaultEditorKit() {
         return new WordMLEditorKit();
     }
