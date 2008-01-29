@@ -54,6 +54,10 @@ public class ObjectFactory {
 		return p;
 	}
 	
+	public final static org.docx4j.wml.PPr createPPr() {
+		return _jaxbFactory.createPPr();
+	}
+	
 	public final static org.docx4j.wml.R createR(String textContent) {
 		org.docx4j.wml.R r = _jaxbFactory.createR();
 		
@@ -68,6 +72,10 @@ public class ObjectFactory {
 			text.setParent(r);
 		}
 		return r;
+	}
+	
+	public final static org.docx4j.wml.RPr createRPr() {
+		return _jaxbFactory.createRPr();
 	}
 	
 	public final static JAXBElement<Text> createT(String textContent) {
