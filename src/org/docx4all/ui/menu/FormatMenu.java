@@ -170,22 +170,31 @@ public class FormatMenu extends UIMenu {
 	}
 	
 	@Action public void bold(ActionEvent evt) {
-		StyledTextAction action = new StyledEditorKit.BoldAction();
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        ToolBarStates toolbarStates = editor.getToolbarStates();
+        boolean bold = !toolbarStates.isFontBold(); //toggle state
+		StyledTextAction action = new WordMLEditorKit.BoldAction(bold);
 		action.actionPerformed(evt);
 	}
 	
 	@Action public void italic(ActionEvent evt) {
-		StyledTextAction action = new StyledEditorKit.ItalicAction();
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        ToolBarStates toolbarStates = editor.getToolbarStates();
+        boolean italic = !toolbarStates.isFontItalic(); //toggle state
+		StyledTextAction action = new WordMLEditorKit.ItalicAction(italic);
 		action.actionPerformed(evt);
 	}
 	
 	@Action public void underline(ActionEvent evt) {
-		StyledTextAction action = new StyledEditorKit.UnderlineAction();
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        ToolBarStates toolbarStates = editor.getToolbarStates();
+        boolean underline = !toolbarStates.isFontUnderlined(); //toggle state
+		StyledTextAction action = new WordMLEditorKit.UnderlineAction(underline);
 		action.actionPerformed(evt);
 	}
 	
 	@Action public void alignLeft(ActionEvent evt) {
-		WordMLEditorKit.AlignmentAction action = 
+		StyledTextAction action = 
 			new WordMLEditorKit.AlignmentAction(
 				ALIGN_LEFT_ACTION_NAME, 
 				StyleConstants.ALIGN_LEFT);
@@ -193,7 +202,7 @@ public class FormatMenu extends UIMenu {
 	}
 	
 	@Action public void alignCenter(ActionEvent evt) {
-		WordMLEditorKit.AlignmentAction action = 
+		StyledTextAction action = 
 			new WordMLEditorKit.AlignmentAction(
 				ALIGN_CENTER_ACTION_NAME, 
 				StyleConstants.ALIGN_CENTER);
@@ -201,7 +210,7 @@ public class FormatMenu extends UIMenu {
 	}
 	
 	@Action public void alignRight(ActionEvent evt) {
-		WordMLEditorKit.AlignmentAction action = 
+		StyledTextAction action = 
 			new WordMLEditorKit.AlignmentAction(
 				ALIGN_RIGHT_ACTION_NAME,
 				StyleConstants.ALIGN_RIGHT);
@@ -216,7 +225,7 @@ public class FormatMenu extends UIMenu {
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         ToolBarStates toolbarStates = editor.getToolbarStates();
         
-		StyledEditorKit.FontFamilyAction action =
+        StyledTextAction action =
 			new StyledEditorKit.FontFamilyAction(FONT_FAMILY_ACTION_NAME, toolbarStates.getFontFamily());
 		action.actionPerformed(actionEvent);
 	}
@@ -225,7 +234,7 @@ public class FormatMenu extends UIMenu {
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         ToolBarStates toolbarStates = editor.getToolbarStates();
         
-		StyledEditorKit.FontSizeAction action =
+        StyledTextAction action =
 			new StyledEditorKit.FontSizeAction(FONT_SIZE_ACTION_NAME, toolbarStates.getFontSize());
 		action.actionPerformed(actionEvent);
 	}
