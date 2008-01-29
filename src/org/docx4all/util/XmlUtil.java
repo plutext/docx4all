@@ -22,11 +22,15 @@ package org.docx4all.util;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.text.AttributeSet;
 import javax.xml.namespace.QName;
 
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLIterator;
+import org.docx4all.xml.ParagraphML;
+import org.docx4all.xml.PropertiesContainerML;
 import org.docx4all.xml.RunContentML;
+import org.docx4all.xml.RunML;
 
 /**
  *	@author Jojada Tirtowidjojo - 04/01/2008
@@ -114,6 +118,32 @@ public class XmlUtil {
 		}
 		
 		return theElem;
+	}
+	
+	public final static void setAttributes(
+		ElementML elem, 
+		AttributeSet paragraphAttrs, 
+		AttributeSet runAttrs,
+		boolean replace) {
+		
+		ElementMLIterator it = new ElementMLIterator(elem);
+		while (it.hasNext()) {
+			ElementML ml = it.next();
+			if (runAttrs != null && (ml instanceof RunML)) {
+				PropertiesContainerML prop = ((RunML) ml).getRunProperties();
+				if (replace) {
+					prop.removeAttributes(prop.getAttributeSet());
+				}
+				prop.addAttributes(runAttrs);
+				
+			} else if (paragraphAttrs != null && (ml instanceof ParagraphML)) {
+				PropertiesContainerML prop = ((ParagraphML) ml).getParagraphProperties();
+				if (replace) {
+					prop.removeAttributes(prop.getAttributeSet());
+				}
+				prop.addAttributes(paragraphAttrs);
+			}
+		}
 	}
 	
 	private XmlUtil() {
