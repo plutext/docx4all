@@ -77,6 +77,10 @@ public class MenuItemStateManager implements PropertyChangeListener {
     					&& newValue.intValue() == StyleConstants.ALIGN_RIGHT) {
     			_menuItem.setEnabled(false);
    			
+    		} else if (fm.getAction(FormatMenu.ALIGN_JUSTIFIED_ACTION_NAME) == _menuItem.getAction()
+					&& newValue.intValue() == StyleConstants.ALIGN_JUSTIFIED) {
+    			_menuItem.setEnabled(false);
+			
     		} else {
     			_menuItem.setEnabled(true);
     		}
