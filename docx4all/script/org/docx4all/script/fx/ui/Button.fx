@@ -75,7 +75,12 @@ trigger on (new Button) {
     var self = this;
     this.stateListener =  new PropertyChangeListener {
         operation propertyChange(evt:PropertyChangeEvent) {
-            self.enabled = ((Boolean) evt.getNewValue()).booleanValue();
+            var toolBarStates = toolBarStates:<<org.docx4all.ui.main.ToolBarStates>>;
+            if (toolBarStates.IFRAME_NUMBERS_PROPERTY_NAME.equals(self.enabledPropertyName)) {
+                self.enabled = (((Integer) evt.getNewValue()).intValue() > 0);
+            } else {
+                self.enabled = ((Boolean) evt.getNewValue()).booleanValue();
+            }
         }
     };// stateListener
     
