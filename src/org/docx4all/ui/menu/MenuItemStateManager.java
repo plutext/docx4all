@@ -80,6 +80,10 @@ public class MenuItemStateManager implements PropertyChangeListener {
     		} else {
     			_menuItem.setEnabled(true);
     		}
+    		
+    	} else if (ToolBarStates.IFRAME_NUMBERS_PROPERTY_NAME.equals(name)) {
+    		int newValue = ((Integer) evt.getNewValue());
+    		_menuItem.setEnabled((newValue > 0));
     	}
     	
     }
