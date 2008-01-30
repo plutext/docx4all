@@ -168,11 +168,20 @@ public class FileMenu extends UIMenu {
     		toolbarStates.addPropertyChangeListener(
     				ToolBarStates.DOC_DIRTY_PROPERTY_NAME, 
     				listener);
+    		
     	} else if (SAVE_ALL_FILES_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
     		MenuItemStateManager listener = new MenuItemStateManager(theItem);
     		toolbarStates.addPropertyChangeListener(
     				ToolBarStates.ALL_DOC_DIRTY_PROPERTY_NAME, 
+    				listener);
+    		
+    	} else if (CLOSE_FILE_ACTION_NAME.equals(actionName)
+    		|| CLOSE_ALL_FILES_ACTION_NAME.equals(actionName)) {
+    		theItem.setEnabled(false);
+    		MenuItemStateManager listener = new MenuItemStateManager(theItem);
+    		toolbarStates.addPropertyChangeListener(
+    				ToolBarStates.IFRAME_NUMBERS_PROPERTY_NAME, 
     				listener);
     	}
     	
@@ -367,7 +376,8 @@ public class FileMenu extends UIMenu {
         bodyML.addChild(paraML);
         
         return success;
-    }    
+    }
+    
 }// FileMenu class
 
 
