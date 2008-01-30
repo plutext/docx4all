@@ -22,6 +22,7 @@ package org.docx4all.ui.menu;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.io.File;
+import java.io.OutputStream;
 import java.util.prefs.Preferences;
 
 import javax.swing.JEditorPane;
@@ -44,6 +45,7 @@ import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.io.SaveToZipFile;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.jdesktop.application.Action;
 import org.jdesktop.application.ResourceMap;
 
@@ -108,6 +110,11 @@ public class FileMenu extends UIMenu {
 	public final static String SAVE_ALL_FILES_ACTION_NAME = "saveAllFiles";
 	
 	/**
+	 * The action name of Print Preview menu
+	 */
+	public final static String PRINT_PREVIEW_ACTION_NAME = "printPreview";
+	
+	/**
 	 * The action name of Close menu
 	 */
 	public final static String CLOSE_FILE_ACTION_NAME = "closeFile";
@@ -128,6 +135,8 @@ public class FileMenu extends UIMenu {
 		SAVE_FILE_ACTION_NAME,
 		SAVE_AS_FILE_ACTION_NAME,
 		SAVE_ALL_FILES_ACTION_NAME,
+		SEPARATOR_CODE,
+		PRINT_PREVIEW_ACTION_NAME,
 		SEPARATOR_CODE,
 		CLOSE_FILE_ACTION_NAME,
 		CLOSE_ALL_FILES_ACTION_NAME,
@@ -176,7 +185,8 @@ public class FileMenu extends UIMenu {
     				ToolBarStates.ALL_DOC_DIRTY_PROPERTY_NAME, 
     				listener);
     		
-    	} else if (CLOSE_FILE_ACTION_NAME.equals(actionName)
+    	} else if (PRINT_PREVIEW_ACTION_NAME.equals(actionName)
+    		|| CLOSE_FILE_ACTION_NAME.equals(actionName)
     		|| CLOSE_ALL_FILES_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
     		MenuItemStateManager listener = new MenuItemStateManager(theItem);
@@ -293,6 +303,74 @@ public class FileMenu extends UIMenu {
     	}
     }
     
+    @Action public void printPreview() {
+        WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+        JEditorPane editor = wmlEditor.getCurrentEditor();
+   	
+    	WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
+    	kit.saveCaretText();
+    	
+    	Document doc = editor.getDocument();
+		String filePath = 
+			(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
+        DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
+		DocumentML rootML = (DocumentML) elem.getElementML();
+
+		//Do not include the last paragraph when saving or printing.
+		//we'll put it back when the job is done.
+		elem = (DocumentElement) elem.getElement(elem.getElementCount() - 1);
+		ElementML paraML = elem.getElementML();
+		ElementML bodyML = paraML.getParent();
+		paraML.delete();
+		
+		try {
+			WordprocessingMLPackage wordMLPackage = rootML
+					.getWordprocessingMLPackage();
+			// Create temporary .pdf file.
+			String tmpName = 
+				filePath.substring(
+					filePath.lastIndexOf(File.separator),
+					filePath.lastIndexOf("."));
+			File tmpFile = File.createTempFile(tmpName + ".tmp", ".pdf");
+			// Delete the temporary file when program exits.
+			tmpFile.deleteOnExit();
+			
+			OutputStream os = new java.io.FileOutputStream(tmpFile);
+
+			// Could write to a ByteBuffer and avoid the temp file if:
+			// 1. com.sun.pdfview.PDFViewer had an appropriate open method
+			// 2. We knew how big to make the buffer
+			// java.nio.ByteBuffer buf = java.nio.ByteBuffer.allocate(15000);
+			// //15kb
+			// OutputStream os = newOutputStream(buf);
+
+			wordMLPackage.pdf(os);
+
+			os.close();
+
+			com.sun.pdfview.PDFViewer pv = new com.sun.pdfview.PDFViewer(true);
+			// pv.openFile(buf, "some name"); // requires modified
+			// com.sun.pdfview.PDFViewer
+			pv.openFile(tmpFile);
+			
+		} catch (Exception exc) {
+			exc.printStackTrace();
+        	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
+            String title = 
+            	rm.getString(PRINT_PREVIEW_ACTION_NAME + ".Action.text");
+			String message = 
+				rm.getString(PRINT_PREVIEW_ACTION_NAME + ".Action.errorMessage")
+				+ "\n" 
+				+ filePath;
+			wmlEditor.showMessageDialog(title, message, JOptionPane.ERROR_MESSAGE);
+
+		} finally {
+	        //Remember to put 'paraML' as last paragraph
+	        bodyML.addChild(paraML);
+		}
+		
+    } //printPreview()
+    
     @Action public void closeFile() {
         WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
         wmlEditor.closeInternalFrame(wmlEditor.getCurrentEditor());
@@ -365,15 +443,16 @@ public class FileMenu extends UIMenu {
 				+ "\n" 
 				+ saveAsFilePath;
 			wmlEditor.showMessageDialog(title, message, JOptionPane.ERROR_MESSAGE);
+			
+		} finally {
+	        //Remember to put 'paraML' as last paragraph
+	        bodyML.addChild(paraML);
 		}
         
         if (log.isDebugEnabled()) {
         	log.debug("save(): filePath=" + saveAsFilePath);
         	DocUtil.displayXml(doc);
         }
-        
-        //Remember to put 'paraML' as last paragraph
-        bodyML.addChild(paraML);
         
         return success;
     }
