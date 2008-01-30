@@ -56,12 +56,18 @@ var alignRightButton = ToggleButton {
     swingAction: formatMenu.getAction(formatMenu.ALIGN_RIGHT_ACTION_NAME)
 };
 
+var alignJustifiedButton = ToggleButton {
+    enabledPropertyName: toolBarStates.ALIGNMENT_PROPERTY_NAME
+    swingAction: formatMenu.getAction(formatMenu.ALIGN_JUSTIFIED_ACTION_NAME)
+};
+
 
 ButtonGroup {
     buttons: [
         alignLeftButton,
         alignCtrButton,
-        alignRightButton
+        alignRightButton,
+        alignJustifiedButton
     ]
 }
 
@@ -143,6 +149,7 @@ TOOL_BAR_2:JFXToolBar = JFXToolBar {
         alignLeftButton,
         alignCtrButton,
         alignRightButton,
+        alignJustifiedButton,
         RigidArea { width: 10 },
         Separator { orientation: VERTICAL:Orientation },
         RigidArea { width: 10 }
