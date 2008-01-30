@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.SwingUtilities;
+import javax.swing.event.DocumentEvent;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
@@ -161,6 +162,49 @@ public class WordMLDocument extends DefaultStyledDocument {
 		}
 	}
     
+    public void setParagraphMLAttributes(int offset, int length,
+			AttributeSet attrs, boolean replace) {
+
+		if (offset >= getLength() || attrs == null
+				|| attrs.getAttributeCount() == 0) {
+			return;
+		}
+
+		length = Math.min(getLength() - offset, length);
+
+		try {
+			writeLock();
+			DefaultDocumentEvent changes = 
+				new DefaultDocumentEvent(offset, length, DocumentEvent.EventType.CHANGE);
+
+		    AttributeSet attrsCopy = attrs.copyAttributes();
+		    
+			Element rootE = getDefaultRootElement();
+			int startIdx = rootE.getElementIndex(offset);
+			int endIdx = rootE.getElementIndex(offset + ((length > 0) ? length - 1 : 0));
+			for (int i = startIdx; i <= endIdx; i++) {
+				DocumentElement paraE = (DocumentElement) rootE.getElement(i);
+				ParagraphML paraML = (ParagraphML) paraE.getElementML();
+				paraML.addAttributes(attrsCopy, replace);
+				
+				MutableAttributeSet paraAttr = 
+					(MutableAttributeSet) paraE.getAttributes();
+				changes.addEdit(
+					new AttributeUndoableEdit(paraE, attrsCopy, replace));
+				if (replace) {
+					paraAttr.removeAttributes(paraAttr);
+				}
+				paraAttr.addAttributes(attrs);
+			}
+
+			changes.end();
+			fireChangedUpdate(changes);
+			//fireUndoableEditUpdate(new UndoableEditEvent(this, changes));
+		} finally {
+			writeUnlock();
+		}
+	}
+        
     private RunML copyRunML(DocumentElement runE, int offset, int length) {
     	RunML runML = (RunML) runE.getElementML();
     	
