@@ -339,28 +339,13 @@ public class WordMLEditorKit extends StyledEditorKit {
         
         protected final void setRunMLAttributes(final WordMLTextPane editor,
 				AttributeSet attrs, boolean replace) {
-			WordMLDocument doc = 
-				(WordMLDocument) editor.getDocument();
+        	
+			Runnable caretPosRunnable = createCaretPositionRunnable(editor);
+			
+			WordMLDocument doc = (WordMLDocument) editor.getDocument();
 			
 			int p0 = editor.getSelectionStart();
 			int p1 = editor.getSelectionEnd();
-			
-			//Prepare for final caret position.
-			//This final position is the same as
-			//the current position.
-			final int caretDot = editor.getCaret().getDot();
-			final int caretMark = editor.getCaret().getMark();
-			Runnable caretPosRunnable = new Runnable() {
-				public void run() {
-					if (caretDot != caretMark) {
-						editor.setCaretPosition(caretMark);
-						editor.moveCaretPosition(caretDot);
-					} else {
-						editor.setCaretPosition(caretDot);
-					}
-				}
-			};
-			
 			if (p0 == p1) {
 				try {
 					int wordStart = Utilities.getWordStart(editor, p0);
@@ -394,23 +379,29 @@ public class WordMLEditorKit extends StyledEditorKit {
 
 		protected final void setParagraphMLAttributes(WordMLTextPane editor,
 				AttributeSet attr, boolean replace) {
+			Runnable caretPosRunnable = createCaretPositionRunnable(editor);
+			
 			int p0 = editor.getSelectionStart();
 			int p1 = editor.getSelectionEnd();
 			WordMLDocument doc = (WordMLDocument) editor.getDocument();
-			
-			while (p0 <= p1) {
-				Element elem = doc.getParagraphMLElement(p0, false);
-				int start = elem.getStartOffset();
-				int end = elem.getEndOffset();
-				
-				doc.setParagraphAttributes(start, (end - start), attr, replace);
-				
-				p0 = end;
-				if (p0 == p1) {
-					//finish
-					p0 = p1 + 1;
+			doc.setParagraphMLAttributes(p0, (p1 - p0), attr, replace);
+			SwingUtilities.invokeLater(caretPosRunnable);
+		}
+		
+		protected final Runnable createCaretPositionRunnable(final WordMLTextPane editor) {
+			final int caretDot = editor.getCaret().getDot();
+			final int caretMark = editor.getCaret().getMark();
+			Runnable caretPosRunnable = new Runnable() {
+				public void run() {
+					if (caretDot != caretMark) {
+						editor.setCaretPosition(caretMark);
+						editor.moveCaretPosition(caretDot);
+					} else {
+						editor.setCaretPosition(caretDot);
+					}
 				}
-			}
+			};
+			return caretPosRunnable;
 		}
 	}// StyledTextAction inner class
 	
