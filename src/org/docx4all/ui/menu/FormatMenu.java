@@ -81,6 +81,11 @@ public class FormatMenu extends UIMenu {
 	public final static String ALIGN_RIGHT_ACTION_NAME = "alignRight";
 	
 	/**
+	 * The action name of Align BOTH Format menu
+	 */
+	public final static String ALIGN_JUSTIFIED_ACTION_NAME = "alignJustified";
+	
+	/**
 	 * The action name of Bold Font toobar button
 	 */
 	public final static String BOLD_ACTION_NAME = "bold";
@@ -121,6 +126,7 @@ public class FormatMenu extends UIMenu {
 		ALIGN_LEFT_ACTION_NAME,
 		ALIGN_CENTER_ACTION_NAME,
 		ALIGN_RIGHT_ACTION_NAME,
+		ALIGN_JUSTIFIED_ACTION_NAME
 	};
 	
 	private final ButtonGroup _alignmentButtonGroup = new ButtonGroup();  
@@ -151,7 +157,8 @@ public class FormatMenu extends UIMenu {
         
     	if (ALIGN_LEFT_ACTION_NAME.equals(actionName)
     		|| ALIGN_CENTER_ACTION_NAME.equals(actionName)
-    		|| ALIGN_RIGHT_ACTION_NAME.equals(actionName)) {
+    		|| ALIGN_RIGHT_ACTION_NAME.equals(actionName)
+    		|| ALIGN_JUSTIFIED_ACTION_NAME.equals(actionName)) {
     		theItem = new JMenuItem();
     		theItem.setAction(getAction(actionName));
     		_alignmentButtonGroup.add(theItem);
@@ -214,6 +221,14 @@ public class FormatMenu extends UIMenu {
 			new WordMLEditorKit.AlignmentAction(
 				ALIGN_RIGHT_ACTION_NAME,
 				StyleConstants.ALIGN_RIGHT);
+		action.actionPerformed(evt);
+	}
+	
+	@Action public void alignJustified(ActionEvent evt) {
+		StyledTextAction action = 
+			new WordMLEditorKit.AlignmentAction(
+				ALIGN_JUSTIFIED_ACTION_NAME,
+				StyleConstants.ALIGN_JUSTIFIED);
 		action.actionPerformed(evt);
 	}
 	
