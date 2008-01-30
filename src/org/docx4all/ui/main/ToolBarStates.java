@@ -62,6 +62,8 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
 	public final static String FONT_ITALIC_PROPERTY_NAME = "fontItalic";
 	public final static String FONT_UNDERLINED_PROPERTY_NAME = "fontUnderlined";
 	
+	public final static String IFRAME_NUMBERS_PROPERTY_NAME = "iframeNumbers";
+	
 	public final static String PARAGRAPH_STYLE_PROPERTY_NAME = "paragraphStyle";
 	public final static String ALIGNMENT_PROPERTY_NAME = "alignment";
 	
@@ -70,6 +72,8 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
 	private volatile String _fontFamily;
 	private volatile int _fontSize;
 	private volatile boolean _fontBold, _fontItalic, _fontUnderlined;
+	
+	private volatile int _iframeNumbers;
 	
 	private volatile String _paraStyle;
 	private volatile int _alignment;
@@ -81,6 +85,7 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
 		_fontBold = false;
 		_fontItalic = false;
 		_fontUnderlined = false;
+		_iframeNumbers = 0;
 		_alignment = -1;
 	}
 	
@@ -570,15 +575,30 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
 	//InternalFrameListener Implementation
 	//====================================
 
+    public void internalFrameOpened(InternalFrameEvent e) {
+    	if (log.isDebugEnabled()) {
+    		log.debug("internalFrameClosed():");
+    	}
+    	
+    	Integer oldNumbers = new Integer(_iframeNumbers);
+    	Integer newNumbers = new Integer(++_iframeNumbers);
+    	firePropertyChange(IFRAME_NUMBERS_PROPERTY_NAME, oldNumbers, newNumbers);
+    }
+    
     public void internalFrameClosed(InternalFrameEvent e) {
     	if (log.isDebugEnabled()) {
     		log.debug("internalFrameClosed():");
     	}
     	JInternalFrame iframe = e.getInternalFrame();
     	JEditorPane editor = SwingUtil.getJEditorPane(iframe);
-    	if (editor != null && _dirtyTable.containsKey(editor)) {
+    	if (editor != null) {
+        	setDocumentDirty(editor, false);
     		_dirtyTable.remove(editor);
     	}
+    	
+    	Integer oldNumbers = new Integer(_iframeNumbers);
+    	Integer newNumbers = new Integer(--_iframeNumbers);
+    	firePropertyChange(IFRAME_NUMBERS_PROPERTY_NAME, oldNumbers, newNumbers);
     }
 
 	//====================================
