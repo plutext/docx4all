@@ -86,6 +86,12 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
         enabled: false
     }
     
+    var printPreviewButton = Button {
+        enabledPropertyName: toolBarStates.IFRAME_NUMBERS_PROPERTY_NAME
+        swingAction: fileMenu.getAction(fileMenu.PRINT_PREVIEW_ACTION_NAME)
+        enabled: false
+    }
+    
     var cutButton = Button {
         swingAction: editMenu.getAction(editMenu.CUT_ACTION_NAME)
     }
@@ -104,6 +110,8 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
         openFileButton,
         saveFileButton,
         saveAllFilesButton,
+        RigidArea { width: 10 },
+        printPreviewButton,
         RigidArea { width: 10 },
         Separator { orientation: VERTICAL:Orientation },
         RigidArea { width: 10 },
