@@ -75,21 +75,26 @@ public class ParagraphML extends ElementML {
 		}
 		
 		this.pPr = pPr;
-		if (this.docxObject instanceof org.docx4j.wml.P) {
-			org.docx4j.wml.PPr newDocxPPr = null;
-			if (pPr != null) {
-				pPr.setParent(ParagraphML.this);
-				newDocxPPr = 
-					(org.docx4j.wml.PPr) pPr.getDocxObject();
-			}
-			org.docx4j.wml.P p = 
-				(org.docx4j.wml.P) this.docxObject;
-			p.setPPr(newDocxPPr);
+		if (docxObject instanceof JAXBElement) {
+			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
+			String typeName = jaxbElem.getDeclaredType().getName();
 			
-			if (newDocxPPr != null) {
-				newDocxPPr.setParent(p);
+			if ("org.docx4j.wml.P".equals(typeName)) {
+				org.docx4j.wml.PPr newDocxPPr = null;
+				if (pPr != null) {
+					pPr.setParent(ParagraphML.this);
+					newDocxPPr = 
+						(org.docx4j.wml.PPr) pPr.getDocxObject();
+				}
+				org.docx4j.wml.P p = 
+					(org.docx4j.wml.P) jaxbElem.getValue();
+				p.setPPr(newDocxPPr);
+				
+				if (newDocxPPr != null) {
+					newDocxPPr.setParent(p);
+				}
 			}
-		}
+		}		
 	}
 	
 	public Object clone() {
@@ -209,7 +214,7 @@ public class ParagraphML extends ElementML {
 		if (docxObject == null) {
 			;//implied ParagraphML
 			
-		} else if (docxObject instanceof JAXBElement<?>) {
+		} else if (docxObject instanceof JAXBElement) {
 			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
 			String typeName = jaxbElem.getDeclaredType().getName();
 			
