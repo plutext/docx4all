@@ -32,25 +32,36 @@ import org.docx4all.xml.PropertiesContainerML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
 
+import com.sun.org.apache.xerces.internal.dom.NodeImpl;
+
 /**
  *	@author Jojada Tirtowidjojo - 04/01/2008
  */
 public class XmlUtil {
 
 	public final static String getEnclosingTagPair(QName qname) {
-		String prefix = qname.getPrefix();
-		if (prefix != null && prefix.length() > 0) {
+		return getEnclosingTagPair(qname.getPrefix(), qname.getLocalPart());
+	}
+	
+	public final static String getEnclosingTagPair(NodeImpl node) {
+		return getEnclosingTagPair(node.getPrefix(), node.getLocalName());
+	}
+	
+	private final static String getEnclosingTagPair(String prefix, String localName) {
+		if (prefix == null) {
+			prefix = "";
+		} else if (prefix.length() > 0) {
 			prefix = prefix + ":";
 		}
 		
 		StringBuffer sb = new StringBuffer();
 		sb.append("<");
 		sb.append(prefix);
-		sb.append(qname.getLocalPart());
+		sb.append(localName);
 		sb.append(">");
 		sb.append("</");
 		sb.append(prefix);
-		sb.append(qname.getLocalPart());
+		sb.append(localName);
 		sb.append(">");
 		
 		return sb.toString();
