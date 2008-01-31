@@ -19,6 +19,7 @@
 
 package org.docx4all.util;
 
+import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -27,9 +28,11 @@ import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
+import javax.swing.text.Segment;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.BadSelectionException;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.ElementMLIteratorCallback;
@@ -73,6 +76,57 @@ public class DocUtil {
 		}
 	}
 	
+    public static final int getWordStart(WordMLTextPane editor, int offs)
+			throws BadLocationException {
+		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+		if (offs == doc.getLength()) {
+			throw new BadLocationException("No word at " + offs, offs);
+		}
+		Element para = doc.getParagraphMLElement(offs, true);
+		int paraStart = para.getStartOffset();
+		int paraEnd = para.getEndOffset();
+
+		Segment seg = new Segment();
+		doc.getText(paraStart, paraEnd - paraStart, seg);
+		if (seg.count > 0) {
+			BreakIterator words = BreakIterator.getWordInstance(editor
+					.getLocale());
+			words.setText(seg);
+			int wordPosition = seg.offset + offs - paraStart;
+			if (wordPosition >= words.last()) {
+				wordPosition = words.last() - 1;
+			}
+			words.following(wordPosition);
+			offs = paraStart + words.previous() - seg.offset;
+		}
+		return offs;
+	}
+    
+    public static final int getWordEnd(WordMLTextPane editor, int offs)
+			throws BadLocationException {
+		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+		if (offs == doc.getLength()) {
+			throw new BadLocationException("No word at " + offs, offs);
+		}
+		Element para = doc.getParagraphMLElement(offs, true);
+		int paraStart = para.getStartOffset();
+		int paraEnd = para.getEndOffset();
+
+		Segment seg = new Segment();
+		doc.getText(paraStart, paraEnd - paraStart, seg);
+		if (seg.count > 0) {
+			BreakIterator words = BreakIterator.getWordInstance(editor
+					.getLocale());
+			words.setText(seg);
+			int wordPosition = offs - paraStart + seg.offset;
+			if (wordPosition >= words.last()) {
+				wordPosition = words.last() - 1;
+			}
+			offs = paraStart + words.following(wordPosition) - seg.offset;
+		}
+		return offs;
+	}
+
 	public final static ElementML splitElementML(DocumentElement elem, int atIndex) {
 		if (elem.getStartOffset() == elem.getEndOffset()
 			|| elem.getElementML().isImplied()
