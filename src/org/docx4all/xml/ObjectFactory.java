@@ -19,6 +19,8 @@
 
 package org.docx4all.xml;
 
+import java.math.BigInteger;
+
 import javax.swing.text.StyleConstants;
 import javax.xml.bind.JAXBElement;
 
@@ -164,6 +166,18 @@ public class ObjectFactory {
 		u.getVal().add(value);
 		u.setColor(color);
 		return u;
+	}
+	
+	public final static org.docx4j.wml.RPr.RFonts createRPrRFonts(String ascii) {
+		org.docx4j.wml.RPr.RFonts rfonts = _jaxbFactory.createRPrRFonts();
+		rfonts.setAscii(ascii);
+		return rfonts;
+	}
+	
+	public final static org.docx4j.wml.HpsMeasure createHpsMeasure(Integer value) {
+		org.docx4j.wml.HpsMeasure sz = _jaxbFactory.createHpsMeasure();
+		sz.setVal(new BigInteger(value.toString()));
+		return sz;
 	}
 	
 	private ObjectFactory() {
