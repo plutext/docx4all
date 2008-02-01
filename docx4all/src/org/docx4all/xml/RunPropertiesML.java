@@ -19,6 +19,7 @@
 
 package org.docx4all.xml;
 
+import java.math.BigInteger;
 import java.util.List;
 
 import javax.swing.text.AttributeSet;
@@ -29,6 +30,7 @@ import javax.swing.text.StyleConstants;
 import org.apache.log4j.Logger;
 import org.docx4j.XmlUtils;
 import org.docx4j.wml.BooleanDefaultTrue;
+import org.docx4j.wml.HpsMeasure;
 import org.docx4j.wml.RPr;
 import org.docx4j.wml.Underline;
 
@@ -110,7 +112,37 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 		} else {
 			rPr.setU(null);
 		}
-	}
+		
+		//FONT FAMILY Attribute
+		String strValue = (String) this.attrs.getAttribute(StyleConstants.FontFamily);
+		RPr.RFonts rfonts = rPr.getRFonts();
+		if (rfonts != null) {
+			//Just set the asscii value.
+			//Do not touch other attributes.
+			rfonts.setAscii(strValue);
+		} else if (strValue != null) {
+			rfonts = ObjectFactory.createRPrRFonts(strValue);
+			rfonts.setParent(rPr);
+			rPr.setRFonts(rfonts);
+		}
+		
+		//FONT SIZE Attribute
+		Integer intValue = (Integer) this.attrs.getAttribute(StyleConstants.FontSize);
+		HpsMeasure sz = rPr.getSz();
+		if (sz != null) {
+			if (intValue == null) {
+				rPr.setSz(null);
+			} else {
+				BigInteger val = new BigInteger(intValue.toString());
+				sz.setVal(val);
+			}
+		} else if (intValue != null) {
+			sz = ObjectFactory.createHpsMeasure(intValue);
+			sz.setParent(rPr);
+			rPr.setSz(sz);
+		}
+		
+	} //save()
 	
 	public Object clone() {
 		RPr obj = null;
@@ -177,6 +209,21 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 			StyleConstants.setUnderline(this.attrs, Boolean.TRUE);
 		}
 		
+		//FONT FAMILY Attribute
+		RPr.RFonts rfonts = rPr.getRFonts();
+		if (rfonts != null) {
+			String strValue = rfonts.getAscii();
+			if (strValue != null) {
+				StyleConstants.setFontFamily(this.attrs, strValue);
+			}
+		}
+		
+		//FONT SIZE Attribute
+		HpsMeasure sz = rPr.getSz();
+		if (sz != null && sz.getVal() != null) {
+			StyleConstants.setFontSize(this.attrs, sz.getVal().intValue());
+		}
+		
 	}// initAttributes()
 
 	private boolean hasUnderlineSet(RPr rPr) {
@@ -195,7 +242,6 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 		
 		return hasUnderlineSet;
 	}
-	
 }// RunPropertiesML class
 
 
