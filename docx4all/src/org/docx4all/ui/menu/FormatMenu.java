@@ -23,11 +23,11 @@ import java.awt.event.ActionEvent;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JMenuItem;
+import javax.swing.JToggleButton;
 import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledEditorKit;
-import javax.swing.text.StyledEditorKit.StyledTextAction;
 
 import org.docx4all.swing.text.WordMLEditorKit;
+import org.docx4all.swing.text.WordMLEditorKit.StyledTextAction;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
 import org.jdesktop.application.Action;
@@ -177,25 +177,22 @@ public class FormatMenu extends UIMenu {
 	}
 	
 	@Action public void bold(ActionEvent evt) {
-        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-        ToolBarStates toolbarStates = editor.getToolbarStates();
-        boolean bold = !toolbarStates.isFontBold(); //toggle state
+		JToggleButton btn = (JToggleButton) evt.getSource();
+		boolean bold = btn.isSelected();
 		StyledTextAction action = new WordMLEditorKit.BoldAction(bold);
 		action.actionPerformed(evt);
 	}
 	
 	@Action public void italic(ActionEvent evt) {
-        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-        ToolBarStates toolbarStates = editor.getToolbarStates();
-        boolean italic = !toolbarStates.isFontItalic(); //toggle state
+		JToggleButton btn = (JToggleButton) evt.getSource();
+		boolean italic = btn.isSelected();
 		StyledTextAction action = new WordMLEditorKit.ItalicAction(italic);
 		action.actionPerformed(evt);
 	}
 	
 	@Action public void underline(ActionEvent evt) {
-        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-        ToolBarStates toolbarStates = editor.getToolbarStates();
-        boolean underline = !toolbarStates.isFontUnderlined(); //toggle state
+		JToggleButton btn = (JToggleButton) evt.getSource();
+		boolean underline = btn.isSelected();
 		StyledTextAction action = new WordMLEditorKit.UnderlineAction(underline);
 		action.actionPerformed(evt);
 	}
@@ -237,20 +234,16 @@ public class FormatMenu extends UIMenu {
 	}
 	
 	@Action public void fontFamily(ActionEvent actionEvent) {
-        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-        ToolBarStates toolbarStates = editor.getToolbarStates();
-        
         StyledTextAction action =
-			new StyledEditorKit.FontFamilyAction(FONT_FAMILY_ACTION_NAME, toolbarStates.getFontFamily());
-		action.actionPerformed(actionEvent);
+			new WordMLEditorKit.FontFamilyAction(
+				FONT_FAMILY_ACTION_NAME, actionEvent.getActionCommand());
+		action.actionPerformed(actionEvent); 
 	}
 	
 	@Action public void fontSize(ActionEvent actionEvent) {
-        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-        ToolBarStates toolbarStates = editor.getToolbarStates();
-        
         StyledTextAction action =
-			new StyledEditorKit.FontSizeAction(FONT_SIZE_ACTION_NAME, toolbarStates.getFontSize());
+			new WordMLEditorKit.FontSizeAction(
+				FONT_SIZE_ACTION_NAME, Integer.parseInt(actionEvent.getActionCommand()));
 		action.actionPerformed(actionEvent);
 	}
 	
