@@ -21,6 +21,9 @@ package org.docx4all.script.fx.ui;
 
 import org.docx4all.ui.main.ToolBarStates;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -32,10 +35,25 @@ public class ComboBox extends JFXComboBox {
     
     private operation setSwingAction(action:<<javax.swing.Action>>);
     private attribute stateListener: <<java.beans.PropertyChangeListener>>;
+    private attribute firingActionEvent: Boolean;
 }
 
 trigger on ComboBox.swingAction = newAction {
-     ((<<javax.swing.JComboBox>>) getComponent()).addActionListener(newAction);
+    var self = this;
+    ((<<javax.swing.JComboBox>>) getComponent()).addActionListener(
+        new ActionListener() {
+            operation actionPerformed(e: ActionEvent) {
+                if (self.firingActionEvent) {
+                    var selectedText = self.cells[self.selection].text;
+                    var evt = 
+                        new ActionEvent(e.getSource(), e.getID(), selectedText, e.getWhen(), e.getModifiers());
+                    newAction.actionPerformed(evt);
+                } else {
+                    self.firingActionEvent = true;
+                }
+            }        
+        }
+    );
 }
 
 trigger on ComboBox.propertyNameToListen[oldName] = newName {
@@ -52,12 +70,14 @@ trigger on ComboBox.propertyNameToListen[oldName] = newName {
 
 trigger on (new ComboBox) {
     var self = this;
+    this.firingActionEvent = true;
     this.stateListener =  new PropertyChangeListener {
         operation propertyChange(evt:PropertyChangeEvent) {
             var newSelectionText = (String) evt.getNewValue();
             var idx = 
                 select indexof item from item in self.cells
-                    where item.text == newSelectionText;                    
+                    where item.text == newSelectionText;
+            self.firingActionEvent = false;                    
             self.selection = idx;
         }
     };// stateListener
