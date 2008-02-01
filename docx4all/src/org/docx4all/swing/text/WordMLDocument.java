@@ -213,7 +213,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 			TextSelector ts = new TextSelector(this, offset, length);
 			List<ElementMLRecord> records = ts.getElementMLRecords();
 			for (ElementMLRecord rec: records) {
-				contents.add(rec.getElementML());
+				contents.add((ElementML) rec.getElementML().clone());
 			}
 		} catch (BadSelectionException exc) {
 			;//ignore
@@ -612,7 +612,7 @@ public class WordMLDocument extends DefaultStyledDocument {
     	log.debug("insertString(): offset = " + offs + " text = " + str);
     	super.insertString(offs, str, a);
     }
-    
+        
     protected void insertUpdate(DefaultDocumentEvent chng, AttributeSet attr) {
         int offset = chng.getOffset();
         int length = chng.getLength();
