@@ -163,15 +163,10 @@ TOOL_BAR_3:JFXToolBar = JFXToolBar {
                   getAvailableFontFamilyNames()
         var: self
         selection: select indexof font from font in fontNames
-                   where font.startsWith("Times")
+                   where font.startsWith("Monospaced")
         cells: foreach (font in fontNames)
                ComboBoxCell { text: font }
             
-        action: operation() {
-            var font = self.cells[self.selection].text;
-            toolBarStates.setFontFamily(font);
-        }
-        
         propertyNameToListen: toolBarStates.FONT_FAMILY_PROPERTY_NAME
         swingAction: formatMenu.getAction(formatMenu.FONT_FAMILY_ACTION_NAME)
     }
@@ -182,37 +177,22 @@ TOOL_BAR_3:JFXToolBar = JFXToolBar {
         selection: 1
         cells: foreach (size in fontSizes)
                ComboBoxCell { text: size }
-        action: operation() {
-            var size = self.cells[self.selection].text;
-            toolBarStates.setFontSize(size);
-        }
+               
         propertyNameToListen: toolBarStates.FONT_SIZE_PROPERTY_NAME
         swingAction: formatMenu.getAction(formatMenu.FONT_SIZE_ACTION_NAME)
     }
     
     var boldButton = ToggleButton {
-        var: self
-        action: operation() {
-            toolBarStates.setFontBold(self.selected);
-        }
         enabledPropertyName: toolBarStates.FONT_BOLD_PROPERTY_NAME
         swingAction: formatMenu.getAction(formatMenu.BOLD_ACTION_NAME)
     }
     
     var italicButton = ToggleButton {
-        var: self
-        action: operation() {
-            toolBarStates.setFontItalic(self.selected);
-        }
         enabledPropertyName: toolBarStates.FONT_ITALIC_PROPERTY_NAME
         swingAction: formatMenu.getAction(formatMenu.ITALIC_ACTION_NAME)
     }
     
     var underlineButton = ToggleButton {
-        var: self
-        action: operation() {
-            toolBarStates.setFontUnderlined(self.selected);
-        }
         enabledPropertyName: toolBarStates.FONT_UNDERLINED_PROPERTY_NAME
         swingAction: formatMenu.getAction(formatMenu.UNDERLINE_ACTION_NAME)
     }
