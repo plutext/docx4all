@@ -158,7 +158,7 @@ public class WordMLDocumentFilter extends DocumentFilter {
 			List<ElementSpec> specs = DocUtil.getElementSpecs(para);
 			insertLater(doc, start, specs);
 			
-		} else if (attrs != null && attrs.getAttributeCount() > 0){
+		} else {
 			ElementML para = elem.getElementML();
 			int paraStart = elem.getStartOffset();
 			int paraEnd = elem.getEndOffset();
@@ -170,7 +170,7 @@ public class WordMLDocumentFilter extends DocumentFilter {
 				elem = (DocumentElement) doc.getRunMLElement(offset - 1);
 			}
 			
-			if (elem.getAttributes().containsAttributes(attrs)) {
+			if (attrs == null || elem.getAttributes().containsAttributes(attrs)) {
 				super.insertString(fb, offset, text, attrs);
 			} else {
 				//Needs to save text content first
@@ -202,8 +202,6 @@ public class WordMLDocumentFilter extends DocumentFilter {
 				List<ElementSpec> specs = DocUtil.getElementSpecs(para);
 				insertLater(doc, paraStart, specs);
 			}
-		} else {
-			super.insertString(fb, offset, text, attrs);
 		}
 		
 		if (log.isDebugEnabled()) {
