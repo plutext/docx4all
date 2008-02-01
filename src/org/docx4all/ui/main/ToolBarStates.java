@@ -444,17 +444,18 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
     private void setFormatInfo(JEditorPane editor) {
     	StyledDocument doc = (StyledDocument) editor.getDocument();
     	
-    	int pos = Math.min(editor.getSelectionStart(), editor.getSelectionEnd());
-    	Element paragraph = doc.getParagraphElement(pos);
+    	int start = editor.getSelectionStart();
+    	int end = editor.getSelectionEnd();
+    	Element paragraph = doc.getParagraphElement(start);
     	Element text = null;
 	    // If nothing is selected, get the attributes from the character
 	    // before the caret, otherwise get the attributes
 	    // from the character element at the start of the selection.
-	    if (paragraph.getParentElement().getStartOffset() == pos 
-	    	|| editor.getSelectionStart() != editor.getSelectionEnd()) {
-	    	text = doc.getCharacterElement(pos);
+	    if (paragraph.getParentElement().getStartOffset() == start 
+	    	|| start != end) {
+	    	text = doc.getCharacterElement(start);
 		} else {
-			text = doc.getCharacterElement(Math.max(pos-1, 0));
+			text = doc.getCharacterElement(Math.max(start-1, 0));
 		}
   
 	    setFontFamily(StyleConstants.getFontFamily(text.getAttributes()));
