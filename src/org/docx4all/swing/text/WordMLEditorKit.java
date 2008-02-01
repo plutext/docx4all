@@ -51,6 +51,7 @@ import javax.swing.text.StyledEditorKit;
 import javax.swing.text.TextAction;
 import javax.swing.text.Utilities;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
+import javax.swing.text.StyledEditorKit.StyledTextAction;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
@@ -342,14 +343,17 @@ public class WordMLEditorKit extends StyledEditorKit {
         	
 			Runnable caretPosRunnable = createCaretPositionRunnable(editor);
 			
+			WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
+			kit.saveCaretText();
+			
 			WordMLDocument doc = (WordMLDocument) editor.getDocument();
 			
 			int p0 = editor.getSelectionStart();
 			int p1 = editor.getSelectionEnd();
 			if (p0 == p1) {
 				try {
-					int wordStart = Utilities.getWordStart(editor, p0);
-					int wordEnd = Utilities.getWordEnd(editor, p1);
+					int wordStart = DocUtil.getWordStart(editor, p0);
+					int wordEnd = DocUtil.getWordEnd(editor, p1);
 					if (wordStart < p0 && p0 < wordEnd) {
 						p0 = wordStart;
 						p1 = wordEnd;
@@ -359,7 +363,6 @@ public class WordMLEditorKit extends StyledEditorKit {
 				}
 			}
 			
-			StyledEditorKit kit = getStyledEditorKit(editor);
 			MutableAttributeSet inputAttributes = kit.getInputAttributes();
 			if (p0 != p1) {
 				try {
@@ -381,8 +384,12 @@ public class WordMLEditorKit extends StyledEditorKit {
 				AttributeSet attr, boolean replace) {
 			Runnable caretPosRunnable = createCaretPositionRunnable(editor);
 			
+			WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
+			kit.saveCaretText();
+			
 			int p0 = editor.getSelectionStart();
 			int p1 = editor.getSelectionEnd();
+			
 			WordMLDocument doc = (WordMLDocument) editor.getDocument();
 			doc.setParagraphMLAttributes(p0, (p1 - p0), attr, replace);
 			SwingUtilities.invokeLater(caretPosRunnable);
@@ -438,6 +445,80 @@ public class WordMLEditorKit extends StyledEditorKit {
 		}
 	}// AlignmentAction inner class
 	
+    public static class FontFamilyAction extends StyledTextAction {
+		private String family;
+
+		/**
+		 * Creates a new FontFamilyAction.
+		 * 
+		 * @param nm
+		 *            the action name
+		 * @param family
+		 *            the font family
+		 */
+		public FontFamilyAction(String nm, String family) {
+			super(nm);
+			this.family = family;
+		}
+
+		/**
+		 * Sets the font family.
+		 * 
+		 * @param e
+		 *            the event
+		 */
+		public void actionPerformed(ActionEvent e) {
+			JEditorPane editor = getEditor(e);
+			if (editor instanceof WordMLTextPane) {
+				if (this.family != null) {
+					MutableAttributeSet attr = new SimpleAttributeSet();
+					StyleConstants.setFontFamily(attr, this.family);
+					setRunMLAttributes((WordMLTextPane) editor, attr, false);
+				} else {
+					UIManager.getLookAndFeel().provideErrorFeedback(editor);
+				}
+			}
+		}
+
+	} //FontFamilyAction inner class
+
+    public static class FontSizeAction extends StyledTextAction {
+
+		/**
+		 * Creates a new FontSizeAction.
+		 * 
+		 * @param nm
+		 *            the action name
+		 * @param size
+		 *            the font size
+		 */
+		public FontSizeAction(String nm, int size) {
+			super(nm);
+			this.size = size;
+		}
+
+		/**
+		 * Sets the font size.
+		 * 
+		 * @param e
+		 *            the action event
+		 */
+		public void actionPerformed(ActionEvent e) {
+			JEditorPane editor = getEditor(e);
+			if (editor instanceof WordMLTextPane) {
+				if (this.size != 0) {
+					MutableAttributeSet attr = new SimpleAttributeSet();
+					StyleConstants.setFontSize(attr, this.size);
+					setRunMLAttributes((WordMLTextPane) editor, attr, false);
+				} else {
+					UIManager.getLookAndFeel().provideErrorFeedback(editor);
+				}
+			}
+		}
+
+		private int size;
+	}
+
 	public static class BoldAction extends StyledTextAction {
 		private boolean isBold;
 		
@@ -524,6 +605,9 @@ public class WordMLEditorKit extends StyledEditorKit {
 				    UIManager.getLookAndFeel().provideErrorFeedback(editor);
 				    return;
 				}
+				
+				WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
+				kit.saveCaretText();
 				
 				WordMLDocument doc = (WordMLDocument) editor.getDocument();
 				final int pos = editor.getCaretPosition();
