@@ -30,6 +30,8 @@ import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
 import org.docx4j.wml.RPr;
 
+import com.sun.org.apache.xerces.internal.dom.NodeImpl;
+
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
  */
@@ -192,12 +194,18 @@ public class RunML extends ElementML {
 			run = (org.docx4j.wml.R) docxObject;
 			this.isDummy = false;
 			
-		} else if (docxObject instanceof JAXBElement<?>) {
+		} else if (docxObject instanceof JAXBElement) {
 			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
 			//Create a dummy RunML for this unsupported element
 			// TODO: A more informative text content in dummy RunML
 			String renderedText = 
 				XmlUtil.getEnclosingTagPair(jaxbElem.getName());
+			run = ObjectFactory.createR(renderedText);
+			this.isDummy = true;
+			
+		} else if (docxObject instanceof NodeImpl) {
+			String renderedText = 
+				XmlUtil.getEnclosingTagPair((NodeImpl) docxObject);
 			run = ObjectFactory.createR(renderedText);
 			this.isDummy = true;
 			
