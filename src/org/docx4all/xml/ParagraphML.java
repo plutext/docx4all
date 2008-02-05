@@ -48,8 +48,10 @@ public class ParagraphML extends ElementML {
 	
     public void addAttributes(AttributeSet attrs, boolean replace) {
 		if (this.pPr == null) {
-			ParagraphPropertiesML ml = ElementMLFactory.createParagraphPropertiesML(attrs);
-			setParagraphProperties(ml);
+			if (attrs.getAttributeCount() > 0) {
+				ParagraphPropertiesML ml = ElementMLFactory.createParagraphPropertiesML(attrs);
+				setParagraphProperties(ml);
+			}
 		} else {
 			if (replace) {
 				this.pPr.removeAttributes(attrs);							
