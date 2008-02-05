@@ -50,8 +50,10 @@ public class RunML extends ElementML {
 	
     public void addAttributes(AttributeSet attrs, boolean replace) {
 		if (this.rPr == null) {
-			RunPropertiesML ml = ElementMLFactory.createRunPropertiesML(attrs);
-			setRunProperties(ml);
+			if (attrs.getAttributeCount() > 0) {
+				RunPropertiesML ml = ElementMLFactory.createRunPropertiesML(attrs);
+				setRunProperties(ml);
+			}
 		} else {
 			if (replace) {
 				this.rPr.removeAttributes(attrs);							
