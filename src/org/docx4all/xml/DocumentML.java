@@ -71,7 +71,7 @@ public class DocumentML extends ElementML {
 		return canAdd;
 	}
 	
-	public void addChild(int idx, ElementML child) {
+	public void addChild(int idx, ElementML child, boolean adopt) {
 		if (!(child instanceof BodyML)) {
 			throw new IllegalArgumentException("NOT a BodyML");
 		}
@@ -84,7 +84,7 @@ public class DocumentML extends ElementML {
 			throw new IllegalArgumentException("idx=" + idx + ". Zero is expected.");
 		}
 		
-		super.addChild(idx, child);
+		super.addChild(idx, child, adopt);
 	}
 	
 	public boolean canAddSibling(ElementML elem, boolean after) {

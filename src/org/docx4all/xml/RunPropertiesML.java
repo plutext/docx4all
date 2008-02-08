@@ -156,7 +156,7 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 		return false;
 	}
 	
-	public void addChild(int idx, ElementML child) {
+	public void addChild(int idx, ElementML child, boolean adopt) {
 		throw new UnsupportedOperationException("Cannot have a child.");
 	}
 		

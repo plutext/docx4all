@@ -120,14 +120,14 @@ public class ParagraphML extends ElementML {
 		return canAdd;
 	}
 	
-	public void addChild(int idx, ElementML child) {
+	public void addChild(int idx, ElementML child, boolean adopt) {
 		if (!(child instanceof RunML)) {
 			throw new IllegalArgumentException("NOT a RunML");
 		}
 		if (child.getParent() != null) {
 			throw new IllegalArgumentException("Not an orphan.");
 		}
-		super.addChild(idx, child);
+		super.addChild(idx, child, adopt);
 	}
 		
 	public void setParent(ElementML parent) {

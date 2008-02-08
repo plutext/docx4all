@@ -132,23 +132,35 @@ public abstract class ElementML implements Cloneable {
 	}
 	
 	public void addChild(ElementML child) {
+		addChild(child, true);
+	}
+	
+	public void addChild(ElementML child, boolean adopt) {
 		int idx = (getChildren() == null) ? 0 : getChildren().size();
-		addChild(idx, child);
+		addChild(idx, child, adopt);
 	}
 	
 	public void addChild(int idx, ElementML child) {
+		addChild(idx, child, true);
+	}
+	
+	public void addChild(int idx, ElementML child, boolean adopt) {
 		if (this.children == null) {
 			if (idx == 0) {
 				//Add to this ElementML's children
 				this.children = new ArrayList<ElementML>();
 				this.children.add(child);
-				child.setParent(ElementML.this);
 				
-				//Add to Docx structure
-				if (getDocxObject() != null && child.getDocxObject() != null) {
-					List<Object> list = getDocxChildren();
-					list.add(child.getDocxObject());
-					child.setDocxParent(getDocxObject());
+				if (adopt) {
+					child.setParent(ElementML.this);
+
+					// Add to Docx structure
+					if (getDocxObject() != null
+							&& child.getDocxObject() != null) {
+						List<Object> list = getDocxChildren();
+						list.add(child.getDocxObject());
+						child.setDocxParent(getDocxObject());
+					}
 				}
 			} else {
 				throw new IndexOutOfBoundsException("Index: "+idx+", Size: 0");
@@ -157,51 +169,57 @@ public abstract class ElementML implements Cloneable {
 		} else {
 			//Add to this ElementML's children
 			this.children.add(idx, child);
-			child.setParent(ElementML.this);
 			
-			//Add to Docx structure
-			if (getDocxObject() != null && child.getDocxObject() != null) {
-				List<Object> list = getDocxChildren();
+			if (adopt) {
+				child.setParent(ElementML.this);
 
-				//The index position in the Docx structure may
-				//be different from that in this ElementML structure.
-				//Therefore, we find the index position from siblings.
-				//TODO: Should we care about this difference ?
-				
-				//Browse older siblings for index position
-				int siblingIndex = -1;
-				if (idx > 0) {
-					for (int i = idx - 1; 0 <= i && siblingIndex == -1; i--) {
-						Object obj = ((ElementML) this.children.get(i)).getDocxObject();
-						siblingIndex = list.indexOf(obj);
-					}
-				}
-				
-				if (siblingIndex > -1) {
-					list.add(siblingIndex + 1, child.getDocxObject());
-					child.setDocxParent(getDocxObject());
-					
-				} else if (idx < this.children.size() - 1){
-					//Browse younger siblings for index position
-					for (int i = idx + 1; i < this.children.size() && siblingIndex == -1; i++) {
-						Object obj = ((ElementML) this.children.get(i)).getDocxObject();
-						siblingIndex = list.indexOf(obj);
+				// Add to Docx structure
+				if (getDocxObject() != null && child.getDocxObject() != null) {
+					List<Object> list = getDocxChildren();
+
+					// The index position in the Docx structure may
+					// be different from that in this ElementML structure.
+					// Therefore, we find the index position from siblings.
+					// TODO: Should we care about this difference ?
+
+					// Browse older siblings for index position
+					int siblingIndex = -1;
+					if (idx > 0) {
+						for (int i = idx - 1; 0 <= i && siblingIndex == -1; i--) {
+							Object obj = ((ElementML) this.children.get(i))
+									.getDocxObject();
+							siblingIndex = list.indexOf(obj);
+						}
 					}
 
 					if (siblingIndex > -1) {
-						list.add(siblingIndex, child.getDocxObject());
+						list.add(siblingIndex + 1, child.getDocxObject());
+						child.setDocxParent(getDocxObject());
+
+					} else if (idx < this.children.size() - 1) {
+						// Browse younger siblings for index position
+						for (int i = idx + 1; i < this.children.size()
+								&& siblingIndex == -1; i++) {
+							Object obj = ((ElementML) this.children.get(i))
+									.getDocxObject();
+							siblingIndex = list.indexOf(obj);
+						}
+
+						if (siblingIndex > -1) {
+							list.add(siblingIndex, child.getDocxObject());
+							child.setDocxParent(getDocxObject());
+						}
+					}
+
+					if (siblingIndex == -1) {
+						// Add child anyway
+						list.add(child.getDocxObject());
 						child.setDocxParent(getDocxObject());
 					}
 				}
-				
-				if (siblingIndex == -1) {
-					//Add child anyway
-					list.add(child.getDocxObject());
-					child.setDocxParent(getDocxObject());
-				}
-			}
+			} //if (adopt)
 		}
-	}
+	} //addChild()
 	
 	public void delete() {
 		if (getParent() == null) {

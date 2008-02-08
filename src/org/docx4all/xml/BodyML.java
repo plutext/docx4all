@@ -60,14 +60,14 @@ public class BodyML extends ElementML {
 		return canAdd;
 	}
 		
-	public void addChild(int idx, ElementML child) {
+	public void addChild(int idx, ElementML child, boolean adopt) {
 		if (!(child instanceof ParagraphML)) {
 			throw new IllegalArgumentException("NOT a ParagraphML");
 		}
 		if (child.getParent() != null) {
 			throw new IllegalArgumentException("Not an orphan.");
 		}
-		super.addChild(idx, child);
+		super.addChild(idx, child, adopt);
 	}
 	
 	public boolean canAddSibling(ElementML elem, boolean after) {
