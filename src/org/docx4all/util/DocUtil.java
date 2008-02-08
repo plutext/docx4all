@@ -28,6 +28,7 @@ import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
+import javax.swing.text.Position;
 import javax.swing.text.Segment;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
@@ -57,6 +58,63 @@ public class DocUtil {
 	private static Logger log = Logger.getLogger(DocUtil.class);
 
 	private final static String TAB = "    ";
+	
+	/**
+	 * When a text is inserted into a document its attributes
+	 * are determined by the text element at the insertion position.
+	 * This text element is called input attribute element and
+	 * has to be editable.
+	 * 
+	 * Given an insertion position there are two potential input attribute 
+	 * elements, namely the one on the left of the insertion position and 
+	 * on the right. By default this method returns the one on the left.
+	 * In the case where this default input attribute element does not exist
+	 * or the insertion position is at the beginning of a paragraph then 
+	 * the other input attribute element will be visited.
+	 * 
+	 * To override the default behaviour 'bias' parameter
+	 * can be set to either Position.Bias.Forward (for selecting the right element) 
+	 * or Position.Bias.Backward (for the left one).
+	 * 
+	 * @param doc the document where input attribute element is desired
+	 * @param offset Offset position
+	 * @param bias Null, default behaviour
+	 *             Position.Bias.Forward, choose the right element
+	 *             Position.Bias.Backward, choose the left element
+	 * @return An editable WordMLDocument.TextElement if any; 
+	 *         Null, otherwise.
+	 */
+	public final static WordMLDocument.TextElement getInputAttributeElement(
+		WordMLDocument doc, 
+		int offset,
+		Position.Bias bias) {
+		
+		DocumentElement theElem = null;
+		
+		if (bias == null) {
+			theElem = (DocumentElement) doc.getParagraphMLElement(offset, true);
+			if (theElem.getStartOffset() == offset) {
+				theElem = (DocumentElement) doc.getCharacterElement(offset);
+			} else {
+				theElem = 
+					(DocumentElement) 
+						doc.getCharacterElement(Math.max(offset - 1, 0));
+				if (!theElem.isEditable()) {
+					theElem = (DocumentElement) doc.getCharacterElement(offset);
+				}
+			}
+		} else {
+			offset = (bias == Position.Bias.Forward) ? offset : Math.max(offset - 1, 0);
+			theElem = 
+				(WordMLDocument.TextElement) doc.getCharacterElement(offset);
+		}
+
+		if (!theElem.isEditable()) {
+			theElem = null;
+		}
+		
+		return (WordMLDocument.TextElement) theElem;
+	}
 	
 	public final static void saveTextContentToElementML(WordMLDocument.TextElement elem) {
 		if (elem == null
@@ -146,7 +204,7 @@ public class DocUtil {
 		try {
 			ts = new TextSelector(doc, offset, length);
 		} catch (BadSelectionException exc) {
-			;//ignore
+			throw new IllegalArgumentException("Unable to split elem=" + elem);
 		}
 		
 		List<ElementML> deletedElementMLs = null;
