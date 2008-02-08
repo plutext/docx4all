@@ -163,6 +163,11 @@ public abstract class ElementML implements Cloneable {
 			if (getDocxObject() != null && child.getDocxObject() != null) {
 				List<Object> list = getDocxChildren();
 
+				//The index position in the Docx structure may
+				//be different from that in this ElementML structure.
+				//Therefore, we find the index position from siblings.
+				//TODO: Should we care about this difference ?
+				
 				//Browse older siblings for index position
 				int siblingIndex = -1;
 				if (idx > 0) {
@@ -190,7 +195,9 @@ public abstract class ElementML implements Cloneable {
 				}
 				
 				if (siblingIndex == -1) {
-					throw new IndexOutOfBoundsException("SiblingIndex = -1");
+					//Add child anyway
+					list.add(child.getDocxObject());
+					child.setDocxParent(getDocxObject());
 				}
 			}
 		}
