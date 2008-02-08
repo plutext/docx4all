@@ -92,7 +92,7 @@ public class ParagraphPropertiesML extends ElementML implements PropertiesContai
 		return false;
 	}
 	
-	public void addChild(int idx, ElementML child) {
+	public void addChild(int idx, ElementML child, boolean adopt) {
 		throw new UnsupportedOperationException("Cannot have a child.");
 	}
 		
