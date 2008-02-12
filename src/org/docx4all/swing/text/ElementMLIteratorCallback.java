@@ -108,13 +108,13 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	
 	private void openElementSpec(ParagraphML paragraphML) {
 		_paragraphAttrs = new SimpleAttributeSet();
-		WordMLStyleConstants.setElementML(_paragraphAttrs, paragraphML);
 		
 		PropertiesContainerML pc = paragraphML.getParagraphProperties();
 		if (pc != null) {
 			_paragraphAttrs.addAttributes(pc.getAttributeSet());
 		}
 		
+		WordMLStyleConstants.setElementML(_paragraphAttrs, paragraphML);
 		openElementSpec(_paragraphAttrs);
 		
 		//Insert IMPLIED_PARAGRAPH inside every ParagraphML BLOCK
@@ -163,13 +163,13 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	
 	private void openElementSpec(RunML runML) {
 		_runAttrs = new SimpleAttributeSet();
-		WordMLStyleConstants.setElementML(_runAttrs, runML);
 		
 		PropertiesContainerML pc = runML.getRunProperties();
 		if (pc != null) {
 			_runAttrs.addAttributes(pc.getAttributeSet());
 		}
 		
+		WordMLStyleConstants.setElementML(_runAttrs, runML);
 		openElementSpec(_runAttrs);
 	}
 
