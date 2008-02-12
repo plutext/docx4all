@@ -75,7 +75,7 @@ public class TransferHandler extends javax.swing.TransferHandler {
 		}
 
 		final AttributeSet inputAttrs =
-			((WordMLEditorKit) wmlTextPane.getEditorKit()).getInputAttributes();
+			((WordMLEditorKit) wmlTextPane.getEditorKit()).getInputAttributesML();
 		final WordMLDocument doc = (WordMLDocument) wmlTextPane.getDocument();
 		if (doc != null) {
 			try {
