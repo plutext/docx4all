@@ -27,24 +27,28 @@ import java.util.Hashtable;
 
 import javax.swing.JEditorPane;
 import javax.swing.JInternalFrame;
-import javax.swing.event.CaretEvent;
-import javax.swing.event.CaretListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
+import javax.swing.text.AttributeSet;
 import javax.swing.text.Element;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.WordMLTextPane;
+import org.docx4all.swing.event.InputAttributeEvent;
+import org.docx4all.swing.event.InputAttributeListener;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.util.SwingUtil;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
  */
-public class ToolBarStates extends InternalFrameAdapter implements FocusListener, DocumentListener, CaretListener {
+public class ToolBarStates extends InternalFrameAdapter 
+	implements FocusListener, DocumentListener, InputAttributeListener {
+	
 	private static Logger log = Logger.getLogger(ToolBarStates.class);
 	
 	/**
@@ -442,27 +446,19 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
 	}
 
     private void setFormatInfo(JEditorPane editor) {
-    	StyledDocument doc = (StyledDocument) editor.getDocument();
+    	int pos = editor.getCaretPosition();
     	
-    	int start = editor.getSelectionStart();
-    	int end = editor.getSelectionEnd();
-    	Element paragraph = doc.getParagraphElement(start);
-    	Element text = null;
-	    // If nothing is selected, get the attributes from the character
-	    // before the caret, otherwise get the attributes
-	    // from the character element at the start of the selection.
-	    if (paragraph.getParentElement().getStartOffset() == start 
-	    	|| start != end) {
-	    	text = doc.getCharacterElement(start);
-		} else {
-			text = doc.getCharacterElement(Math.max(start-1, 0));
-		}
-  
-	    setFontFamily(StyleConstants.getFontFamily(text.getAttributes()));
-	    setFontSize(StyleConstants.getFontSize(text.getAttributes()));
-	    setFontBold(StyleConstants.isBold(text.getAttributes()));
-	    setFontItalic(StyleConstants.isItalic(text.getAttributes()));
-	    setFontUnderlined(StyleConstants.isUnderline(text.getAttributes()));
+    	StyledDocument doc = (StyledDocument) editor.getDocument();
+    	Element paragraph = doc.getParagraphElement(pos);
+    	
+    	AttributeSet inputAttrs = 
+    		((WordMLTextPane) editor).getInputAttributesML();
+    	  
+	    setFontFamily(StyleConstants.getFontFamily(inputAttrs));
+	    setFontSize(StyleConstants.getFontSize(inputAttrs));
+	    setFontBold(StyleConstants.isBold(inputAttrs));
+	    setFontItalic(StyleConstants.isItalic(inputAttrs));
+	    setFontUnderlined(StyleConstants.isUnderline(inputAttrs));
 	    
 	    setAlignment(StyleConstants.getAlignment(paragraph.getAttributes()));
     }
@@ -514,7 +510,6 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
     	if (log.isDebugEnabled()) {
     		log.debug("focusLost():");
     	}
-    	;//not implemented
     }
     
 	//===============================
@@ -534,7 +529,6 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
     	if (_currentEditor != null 
         		&& _currentEditor.getDocument() == e.getDocument()) {
     		setDocumentDirty(true);
-    		setFormatInfo(_currentEditor);
     	}
     }
 
@@ -552,7 +546,6 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
     	if (_currentEditor != null 
         		&& _currentEditor.getDocument() == e.getDocument()) {
     		setDocumentDirty(true);
-    		setFormatInfo(_currentEditor);
     	}
     }
 
@@ -568,7 +561,6 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
     	if (_currentEditor != null 
     		&& _currentEditor.getDocument() == e.getDocument()) {
     		setDocumentDirty(true);
-    		setFormatInfo(_currentEditor);
     	}
 	}
 
@@ -602,11 +594,11 @@ public class ToolBarStates extends InternalFrameAdapter implements FocusListener
     	firePropertyChange(IFRAME_NUMBERS_PROPERTY_NAME, oldNumbers, newNumbers);
     }
 
-	//====================================
-	//CaretListener Implementation
-	//====================================
-
-    public void caretUpdate(CaretEvent e) {
+	//=====================================
+	//InputAttributeListener Implementation
+	//=====================================
+    
+    public void inputAttributeChanged(InputAttributeEvent e) {
     	if (_currentEditor == (JEditorPane) e.getSource()) {
     		setFormatInfo(_currentEditor);
     	}
