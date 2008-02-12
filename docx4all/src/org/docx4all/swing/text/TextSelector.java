@@ -263,6 +263,11 @@ public class TextSelector {
 		return getChildren(root, offset, length);
 	}
 	
+    public boolean isFullySelected(Element elem) {
+    	return (offset <= elem.getStartOffset() 
+    			&& elem.getEndOffset() <= offset + length);
+    }
+
 	private List<DocumentElement> getChildren(DocumentElement elem, int offset, int length) {
 		List<DocumentElement> theChildren = new ArrayList<DocumentElement>();
 		
@@ -337,11 +342,6 @@ public class TextSelector {
 		}
     }
     
-    protected boolean isFullySelected(Element elem) {
-    	return (offset <= elem.getStartOffset() 
-    			&& elem.getEndOffset() <= offset + length);
-    }
-
 }// TextSelector class
 
 
