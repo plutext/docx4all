@@ -19,24 +19,31 @@
 
 package org.docx4all.swing;
 
-import javax.swing.JTextPane;
-import javax.swing.SwingUtilities;
+import javax.swing.JEditorPane;
+import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 import javax.swing.text.EditorKit;
+import javax.swing.text.MutableAttributeSet;
 
+import org.apache.log4j.Logger;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLEditorKit;
+import org.docx4all.ui.main.WordMLEditor;
+import org.docx4all.util.DocUtil;
+import org.jdesktop.application.ResourceMap;
 
 /**
  *	@author Jojada Tirtowidjojo - 22/01/2008
  */
-public class WordMLTextPane extends JTextPane {
+public class WordMLTextPane extends JEditorPane {
+	private static Logger log = Logger.getLogger(WordMLTextPane.class);
 
 	public WordMLTextPane() {
 		super();
+        setEditorKit(createDefaultEditorKit());
 	}
 	
     public void setDocument(Document doc) {
@@ -47,6 +54,23 @@ public class WordMLTextPane extends JTextPane {
         }
     }
 
+    /**
+     * Sets the currently installed kit for handling
+     * content.  This is the bound property that
+     * establishes the content type of the editor.
+     * 
+     * @param kit the desired editor behavior
+     * @exception IllegalArgumentException if kit is not a
+     *		<code>WordMLEditorKit</code>
+     */
+    public void setEditorKit(EditorKit kit) {
+        if (kit instanceof WordMLEditorKit) {
+            super.setEditorKit(kit);
+        } else {
+            throw new IllegalArgumentException("Must be WordMLEditorKit");
+        }
+    }
+
     public void replaceSelection(String content) {
         if (!isEditable()) {
         	UIManager.getLookAndFeel().provideErrorFeedback(WordMLTextPane.this);
@@ -54,29 +78,62 @@ public class WordMLTextPane extends JTextPane {
         }
         
         WordMLDocument doc = (WordMLDocument) getDocument();
-        if (doc != null) {
+        if (doc != null && content != null && content.length() > 0) {
+        	int start = getSelectionStart();
+        	int end = getSelectionEnd();           	
+        	
             try {
-            	int start = getSelectionStart();
-            	int end = getSelectionEnd();
-            	final int newCaretPos = 
-            		(content != null) ? start + content.length() : start;
+            	int newCaretPos = start + content.length();
             	
-            	AttributeSet attrs = getInputAttributes().copyAttributes();
+            	AttributeSet inputAttrs = getInputAttributesML();
+            	MutableAttributeSet attrs = 
+            		(MutableAttributeSet) inputAttrs.copyAttributes();
+            	if (inputAttrs.getResolveParent() != null) {
+            		attrs.setResolveParent(inputAttrs.getResolveParent().copyAttributes());
+            	}
+            	
                 doc.replace(start, (end - start), content, attrs);
                 
-                SwingUtilities.invokeLater(new Runnable() {
-                	public void run() {
-                		setCaretPosition(newCaretPos);
-                	}
-                });
+                setCaretPosition(newCaretPos);
+                
             } catch (BadLocationException e) {
             	UIManager.getLookAndFeel().provideErrorFeedback(WordMLTextPane.this);
+            	
+		        WordMLEditor wmlEditor = 
+		        	WordMLEditor.getInstance(WordMLEditor.class);
+		        ResourceMap rm = wmlEditor.getContext().getResourceMap();
+		        String title = 
+		        	rm.getString("Application.edit.info.dialog.title");
+		        String message =
+		        	rm.getString("Application.edit.info.cannotEditMessage");
+		        wmlEditor.showMessageDialog(
+		        	title, message, JOptionPane.INFORMATION_MESSAGE);
+            }
+            
+            if (log.isDebugEnabled()) {
+            	log.debug("replaceSelection(): selection start=" + start
+            		+ " end=" + end
+            		+ " text=" + content);
+            	DocUtil.displayStructure(doc);
             }
         }
     }
 
+    /**
+     * Gets the input attributes for the pane.
+     *
+     * @return the attributes
+     */
+    public MutableAttributeSet getInputAttributesML() {
+        return getWordMLEditorKit().getInputAttributesML();
+    }
+
     public void saveCaretText() {
-    	((WordMLEditorKit) getEditorKit()).saveCaretText();
+    	getWordMLEditorKit().saveCaretText();
+    }
+    
+    public WordMLEditorKit getWordMLEditorKit() {
+    	return (WordMLEditorKit) getEditorKit();
     }
     
     protected EditorKit createDefaultEditorKit() {
