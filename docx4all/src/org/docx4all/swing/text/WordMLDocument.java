@@ -22,7 +22,6 @@ package org.docx4all.swing.text;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
@@ -38,6 +37,7 @@ import org.docx4all.util.XmlUtil;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
+import org.docx4all.xml.ImpliedContainerML;
 import org.docx4all.xml.ObjectFactory;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.ParagraphPropertiesML;
@@ -134,28 +134,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 				}
 			}
 
-			// Have to refresh affected paragraphs between [offset, offset+length]
-			Element rootE = getDefaultRootElement();
-			int start = rootE.getElementIndex(offset);
-			int end = rootE.getElementIndex(offset + length - 1);
-			
-			//Collect the ElementSpecs
-			List<ElementSpec> specs = new ArrayList<ElementSpec>();
-			int idx = start;
-			while (idx <= end) {
-				DocumentElement para = (DocumentElement) rootE.getElement(idx++);
-				specs.addAll(DocUtil.getElementSpecs(para.getElementML()));
-			}
-			
-			//Remove
-			start = rootE.getElement(start).getStartOffset();
-			end = rootE.getElement(end).getEndOffset();
-			WordMLDocumentFilter filter = (WordMLDocumentFilter) getDocumentFilter();
-			filter.setEnabled(false);
-			remove(start, end - start);
-			filter.setEnabled(true);
-
-			insertParagraphsLater(start, specs);
+			refreshParagraphs(offset, length);
 			
 		} finally {
 			writeUnlock();
@@ -165,7 +144,7 @@ public class WordMLDocument extends DefaultStyledDocument {
     public void setParagraphMLAttributes(int offset, int length,
 			AttributeSet attrs, boolean replace) {
 
-		if (offset >= getLength() || attrs == null
+		if (offset > getLength() || attrs == null
 				|| attrs.getAttributeCount() == 0) {
 			return;
 		}
@@ -420,67 +399,12 @@ public class WordMLDocument extends DefaultStyledDocument {
 						paragraphRecords);
 			}
 
-			refreshParagraph(paraAtOffset);
+			refreshParagraphs(paraAtOffset.getStartOffset(), 0);
 			
 		} finally {
 			writeUnlock();
 		}
 	} //insertFragment
-	
-	private void refreshParagraph(DocumentElement paragraphElement) {
-		DocumentElement rootE = 
-			(DocumentElement) paragraphElement.getParentElement();
-		ElementML bodyML = rootE.getElementML().getChild(0);
-
-		//startIdx and endIdx hold the older 
-		//and younger sibling of paragraphElement respectively
-		int startIdx = -1;
-		int endIdx = bodyML.getChildrenCount() - 1;
-
-		//find older sibling
-		int idx = rootE.getElementIndex(paragraphElement.getStartOffset());
-		if (idx > 0) {
-			DocumentElement tempE = 
-				(DocumentElement) rootE.getElement(idx - 1);
-			ElementML tempML = tempE.getElementML();
-			startIdx = bodyML.getChildIndex(tempML);
-		}
-
-		//find younger sibling
-		if (idx < rootE.getElementCount() - 1) {
-			// Excludes the end of document implied paragraph element
-			DocumentElement tempE = (DocumentElement) rootE
-					.getElement(idx + 1);
-			ElementML tempML = tempE.getElementML();
-			endIdx = bodyML.getChildIndex(tempML);
-		}
-
-		List<ElementSpec> specs = new ArrayList<ElementSpec>();
-		idx = startIdx + 1;
-		while (idx < endIdx) {
-			ElementML para = bodyML.getChild(idx++);
-			specs.addAll(DocUtil.getElementSpecs(para));
-		}
-
-		idx = paragraphElement.getStartOffset();
-		if (paragraphElement.getEndOffset() != rootE.getEndOffset()) {
-			//if not the last paragraph remove 'paragraphElement' and refresh.
-			WordMLDocumentFilter filter = (WordMLDocumentFilter) getDocumentFilter();
-			filter.setEnabled(false);//Disable temporarily
-
-			try {
-				remove(idx, paragraphElement.getEndOffset() - idx);
-			} catch (BadLocationException exc) {
-				;//ignore
-			}
-
-			// Remember to enable filter back
-			filter.setEnabled(true);
-		}
-		
-		insertParagraphsLater(idx, specs);
-		
-	}
 	
 	private boolean canbePastedAsString(List<ElementMLRecord> paraContentRecords) {
 		boolean canbe = true;
@@ -499,29 +423,6 @@ public class WordMLDocument extends DefaultStyledDocument {
 		return canbe;
 	}
 	
-	private void insertParagraphsLater(
-		final int offset,
-		final List<ElementSpec> specs) {
-
-		final WordMLDocument doc = this;
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					DocUtil.insertParagraphs(doc, offset, specs);
-					
-					if (log.isDebugEnabled()) {
-						log.debug("insertFragment(): Refreshed new specs...");
-						DocUtil.displayStructure(specs);
-						DocUtil.displayStructure(doc);
-					}
-					
-				} catch (BadLocationException exc) {
-					;// ignore
-				}
-			}
-		});
-	}
-    	
 	private void pasteRecordsAfter(RunContentML runContentML, List<ElementMLRecord> records) {
 		List<ElementML> list = new ArrayList<ElementML>(records.size());
 		for (ElementMLRecord rec: records) {
@@ -599,11 +500,138 @@ public class WordMLDocument extends DefaultStyledDocument {
     	super.insert(offset, specs);
     }
     
-    public void replace(int offset, int length, String text,
-            AttributeSet attrs) throws BadLocationException {
+    /**
+     * This method will refresh paragraphs in [offset, offset + length].
+     * Any paragraph within this range that has not been rendered 
+     * will be rendered together with those paragraphs.
+     * 
+     * @param offset offset position 
+     * @param length specified range length
+     */
+    public void refreshParagraphs(int offset, int length) {
+    	offset = Math.max(offset, 0);
+    	offset = Math.min(offset, getLength());
+    	
+    	length = Math.min(length, getLength() - offset);
+    	
+    	WordMLDocumentFilter filter = 
+    		(WordMLDocumentFilter) getDocumentFilter();
+    	
+    	writeLock();
+    	try {
+    		DocumentElement rootE = (DocumentElement) getDefaultRootElement();
+    		ElementML bodyML = rootE.getElementML().getChild(0);
+    		
+    		int idx = rootE.getElementIndex(offset);
+    		int startOffset = 0;
+    		int topIdx = -1;
+    		if (idx > 0) {
+    			DocumentElement topParaE = 
+    				(DocumentElement) rootE.getElement(idx - 1);
+        		topIdx = bodyML.getChildIndex(topParaE.getElementML());
+        		startOffset = topParaE.getEndOffset();
+    		}
+    		
+    		idx = rootE.getElementIndex(Math.max(offset + length - 1, 0));
+    		int endOffset = getLength();
+    		int bottomIdx = bodyML.getChildrenCount() - 1;
+    		if (idx < rootE.getElementCount() - 1) {
+    			DocumentElement bottomParaE = 
+    				(DocumentElement) rootE.getElement(idx + 1);
+    			bottomIdx = bodyML.getChildIndex(bottomParaE.getElementML());
+    			endOffset = bottomParaE.getStartOffset();
+    		}
+    		
+    		ElementML tempContainerML = new ImpliedContainerML();
+    		for (idx = topIdx + 1; idx < bottomIdx; idx++) {
+    			ElementML paraML = bodyML.getChild(idx);
+    			tempContainerML.addChild(paraML, false);
+    		}
+    		
+        	List<ElementSpec> tempSpecs = DocUtil.getElementSpecs(tempContainerML);
+        	//Excludes the opening and closing specs of tempContainerML
+        	tempSpecs = tempSpecs.subList(1, tempSpecs.size() - 1);
+        	
+        	/*
+        	if (log.isDebugEnabled()) {
+            	log.debug("refreshParagraphs(): offset=" + offset 
+                		+ " length=" + length
+                		+ " New Specs...");
+        		DocUtil.displayStructure(tempSpecs);
+        	}*/
+        	
+    		List<ElementSpec> specList = 
+    			new ArrayList<ElementSpec>(tempSpecs.size() + 3);
+    		// Close RunML
+    		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
+    		// Close Implied ParagraphML
+    		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
+    		// Close ParagraphML
+    		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
+    		specList.addAll(tempSpecs);
+    		
+    		tempSpecs = null;
+        	tempContainerML = null;
+        	
+    		final ElementSpec[] specsArray = new ElementSpec[specList.size()];
+    		specList.toArray(specsArray);
+    		specList = null;
+        	
+        	filter.setEnabled(false);
+        	
+        	if (startOffset == getLength()) {
+        		//Do not need to remove the last paragraph element
+				insert(startOffset, specsArray);
+        		
+        	} else {
+				insert(endOffset, specsArray);
+				
+				remove(startOffset, endOffset - startOffset);
+
+				/*
+				if (log.isDebugEnabled()) {
+					log.debug("refreshParagraphs(): offset=" + offset
+							+ " length=" + length
+							+ " After removing paragraphs ...");
+					DocUtil.displayStructure(this);
+				}*/
+
+				/*
+				final int startPos = startOffset;
+				final WordMLDocument doc = this;
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						try {
+							doc.insertElementSpecs(startPos , specsArray);
+							doc.fireDocumentRefreshed(
+								new DocumentRefreshedEvent(doc));
+						} catch (BadLocationException exc) {
+							;// ignore
+						}
+					}
+				});*/
+			}
+        	
+        	/*
+        	if (log.isDebugEnabled()) {
+				log.debug("refreshParagraphs(): offset=" + offset + " length="
+						+ length + " Resulting structure ...");
+				DocUtil.displayStructure(this);
+			}*/
+        	
+    	} catch (BadLocationException exc) {
+    		;//ignore
+    	} finally {
+    		writeUnlock();
+    		filter.setEnabled(true);
+    	}
+    }
+    
+    public void replace(int offset, int length, String text, AttributeSet attrs)
+			throws BadLocationException {
     	log.debug("replace(): offset = " + offset 
-    		+ " length = " + length 
-    		+ " text = " + text);
+        		+ " length = " + length 
+        		+ " text = " + text);
     	super.replace(offset, length, text, attrs);
     }
     
@@ -612,8 +640,8 @@ public class WordMLDocument extends DefaultStyledDocument {
     	log.debug("insertString(): offset = " + offs + " text = " + str);
     	super.insertString(offs, str, a);
     }
-        
-    protected void insertUpdate(DefaultDocumentEvent chng, AttributeSet attr) {
+    
+    protected void insertUpdate(DefaultDocumentEvent chng, AttributeSet attrs) {
         int offset = chng.getOffset();
         int length = chng.getLength();
         
@@ -658,17 +686,21 @@ public class WordMLDocument extends DefaultStyledDocument {
         				ElementSpec.StartTagType);
         		es.setDirection(ElementSpec.JoinNextDirection);
         		specs.add(es);
+            	
+            	//Add new leaf
+            	es = new ElementSpec(
+            			rightLeaf.getAttributes(), 
+            			ElementSpec.ContentType, 
+            			length);
+            	es.setDirection(ElementSpec.JoinNextDirection);
+            	specs.add(es);
+        	} else {
+        		//Should never come here ?
         	}
         	
-        	//Add new leaf
-        	ElementSpec es = new ElementSpec(
-        			rightLeaf.getAttributes(), 
-        			ElementSpec.ContentType, 
-        			length);
-        	es.setDirection(ElementSpec.JoinNextDirection);
-        	specs.add(es);
-
-        } else {
+        } else if (attrs.getAttributeCount() > 0
+        			&& leftLeaf.getAttributes().containsAttributes(attrs)) {
+        	
         	ElementSpec es = 
         		new ElementSpec(
         			leftLeaf.getAttributes(), 
@@ -676,16 +708,38 @@ public class WordMLDocument extends DefaultStyledDocument {
         			length);
         	es.setDirection(ElementSpec.JoinPreviousDirection);
         	specs.add(es);
+        	
+        } else if (attrs.getAttributeCount() > 0
+    			&& rightLeaf.getAttributes().containsAttributes(attrs)) {
+    	
+    		// Close RunML
+    		specs.add(new ElementSpec(null, ElementSpec.EndTagType));
+    		
+    		// Open new RunML
+    		ElementSpec es = 
+    			new ElementSpec(
+    				rightLeaf.getParentElement().getAttributes(), 
+    				ElementSpec.StartTagType);
+    		es.setDirection(ElementSpec.JoinNextDirection);
+    		specs.add(es);
+    		
+    		// Add new leaf
+        	es = 
+        		new ElementSpec(
+        			rightLeaf.getAttributes(), 
+        			ElementSpec.ContentType, 
+        			length);
+        	es.setDirection(ElementSpec.JoinNextDirection);
+        	specs.add(es);
         }
         
-        ElementSpec[] specsArray = new ElementSpec[specs.size()];
-        specsArray = specs.toArray(specsArray);
-        buffer.insert(offset, length, specsArray, chng);
-		
-		if (log.isDebugEnabled()) {
-			DocUtil.displayStructure(this);
+        if (!specs.isEmpty()) {
+			ElementSpec[] specsArray = new ElementSpec[specs.size()];
+			specsArray = specs.toArray(specsArray);
+			buffer.insert(offset, length, specsArray, chng);
 		}
-    } //insertUpdate()
+        
+	} // insertUpdate()
 
 	protected void createElementStructure(List<ElementSpec> list) {
 		ElementSpec[] specs = new ElementSpec[list.size()];
@@ -863,7 +917,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 		public boolean isEditable() {
 			ElementML elemML = getElementML();
 			
-			boolean isEditable = !elemML.isDummy();
+			boolean isEditable = !elemML.isDummy() && !elemML.isImplied();
 			if (isEditable) {
 				DocumentElement parent = (DocumentElement) getParentElement();
 				isEditable = parent.isEditable();
