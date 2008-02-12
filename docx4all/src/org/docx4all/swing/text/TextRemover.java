@@ -19,12 +19,9 @@
 
 package org.docx4all.swing.text;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.SwingUtilities;
 import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultStyledDocument.ElementSpec;
 import javax.swing.text.DocumentFilter.FilterBypass;
 
 import org.apache.log4j.Logger;
@@ -35,27 +32,33 @@ import org.docx4all.xml.RunContentML;
 /**
  *	@author Jojada Tirtowidjojo - 10/01/2008
  */
-public class TextRemover extends TextSelector implements TextProcessor {
+public class TextRemover implements TextProcessor {
 	private static Logger log = Logger.getLogger(TextRemover.class);
 
+	private TextSelector textSelector;
 	private FilterBypass filterBypass;
 	
 	public TextRemover(FilterBypass fb, int offset, int length) 
 		throws BadSelectionException {
-		super((WordMLDocument) fb.getDocument(), offset, length);
+		this.textSelector = 
+			new TextSelector((WordMLDocument) fb.getDocument(), offset, length);
 		this.filterBypass = fb;
 	}
 
 	public void doAction() throws BadLocationException {
+		WordMLDocument doc = (WordMLDocument) filterBypass.getDocument();
+		int offset = textSelector.getOffset();
+		int length = textSelector.getLength();
+		
 		if (log.isDebugEnabled()) {
 			log.debug("doAction(): offset=" + offset + " length=" + length);
 		}
 		
-    	List<DocumentElement> list = getDocumentElements();
+    	List<DocumentElement> list = textSelector.getDocumentElements();
     	DocumentElement tempE = list.get(0);
 		
     	//Handle the first leaf element specially
-    	if (tempE.isLeaf() && !isFullySelected(tempE)) {
+    	if (tempE.isLeaf() && !textSelector.isFullySelected(tempE)) {
 			if (list.size() == 1) {
 				// A single partially selected leaf element
 				// is treated as normal string deletion
@@ -75,7 +78,7 @@ public class TextRemover extends TextSelector implements TextProcessor {
 
     	// Handle the last leaf element specially
     	tempE = list.get(list.size() - 1);
-    	if (tempE.isLeaf() && !isFullySelected(tempE)) {
+    	if (tempE.isLeaf() && !textSelector.isFullySelected(tempE)) {
 			int count = tempE.getEndOffset() - (offset + length);
 			String text = doc.getText(offset + length, count);
 			RunContentML rcml = (RunContentML) tempE.getElementML();
@@ -111,53 +114,17 @@ public class TextRemover extends TextSelector implements TextProcessor {
 		}
 
     	//Time to refresh affected paragraphs.
-		refreshAffectedParagraphs(firstPara, lastPara);		
+		offset = firstPara.getStartOffset();
+		length = lastPara.getEndOffset() - offset;
+		doc.refreshParagraphs(offset, length);
 	}
 	
-	private void refreshAffectedParagraphs(
-		DocumentElement firstPara, 
-		DocumentElement lastPara)
-		throws BadLocationException {
-		
-    	int start = firstPara.getStartOffset();
-    	int end = lastPara.getEndOffset();
-
-    	List<ElementSpec> specs = new ArrayList<ElementSpec>();
-    	ElementML paraML = firstPara.getElementML();
-    	if (paraML.getParent() != null) {
-    		specs.addAll(DocUtil.getElementSpecs(paraML));
-    	}
-    	
-    	paraML = lastPara.getElementML();
-    	if (firstPara != lastPara && paraML.getParent() != null) {
-    		specs.addAll(DocUtil.getElementSpecs(paraML));
-    	}
-    	
-    	filterBypass.remove(start, end - start);
-    	
-    	if (!specs.isEmpty()) {
-    		insertLater(doc, start, specs);
-    	}
-	}
-	
-	private void insertLater(
-		final WordMLDocument doc, 
-		final int offset,
-		final List<ElementSpec> specs) {
-
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					DocUtil.insertParagraphs(doc, offset, specs);
-				} catch (BadLocationException exc) {
-					;// ignore
-				}
-			}
-		});
-	}
-
 	private void mergeElementML(DocumentElement para1, DocumentElement para2) {		
 		//Grab all lastPara's content from offset + length position
+		WordMLDocument doc = (WordMLDocument) filterBypass.getDocument();
+		int offset = textSelector.getOffset();
+		int length = textSelector.getLength();
+		
 		int start = offset + length;
 		int count = (para2.getEndOffset() - 1) - start;
 		TextSelector ts = null;
