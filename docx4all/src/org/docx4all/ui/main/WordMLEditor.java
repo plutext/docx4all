@@ -273,10 +273,11 @@ public class WordMLEditor extends SingleFrameApplication {
     private JEditorPane createEditor(File f) {
     	JEditorPane editor = new WordMLTextPane();
     	editor.addFocusListener(_toolbarStates);
-    	editor.addCaretListener(_toolbarStates);
     	editor.setTransferHandler(new TransferHandler());
     	
 		WordMLEditorKit editorKit = (WordMLEditorKit) editor.getEditorKit();
+		editorKit.addInputAttributeListener(_toolbarStates);
+		
     	AbstractDocument doc = null;
     	
     	if (f.exists()) {
