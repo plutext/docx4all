@@ -253,7 +253,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 		
 		writeLock();
 		try {
-			DocumentElement textE = (DocumentElement) getCharacterElement(offset - 1);
+			DocumentElement textE = (DocumentElement) getCharacterElement(Math.max(offset - 1, 0));
 			if (0 < offset
 					&& offset < textE.getEndOffset()
 					&& (!textE.isEditable() || (paraContentRecords == null && paragraphRecords != null))) {
@@ -330,14 +330,22 @@ public class WordMLDocument extends DefaultStyledDocument {
 						pasteRecordsAfter((RunContentML) textE.getElementML(),
 								paraContentRecords);
 					}
+				} else if (runE.getStartOffset() == offset) {
+					//paste at the start of runE.
+					//This should only happen when offset is 0 (zero).
+					//It is because runE is the parent of textE and
+					//textE is a text element at Math.max(offset - 1, 0).
+					pasteRecordsBefore((RunML) runE.getElementML(), paraContentRecords);
+					
 				} else {
-					// paste at somewhere inside a run
+					//paste at somewhere inside runE.
+					//This necessitates splitting runE.
 					DocUtil
 							.splitElementML(runE, offset
 									- runE.getStartOffset());
 					pasteRecordsAfter((RunContentML) textE.getElementML(),
 							paraContentRecords);
-				} // if (runE.getEndOffset() == offset) else
+				}
 
 			} else if (paraContentRecords != null && paragraphRecords != null) {
 				if (paraAtOffset.getStartOffset() == offset) {
@@ -395,8 +403,16 @@ public class WordMLDocument extends DefaultStyledDocument {
 				}
 
 			} else if (paraContentRecords == null && paragraphRecords != null) {
-				pasteRecordsBefore((ParagraphML) paraAtOffset.getElementML(),
+				if (paraAtOffset.getStartOffset() < offset) {
+					ParagraphML newSibling = 
+						(ParagraphML) DocUtil.splitElementML(
+							paraAtOffset, 
+							offset - paraAtOffset.getStartOffset());
+					pasteRecordsBefore(newSibling, paragraphRecords);
+				} else {
+					pasteRecordsBefore((ParagraphML) paraAtOffset.getElementML(),
 						paragraphRecords);
+				}
 			}
 
 			refreshParagraphs(paraAtOffset.getStartOffset(), 0);
@@ -458,7 +474,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 		//'tempRunML' will hold the leading RunContentML if any
 		ElementML tempRunML = null; 
 		
-		for (int i=paraContentRecords.size()-1; i >= 0; i++) {
+		for (int i=paraContentRecords.size()-1; i >= 0; i--) {
 			ElementMLRecord rec = paraContentRecords.get(i);
 			ElementML ml = rec.getElementML();
 			
@@ -513,6 +529,7 @@ public class WordMLDocument extends DefaultStyledDocument {
     	offset = Math.min(offset, getLength());
     	
     	length = Math.min(length, getLength() - offset);
+    	length = Math.max(length, 1);
     	
     	WordMLDocumentFilter filter = 
     		(WordMLDocumentFilter) getDocumentFilter();
@@ -532,17 +549,17 @@ public class WordMLDocument extends DefaultStyledDocument {
         		startOffset = topParaE.getEndOffset();
     		}
     		
-    		idx = rootE.getElementIndex(Math.max(offset + length - 1, 0));
-    		int endOffset = getLength();
-    		int bottomIdx = bodyML.getChildrenCount() - 1;
-    		if (idx < rootE.getElementCount() - 1) {
-    			DocumentElement bottomParaE = 
-    				(DocumentElement) rootE.getElement(idx + 1);
-    			bottomIdx = bodyML.getChildIndex(bottomParaE.getElementML());
-    			endOffset = bottomParaE.getStartOffset();
-    		}
-    		
-    		ElementML tempContainerML = new ImpliedContainerML();
+			idx = rootE.getElementIndex(offset + length - 1);
+			int endOffset = getLength();
+			int bottomIdx = bodyML.getChildrenCount() - 1;
+			if (idx < rootE.getElementCount() - 1) {
+				DocumentElement bottomParaE = (DocumentElement) rootE
+						.getElement(idx + 1);
+				bottomIdx = bodyML.getChildIndex(bottomParaE.getElementML());
+				endOffset = bottomParaE.getStartOffset();
+			}
+
+			ElementML tempContainerML = new ImpliedContainerML();
     		for (idx = topIdx + 1; idx < bottomIdx; idx++) {
     			ElementML paraML = bodyML.getChild(idx);
     			tempContainerML.addChild(paraML, false);
@@ -552,13 +569,13 @@ public class WordMLDocument extends DefaultStyledDocument {
         	//Excludes the opening and closing specs of tempContainerML
         	tempSpecs = tempSpecs.subList(1, tempSpecs.size() - 1);
         	
-        	/*
+        	
         	if (log.isDebugEnabled()) {
             	log.debug("refreshParagraphs(): offset=" + offset 
                 		+ " length=" + length
                 		+ " New Specs...");
         		DocUtil.displayStructure(tempSpecs);
-        	}*/
+        	}
         	
     		List<ElementSpec> specList = 
     			new ArrayList<ElementSpec>(tempSpecs.size() + 3);
@@ -583,44 +600,29 @@ public class WordMLDocument extends DefaultStyledDocument {
         		//Do not need to remove the last paragraph element
 				insert(startOffset, specsArray);
         		
-        	} else {
-				insert(endOffset, specsArray);
-				
-				remove(startOffset, endOffset - startOffset);
-
-				/*
 				if (log.isDebugEnabled()) {
 					log.debug("refreshParagraphs(): offset=" + offset
 							+ " length=" + length
-							+ " After removing paragraphs ...");
+							+ " After inserting new specs ...");
 					DocUtil.displayStructure(this);
-				}*/
+				}
+				
+        	} else {
+				insert(endOffset, specsArray);
+				
+				if (log.isDebugEnabled()) {
+					log.debug("refreshParagraphs(): offset=" + offset
+							+ " length=" + length
+							+ " After inserting new specs ...");
+					DocUtil.displayStructure(this);
+				}
+				
+				remove(startOffset, endOffset - startOffset);
 
-				/*
-				final int startPos = startOffset;
-				final WordMLDocument doc = this;
-				SwingUtilities.invokeLater(new Runnable() {
-					public void run() {
-						try {
-							doc.insertElementSpecs(startPos , specsArray);
-							doc.fireDocumentRefreshed(
-								new DocumentRefreshedEvent(doc));
-						} catch (BadLocationException exc) {
-							;// ignore
-						}
-					}
-				});*/
 			}
         	
-        	/*
-        	if (log.isDebugEnabled()) {
-				log.debug("refreshParagraphs(): offset=" + offset + " length="
-						+ length + " Resulting structure ...");
-				DocUtil.displayStructure(this);
-			}*/
-        	
     	} catch (BadLocationException exc) {
-    		;//ignore
+    		exc.printStackTrace();//ignore
     	} finally {
     		writeUnlock();
     		filter.setEnabled(true);
@@ -628,12 +630,35 @@ public class WordMLDocument extends DefaultStyledDocument {
     }
     
     public void replace(int offset, int length, String text, AttributeSet attrs)
-			throws BadLocationException {
+		throws BadLocationException {
     	log.debug("replace(): offset = " + offset 
         		+ " length = " + length 
         		+ " text = " + text);
     	super.replace(offset, length, text, attrs);
     }
+    
+    public void replace(int offset, int length, WordMLFragment frag, AttributeSet attrs) 
+    	throws BadLocationException {
+		log.debug("replace(): offset = " + offset + " length = " + length
+				+ " fragment = " + frag);
+
+		if (length == 0 && frag == null) {
+			return;
+		}
+
+		writeLock();
+		try {
+			if (length > 0 && offset < getLength()) {
+				remove(offset, length);
+			}
+
+			insertFragment(offset, frag, attrs);
+			
+		} finally {
+			writeUnlock();
+		}
+
+	}
     
     public void insertString(int offs, String str, AttributeSet a) 
     	throws BadLocationException {
