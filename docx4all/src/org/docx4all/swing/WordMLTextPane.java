@@ -31,6 +31,7 @@ import javax.swing.text.MutableAttributeSet;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLEditorKit;
+import org.docx4all.swing.text.WordMLFragment;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.util.DocUtil;
 import org.jdesktop.application.ResourceMap;
@@ -119,6 +120,56 @@ public class WordMLTextPane extends JEditorPane {
         }
     }
 
+    public void replaceSelection(WordMLFragment fragment) {
+        if (!isEditable()) {
+        	UIManager.getLookAndFeel().provideErrorFeedback(WordMLTextPane.this);
+            return;
+        }
+        
+        WordMLDocument doc = (WordMLDocument) getDocument();
+        if (doc != null && fragment != null) {
+        	int start = getSelectionStart();
+        	int end = getSelectionEnd();    
+        	
+			try {
+				saveCaretText();
+				
+            	AttributeSet inputAttrs = getInputAttributesML();
+            	MutableAttributeSet attrs = 
+            		(MutableAttributeSet) inputAttrs.copyAttributes();
+            	if (inputAttrs.getResolveParent() != null) {
+            		attrs.setResolveParent(inputAttrs.getResolveParent().copyAttributes());
+            	}
+            	
+				doc.replace(start, (end-start), fragment, attrs);
+
+				end = start + fragment.getText().length();
+				setCaretPosition(end);
+				
+			} catch (BadLocationException e) {
+				e.printStackTrace();
+				
+            	UIManager.getLookAndFeel().provideErrorFeedback(WordMLTextPane.this);
+            	
+		        WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);            
+		    	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
+
+		        String title = 
+		        	rm.getString("Application.edit.info.dialog.title");
+				String message = 
+					rm.getString("Application.edit.info.cannotPasteMessage");
+				wmlEditor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
+			}
+			
+            if (log.isDebugEnabled()) {
+            	log.debug("replaceSelection(): selection start=" + start
+            		+ " end=" + end
+            		+ " fragment=" + fragment);
+            	DocUtil.displayStructure(doc);
+            }
+        } //if (doc != null && fragment != null)
+    } //replaceSelection()
+    
     /**
      * Gets the input attributes for the pane.
      *
