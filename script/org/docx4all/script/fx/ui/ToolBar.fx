@@ -110,27 +110,6 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
         swingAction: editMenu.getAction(editMenu.PASTE_ACTION_NAME)
     }
     
-    borderPainted: true
-    buttons: [
-        newFileButton,
-        openFileButton,
-        saveFileButton,
-        saveAllFilesButton,
-        RigidArea { width: 10 },
-        printPreviewButton,
-        RigidArea { width: 10 },
-        Separator { orientation: VERTICAL:Orientation },
-        RigidArea { width: 10 },
-        cutButton,
-        copyButton,
-        pasteButton,
-        RigidArea { width: 10 },
-        Separator { orientation: VERTICAL:Orientation },
-        RigidArea { width: 10 }
-	]
-};
-
-TOOL_BAR_2:JFXToolBar = JFXToolBar {
     var pStyleCombo = ComboBox {
         var headings = [
             "Paragraph", "Heading1", "Heading2", 
@@ -143,20 +122,6 @@ TOOL_BAR_2:JFXToolBar = JFXToolBar {
         swingAction: formatMenu.getAction(formatMenu.PARAGRAPH_STYLE_ACTION_NAME)
     }
     
-    borderPainted: true
-    buttons: [
-        pStyleCombo,
-        alignLeftButton,
-        alignCtrButton,
-        alignRightButton,
-        alignJustifiedButton,
-        RigidArea { width: 10 },
-        Separator { orientation: VERTICAL:Orientation },
-        RigidArea { width: 10 }
-	]
-};
-
-TOOL_BAR_3:JFXToolBar = JFXToolBar {
     var fontFamilyCombo = ComboBox {
         var fontNames = 
             GraphicsEnvironment.getLocalGraphicsEnvironment().
@@ -199,26 +164,46 @@ TOOL_BAR_3:JFXToolBar = JFXToolBar {
     
     borderPainted: true
     buttons: [
+        newFileButton,
+        openFileButton,
+        saveFileButton,
+        saveAllFilesButton,
+        RigidArea { width: 10 },
+        printPreviewButton,
+        RigidArea { width: 10 },
+        Separator { orientation: VERTICAL:Orientation },
+        RigidArea { width: 10 },
+        cutButton,
+        copyButton,
+        pasteButton,
+        RigidArea { width: 10 },
+        Separator { orientation: VERTICAL:Orientation },
+        RigidArea { width: 10 },
+        pStyleCombo,
+        alignLeftButton,
+        alignCtrButton,
+        alignRightButton,
+        alignJustifiedButton,
+        RigidArea { width: 10 },
+        Separator { orientation: VERTICAL:Orientation },
+        RigidArea { width: 10 },
         fontFamilyCombo,
         fontSizeCombo,
         RigidArea { width: 10 },
         boldButton,
         italicButton,
-        underlineButton
+        underlineButton        
     ]
 };
 
-
 TOOL_BAR:Widget = FlowPanel {
-	alignment: LEADING
-	border: EtchedBorder {
-		style: LOWERED
-	}
-	content: [
-		TOOL_BAR_1:JFXToolBar,
-		TOOL_BAR_2:JFXToolBar,
-        TOOL_BAR_3:JFXToolBar
-	]
+    alignment: LEADING
+    border: EtchedBorder {
+        style: LOWERED
+    }
+    content: [
+        TOOL_BAR_1:JFXToolBar
+    ]
 };
 
 return (TOOL_BAR:Widget).getComponent();
