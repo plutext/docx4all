@@ -101,18 +101,36 @@ public class WordMLDocument extends DefaultStyledDocument {
 					
 				} else if (runE.getStartOffset() < offset
 							&& offset + length < runE.getEndOffset()) {
-					int tempInt = runE.getEndOffset() - (offset + length);
-					RunML ml = copyRunML(runE, (offset+length), tempInt);
-					runML.addSibling(ml, true);
-					
-					ml = copyRunML(runE, offset, length);
-					ml.addAttributes(attrs, replace);
-					runML.addSibling(ml, true);
-
-					tempInt = offset - runE.getStartOffset();
-					RunML newSibling = 
-						(RunML) DocUtil.splitElementML(runE, tempInt);
-					newSibling.delete();
+					try {
+						//Firstly, make a copy of RunML that spans from
+						//(offset+length) to runE.getEndOffset().
+						int tempInt = runE.getEndOffset() - (offset + length);
+						TextSelector ts = 
+							new TextSelector(this, (offset+length), tempInt);
+						//Because [offset + length, tempInt] is inside runE,
+						//ts will definitely contain a single record whose
+						//ElementML is a RunML.
+						ElementML ml = ts.getElementMLRecords().get(0).getElementML();
+						//Put this copy to the right of runML
+						runML.addSibling(ml, true);
+						
+						//Secondly, make a copy of RunML that spans from
+						//offset to offset + length and apply 'attrs' to it
+						ts = new TextSelector(this, offset, length);
+						ml = ts.getElementMLRecords().get(0).getElementML();
+						((RunML) ml).addAttributes(attrs, replace);
+						//This copy has to be at the right of runML
+						runML.addSibling(ml, true);
+						
+						//Finally, chop runE from runE.getStartOffset()
+						//to offset position.
+						tempInt = offset - runE.getStartOffset();
+						RunML newSibling = 
+							(RunML) DocUtil.splitElementML(runE, tempInt);
+						newSibling.delete();
+					} catch (BadSelectionException exc) {
+						;//ignore
+					}
 					
 				} else if (runE.getStartOffset() < offset) {
 					int idx = offset - runE.getStartOffset();
@@ -184,28 +202,6 @@ public class WordMLDocument extends DefaultStyledDocument {
 		}
 	}
         
-    private RunML copyRunML(DocumentElement runE, int offset, int length) {
-    	RunML runML = (RunML) runE.getElementML();
-    	
-		List<ElementML> contents = new ArrayList<ElementML>();
-		try {
-			TextSelector ts = new TextSelector(this, offset, length);
-			List<ElementMLRecord> records = ts.getElementMLRecords();
-			for (ElementMLRecord rec: records) {
-				contents.add((ElementML) rec.getElementML().clone());
-			}
-		} catch (BadSelectionException exc) {
-			;//ignore
-		}
-		
-		RunPropertiesML rPr = 
-			(RunPropertiesML) runML.getRunProperties();
-		if (rPr != null) {
-			rPr = (RunPropertiesML) rPr.clone();
-		}
-		return (RunML) ElementMLFactory.createRunML(contents, rPr);
-    }
-    
 	public void insertFragment(int offset, WordMLFragment fragment, AttributeSet attrs) 
 		throws BadLocationException {
 		
@@ -280,8 +276,8 @@ public class WordMLDocument extends DefaultStyledDocument {
 				}
 
 			} else if (paraContentRecords != null && paragraphRecords == null) {
-				DocumentElement runE = (DocumentElement) textE
-						.getParentElement();
+				DocumentElement runE = (DocumentElement) textE.getParentElement();
+				
 				if (runE.getEndOffset() == offset) {
 					DocumentElement impliedParaE = (DocumentElement) runE
 							.getParentElement();
@@ -296,7 +292,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 							RunContentML softBreak = (RunContentML) textE
 									.getElementML();
 
-							// Split soft break before pasting
+							//Split soft break before pasting.
 							List<ElementML> runContents = new ArrayList<ElementML>(
 									runE.getElementCount());
 							for (int i = 0; i < runE.getElementCount(); i++) {
@@ -454,23 +450,48 @@ public class WordMLDocument extends DefaultStyledDocument {
 				if (!(target instanceof RunContentML)) {
 					target = runContentML;
 				}
+				target.addSibling(ml, true);
+				target = ml;
 			} else if (ml instanceof RunML) {
 				if (!(target instanceof RunML)) {
 					target = runContentML.getParent();
 				}
+				RunML targetRun = (RunML) target;
+				PropertiesContainerML targetRPr = targetRun.getRunProperties();
+				AttributeSet targetAttrs = 
+					(targetRPr != null) ? targetRPr.getAttributeSet() : null;
+				PropertiesContainerML mlRPr = ((RunML) ml).getRunProperties();
+				AttributeSet mlAttrs = 
+					(mlRPr != null) ? mlRPr.getAttributeSet() : null;
+				
+				if (targetAttrs == mlAttrs
+					|| (targetAttrs != null
+						&& mlAttrs != null
+						&& targetAttrs.isEqual(mlAttrs))) {
+					//if both targetAttrs and mlAttrs are equal 
+					//we can merge 'target' with 'ml'.
+					for (int i=0; i < ml.getChildrenCount(); i++) {
+						ElementML child = ml.getChild(i);
+						child.delete();
+						targetRun.addChild(child);
+					}
+				} else {
+					target.addSibling(ml, true);
+					target = ml;
+				}
 			} else {
-				//must be a ParagraphML
+				//ml must be a ParagraphML
 				if (!(target instanceof ParagraphML)) {
 					target = runContentML.getParent().getParent();
 				}
+				target.addSibling(ml, true);
+				target = ml;
 			}
-			target.addSibling(ml, true);
-			target = ml;
 		}
 	}
 	
 	private void pasteRecordsBefore(RunML runML, List<ElementMLRecord> paraContentRecords) {
-		ElementML target = null;
+		ElementML target = runML;
 		//'tempRunML' will hold the leading RunContentML if any
 		ElementML tempRunML = null; 
 		
@@ -481,19 +502,35 @@ public class WordMLDocument extends DefaultStyledDocument {
 			if (ml instanceof RunContentML) {
 				if (tempRunML == null) {
 					tempRunML = new RunML(ObjectFactory.createR(null));
-					target.addSibling(ml, false);
-					target = ml;			
+					target.addSibling(tempRunML, false);
+					target = tempRunML;			
 				}
 				tempRunML.addChild(0, ml);
 				
 			} else {
-				//must be a RunML
-				if (target == null) {
-					target = runML;
+				//ml must be a RunML
+				PropertiesContainerML targetRPr = ((RunML) target).getRunProperties();
+				AttributeSet targetAttrs = 
+					(targetRPr != null) ? targetRPr.getAttributeSet() : null;
+				PropertiesContainerML mlRPr = ((RunML) ml).getRunProperties();
+				AttributeSet mlAttrs = 
+					(mlRPr != null) ? mlRPr.getAttributeSet() : null;
+					
+				if (targetAttrs == mlAttrs
+					|| (targetAttrs != null
+							&& mlAttrs != null
+							&& targetAttrs.isEqual(mlAttrs))) {
+					//if both targetAttrs and mlAttrs are equal 
+					//we can merge 'target' with 'ml'.
+					for (int k = ml.getChildrenCount() - 1; k >=0; k--) {
+						ElementML child = ml.getChild(k);
+						child.delete();
+						target.addChild(0, child);
+					}
+				} else {
+					target.addSibling(ml, false);
+					target = ml;
 				}
-				
-				target.addSibling(ml, false);
-				target = ml;			
 			}
 		}
 	}
