@@ -467,6 +467,10 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				inputAttributes.addAttributes(attrs);
 				kit.fireInputAttributeChanged(new InputAttributeEvent(editor));
 			}
+			
+			if (log.isDebugEnabled()) {
+				DocUtil.displayStructure(doc);
+			}
 		}
 
 		protected final void setParagraphMLAttributes(WordMLTextPane editor,
@@ -487,6 +491,10 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			
 			editor.setCaretPosition(mark);
 			editor.moveCaretPosition(dot);
+			
+			if (log.isDebugEnabled()) {
+				DocUtil.displayStructure(doc);
+			}
 		}
 	}// StyledTextAction inner class
 	
