@@ -2,6 +2,17 @@
 <jnlp spec="1.5+"
       codebase="http://dev.plutext.org/docx4all/"
       href="docx4all.jnlp">
+      
+      <!-- Note - 15 Feb 2008.       
+      
+      	   Given build.xml now contains a task to generate this JNLP,
+           this file is only necessary if you want to replace the generated
+           JNLP with handcoded values.
+           
+           For example, to use version 1.6 (which the Ant task doesn't support),
+           or to include the href="http://java.sun.com/products/autodl/j2se" value.
+           
+           So for now, I'm not removing this from SVN. -->
    
     <information>
     <title>docx4all</title>
