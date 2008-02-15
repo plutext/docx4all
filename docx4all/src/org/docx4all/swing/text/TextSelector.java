@@ -177,12 +177,12 @@ public class TextSelector {
 						}
 						theList.add(obj);
 					}
-				} else if (idx == startIdx) {
+				//} else if (idx == startIdx) {
 					//The first partially selected run
-					theList.addAll(getRunContents(run, offset, length, returnedType));
+					//theList.addAll(getRunContents(run, offset, length, returnedType));
 					
 				} else {
-					//The last partially selected run
+					//partially selected run
 		        	RunPropertiesML rPr = 
 		        		(RunPropertiesML) runML.getRunProperties();
 		        	if (rPr != null) {
