@@ -61,6 +61,7 @@
     </target>
     <target name="clean">
         <delete dir="build/classes"/>
+        <delete dir="build/lib"/>
     </target>
     <target depends="clean" name="cleanall">
         <ant antfile="${AppFramework-1.03.location}/build.xml" inheritAll="false" target="clean"/>
@@ -113,13 +114,13 @@
     
   <!-- Declare the Ant Web Start task -->
     <typedef resource="org/unintelligible/antjnlpwar/antjnlpwar.xml" format="xml" uri="org.unintelligible.antjnlpwar"/>
-    <target name="webstart"  depends="build-project" >
+    <target name="webstart"  depends="clean, build-project" >
 		
 		<property name="lib" value="./build/lib"/>
 		
         <mkdir dir="${lib}"/>
 		
-		<jar destfile="docx4all.jar" basedir="build/classes"/>
+		<jar destfile="docx4all.jar" basedir="build/classes"/> <!-- somewhere other than ${lib} -->
 		
 		<jar destfile="${lib}/docx4j.jar" basedir="${docx4j.location}/bin"/>		
 		<jar destfile="${lib}/AppFramework-1.03.jar" basedir="${AppFramework-1.03.location}/bin"/>
@@ -150,9 +151,9 @@
          -->
         <jw:jnlpwar
             tofile="docx4all.war"
-            codebase="http://dev.plutext.org/docx4all"
+            codebase="http://localhost:8080/docx4all"
             title="docx4all"
-            vendor="Plutext"
+            vendor="localhost"
             pack200="true"
             signStorepass="password"
             signAlias="alias">
