@@ -279,15 +279,22 @@ public class WordMLDocument extends DefaultStyledDocument {
 				DocumentElement runE = (DocumentElement) textE.getParentElement();
 				
 				if (runE.getEndOffset() == offset) {
-					DocumentElement impliedParaE = (DocumentElement) runE
-							.getParentElement();
+					DocumentElement impliedParaE = 
+						(DocumentElement) runE.getParentElement();
 					if (impliedParaE.getEndOffset() == offset) {
 						// paste at the start of a paragraph
 						ElementML newlineRunML = runE.getElementML();
 
 						runE = (DocumentElement) getRunMLElement(offset);
 						ElementML runML = runE.getElementML();
-						if (newlineRunML == runML) {
+						if (newlineRunML == runML && runML.isImplied()) {
+							// Paste at an empty paragraph
+							ElementML paraML = paraAtOffset.getElementML();
+							for (ElementMLRecord rec: paraContentRecords) {
+								paraML.addChild(rec.getElementML());
+							}
+							
+						} else if (newlineRunML == runML) {
 							// Paste after a soft break
 							RunContentML softBreak = (RunContentML) textE
 									.getElementML();
