@@ -19,7 +19,11 @@
         <vendor>Plutext</vendor>
         <homepage href="http://dev.plutext.org/docx4all/"/>
         <description>cross platform WYSIWYG editor for docx files</description>
-        <offline-allowed/>
+       <offline-allowed/>
+        <shortcut online="false">
+                <desktop/>
+                <menu submenu="docx4all"/>
+        </shortcut>
     </information>
 
     <security>
