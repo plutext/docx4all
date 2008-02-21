@@ -95,6 +95,13 @@ public class WordMLTextPane extends JEditorPane {
             	
                 doc.replace(start, (end - start), content, attrs);
                 
+                if (log.isDebugEnabled()) {
+                	log.debug("replaceSelection(String): selection start=" + start
+                		+ " end=" + end
+                		+ " text=" + content);
+                	DocUtil.displayStructure(doc);
+                }
+                
                 setCaretPosition(newCaretPos);
                 
             } catch (BadLocationException e) {
@@ -109,16 +116,17 @@ public class WordMLTextPane extends JEditorPane {
 		        	rm.getString("Application.edit.info.cannotEditMessage");
 		        wmlEditor.showMessageDialog(
 		        	title, message, JOptionPane.INFORMATION_MESSAGE);
+		        
+                if (log.isDebugEnabled()) {
+                	log.debug("replaceSelection(String): selection start=" + start
+                		+ " end=" + end
+                		+ " text=" + content);
+                	DocUtil.displayStructure(doc);
+                }
             }
             
-            if (log.isDebugEnabled()) {
-            	log.debug("replaceSelection(): selection start=" + start
-            		+ " end=" + end
-            		+ " text=" + content);
-            	DocUtil.displayStructure(doc);
-            }
         }
-    }
+    } //replaceSelection(String)
 
     public void replaceSelection(WordMLFragment fragment) {
         if (!isEditable()) {
@@ -143,6 +151,13 @@ public class WordMLTextPane extends JEditorPane {
             	
 				doc.replace(start, (end-start), fragment, attrs);
 
+	            if (log.isDebugEnabled()) {
+	            	log.debug("replaceSelection(WordMLFragment): selection start=" + start
+	            		+ " end=" + end
+	            		+ " fragment=" + fragment);
+	            	DocUtil.displayStructure(doc);
+	            }
+	            
 				end = start + fragment.getText().length();
 				setCaretPosition(end);
 				
@@ -159,16 +174,17 @@ public class WordMLTextPane extends JEditorPane {
 				String message = 
 					rm.getString("Application.edit.info.cannotPasteMessage");
 				wmlEditor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
+				
+	            if (log.isDebugEnabled()) {
+	            	log.debug("replaceSelection(WordMLFragment): selection start=" + start
+	            		+ " end=" + end
+	            		+ " fragment=" + fragment);
+	            	DocUtil.displayStructure(doc);
+	            }
 			}
 			
-            if (log.isDebugEnabled()) {
-            	log.debug("replaceSelection(): selection start=" + start
-            		+ " end=" + end
-            		+ " fragment=" + fragment);
-            	DocUtil.displayStructure(doc);
-            }
         } //if (doc != null && fragment != null)
-    } //replaceSelection()
+    } //replaceSelection(WordMLFragment)
     
     /**
      * Gets the input attributes for the pane.
