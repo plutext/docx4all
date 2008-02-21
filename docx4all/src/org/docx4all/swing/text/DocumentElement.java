@@ -19,6 +19,9 @@
 
 package org.docx4all.swing.text;
 
+import javax.swing.text.AttributeSet;
+import javax.swing.text.Style;
+
 import org.docx4all.xml.ElementML;
 
 /**
@@ -27,6 +30,8 @@ import org.docx4all.xml.ElementML;
 public interface DocumentElement extends javax.swing.text.Element {
 	public ElementML getElementML();
 	public boolean isEditable();
+	public void setResolveParent(AttributeSet parent);
+	public String getStyleNameInAction();
 }// DocumentElement class
 
 
