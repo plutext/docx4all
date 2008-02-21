@@ -25,6 +25,7 @@ import java.util.List;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.Style;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
 import org.docx4all.xml.BodyML;
@@ -111,7 +112,20 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		
 		PropertiesContainerML pc = paragraphML.getParagraphProperties();
 		if (pc != null) {
-			_paragraphAttrs.addAttributes(pc.getAttributeSet());
+			AttributeSet pcAttrs = pc.getAttributeSet();
+			_paragraphAttrs.addAttributes(pcAttrs);
+			String pStyle = 
+				(String) pcAttrs.getAttribute(WordMLStyleConstants.PStyleAttribute);
+			if (pStyle != null) {
+				StyleSheet styleSheet = paragraphML.getStyleSheet();
+				if (styleSheet != null) {
+					Style s = styleSheet.getIDStyle(pStyle);
+					if (s != null) {
+						((SimpleAttributeSet) _paragraphAttrs)
+								.setResolveParent(s);
+					}
+				}
+			}
 		}
 		
 		WordMLStyleConstants.setElementML(_paragraphAttrs, paragraphML);
@@ -166,7 +180,19 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		
 		PropertiesContainerML pc = runML.getRunProperties();
 		if (pc != null) {
-			_runAttrs.addAttributes(pc.getAttributeSet());
+			AttributeSet pcAttrs = pc.getAttributeSet();
+			_runAttrs.addAttributes(pcAttrs);
+			String rStyle = 
+				(String) pcAttrs.getAttribute(WordMLStyleConstants.RStyleAttribute);
+			if (rStyle != null) {
+				StyleSheet styleSheet = runML.getStyleSheet();
+				if (styleSheet != null) {
+					Style s = styleSheet.getIDStyle(rStyle);
+					if (s != null) {
+						((SimpleAttributeSet) _runAttrs).setResolveParent(s);
+					}
+				}
+			}
 		}
 		
 		WordMLStyleConstants.setElementML(_runAttrs, runML);
