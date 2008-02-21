@@ -34,8 +34,31 @@ public class WordMLStyleConstants {
 
     public static final Object WordMLTagAttribute = new WordMLStyleConstants("wordMLTag");
     
+    public static final Object DocxObjectAttribute = new WordMLStyleConstants("docxObject");
+    
+    public static final Object StyleIdAttribute = new WordMLStyleConstants("styleId");
+    
+    public static final Object StyleUINameAttribute = new WordMLStyleConstants("styleUIName");
+    
+	public static final Object StyleTypeAttribute = new WordMLStyleConstants("styleType");
+	
+	public static final Object UiPriorityAttribute = new WordMLStyleConstants("uiPriority");
+	
+	public static final Object QFormatAttribute = new WordMLStyleConstants("qformat");
+	
+	public static final Object PStyleAttribute = new WordMLStyleConstants("pStyle");
+	
+	public static final Object RStyleAttribute = new WordMLStyleConstants("rStyle");
+	
+    public static final Object DefaultParagraphStyleNameAttribute = 
+    	new WordMLStyleConstants("defaultParagraphStyleName");
+    
     private static final Object[] keys = { 
-    	ElementMLAttribute, WordMLTagAttribute
+    	ElementMLAttribute, WordMLTagAttribute, DocxObjectAttribute,
+    	StyleIdAttribute, StyleUINameAttribute, StyleTypeAttribute,
+    	UiPriorityAttribute, QFormatAttribute,
+    	PStyleAttribute, RStyleAttribute,
+    	DefaultParagraphStyleNameAttribute
     };
 
     static {
@@ -67,6 +90,26 @@ public class WordMLStyleConstants {
      */
     public static void setElementML(MutableAttributeSet a, ElementML elem) {
         a.addAttribute(ElementMLAttribute, elem);
+    }
+
+    /**
+	 * Gets the org.docx4j.wml.Styles.Style object setting from the attribute list.
+	 * 
+	 * @param a the attribute set
+	 * @return the org.docx4j.wml.Styles.Style object, null if none
+	 */
+    public static org.docx4j.wml.Styles.Style getDocxStyle(AttributeSet a) {
+        return (org.docx4j.wml.Styles.Style) a.getAttribute(DocxObjectAttribute);
+    }
+
+    /**
+     * Sets the org.docx4j.wml.Styles.Style attribute.
+     *
+     * @param a the attribute set
+     * @param style the org.docx4j.wml.Styles.Style
+     */
+    public static void setDocxStyle(MutableAttributeSet a, org.docx4j.wml.Styles.Style style) {
+        a.addAttribute(DocxObjectAttribute, style);
     }
 
     /**
