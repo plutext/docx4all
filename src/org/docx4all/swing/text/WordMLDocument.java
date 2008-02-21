@@ -29,9 +29,11 @@ import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.Element;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.Style;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
+import org.docx4all.ui.main.Constants;
 import org.docx4all.util.DocUtil;
 import org.docx4all.util.XmlUtil;
 import org.docx4all.xml.DocumentML;
@@ -53,6 +55,11 @@ public class WordMLDocument extends DefaultStyledDocument {
 	
 	public WordMLDocument() {
 		super();
+	}
+
+	public StyleSheet getStyleSheet() {
+		DocumentElement root = (DocumentElement) getDefaultRootElement();
+		return root.getElementML().getStyleSheet();
 	}
 	
 	public Element getParagraphMLElement(int pos, boolean impliedParagraph) {
@@ -186,8 +193,8 @@ public class WordMLDocument extends DefaultStyledDocument {
 				
 				MutableAttributeSet paraAttr = 
 					(MutableAttributeSet) paraE.getAttributes();
-				changes.addEdit(
-					new AttributeUndoableEdit(paraE, attrsCopy, replace));
+				//changes.addEdit(
+				//	new AttributeUndoableEdit(paraE, attrsCopy, replace));
 				if (replace) {
 					paraAttr.removeAttributes(paraAttr);
 				}
@@ -201,7 +208,154 @@ public class WordMLDocument extends DefaultStyledDocument {
 			writeUnlock();
 		}
 	}
-        
+    
+    public void setParagraphStyle(int offset, int length, String styleId) {
+		if (offset > getLength() || styleId == null || styleId.length() == 0) {
+			return;
+		}
+
+		length = Math.min(getLength() - offset, length);
+
+		try {
+			writeLock();
+			Style style = getStyleSheet().getReferredStyle(styleId);
+			String type = 
+				(style == null) 
+					? null 
+					: (String) style.getAttribute(WordMLStyleConstants.StyleTypeAttribute);
+			if (StyleSheet.PARAGRAPH_ATTR_VALUE.equals(type)) {
+				MutableAttributeSet newAttrs = new SimpleAttributeSet();
+				newAttrs.addAttribute(WordMLStyleConstants.PStyleAttribute, styleId);
+				
+				if (offset == getLength()) {
+					insertString(offset, Constants.NEWLINE, newAttrs);
+				}
+				
+				DefaultDocumentEvent changes = new DefaultDocumentEvent(offset,
+						length, DocumentEvent.EventType.CHANGE);
+				Element rootE = getDefaultRootElement();
+				int startIdx = rootE.getElementIndex(offset);
+				int endIdx = rootE.getElementIndex(offset
+						+ ((length > 0) ? length - 1 : 0));
+				
+				for (int i = startIdx; i <= endIdx; i++) {
+					DocumentElement paraE = (DocumentElement) rootE
+							.getElement(i);
+					ParagraphML paraML = (ParagraphML) paraE.getElementML();
+					paraML.addAttributes(newAttrs, true);
+
+					MutableAttributeSet paraAttr = (MutableAttributeSet) paraE
+							.getAttributes();
+					// changes.addEdit(
+					// new AttributeUndoableEdit(paraE, attrsCopy, replace));
+					paraAttr.removeAttributes(paraAttr);
+					paraAttr.addAttribute(WordMLStyleConstants.ElementMLAttribute, paraML);
+					paraAttr.addAttributes(newAttrs);
+					paraAttr.setResolveParent(style);
+				}
+
+				changes.end();
+				fireChangedUpdate(changes);
+				// fireUndoableEditUpdate(new UndoableEditEvent(this, changes));
+			} //if (StyleSheet.PARAGRAPH_ATTR_VALUE.equals(type))
+			
+		} catch (BadLocationException exc) {
+			;//ignore
+		} finally {
+			writeUnlock();
+		}
+    }
+    
+    public void setRunStyle(int offset, int length, String styleId) {
+		if (offset >= getLength() || length == 0 || styleId == null
+				|| styleId.length() == 0) {
+			return;
+		}
+
+		length = Math.min(getLength() - offset, length);
+
+		try {
+			writeLock();
+
+			Style style = getStyleSheet().getReferredStyle(styleId);
+			String type = (style == null) ? null : (String) style
+					.getAttribute(WordMLStyleConstants.StyleTypeAttribute);
+			if (StyleSheet.CHARACTER_ATTR_VALUE.equals(type)) {
+				MutableAttributeSet newAttrs = new SimpleAttributeSet();
+				newAttrs.addAttribute(WordMLStyleConstants.RStyleAttribute, styleId);
+				
+				int lastEnd = Integer.MAX_VALUE;
+				for (int pos = offset; pos < (offset + length); pos = lastEnd) {
+					DocumentElement runE = (DocumentElement) getRunMLElement(pos);
+					RunML runML = (RunML) runE.getElementML();
+
+					if (offset <= runE.getStartOffset()
+							&& runE.getEndOffset() <= offset + length) {
+						runML.addAttributes(newAttrs, true);
+
+					} else if (runE.getStartOffset() < offset
+							&& offset + length < runE.getEndOffset()) {
+						try {
+							// Firstly, make a copy of RunML that spans from
+							// (offset+length) to runE.getEndOffset().
+							int tempInt = runE.getEndOffset()
+									- (offset + length);
+							TextSelector ts = new TextSelector(this,
+									(offset + length), tempInt);
+							// Because [offset + length, tempInt] is inside
+							// runE,
+							// ts will definitely contain a single record whose
+							// ElementML is a RunML.
+							ElementML ml = ts.getElementMLRecords().get(0)
+									.getElementML();
+							// Put this copy to the right of runML
+							runML.addSibling(ml, true);
+
+							// Secondly, make a copy of RunML that spans from
+							// offset to offset + length and apply 'attrs' to it
+							ts = new TextSelector(this, offset, length);
+							ml = ts.getElementMLRecords().get(0).getElementML();
+							((RunML) ml).addAttributes(newAttrs, true);
+							// This copy has to be at the right of runML
+							runML.addSibling(ml, true);
+
+							// Finally, chop runE from runE.getStartOffset()
+							// to offset position.
+							tempInt = offset - runE.getStartOffset();
+							RunML newSibling = (RunML) DocUtil.splitElementML(
+									runE, tempInt);
+							newSibling.delete();
+						} catch (BadSelectionException exc) {
+							;// ignore
+						}
+
+					} else if (runE.getStartOffset() < offset) {
+						int idx = offset - runE.getStartOffset();
+						RunML newSibling = (RunML) DocUtil.splitElementML(runE,
+								idx);
+						newSibling.addAttributes(newAttrs, true);
+
+					} else {
+						// ie: offset + length < runE.getEndOffset()
+						int idx = (offset + length) - runE.getStartOffset();
+						DocUtil.splitElementML(runE, idx);
+						runML.addAttributes(newAttrs, true);
+					}
+
+					lastEnd = runE.getEndOffset();
+					if (pos == lastEnd) {
+						// finish
+						break;
+					}
+				}
+
+				refreshParagraphs(offset, length);
+			} // if (StyleSheet.CHARACTER_ATTR_VALUE.equals(type))
+		} finally {
+			writeUnlock();
+		}
+	}
+    
 	public void insertFragment(int offset, WordMLFragment fragment, AttributeSet attrs) 
 		throws BadLocationException {
 		
@@ -947,6 +1101,39 @@ public class WordMLDocument extends DefaultStyledDocument {
 			return (ElementML) getAttribute(WordMLStyleConstants.ElementMLAttribute);
 		}
 		
+		public String getStyleNameInAction() {
+			String styleName = null;
+			
+			DocumentElement parent = (DocumentElement) getParentElement();
+			if (parent == null) {
+				Style defaultStyle = getStyleSheet().getStyle(StyleSheet.DEFAULT_STYLE);
+				styleName = 
+					(String) defaultStyle.getAttribute(
+								WordMLStyleConstants.DefaultParagraphStyleNameAttribute);
+			} else {
+				ElementML elemML = getElementML();
+				String styleId = null;
+				if (elemML instanceof RunML) {
+					styleId = (String) getAttribute(WordMLStyleConstants.RStyleAttribute);
+				} else if (elemML instanceof ParagraphML && !elemML.isImplied()) {
+					styleId = (String) getAttribute(WordMLStyleConstants.PStyleAttribute);
+				}
+				if (styleId != null) {
+					//Search for style name
+					Style temp = getStyleSheet().getIDStyle(styleId);
+					if (temp != null) {
+						styleName = 
+							(String) temp.getAttribute(WordMLStyleConstants.StyleUINameAttribute);
+					}
+				}
+				
+				if (styleName == null) {
+					styleName = parent.getStyleNameInAction();
+				}
+			}
+			return styleName;
+		}
+		
 		public boolean isEditable() {
 			ElementML elemML = getElementML();
 			
@@ -963,10 +1150,6 @@ public class WordMLDocument extends DefaultStyledDocument {
 			return isEditable;
 		}
 		
-		public AttributeSet getResolveParent() {
-			return null;
-		}
-		
 		public void save() {
 			;//TODO: Saving 
 			log.debug("save(): this=" + this);
@@ -981,6 +1164,11 @@ public class WordMLDocument extends DefaultStyledDocument {
 
 		public ElementML getElementML() {
 			return (ElementML) getAttribute(WordMLStyleConstants.ElementMLAttribute);
+		}
+		
+		public String getStyleNameInAction() {
+			DocumentElement parent = (DocumentElement) getParentElement();
+			return parent.getStyleNameInAction();
 		}
 		
 		public boolean isEditable() {
