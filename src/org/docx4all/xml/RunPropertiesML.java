@@ -28,11 +28,12 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.text.StyleSheet;
+import org.docx4all.swing.text.WordMLStyleConstants;
 import org.docx4j.XmlUtils;
 import org.docx4j.wml.BooleanDefaultTrue;
 import org.docx4j.wml.HpsMeasure;
 import org.docx4j.wml.RPr;
-import org.docx4j.wml.Underline;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -97,7 +98,7 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 		bvalue = (Boolean) this.attrs.getAttribute(StyleConstants.Underline);
 		if (bvalue != null) {
 			if (bvalue.booleanValue()) {
-				if (hasUnderlineSet(rPr)) {
+				if (StyleSheet.hasUnderlineSet(rPr)) {
 					//As we do not support underline style
 					//and color yet we do not touch the 
 					//original setting of rPr underline
@@ -142,6 +143,19 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 			rPr.setSz(sz);
 		}
 		
+    	//RStyle
+    	if (this.attrs.isDefined(WordMLStyleConstants.RStyleAttribute)) {
+    		String rStyle =
+    			(String) this.attrs.getAttribute(WordMLStyleConstants.RStyleAttribute);
+    		if (rPr.getRStyle() == null) {
+    			rPr.setRStyle(ObjectFactory.createRStyle(rStyle));
+    		} else {
+    			rPr.getRStyle().setVal(rStyle);
+    		}
+    	} else {
+    		rPr.setRStyle(null);
+    	}
+    	
 	} //save()
 	
 	public Object clone() {
@@ -181,67 +195,13 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 	}
 		
 	protected void init(Object docxObject) {
-		initAttributes((RPr) docxObject);
-	}
-	
-	private void initAttributes(RPr rPr) {
 		this.attrs = new SimpleAttributeSet();
 		
-		if (rPr == null) {
-			return;
+		if (docxObject != null) {
+			StyleSheet.addAttributes(this.attrs, (RPr) docxObject);
 		}
-		
-		//BOLD Attribute
-		BooleanDefaultTrue bdt = rPr.getB();
-		if (bdt != null && bdt.isVal()) {
-			StyleConstants.setBold(this.attrs, Boolean.TRUE);
-		}
-
-		//ITALIC Attribute
-		bdt = rPr.getI();
-		if (bdt != null && bdt.isVal()) {
-			StyleConstants.setItalic(this.attrs, Boolean.TRUE);
-		}
-		
-		//UNDERLINE Attribute
-		//TODO: To support underline style and color
-		if (hasUnderlineSet(rPr)) {
-			StyleConstants.setUnderline(this.attrs, Boolean.TRUE);
-		}
-		
-		//FONT FAMILY Attribute
-		RPr.RFonts rfonts = rPr.getRFonts();
-		if (rfonts != null) {
-			String strValue = rfonts.getAscii();
-			if (strValue != null) {
-				StyleConstants.setFontFamily(this.attrs, strValue);
-			}
-		}
-		
-		//FONT SIZE Attribute
-		HpsMeasure sz = rPr.getSz();
-		if (sz != null && sz.getVal() != null) {
-			StyleConstants.setFontSize(this.attrs, sz.getVal().intValue());
-		}
-		
-	}// initAttributes()
-
-	private boolean hasUnderlineSet(RPr rPr) {
-		boolean hasUnderlineSet = false;
-		
-		Underline u = rPr.getU();
-		if (u != null) {
-			String none = null;
-			for (String s : u.getVal()) {
-				if (s.equalsIgnoreCase("none")) {
-					none = s;
-				}
-			}
-			hasUnderlineSet = (none == null && !u.getVal().isEmpty());
-		}
-		
-		return hasUnderlineSet;
 	}
+	
 }// RunPropertiesML class
 
 
