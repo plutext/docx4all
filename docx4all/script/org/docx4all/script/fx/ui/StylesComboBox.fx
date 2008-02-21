@@ -106,11 +106,13 @@ trigger on (new StylesComboBox) {
     this.styleSheetChangeListener =  new PropertyChangeListener {
         operation propertyChange(evt:PropertyChangeEvent) {
             var sheet = (StyleSheet) evt.getNewValue();
-            var styleNames = sheet.getUIStyleNames();
             self.fireBan = true;
-            self.cells = foreach (style in styleNames)
+            if (sheet <> null) {
+                var styleNames = sheet.getUIStyleNames();
+                self.cells = foreach (style in styleNames)
                          ComboBoxCell { text: style };
-            self.selection = -1;
+                self.selection = -1;
+            }
         }
     };// styleSheetChangeListener
     
