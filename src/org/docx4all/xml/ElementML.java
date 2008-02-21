@@ -24,6 +24,7 @@ import java.util.List;
 
 import javax.xml.namespace.QName;
 
+import org.docx4all.swing.text.StyleSheet;
 import org.docx4all.ui.main.Constants;
 import org.docx4j.jaxb.Context;
 
@@ -314,6 +315,10 @@ public abstract class ElementML implements Cloneable {
 	
 	public boolean breaksFlow() {
 		return getTag().breaksFlow();
+	}
+	
+	public StyleSheet getStyleSheet() {
+		return (getParent() != null) ? getParent().getStyleSheet() : null;
 	}
 	
 	public String toString() {
