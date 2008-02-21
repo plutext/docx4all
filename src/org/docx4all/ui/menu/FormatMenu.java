@@ -63,7 +63,7 @@ public class FormatMenu extends UIMenu {
 	//the method name annotated by @Action tag.
 	//Action name is used to configure Menu/Button Action property
 	//in .properties file and get an Action object out of 
-	//Spring Application Framework
+	//Swing Application Framework
 	
 	/**
 	 * The action name of Align Left Format menu
@@ -113,7 +113,7 @@ public class FormatMenu extends UIMenu {
 	/**
 	 * The action name of Paragraph Style Format menu
 	 */
-	public final static String PARAGRAPH_STYLE_ACTION_NAME = "paragraphStyle";
+	public final static String APPLY_STYLE_ACTION_NAME = "applyStyle";
 	
 	/**
 	 * The action name of Underline Font toobar button
@@ -229,8 +229,11 @@ public class FormatMenu extends UIMenu {
 		action.actionPerformed(evt);
 	}
 	
-	@Action public void paragraphStyle(ActionEvent actionEvent) {
-		;//TODO: paragraphStyle action
+	@Action public void applyStyle(ActionEvent actionEvent) {
+		StyledTextAction action = 
+			new WordMLEditorKit.ApplyStyleAction(
+				APPLY_STYLE_ACTION_NAME, actionEvent.getActionCommand());
+		action.actionPerformed(actionEvent);
 	}
 	
 	@Action public void fontFamily(ActionEvent actionEvent) {
