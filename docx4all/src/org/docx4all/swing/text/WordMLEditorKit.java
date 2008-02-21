@@ -49,6 +49,7 @@ import javax.swing.text.Document;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.Position;
 import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.TextAction;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
@@ -496,6 +497,76 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				DocUtil.displayStructure(doc);
 			}
 		}
+		
+        protected final void setRunStyle(WordMLTextPane editor, String styleId) {
+			Caret caret = editor.getCaret();
+			int dot = caret.getDot();
+			int mark = caret.getMark();
+			
+			WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
+			kit.saveCaretText();
+			
+			WordMLDocument doc = (WordMLDocument) editor.getDocument();
+			
+			int p0 = editor.getSelectionStart();
+			int p1 = editor.getSelectionEnd();
+			if (p0 == p1) {
+				try {
+					int wordStart = DocUtil.getWordStart(editor, p0);
+					int wordEnd = DocUtil.getWordEnd(editor, p1);
+					if (wordStart < p0 && p0 < wordEnd) {
+						p0 = wordStart;
+						p1 = wordEnd;
+					}
+				} catch (BadLocationException exc) {
+					;//ignore
+				}
+			}
+			
+			if (p0 != p1) {
+				doc.setRunStyle(p0, p1 - p0, styleId);
+				editor.setCaretPosition(mark);
+				editor.moveCaretPosition(dot);
+			} else {
+				Style style = doc.getStyleSheet().getReferredStyle(styleId);
+				if (style != null) {
+					MutableAttributeSet inputAttributes = (MutableAttributeSet) kit
+							.getInputAttributesML();
+					inputAttributes.removeAttributes(inputAttributes);
+					inputAttributes.addAttribute(
+							WordMLStyleConstants.RStyleAttribute, styleId);
+					kit.fireInputAttributeChanged(new InputAttributeEvent(
+							editor));
+				}
+			}
+			
+			if (log.isDebugEnabled()) {
+				DocUtil.displayStructure(doc);
+			}
+		}
+
+		protected final void setParagraphStyle(WordMLTextPane editor, String styleId) {
+			Caret caret = editor.getCaret();
+			int dot = caret.getDot();
+			int mark = caret.getMark();
+			
+			WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
+			kit.saveCaretText();
+			
+			int p0 = editor.getSelectionStart();
+			int p1 = editor.getSelectionEnd();
+			
+			WordMLDocument doc = (WordMLDocument) editor.getDocument();
+			doc.setParagraphStyle(p0, (p1 - p0), styleId);
+			
+			editor.setCaretPosition(mark);
+			editor.moveCaretPosition(dot);
+			
+			if (log.isDebugEnabled()) {
+				DocUtil.displayStructure(doc);
+			}
+		}
+		
 	}// StyledTextAction inner class
 	
 	public static class AlignmentAction extends StyledTextAction {
@@ -530,6 +601,37 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			}
 		}
 	}// AlignmentAction inner class
+	
+	public static class ApplyStyleAction extends StyledTextAction {
+		private String styleName;
+		
+		public ApplyStyleAction(String nm, String styleName) {
+			super(nm);
+			this.styleName = styleName;
+		}
+		
+		public void actionPerformed(ActionEvent e) {
+			log.debug("ApplyStyleAction.actionPerformed():...");
+			JEditorPane editor = getEditor(e);
+			if (editor instanceof WordMLTextPane) {
+				if (this.styleName != null) {
+					WordMLDocument doc = (WordMLDocument) editor.getDocument();
+					Style s = doc.getStyleSheet().getReferredStyle(this.styleName);
+					String styleId = 
+						(String) s.getAttribute(WordMLStyleConstants.StyleIdAttribute);
+					String type = 
+						(String) s.getAttribute(WordMLStyleConstants.StyleTypeAttribute);
+					if (StyleSheet.PARAGRAPH_ATTR_VALUE.equals(type)) {
+						setParagraphStyle((WordMLTextPane) editor, styleId);
+					} else if (StyleSheet.CHARACTER_ATTR_VALUE.equals(type)) {
+						setRunStyle((WordMLTextPane) editor, styleId);
+					}
+				} else {
+					UIManager.getLookAndFeel().provideErrorFeedback(editor);
+				}
+			}
+		}
+	}// ApplyStyleAction inner class
 	
     public static class FontFamilyAction extends StyledTextAction {
 		private String family;
