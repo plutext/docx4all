@@ -26,6 +26,7 @@ import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 import javax.swing.text.DocumentFilter.FilterBypass;
@@ -196,10 +197,16 @@ public class TextInserter implements TextProcessor {
 	}
 
 	private void insertNewEmptyParagraph(DocumentElement paraE, boolean before) {
+		Style pStyleFromAttrs = getPStyle(this.attrs);
+		
 		ParagraphML paraML = (ParagraphML) paraE.getElementML();
 		ParagraphPropertiesML pPr = (ParagraphPropertiesML) paraML
 				.getParagraphProperties();
-		if (pPr != null) {
+		Style pStyleFromParaE = (pPr != null) ? getPStyle(pPr.getAttributeSet()) : null;
+		
+		if (pStyleFromAttrs != null && pStyleFromAttrs != pStyleFromParaE) {
+			pPr = ElementMLFactory.createParagraphPropertiesML(pStyleFromAttrs);
+		} else if (pPr != null) {
 			pPr = (ParagraphPropertiesML) pPr.clone();
 		}
 
@@ -237,6 +244,27 @@ public class TextInserter implements TextProcessor {
 		}
 	}
 
+	private Style getPStyle(AttributeSet attrs) {
+		Style theStyle = null;
+		
+		WordMLDocument doc = (WordMLDocument) filterBypass.getDocument();
+		StyleSheet styleSheet = doc.getStyleSheet();
+		if (styleSheet != null) {
+			String styleId = (String) attrs
+					.getAttribute(WordMLStyleConstants.PStyleAttribute);
+			if (styleId != null) {
+				theStyle = styleSheet.getIDStyle(styleId);
+				String type = (theStyle == null) ? null : (String) theStyle
+						.getAttribute(WordMLStyleConstants.StyleTypeAttribute);
+				if (!StyleSheet.PARAGRAPH_ATTR_VALUE.equals(type)) {
+					theStyle = null;
+				}
+			}
+		}
+		
+		return theStyle;
+	}
+	
 }// TextInserter class
 
 
