@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.text.StyleSheet;
 import org.docx4j.XmlUtils;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
@@ -34,14 +35,21 @@ public class DocumentML extends ElementML {
 	private static Logger log = Logger.getLogger(DocumentML.class);
 	
 	private final WordprocessingMLPackage docPackage;
+	private final StyleSheet styleSheet;
 	
 	public DocumentML(WordprocessingMLPackage docPackage) {
 		super((docPackage != null) ? docPackage.getMainDocumentPart().getJaxbElement() : null, false);
 		this.docPackage = docPackage;
+		this.styleSheet = new StyleSheet();
+		this.styleSheet.setWordprocessingMLPackage(docPackage);
 	}
 
 	public WordprocessingMLPackage getWordprocessingMLPackage() {
 		return this.docPackage;
+	}
+
+	public StyleSheet getStyleSheet() {
+		return this.styleSheet;
 	}
 	
 	public Object clone() {
