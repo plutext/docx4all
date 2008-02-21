@@ -27,10 +27,10 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.text.StyleSheet;
+import org.docx4all.swing.text.WordMLStyleConstants;
 import org.docx4j.XmlUtils;
-import org.docx4j.wml.Jc;
 import org.docx4j.wml.PPr;
-import org.docx4j.wml.STJc;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -69,15 +69,29 @@ public class ParagraphPropertiesML extends ElementML implements PropertiesContai
 			return;
 		}
 		
+    	org.docx4j.wml.PPr pPr = 
+    		(org.docx4j.wml.PPr) this.docxObject;
+    	
 		//ALIGNMENT attribute
-        Integer align = 
-        	(Integer) this.attrs.getAttribute(StyleConstants.Alignment);
-    	org.docx4j.wml.Jc jc = ObjectFactory.createJc(align);
-    	if (jc != null) {
-        	org.docx4j.wml.PPr pPr = 
-        		(org.docx4j.wml.PPr) this.docxObject;
-			pPr.setJc(jc);
-		}
+    	if (this.attrs.isDefined(StyleConstants.Alignment)) {
+            Integer align = 
+            	(Integer) this.attrs.getAttribute(StyleConstants.Alignment);
+        	org.docx4j.wml.Jc jc = ObjectFactory.createJc(align);
+        	if (jc != null) {
+    			pPr.setJc(jc);
+    		}    		
+    	} else {
+    		pPr.setJc(null);
+    	}
+    	
+    	//PStyle
+    	if (this.attrs.isDefined(WordMLStyleConstants.PStyleAttribute)) {
+    		String pStyle =
+    			(String) this.attrs.getAttribute(WordMLStyleConstants.PStyleAttribute);
+    		pPr.setPStyle(ObjectFactory.createPStyle(pStyle));
+    	} else {
+    		pPr.setPStyle(null);
+    	}
 	}
 	
 	public Object clone() {
@@ -117,38 +131,12 @@ public class ParagraphPropertiesML extends ElementML implements PropertiesContai
 	}
 		
 	protected void init(Object docxObject) {
-		initAttributes((PPr) docxObject);
-	}
-	
-	private void initAttributes(PPr pPr) {
 		this.attrs = new SimpleAttributeSet();
 		
-		if (pPr == null) {
-			return;
+		if (docxObject != null) {
+			StyleSheet.addAttributes(this.attrs, (PPr) docxObject);
 		}
-		
-		//ALIGNMENT attribute
-		Jc jc = pPr.getJc();
-		if (jc != null) {
-			if (jc.getVal() == STJc.LEFT) {
-				StyleConstants.setAlignment(
-						this.attrs,
-						StyleConstants.ALIGN_LEFT);
-			} else if (jc.getVal() == STJc.RIGHT) {
-				StyleConstants.setAlignment(
-						this.attrs,
-						StyleConstants.ALIGN_RIGHT);
-			} else if (jc.getVal() == STJc.CENTER) {
-				StyleConstants.setAlignment(
-						this.attrs,
-						StyleConstants.ALIGN_CENTER);
-			} else if (jc.getVal() == STJc.BOTH) {
-				StyleConstants.setAlignment(
-						this.attrs,
-						StyleConstants.ALIGN_JUSTIFIED);
-			}
-		}
-	}// initAttributes()
+	}
 	
 }// ParagraphPropertiesML class
 
