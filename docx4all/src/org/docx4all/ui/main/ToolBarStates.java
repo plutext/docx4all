@@ -31,16 +31,18 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.Element;
+import javax.swing.text.MutableAttributeSet;
+import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.event.InputAttributeEvent;
 import org.docx4all.swing.event.InputAttributeListener;
+import org.docx4all.swing.text.DocumentElement;
+import org.docx4all.swing.text.StyleSheet;
 import org.docx4all.swing.text.WordMLDocument;
+import org.docx4all.swing.text.WordMLStyleConstants;
 import org.docx4all.util.SwingUtil;
 
 /**
@@ -68,8 +70,10 @@ public class ToolBarStates extends InternalFrameAdapter
 	
 	public final static String IFRAME_NUMBERS_PROPERTY_NAME = "iframeNumbers";
 	
-	public final static String PARAGRAPH_STYLE_PROPERTY_NAME = "paragraphStyle";
 	public final static String ALIGNMENT_PROPERTY_NAME = "alignment";
+	
+	public final static String STYLE_SHEET_PROPERTY_NAME = "styleSheet";
+	public final static String SELECTED_STYLE_PROPERTY_NAME = "selectedStyle";
 	
 	private final Hashtable<JEditorPane, Boolean> _dirtyTable;
 	private volatile JEditorPane _currentEditor;
@@ -79,8 +83,10 @@ public class ToolBarStates extends InternalFrameAdapter
 	
 	private volatile int _iframeNumbers;
 	
-	private volatile String _paraStyle;
+	private volatile String _selectedStyle;
 	private volatile int _alignment;
+	
+	private volatile StyleSheet _styleSheet;
 	
 	private PropertyChangeSupport changeSupport = null;
 	
@@ -167,23 +173,45 @@ public class ToolBarStates extends InternalFrameAdapter
 		firePropertyChange(ALL_DOC_DIRTY_PROPERTY_NAME, oldAllDirty, newDirty);
 	}
 	
-	public String getParagraphStyle() {
-		return _paraStyle;
+	public String getSelectedStyle() {
+		return _selectedStyle;
 	}
 	
-	public void setParagraphStyle(String paraStyle) {
+	public void setSelectedStyle(String style) {
 		if (log.isDebugEnabled()) {
-			log.debug("setParagraphStyle(): _paraStyle = " + _paraStyle + " fontFamily param = " + paraStyle);
+			log.debug("setSelectedStyle(): _selectedStyle = " + _selectedStyle + " selectedStyle param = " + style);
 		}
 	
-		if (_paraStyle == paraStyle
-			|| (_paraStyle != null && _paraStyle.equals(paraStyle))) {
+		if (_selectedStyle == style
+			|| (_selectedStyle != null && _selectedStyle.equals(style))) {
 			return;
 		}
 		
-		String oldValue = _paraStyle;
-		_paraStyle = paraStyle;
-		firePropertyChange(PARAGRAPH_STYLE_PROPERTY_NAME, oldValue, paraStyle);
+		String oldValue = _selectedStyle;
+		_selectedStyle = style;
+		firePropertyChange(SELECTED_STYLE_PROPERTY_NAME, oldValue, style);
+	}
+	
+	public StyleSheet getStyleSheet() {
+		return _styleSheet;
+	}
+	
+	public void setStyleSheet(StyleSheet styleSheet) {
+		if (log.isDebugEnabled()) {
+			String s1 = (_styleSheet == null) ? "NULL" : "StyleSheet@" + _styleSheet.hashCode();
+			String s2 = (styleSheet == null) ? "NULL" : "StyleSheet@" + styleSheet.hashCode();
+			
+			log.debug("setStyleSheet(): _styleSheet = " + s1
+				+ " styleSheet param = " + s2);
+		}
+	
+		if (_styleSheet == styleSheet) {
+			return;
+		}
+		
+		StyleSheet oldValue = _styleSheet;
+		_styleSheet = styleSheet;
+		firePropertyChange(STYLE_SHEET_PROPERTY_NAME, oldValue, styleSheet);
 	}
 	
 	public int getAlignment() {
@@ -448,19 +476,31 @@ public class ToolBarStates extends InternalFrameAdapter
     private void setFormatInfo(JEditorPane editor) {
     	int pos = editor.getCaretPosition();
     	
-    	StyledDocument doc = (StyledDocument) editor.getDocument();
-    	Element paragraph = doc.getParagraphElement(pos);
+    	WordMLDocument doc = (WordMLDocument) editor.getDocument();
+    	DocumentElement runE = (DocumentElement) doc.getRunMLElement(pos);
     	
-    	AttributeSet inputAttrs = 
-    		((WordMLTextPane) editor).getInputAttributesML();
-    	  
+    	MutableAttributeSet inputAttrs = 
+    		(MutableAttributeSet)
+    		((WordMLTextPane) editor).getInputAttributesML().copyAttributes();
+		String styleName =
+			(String) inputAttrs.getAttribute(WordMLStyleConstants.RStyleAttribute);
+    	if (styleName != null) {
+    		Style rStyle = doc.getStyleSheet().getReferredStyle(styleName);
+    		if (rStyle != null) {
+    			inputAttrs.setResolveParent(rStyle);
+    		}
+    	}
+    	
+    	setStyleSheet(doc.getStyleSheet());
+    	
 	    setFontFamily(StyleConstants.getFontFamily(inputAttrs));
 	    setFontSize(StyleConstants.getFontSize(inputAttrs));
 	    setFontBold(StyleConstants.isBold(inputAttrs));
 	    setFontItalic(StyleConstants.isItalic(inputAttrs));
 	    setFontUnderlined(StyleConstants.isUnderline(inputAttrs));
 	    
-	    setAlignment(StyleConstants.getAlignment(paragraph.getAttributes()));
+	    setSelectedStyle(runE.getStyleNameInAction());
+	    setAlignment(StyleConstants.getAlignment(runE.getAttributes()));
     }
 
 	// ============================
