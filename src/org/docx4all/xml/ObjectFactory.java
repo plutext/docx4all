@@ -60,6 +60,12 @@ public class ObjectFactory {
 		return _jaxbFactory.createPPr();
 	}
 	
+	public final static org.docx4j.wml.PPr.PStyle createPStyle(String styleId) {
+		org.docx4j.wml.PPr.PStyle pStyle = _jaxbFactory.createPPrPStyle();
+		pStyle.setVal(styleId);
+		return pStyle;
+	}
+	
 	public final static org.docx4j.wml.R createR(String textContent) {
 		org.docx4j.wml.R r = _jaxbFactory.createR();
 		
@@ -78,6 +84,12 @@ public class ObjectFactory {
 	
 	public final static org.docx4j.wml.RPr createRPr() {
 		return _jaxbFactory.createRPr();
+	}
+	
+	public final static org.docx4j.wml.RPr.RStyle createRStyle(String styleId) {
+		org.docx4j.wml.RPr.RStyle rStyle = _jaxbFactory.createRPrRStyle();
+		rStyle.setVal(styleId);
+		return rStyle;
 	}
 	
 	public final static JAXBElement<Text> createT(String textContent) {
