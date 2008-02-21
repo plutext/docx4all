@@ -88,7 +88,11 @@ public class ParagraphPropertiesML extends ElementML implements PropertiesContai
     	if (this.attrs.isDefined(WordMLStyleConstants.PStyleAttribute)) {
     		String pStyle =
     			(String) this.attrs.getAttribute(WordMLStyleConstants.PStyleAttribute);
-    		pPr.setPStyle(ObjectFactory.createPStyle(pStyle));
+    		if (pPr.getPStyle() == null) {
+    			pPr.setPStyle(ObjectFactory.createPStyle(pStyle));
+    		} else {
+    			pPr.getPStyle().setVal(pStyle);
+    		}
     	} else {
     		pPr.setPStyle(null);
     	}
