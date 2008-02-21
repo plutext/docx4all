@@ -31,7 +31,9 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
+import javax.swing.text.AttributeSet;
 import javax.swing.text.MutableAttributeSet;
+import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 
@@ -482,27 +484,57 @@ public class ToolBarStates extends InternalFrameAdapter
     	MutableAttributeSet inputAttrs = 
     		(MutableAttributeSet)
     		((WordMLTextPane) editor).getInputAttributesML().copyAttributes();
+    	//Find RStyleAttribute in input attributes.
+    	//If exists this may come from either the document element attribute or
+    	//a selection that the user has made.
 		String styleName =
 			(String) inputAttrs.getAttribute(WordMLStyleConstants.RStyleAttribute);
     	if (styleName != null) {
     		Style rStyle = doc.getStyleSheet().getReferredStyle(styleName);
     		if (rStyle != null) {
     			inputAttrs.setResolveParent(rStyle);
+    		} else {
+    			styleName = null;
     		}
     	}
+    	if (styleName == null) {
+    		styleName = runE.getStyleNameInAction();
+    		Style rStyle = doc.getStyleSheet().getReferredStyle(styleName);
+    		inputAttrs.setResolveParent(rStyle);
+    	}
     	
-    	setStyleSheet(doc.getStyleSheet());
+    	StyleConstants.setAlignment(
+    		inputAttrs, StyleConstants.getAlignment(runE.getAttributes()));
     	
-	    setFontFamily(StyleConstants.getFontFamily(inputAttrs));
-	    setFontSize(StyleConstants.getFontSize(inputAttrs));
-	    setFontBold(StyleConstants.isBold(inputAttrs));
-	    setFontItalic(StyleConstants.isItalic(inputAttrs));
-	    setFontUnderlined(StyleConstants.isUnderline(inputAttrs));
-	    
-	    setSelectedStyle(runE.getStyleNameInAction());
-	    setAlignment(StyleConstants.getAlignment(runE.getAttributes()));
+    	setFormatInfo(doc.getStyleSheet(), runE.getStyleNameInAction(), inputAttrs);
     }
 
+    private void setDefaultFormatInfo() {
+    	StyleSheet styleSheet = StyleSheet.getDefaultStyleSheet();
+    	
+		Style style = styleSheet.getStyle(StyleSheet.DEFAULT_STYLE);
+		String styleName = 
+			(String) style.getAttribute(
+						WordMLStyleConstants.DefaultParagraphStyleNameAttribute);
+    	style = styleSheet.getReferredStyle(styleName);
+		
+    	setFormatInfo(styleSheet, styleName, style);
+    }
+    
+    private void setFormatInfo(
+    	StyleSheet styleSheet, String selectedStyleName, AttributeSet attrs) {
+    	setStyleSheet(styleSheet);
+    	
+	    setFontFamily(StyleConstants.getFontFamily(attrs));
+	    setFontSize(StyleConstants.getFontSize(attrs));
+	    setFontBold(StyleConstants.isBold(attrs));
+	    setFontItalic(StyleConstants.isItalic(attrs));
+	    setFontUnderlined(StyleConstants.isUnderline(attrs));
+	    
+	    setSelectedStyle(selectedStyleName);
+	    setAlignment(StyleConstants.getAlignment(attrs));
+    }
+    
 	// ============================
 	// FocusListener Implementation
 	// ============================
@@ -515,6 +547,7 @@ public class ToolBarStates extends InternalFrameAdapter
     		log.debug("focusGained(): evt.getSource = " + e.getSource());
     		log.debug("focusGained(): _currentEditor = " + _currentEditor);
     	}
+    	setFormatInfo(null, null, SimpleAttributeSet.EMPTY);
 
     	JEditorPane newEditor = (JEditorPane) e.getSource();
     	setFormatInfo(newEditor);
@@ -632,6 +665,10 @@ public class ToolBarStates extends InternalFrameAdapter
     	Integer oldNumbers = new Integer(_iframeNumbers);
     	Integer newNumbers = new Integer(--_iframeNumbers);
     	firePropertyChange(IFRAME_NUMBERS_PROPERTY_NAME, oldNumbers, newNumbers);
+    	
+    	if (_iframeNumbers == 0) {
+    		setDefaultFormatInfo();
+    	}
     }
 
 	//=====================================
