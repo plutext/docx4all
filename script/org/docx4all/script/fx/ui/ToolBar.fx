@@ -20,6 +20,7 @@
 package org.docx4all.script.fx.ui;
 
 import org.docx4all.ui.menu.FileMenu;
+import org.docx4all.swing.text.StyleSheet;
 
 import java.awt.GraphicsEnvironment;
 
@@ -110,16 +111,14 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
         swingAction: editMenu.getAction(editMenu.PASTE_ACTION_NAME)
     }
     
-    var pStyleCombo = ComboBox {
-        var headings = [
-            "Paragraph", "Heading1", "Heading2", 
-            "Heading3", "Heading4", "Heading5", "Heading6"
-        ]
-            
-        selection: 1
-        cells: foreach (h in headings)
-               ComboBoxCell { text: h }
-        swingAction: formatMenu.getAction(formatMenu.PARAGRAPH_STYLE_ACTION_NAME)
+    var styleCombo = StylesComboBox {
+        var styleNames = StyleSheet.getDefaultStyleSheet().getUIStyleNames()
+        cells: foreach (style in styleNames)
+               ComboBoxCell { text: style }
+        selection: 0
+        styleSheetChangePropertyName:toolBarStates.STYLE_SHEET_PROPERTY_NAME
+        propertyNameToListen: toolBarStates.SELECTED_STYLE_PROPERTY_NAME              
+        swingAction: formatMenu.getAction(formatMenu.APPLY_STYLE_ACTION_NAME)
     }
     
     var fontFamilyCombo = ComboBox {
@@ -179,7 +178,7 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
         RigidArea { width: 10 },
         Separator { orientation: VERTICAL:Orientation },
         RigidArea { width: 10 },
-        pStyleCombo,
+        styleCombo,
         alignLeftButton,
         alignCtrButton,
         alignRightButton,
