@@ -136,9 +136,11 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
     }
     
     var fontSizeCombo = ComboBox {
-        var fontSizes = ["8", "10", "12", "14", "16", "18", "20", "22", "24"]
+        var fontSizes = ["8", "9", "10", "11", "12", "14", "16", "18",
+                         "20", "22", "24", "26", "28", "32", "36", "40", 
+                         "44", "48", "52", , "56", "64", "72"]
         var: self
-        selection: 1
+        selection: 4
         cells: foreach (size in fontSizes)
                ComboBoxCell { text: size }
                
