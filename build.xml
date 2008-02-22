@@ -61,6 +61,8 @@
         </copy>
     </target>
     <target name="clean">
+        <delete file="./docx4all.jar"/>
+        <delete file="./docx4all.war"/>
         <delete dir="build/classes"/>
         <delete dir="build/lib"/>
     </target>
