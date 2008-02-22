@@ -476,39 +476,35 @@ public class ToolBarStates extends InternalFrameAdapter
 	}
 
     private void setFormatInfo(JEditorPane editor) {
-    	int pos = editor.getCaretPosition();
-    	
     	WordMLDocument doc = (WordMLDocument) editor.getDocument();
-    	DocumentElement runE = (DocumentElement) doc.getRunMLElement(pos);
     	
     	MutableAttributeSet inputAttrs = 
     		(MutableAttributeSet)
-    		((WordMLTextPane) editor).getInputAttributesML().copyAttributes();
-    	//Find RStyleAttribute in input attributes.
-    	//If exists this may come from either the document element attribute or
-    	//a selection that the user has made.
-		String styleName =
-			(String) inputAttrs.getAttribute(WordMLStyleConstants.RStyleAttribute);
-    	if (styleName != null) {
-    		Style rStyle = doc.getStyleSheet().getReferredStyle(styleName);
-    		if (rStyle != null) {
-    			inputAttrs.setResolveParent(rStyle);
-    		} else {
-    			styleName = null;
-    		}
-    	}
-    	if (styleName == null) {
-    		styleName = runE.getStyleNameInAction();
-    		Style rStyle = doc.getStyleSheet().getReferredStyle(styleName);
-    		inputAttrs.setResolveParent(rStyle);
+    		((WordMLTextPane) editor).getInputAttributesML();
+    	if (inputAttrs.isDefined(WordMLStyleConstants.RStyleAttribute)) {
+    		//user has selected a style
+    		String styleName =
+    			(String) inputAttrs.getAttribute(WordMLStyleConstants.RStyleAttribute);
+        	if (styleName != null) {
+        		Style rStyle = doc.getStyleSheet().getReferredStyle(styleName);
+        		setFormatInfo(doc.getStyleSheet(), styleName, rStyle);
+        		return;
+        	}
     	}
     	
-    	StyleConstants.setAlignment(
-    		inputAttrs, StyleConstants.getAlignment(runE.getAttributes()));
-    	
-    	setFormatInfo(doc.getStyleSheet(), runE.getStyleNameInAction(), inputAttrs);
+    	DocumentElement elem = (DocumentElement) inputAttrs.getResolveParent();
+    	if (elem != null) {
+        	setFormatInfo(doc.getStyleSheet(), elem.getStyleNameInAction(), inputAttrs);
+    	} else {
+    		int pos = editor.getCaretPosition();
+    		elem = (DocumentElement) doc.getParagraphMLElement(pos, false);
+    		
+    		String styleName = elem.getStyleNameInAction();
+       		Style pStyle = doc.getStyleSheet().getReferredStyle(styleName);
+       		setFormatInfo(doc.getStyleSheet(), styleName, pStyle);
+    	}
     }
-
+    
     private void setDefaultFormatInfo() {
     	StyleSheet styleSheet = StyleSheet.getDefaultStyleSheet();
     	
