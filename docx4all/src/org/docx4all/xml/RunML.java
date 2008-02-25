@@ -26,11 +26,10 @@ import javax.swing.text.AttributeSet;
 import javax.xml.bind.JAXBElement;
 
 import org.apache.log4j.Logger;
+import org.apache.xerces.dom.NodeImpl;
 import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
 import org.docx4j.wml.RPr;
-
-import com.sun.org.apache.xerces.internal.dom.NodeImpl;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
