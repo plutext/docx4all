@@ -26,6 +26,14 @@ public interface Constants {
 	//=============
 	//Miscellaneous
 	//=============
+	public static final String HTML_STRING = "html";
+	
+	public static final String DOCX_STRING = "docx";
+	
+	public static final String EMPTY_STRING = "";
+	
+	public static final String DOT = ".";
+
 	public static final String NEWLINE = "\n";
 	
 	public final static String LAST_OPENED_FILE  = "last.opened.file";
@@ -47,6 +55,7 @@ public interface Constants {
 	public final static String FXSCRIPT_LOCATION = "fxscript.location";
 	
 	public final static String DOCX_FILTER_DESC  = "docx.filter.desc";
+	public final static String HTML_FILTER_DESC  = "html.filter.desc";
 	
 	public final static String EDITOR_PANEL_FX = "editorPanel.fx";
 	public final static String TOOLBAR_FX = "toolbar.fx";
