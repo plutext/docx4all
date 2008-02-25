@@ -22,6 +22,7 @@ package org.docx4all.ui.menu;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.prefs.Preferences;
 
@@ -102,7 +103,12 @@ public class FileMenu extends UIMenu {
 	/**
 	 * The action name of Save As file menu
 	 */
-	public final static String SAVE_AS_FILE_ACTION_NAME = "saveAsFile";
+	public final static String SAVE_AS_DOCX_ACTION_NAME = "saveAsDocx";
+	
+	/**
+	 * The action name of Save As Html menu
+	 */
+	public final static String SAVE_AS_HTML_ACTION_NAME = "saveAsHtml";
 	
 	/**
 	 * The action name of Save As file menu
@@ -133,7 +139,8 @@ public class FileMenu extends UIMenu {
 		NEW_FILE_ACTION_NAME,
 		OPEN_FILE_ACTION_NAME,
 		SAVE_FILE_ACTION_NAME,
-		SAVE_AS_FILE_ACTION_NAME,
+		SAVE_AS_DOCX_ACTION_NAME,
+		SAVE_AS_HTML_ACTION_NAME,
 		SAVE_ALL_FILES_ACTION_NAME,
 		SEPARATOR_CODE,
 		PRINT_PREVIEW_ACTION_NAME,
@@ -171,7 +178,8 @@ public class FileMenu extends UIMenu {
         ToolBarStates toolbarStates = editor.getToolbarStates();
         
     	if (SAVE_FILE_ACTION_NAME.equals(actionName)
-    		|| SAVE_AS_FILE_ACTION_NAME.equals(actionName)) {
+    		|| SAVE_AS_DOCX_ACTION_NAME.equals(actionName)
+    		|| SAVE_AS_HTML_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
     		MenuItemStateManager listener = new MenuItemStateManager(theItem);
     		toolbarStates.addPropertyChangeListener(
@@ -200,7 +208,7 @@ public class FileMenu extends UIMenu {
     
 	@Action public void newFile() {
         Preferences prefs = Preferences.userNodeForPackage( getClass() );
-        String lastFileName = prefs.get(Constants.LAST_OPENED_FILE, "");
+        String lastFileName = prefs.get(Constants.LAST_OPENED_FILE, Constants.EMPTY_STRING);
         
         File dir = null;
         if (lastFileName.length() > 0) {
@@ -220,18 +228,18 @@ public class FileMenu extends UIMenu {
         Preferences prefs = Preferences.userNodeForPackage( getClass() );
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         
-        String lastFileName = prefs.get(Constants.LAST_OPENED_FILE, "");
+        String lastFileName = prefs.get(Constants.LAST_OPENED_FILE, Constants.EMPTY_STRING);
         File dir = null;
         if (lastFileName.length() > 0) {
         	dir = (new File(lastFileName)).getParentFile();
         }
         
     	ResourceMap rm = editor.getContext().getResourceMap(WordMLEditor.class);
-        JFileChooser chooser = createFileChooser(rm, dir);
+        JFileChooser chooser = createFileChooser(rm, dir, Constants.DOCX_STRING);
         
         int returnVal = chooser.showOpenDialog((Component) actionEvent.getSource());
         if (returnVal == JFileChooser.APPROVE_OPTION) {
-			File file = chooser.getSelectedFile();
+			File file = getSelectedFile(chooser, Constants.DOCX_STRING);
 			prefs.put(Constants.LAST_OPENED_FILE, file.getAbsolutePath());
 			editor.createInternalFrame(file);
 		}
@@ -248,7 +256,15 @@ public class FileMenu extends UIMenu {
 		}
     }
 
-    @Action public void saveAsFile(ActionEvent actionEvent) {
+    @Action public void saveAsHtml(ActionEvent actionEvent) {
+    	saveAsFile(SAVE_AS_HTML_ACTION_NAME, actionEvent, Constants.HTML_STRING);
+    }
+    
+    @Action public void saveAsDocx(ActionEvent actionEvent) {
+    	saveAsFile(SAVE_AS_DOCX_ACTION_NAME, actionEvent, Constants.DOCX_STRING);
+    }
+    
+    private void saveAsFile(String callerActionName, ActionEvent actionEvent, String fileType) {
         Preferences prefs = Preferences.userNodeForPackage( getClass() );
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         
@@ -259,20 +275,26 @@ public class FileMenu extends UIMenu {
         File file = new File(filePath);
         
     	ResourceMap rm = editor.getContext().getResourceMap(getClass());
-        JFileChooser chooser = createFileChooser(rm, file.getParentFile());
+        JFileChooser chooser = createFileChooser(rm, file.getParentFile(), fileType);
         
         int returnVal = chooser.showSaveDialog((Component) actionEvent.getSource());
         if (returnVal == JFileChooser.APPROVE_OPTION) {
-			File selectedFile = chooser.getSelectedFile();
-			prefs.put(Constants.LAST_OPENED_FILE, file.getAbsolutePath());
+			File selectedFile = getSelectedFile(chooser, fileType);
+			filePath = selectedFile.getAbsolutePath();
+			
+			if (log.isDebugEnabled()) {
+				log.debug("saveAsFile(): selectedFile = " + filePath);
+			}
+			
+			prefs.put(Constants.LAST_OPENED_FILE, filePath);
 			
 			boolean canSave = true;
 			if (selectedFile.exists() && !selectedFile.equals(file)) {
 	            String title = 
-	            	rm.getString(SAVE_AS_FILE_ACTION_NAME + ".Action.text");
+	            	rm.getString(callerActionName + ".Action.text");
 	            String message =
 	            	selectedFile.getAbsolutePath() + "\n"
-	            	+ rm.getString(SAVE_AS_FILE_ACTION_NAME + ".Action.confirmMessage");
+	            	+ rm.getString(callerActionName + ".Action.confirmMessage");
 	            int answer = 
 	            	editor.showConfirmDialog(
 	            		title, 
@@ -283,15 +305,57 @@ public class FileMenu extends UIMenu {
 			}// if (file.exists())
 			
 			if (canSave) {
-				boolean success = 
-					save(editorPane, selectedFile.getAbsolutePath(), SAVE_AS_FILE_ACTION_NAME);
+				boolean success = save(editorPane, filePath, callerActionName);
 				if (success) {
-					editor.getToolbarStates().setDocumentDirty(false);
-					editor.updateInternalFrame(file, selectedFile);
+		       		if (Constants.DOCX_STRING.equals(fileType)) {
+		       			//If saving as .docx then update the document dirty flag 
+		       			//of toolbar states as well as internal frame title
+		       			editor.getToolbarStates().setDocumentDirty(false);
+		       			editor.updateInternalFrame(file, selectedFile);
+		       		} else {
+		       			//Because document dirty flag is not cleared
+		       			//and internal frame title is not changed,
+		       			//we present a success message.
+			            String title = 
+			            	rm.getString(callerActionName + ".Action.text");
+			            String message =
+			            	filePath + "\n"
+			            	+ rm.getString(callerActionName + ".Action.successMessage");
+		            	editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
+		       		}
 				}
 			}
 		}//if (returnVal == JFileChooser.APPROVE_OPTION)
     }// saveAsFile()
+    
+    /**
+     * If user types in a filename JFileChooser does not append the file extension
+     * displayed by its FileFilter to it.
+     * This method appends desiredFileType parameter as file extension
+     * if JFileChooser's selected file does not have it.
+     * 
+     * @param chooser JFileChooser instance
+     * @param desiredFileType File extension
+     * @return a File whose extension is desiredFileType.
+     */
+    private File getSelectedFile(JFileChooser chooser, String desiredFileType) {
+		File theFile = chooser.getSelectedFile();
+		
+		String filePath = theFile.getAbsolutePath();
+		int dot = filePath.lastIndexOf(Constants.DOT);
+		String type = (dot > 0) ? filePath.substring(dot + 1) : null;
+		
+		if (desiredFileType.equalsIgnoreCase(type)) {
+			//user may type in the file extension in the JFileChooser dialog.
+			//Therefore worth checking file extension case insensitively
+			filePath = filePath.substring(0, dot) + Constants.DOT + desiredFileType;
+		} else {
+			filePath = filePath + Constants.DOT + desiredFileType;
+		}
+		
+		theFile = new File(filePath);
+		return theFile;
+    }
     
     @Action public void saveAllFiles() {
         WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
@@ -330,7 +394,7 @@ public class FileMenu extends UIMenu {
 			String tmpName = 
 				filePath.substring(
 					filePath.lastIndexOf(File.separator),
-					filePath.lastIndexOf("."));
+					filePath.lastIndexOf(Constants.DOT));
 			File tmpFile = File.createTempFile(tmpName + ".tmp", ".pdf");
 			// Delete the temporary file when program exits.
 			tmpFile.deleteOnExit();
@@ -388,22 +452,39 @@ public class FileMenu extends UIMenu {
     
     private JFileChooser createFileChooser(
     	ResourceMap resourceMap, 
-    	File showedDir) {
+    	File showedDir,
+    	String filteredFileExtension) {
         JFileChooser chooser = new JFileChooser();
         
-    	String desc = resourceMap.getString(Constants.DOCX_FILTER_DESC);
-    	if (desc == null || desc.length() == 0) {
-    		desc = "Docx Files";
-    	}
-
-        FileNameExtensionFilter docxFilter = 
-        	new FileNameExtensionFilter(desc, "docx");        
-        chooser.setFileFilter(docxFilter);
+        String desc = null;
+        if (Constants.HTML_STRING.equals(filteredFileExtension)) {
+        	desc = resourceMap.getString(Constants.HTML_FILTER_DESC);
+        	if (desc == null || desc.length() == 0) {
+        		desc = "Html Files (.html)";
+        	}
+        } else {
+        	desc = resourceMap.getString(Constants.DOCX_FILTER_DESC);
+        	if (desc == null || desc.length() == 0) {
+        		desc = "Docx Files (.docx)";
+        	}
+        }
+    	
+    	FileNameExtensionFilter filter = new FileNameExtensionFilter(desc, filteredFileExtension);        
+    	chooser.addChoosableFileFilter(filter);
         chooser.setCurrentDirectory(showedDir);
         
         return chooser;
     }
     
+    /**
+     * Saves a JEditorPane document to a file.
+     * 
+     * @param editor JEditorPane whose document is going to be saved.
+     * @param saveAsFilePath The destination file path.
+     * @param callerActionName The action name that calls this method.
+     * This is needed as a key to search for failure message properties.
+     * @return true if successful; false, otherwise.
+     */
     public boolean save(JEditorPane editor, String saveAsFilePath, String callerActionName) {
     	boolean success = true;
     	
@@ -427,11 +508,26 @@ public class FileMenu extends UIMenu {
 		}
 		
         try {
-        	SaveToZipFile saver = 
-        		new SaveToZipFile(rootML.getWordprocessingMLPackage());
-        	saver.save(saveAsFilePath);
-
-        } catch (Docx4JException exc) {
+       		int dot = saveAsFilePath.lastIndexOf(Constants.DOT);
+       		String type = (dot > 0) ? saveAsFilePath.substring(dot + 1) : null;
+            
+       		if (Constants.DOCX_STRING.equals(type)) {
+       			SaveToZipFile saver = 
+       				new SaveToZipFile(rootML.getWordprocessingMLPackage());
+       			saver.save(saveAsFilePath);
+       			
+       		} else if (Constants.HTML_STRING.equals(type)) {
+       			FileOutputStream fos = new FileOutputStream(saveAsFilePath);
+       			javax.xml.transform.stream.StreamResult result = 
+					new javax.xml.transform.stream.StreamResult(fos);
+				rootML.getWordprocessingMLPackage().html(result);
+				
+			} else {
+       			throw new Docx4JException("Invalid filepath = " + saveAsFilePath);
+			}
+        } catch (Exception exc) {
+        	exc.printStackTrace();
+        	
         	success = false;
             WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);            
         	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
