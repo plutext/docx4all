@@ -356,11 +356,13 @@ public class StyleSheet extends StyleContext {
 					String targetType = 
 						(String) target.getAttribute(WordMLStyleConstants.StyleTypeAttribute);
 					if (PARAGRAPH_ATTR_VALUE.equalsIgnoreCase(type)
-							&& CHARACTER_ATTR_VALUE.equalsIgnoreCase(targetType)) {
+							&& CHARACTER_ATTR_VALUE.equalsIgnoreCase(targetType)
+							&& targetDocxStyles.getRPr() != null) {
 						StyleSheet.addAttributes(temp, targetDocxStyles.getRPr());
 						
 					} else if (CHARACTER_ATTR_VALUE.equalsIgnoreCase(type)
-							&& PARAGRAPH_ATTR_VALUE.equalsIgnoreCase(targetType)) {
+							&& PARAGRAPH_ATTR_VALUE.equalsIgnoreCase(targetType)
+							&& targetDocxStyles.getPPr() != null) {
 						StyleSheet.addAttributes(temp, targetDocxStyles.getPPr());
 						
 					} else {
