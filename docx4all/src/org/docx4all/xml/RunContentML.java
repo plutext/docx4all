@@ -54,11 +54,11 @@ public class RunContentML extends ElementML {
 		this.textContent = textContent;
 		if (docxObject instanceof JAXBElement<?>) {
 			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
-			String typeName = jaxbElem.getDeclaredType().getName();
-			if ("org.docx4j.wml.Text".equals(typeName)) {
+			if (hasSupportedTextValue((JAXBElement<?>) jaxbElem)) {
 				org.docx4j.wml.Text t = 
 					(org.docx4j.wml.Text) jaxbElem.getValue();
 				t.setValue(textContent);
+				
 			}
 		}
 	}
@@ -113,7 +113,7 @@ public class RunContentML extends ElementML {
 		} else if (docxObject instanceof JAXBElement<?>) {
 			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
 			String typeName = jaxbElem.getDeclaredType().getName();
-			if ("org.docx4j.wml.Text".equals(typeName)) {
+			if (hasSupportedTextValue(jaxbElem)) {
 				org.docx4j.wml.Text t = 
 					(org.docx4j.wml.Text) jaxbElem.getValue();
 				t.setParent(docxParent);
@@ -156,8 +156,7 @@ public class RunContentML extends ElementML {
 
 		} else if (docxObject instanceof JAXBElement<?>) {
 			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
-			String typeName = jaxbElem.getDeclaredType().getName();
-			if ("org.docx4j.wml.Text".equals(typeName)) {
+			if (hasSupportedTextValue(jaxbElem)) {
 				org.docx4j.wml.Text t = 
 					(org.docx4j.wml.Text) 
 						jaxbElem.getValue();
@@ -179,6 +178,12 @@ public class RunContentML extends ElementML {
 		
 	}// init()
 	
+	private static boolean hasSupportedTextValue(JAXBElement<?> elem) {
+		String typeName = elem.getDeclaredType().getName();
+		return "org.docx4j.wml.Text".equals(typeName) 
+			&& "t".equals(elem.getName().getLocalPart());
+	}
+		
 }// RunContentML class
 
 
