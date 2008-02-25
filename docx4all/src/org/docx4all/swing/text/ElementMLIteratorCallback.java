@@ -28,6 +28,7 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.Style;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
+import org.docx4all.ui.main.Constants;
 import org.docx4all.xml.BodyML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLIterator;
@@ -221,7 +222,7 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	}
 	
 	private void closeElementSpec(RunContentML runContentML) {
-		if (runContentML.breaksFlow()) {
+		if (Constants.NEWLINE.equals(runContentML.getTextContent())) {
 			//Close the current RUN block
 			RunML runML = (RunML) WordMLStyleConstants.getElementML(_runAttrs);
 			SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
