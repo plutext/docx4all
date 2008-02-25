@@ -25,14 +25,13 @@ import java.util.List;
 import javax.swing.text.AttributeSet;
 import javax.xml.namespace.QName;
 
+import org.apache.xerces.dom.NodeImpl;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLIterator;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.PropertiesContainerML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
-
-import com.sun.org.apache.xerces.internal.dom.NodeImpl;
 
 /**
  *	@author Jojada Tirtowidjojo - 04/01/2008
