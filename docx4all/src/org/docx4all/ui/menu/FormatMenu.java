@@ -152,24 +152,30 @@ public class FormatMenu extends UIMenu {
     protected JMenuItem createMenuItem(String actionName) {
     	JMenuItem theItem = super.createMenuItem(actionName);
     	
-        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-        ToolBarStates toolbarStates = editor.getToolbarStates();
-        
     	if (ALIGN_LEFT_ACTION_NAME.equals(actionName)
-    		|| ALIGN_CENTER_ACTION_NAME.equals(actionName)
-    		|| ALIGN_RIGHT_ACTION_NAME.equals(actionName)
-    		|| ALIGN_JUSTIFIED_ACTION_NAME.equals(actionName)) {
-    		theItem = new JMenuItem();
-    		theItem.setAction(getAction(actionName));
-    		_alignmentButtonGroup.add(theItem);
+        		|| ALIGN_CENTER_ACTION_NAME.equals(actionName)
+        		|| ALIGN_RIGHT_ACTION_NAME.equals(actionName)
+        		|| ALIGN_JUSTIFIED_ACTION_NAME.equals(actionName)) {
     		
-    		MenuItemStateManager listener = new MenuItemStateManager(theItem);
-    		toolbarStates.addPropertyChangeListener(
-    				ToolBarStates.ALIGNMENT_PROPERTY_NAME, 
-    				listener);
-    	}
+    		WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+			ToolBarStates toolbarStates = editor.getToolbarStates();
+
+			Integer value = new Integer(StyleConstants.ALIGN_LEFT);
+			if (ALIGN_CENTER_ACTION_NAME.equals(actionName)) {
+				value = new Integer(StyleConstants.ALIGN_CENTER);
+			} else if (ALIGN_RIGHT_ACTION_NAME.equals(actionName)) {
+				value = new Integer(StyleConstants.ALIGN_RIGHT);
+			} else if (ALIGN_JUSTIFIED_ACTION_NAME.equals(actionName)) {
+				value = new Integer(StyleConstants.ALIGN_JUSTIFIED);
+			}
+
+			_alignmentButtonGroup.add(theItem);
+			toolbarStates.addPropertyChangeListener(
+					ToolBarStates.ALIGNMENT_PROPERTY_NAME, 
+					new DisableOnEqual(theItem, value));
+		}
     	
-    	return theItem;
+		return theItem;
     }
     
 	@Action public void font() {
