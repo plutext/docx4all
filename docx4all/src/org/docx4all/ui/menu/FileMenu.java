@@ -181,26 +181,23 @@ public class FileMenu extends UIMenu {
     		|| SAVE_AS_DOCX_ACTION_NAME.equals(actionName)
     		|| SAVE_AS_HTML_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
-    		MenuItemStateManager listener = new MenuItemStateManager(theItem);
     		toolbarStates.addPropertyChangeListener(
     				ToolBarStates.DOC_DIRTY_PROPERTY_NAME, 
-    				listener);
+    				new EnableOnEqual(theItem, Boolean.TRUE));
     		
     	} else if (SAVE_ALL_FILES_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
-    		MenuItemStateManager listener = new MenuItemStateManager(theItem);
     		toolbarStates.addPropertyChangeListener(
     				ToolBarStates.ALL_DOC_DIRTY_PROPERTY_NAME, 
-    				listener);
+    				new EnableOnEqual(theItem, Boolean.TRUE));
     		
     	} else if (PRINT_PREVIEW_ACTION_NAME.equals(actionName)
     		|| CLOSE_FILE_ACTION_NAME.equals(actionName)
     		|| CLOSE_ALL_FILES_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
-    		MenuItemStateManager listener = new MenuItemStateManager(theItem);
     		toolbarStates.addPropertyChangeListener(
     				ToolBarStates.IFRAME_NUMBERS_PROPERTY_NAME, 
-    				listener);
+    				new EnableOnPositive(theItem));
     	}
     	
     	return theItem;
