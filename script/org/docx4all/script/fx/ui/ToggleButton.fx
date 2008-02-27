@@ -102,6 +102,10 @@ trigger on new ToggleButton {
                 } else if (fm.getAction(fm.ALIGN_RIGHT_ACTION_NAME) == self.swingAction
                         and newValue == StyleConstants.ALIGN_RIGHT) {
                     self.selected = true;
+                    
+                } else if (fm.getAction(fm.ALIGN_JUSTIFIED_ACTION_NAME) == self.swingAction
+                        and newValue == StyleConstants.ALIGN_JUSTIFIED) {
+                    self.selected = true;
                 }
             } else {
                 self.selected = ((Boolean) evt.getNewValue()).booleanValue();
