@@ -64,6 +64,8 @@ public class ToolBarStates extends InternalFrameAdapter
 	public final static String DOC_DIRTY_PROPERTY_NAME = "documentDirty";
 	public final static String ALL_DOC_DIRTY_PROPERTY_NAME = "allDocumentDirty";
 	
+	public final static String CURRENT_EDITOR_PROPERTY_NAME = "currentEditor";
+	
 	public final static String FONT_FAMILY_PROPERTY_NAME = "fontFamily";
 	public final static String FONT_SIZE_PROPERTY_NAME = "fontSize";
 	public final static String FONT_BOLD_PROPERTY_NAME = "fontBold";
@@ -326,6 +328,35 @@ public class ToolBarStates extends InternalFrameAdapter
 		return _currentEditor;
 	}
 	
+	public void setCurrentEditor(JEditorPane editor) {
+		if (editor == _currentEditor) {
+			return;
+		}
+		
+		//a kind of reseting first
+    	setFormatInfo(null, null, SimpleAttributeSet.EMPTY);
+
+		Boolean newDirty = _dirtyTable.get(editor);
+		if (newDirty == null) {
+			newDirty = Boolean.FALSE;
+		}
+    	
+		Boolean currentDirty = isDocumentDirty();
+		
+		// Before calling setDocumentDirty(newDirty)
+		// we need to satisfy its precondition first;
+		// ie: both _currentEditor and _dirtyTable
+		// have to be current and valid.
+		JEditorPane oldEditor = _currentEditor;
+		_currentEditor = editor;
+		firePropertyChange(CURRENT_EDITOR_PROPERTY_NAME, oldEditor, editor);
+
+		_dirtyTable.put(editor, currentDirty);
+		setDocumentDirty(newDirty);
+		
+    	setFormatInfo(editor);    	
+	}	
+	
     /**
      * Adds a PropertyChangeListener to the listener list. The listener is
      * registered for all bound properties of this class.
@@ -476,6 +507,10 @@ public class ToolBarStates extends InternalFrameAdapter
 	}
 
     private void setFormatInfo(JEditorPane editor) {
+    	if (!(editor instanceof WordMLTextPane)) {
+    		return;
+    	}
+    	
     	WordMLDocument doc = (WordMLDocument) editor.getDocument();
     	
     	MutableAttributeSet inputAttrs = 
@@ -543,38 +578,12 @@ public class ToolBarStates extends InternalFrameAdapter
     		log.debug("focusGained(): evt.getSource = " + e.getSource());
     		log.debug("focusGained(): _currentEditor = " + _currentEditor);
     	}
-    	setFormatInfo(null, null, SimpleAttributeSet.EMPTY);
-
-    	JEditorPane newEditor = (JEditorPane) e.getSource();
-    	setFormatInfo(newEditor);
-    	
-		Boolean newDirty = _dirtyTable.get(newEditor);
-		if (newDirty == null) {
-			newDirty = Boolean.FALSE;
-		}
-    	
-		if (newEditor == _currentEditor) {
-			;//return
-			
-		} else if (_currentEditor == null) {
-    		//initial condition
-    		_dirtyTable.put(newEditor, newDirty);
-    		_currentEditor = newEditor;
-    	
-    	} else {
-        	Boolean currentDirty = isDocumentDirty();
-        	
-        	//Before calling setDocumentDirty(newDirty)
-        	//we need to satisfy its precondition first;
-        	_currentEditor = newEditor;
-        	_dirtyTable.put(newEditor, currentDirty);
-        	setDocumentDirty(newDirty);
-		}
+    	setCurrentEditor((JEditorPane) e.getSource());
     }
 
     /**
-     * Invoked when a JEditorPane loses the keyboard focus.
-     */
+	 * Invoked when a JEditorPane loses the keyboard focus.
+	 */
     public void focusLost(FocusEvent e) {
     	if (log.isDebugEnabled()) {
     		log.debug("focusLost():");
