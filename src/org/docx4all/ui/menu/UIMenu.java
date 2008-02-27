@@ -19,6 +19,9 @@
 
 package org.docx4all.ui.menu;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+
 import javax.swing.Icon;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -87,6 +90,57 @@ public abstract class UIMenu {
 		return theItem;
     }
     
+    
+    protected static class EnableOnPositive implements PropertyChangeListener {
+    	private JMenuItem _menuItem;
+    	
+    	EnableOnPositive(JMenuItem item) {
+    		_menuItem = item;
+    	}
+    	
+        public void propertyChange(PropertyChangeEvent evt) {
+    		int newValue = ((Integer) evt.getNewValue());
+    		_menuItem.setEnabled((newValue > 0));
+        }
+    } //EnabledOnPositive inner class
+    
+    protected static class EnableOnEqual implements PropertyChangeListener {
+    	private JMenuItem _menuItem;
+    	private Object _value;
+    	
+    	EnableOnEqual(JMenuItem item, Object value) {
+    		_menuItem = item;
+    		_value = value;
+    	}
+    	
+        public void propertyChange(PropertyChangeEvent evt) {
+        	if (evt.getNewValue().equals(_value)) {
+        		_menuItem.setEnabled(true);
+        	} else {
+        		_menuItem.setEnabled(false);
+        	}
+        }
+    } //EnableOnEqual inner class
+    
+    protected static class DisableOnEqual implements PropertyChangeListener {
+    	private JMenuItem _menuItem;
+    	private Object _value;
+    	
+    	DisableOnEqual(JMenuItem item, Object value) {
+    		_menuItem = item;
+    		_value = value;
+    	}
+    	
+        public void propertyChange(PropertyChangeEvent evt) {
+        	if (evt.getNewValue().equals(_value)) {
+        		_menuItem.setEnabled(false);
+        	} else {
+        		_menuItem.setEnabled(true);
+        	}
+        }
+    } //DisableOnEqual inner class
+    
+  
 }// UIMenu class
 
 
