@@ -217,9 +217,7 @@ public class WordMLEditor extends SingleFrameApplication {
     }
     
     public JInternalFrame getCurrentInternalFrame() {
-		JInternalFrame theFrame = (JInternalFrame) SwingUtilities
-				.getAncestorOfClass(JInternalFrame.class, getCurrentEditor());
-		return theFrame;
+    	return _toolbarStates.getCurrentInternalFrame();
 	}
     
     public JEditorPane getCurrentEditor() {
@@ -487,7 +485,7 @@ public class WordMLEditor extends SingleFrameApplication {
     					}
     				}    	    		
     	    	} //for (iframe) loop
-    		} //if (getToolbarStates().isAllDocumentDirty())
+    		} //if (getToolbarStates().isAnyDocumentDirty()
 
     		boolean canExit = false;
     		if (!cancelExit) {
