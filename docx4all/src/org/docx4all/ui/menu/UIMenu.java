@@ -140,7 +140,25 @@ public abstract class UIMenu {
         }
     } //DisableOnEqual inner class
     
-  
+    protected static class EnableOnEqualType implements PropertyChangeListener {
+    	private JMenuItem _menuItem;
+    	private Class<?> _declaredType;
+    	
+    	EnableOnEqualType(JMenuItem item, Class<?> declaredType) {
+    		_menuItem = item;
+    		_declaredType = declaredType;
+    	}
+    	
+        public void propertyChange(PropertyChangeEvent evt) {
+        	if (evt.getNewValue().getClass() == _declaredType) {
+        		_menuItem.setEnabled(true);
+        	} else {
+        		_menuItem.setEnabled(false);
+        	}
+        }
+    } //EnableOnEqualType inner class
+    
+
 }// UIMenu class
 
 
