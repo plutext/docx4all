@@ -26,7 +26,6 @@ import java.awt.event.ActionListener;
 import java.beans.PropertyVetoException;
 
 import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JEditorPane;
 import javax.swing.JInternalFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -116,27 +115,26 @@ public class SwingUtil {
 		return theMenu;
 	}
 	
-	public final static JEditorPane getJEditorPane(JInternalFrame iframe) {
-		return getJEditorPane(iframe.getContentPane());
-	}
-	
-	private final static JEditorPane getJEditorPane(Container container) {
-		JEditorPane theEditor = null;
-		
-		Component[] carray = container.getComponents();
-		if (carray != null) {
-			for (int i = 0; i < carray.length && theEditor == null; i++) {
-				if (carray[i] instanceof JEditorPane) {
-					theEditor = (JEditorPane) carray[i];
-				} else 	if (carray[i] instanceof Container) {
-					theEditor = getJEditorPane((Container) carray[i]);
+    public final static Component getDescendantOfClass(Class<?> c, Container comp) {
+    	Component theObject = null;
+    	
+    	if (c != null && comp != null) {
+			Component[] carray = comp.getComponents();
+			if (carray != null) {
+				for (int i = 0; i < carray.length && theObject == null; i++) {
+					if (c.isInstance(carray[i])) {
+						theObject = carray[i];
+					} else if (carray[i] instanceof Container) {
+						theObject = getDescendantOfClass(c,
+								(Container) carray[i]);
+					}
 				}
 			}
 		}
-		
-		return theEditor;
-	}
-	
+    	
+		return theObject;
+    }
+    
 	private SwingUtil() {
 		;//uninstantiable
 	}
