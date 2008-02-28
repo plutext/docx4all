@@ -109,10 +109,12 @@ public class ToolBarStates extends InternalFrameAdapter
 	}
 	
 	public boolean isDocumentDirty(JEditorPane editor) {
+		return isDocumentDirty(getInternalFrame(editor));
+	}
+	
+	public boolean isDocumentDirty(JInternalFrame iframe) {
 		Boolean isDirty = Boolean.FALSE;
-		if (editor != null) {
-			JInternalFrame iframe = (JInternalFrame)
-				SwingUtilities.getAncestorOfClass(JInternalFrame.class, editor);
+		if (iframe != null) {
 			isDirty = _dirtyTable.get(iframe);
 			if (isDirty == null) {
 				isDirty = Boolean.FALSE;
@@ -152,10 +154,9 @@ public class ToolBarStates extends InternalFrameAdapter
 				+ " - 'dirty' parameter = " + dirty);
 		}
 		
-		JInternalFrame iframe = (JInternalFrame)
-			SwingUtilities.getAncestorOfClass(JInternalFrame.class, editor);
+		JInternalFrame iframe = getInternalFrame(editor);
 		
-		//record current isAllDocumentDirty() state for later use
+		//record current isAnyDocumentDirty() state for later use
 		Boolean oldAllDirty = Boolean.valueOf(isAnyDocumentDirty());
 		
 		Boolean isDirty = _dirtyTable.get(iframe);
@@ -175,7 +176,49 @@ public class ToolBarStates extends InternalFrameAdapter
 			firePropertyChange(DOC_DIRTY_PROPERTY_NAME, Boolean.valueOf(isDirty), newDirty);
 		}
 
-		//Check the resulting isAllDocumentDirty() state
+		//Check the resulting isAnyDocumentDirty() state
+		newDirty = Boolean.valueOf(isAnyDocumentDirty());
+		if (oldAllDirty == newDirty) {
+			//no change
+			return;
+		}
+		firePropertyChange(ANY_DOC_DIRTY_PROPERTY_NAME, oldAllDirty, newDirty);
+	}
+	
+	public void setDocumentDirty(JInternalFrame iframe, boolean dirty) {
+		if (iframe == null) {
+			return;
+		}
+		
+		if (log.isDebugEnabled()) {
+			String file = 
+				(String) iframe.getClientProperty(
+					WordMLDocument.FILE_PATH_PROPERTY);
+			log.debug("setDocumentDirty(): File = " + file
+				+ " - 'dirty' parameter = " + dirty);
+		}
+		
+		//record current isAnyDocumentDirty() state for later use
+		Boolean oldAllDirty = Boolean.valueOf(isAnyDocumentDirty());
+		
+		Boolean isDirty = _dirtyTable.get(iframe);
+		if (isDirty == null) {
+			isDirty = Boolean.FALSE;
+		}
+		
+		Boolean newDirty = Boolean.valueOf(dirty);
+		if (isDirty == newDirty) {
+			//no change
+			return;
+		}
+		
+		_dirtyTable.put(iframe, newDirty);
+		
+		if (iframe == getCurrentInternalFrame()) {
+			firePropertyChange(DOC_DIRTY_PROPERTY_NAME, Boolean.valueOf(isDirty), newDirty);
+		}
+
+		//Check the resulting isAnyDocumentDirty() state
 		newDirty = Boolean.valueOf(isAnyDocumentDirty());
 		if (oldAllDirty == newDirty) {
 			//no change
@@ -335,6 +378,10 @@ public class ToolBarStates extends InternalFrameAdapter
 		return _currentEditor;
 	}
 	
+	public JInternalFrame getCurrentInternalFrame() {
+		return getInternalFrame(_currentEditor);
+	}
+	
 	public void setCurrentEditor(JEditorPane editor) {
 		if (editor == _currentEditor) {
 			return;
@@ -343,8 +390,7 @@ public class ToolBarStates extends InternalFrameAdapter
 		//a kind of reseting first
     	setFormatInfo(null, null, SimpleAttributeSet.EMPTY);
 
-		JInternalFrame iframe = (JInternalFrame)
-			SwingUtilities.getAncestorOfClass(JInternalFrame.class, editor);
+		JInternalFrame iframe = getInternalFrame(editor);
 		Boolean newDirty = _dirtyTable.get(iframe);
 		if (newDirty == null) {
 			newDirty = Boolean.FALSE;
@@ -574,6 +620,11 @@ public class ToolBarStates extends InternalFrameAdapter
 	    setSelectedStyle(selectedStyleName);
 	    setAlignment(StyleConstants.getAlignment(attrs));
     }
+    
+    private JInternalFrame getInternalFrame(JEditorPane editor) {
+		return (JInternalFrame) SwingUtilities.getAncestorOfClass(
+				JInternalFrame.class, editor);
+	}
     
 	// ============================
 	// FocusListener Implementation
