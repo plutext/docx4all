@@ -190,7 +190,7 @@ public class FileMenu extends UIMenu {
     	} else if (SAVE_ALL_FILES_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
     		toolbarStates.addPropertyChangeListener(
-    				ToolBarStates.ALL_DOC_DIRTY_PROPERTY_NAME, 
+    				ToolBarStates.ANY_DOC_DIRTY_PROPERTY_NAME, 
     				new EnableOnEqual(theItem, Boolean.TRUE));
     		
     	} else if (PRINT_PREVIEW_ACTION_NAME.equals(actionName)
