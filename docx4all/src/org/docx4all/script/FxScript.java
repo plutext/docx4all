@@ -27,8 +27,12 @@ import org.docx4all.ui.main.Constants;
  */
 public class FxScript {
 
-	public final static FxScript.Path TOOLBAR_FX = new Path(Constants.TOOLBAR_FX);
-	public final static FxScript.Path EDITOR_PANEL_FX = new Path(Constants.EDITOR_PANEL_FX);
+	public final static FxScript.Path TOOLBAR_FX = 
+		new Path(Constants.TOOLBAR_FX);
+	public final static FxScript.Path CREATE_EDITOR_PANEL_FX = 
+		new Path(Constants.CREATE_EDITOR_PANEL_FX);
+	public final static FxScript.Path CREATE_EDITOR_TABBED_PANEL_FX = 
+		new Path(Constants.CREATE_EDITOR_TABBED_PANEL_FX);
 
 	private FxScript() {
 		;//uninstantiable
