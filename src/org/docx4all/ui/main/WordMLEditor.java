@@ -457,7 +457,7 @@ public class WordMLEditor extends SingleFrameApplication {
     	public boolean canExit(EventObject event) {
     		boolean cancelExit = false;
     		
-    		if (getToolbarStates().isAllDocumentDirty()) {
+    		if (getToolbarStates().isAnyDocumentDirty()) {
     	    	List<JInternalFrame> list = getAllInternalFrames();
     	    	
     	    	//Start from current editor's frame
