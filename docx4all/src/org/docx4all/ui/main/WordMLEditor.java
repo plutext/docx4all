@@ -58,6 +58,7 @@ import org.docx4all.ui.menu.EditMenu;
 import org.docx4all.ui.menu.FileMenu;
 import org.docx4all.ui.menu.FormatMenu;
 import org.docx4all.ui.menu.HelpMenu;
+import org.docx4all.ui.menu.ViewMenu;
 import org.docx4all.ui.menu.WindowMenu;
 import org.docx4all.util.SwingUtil;
 import org.jdesktop.application.ResourceMap;
@@ -70,7 +71,7 @@ public class WordMLEditor extends SingleFrameApplication {
 	private static Logger log = Logger.getLogger(WordMLEditor.class);
 	
 	private JDesktopPane _desktop;
-	private Map<String, JEditorPane> _editorMap;
+	private Map<String, JInternalFrame> _iframeMap;
 	private InternalFrameListener _internalFrameListener;
 	private ToolBarStates _toolbarStates;
 	
@@ -79,7 +80,7 @@ public class WordMLEditor extends SingleFrameApplication {
 	}
 
     @Override protected void startup() {
-    	_editorMap = new HashMap<String, JEditorPane>();
+    	_iframeMap = new HashMap<String, JInternalFrame>();
     	_internalFrameListener = new InternalFrameListener();
     	_toolbarStates = new ToolBarStates();
     	
@@ -92,24 +93,23 @@ public class WordMLEditor extends SingleFrameApplication {
     
     public void closeAllInternalFrames() { 
     	
-    	List<JEditorPane> list = getAllEditors();
+    	List<JInternalFrame> list = getAllInternalFrames();
     	
     	//Start from current editor's frame
-    	list.remove(getCurrentEditor());
-    	list.add(0, getCurrentEditor());
+    	JInternalFrame currentFrame = getCurrentInternalFrame();
+    	list.remove(currentFrame);
+    	list.add(0, currentFrame);
     	
-    	for (JEditorPane editorPane: list) {
-    		final JInternalFrame iframe = 
-        		(JInternalFrame) SwingUtilities.getAncestorOfClass(
-        				JInternalFrame.class, 
-        				editorPane);
+    	for (final JInternalFrame iframe: list) {
     		final Runnable disposeRunnable = new Runnable() {
     			public void run() {
     				iframe.dispose();
     			}
     		};
     		
-    		if (getToolbarStates().isDocumentDirty(editorPane)) {
+    		JEditorPane editor = (JEditorPane)
+    			SwingUtil.getDescendantOfClass(JEditorPane.class, iframe);
+    		if (getToolbarStates().isDocumentDirty(editor)) {
     			try {
     				iframe.setSelected(true);
     				iframe.setIcon(false);
@@ -117,7 +117,7 @@ public class WordMLEditor extends SingleFrameApplication {
     				;//ignore
     			}
     			
-    			int answer = showConfirmClosingEditor(editorPane, "internalframe.close");
+    			int answer = showConfirmClosingEditor(editor, "internalframe.close");
     			if (answer == JOptionPane.CANCEL_OPTION) {
     				break;
     			}
@@ -157,15 +157,10 @@ public class WordMLEditor extends SingleFrameApplication {
     		return;
     	}
     	
-    	JInternalFrame iframe = null;
-    	
-    	JEditorPane editor = _editorMap.get(f.getAbsolutePath());
-        if (editor != null) {
-        	iframe = 
-        		(JInternalFrame) SwingUtilities.getAncestorOfClass(
-        				JInternalFrame.class, 
-        				editor);
+    	JInternalFrame iframe = _iframeMap.get(f.getAbsolutePath());
+        if (iframe != null) {
         	iframe.setVisible(true);
+        	
         } else {
         	iframe = new JInternalFrame(f.getName(), true, true, true, true);
         	iframe.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
@@ -173,7 +168,7 @@ public class WordMLEditor extends SingleFrameApplication {
         	iframe.addInternalFrameListener(_toolbarStates);
         	iframe.addPropertyChangeListener(WindowMenu.getInstance());
         	
-        	editor = createEditor(f);
+        	JEditorPane editor = createEditor(f);
         	JPanel panel = FxScriptUIHelper.getInstance().createEditorPanel(editor);
         	
         	iframe.getContentPane().add(panel);
@@ -183,7 +178,9 @@ public class WordMLEditor extends SingleFrameApplication {
         	editor.requestFocusInWindow();
         	editor.select(0,0);
         	
-        	_editorMap.put(f.getAbsolutePath(), editor);
+        	String filePath = f.getAbsolutePath();
+        	iframe.putClientProperty(WordMLDocument.FILE_PATH_PROPERTY, filePath);
+        	_iframeMap.put(filePath, iframe);
         	
            	iframe.show();
         }
@@ -194,7 +191,7 @@ public class WordMLEditor extends SingleFrameApplication {
 			iframe.setMaximum(true);
 		} catch (PropertyVetoException exc) {
 			// do nothing
-		}        	
+		}
     }
     
     public void updateInternalFrame(File oldFile, File newFile) {
@@ -202,21 +199,13 @@ public class WordMLEditor extends SingleFrameApplication {
     		return;
     	}
     	
-        JEditorPane editor = _editorMap.remove(oldFile.getAbsolutePath());
-        if (editor != null) {
-			String filePath = newFile.getAbsolutePath();
-			_editorMap.put(filePath, editor);
-			editor.getDocument().putProperty(
-				WordMLDocument.FILE_PATH_PROPERTY,
-				filePath);
-
-			JInternalFrame iframe = 
-				(JInternalFrame) 
-					SwingUtilities.getAncestorOfClass(
-						JInternalFrame.class, 
-						editor);
-			iframe.setTitle(newFile.getName());
-		}
+    	String filePath = oldFile.getAbsolutePath();
+    	JInternalFrame iframe = _iframeMap.remove(filePath);
+    	if (iframe != null) {
+    		filePath = newFile.getAbsolutePath();
+    		iframe.putClientProperty(WordMLDocument.FILE_PATH_PROPERTY, filePath);
+			iframe.setTitle(newFile.getName());   		
+    	}    	
     }
     
     public JDesktopPane getDesktopPane() {
@@ -227,12 +216,18 @@ public class WordMLEditor extends SingleFrameApplication {
     	return _toolbarStates;
     }
     
+    public JInternalFrame getCurrentInternalFrame() {
+		JInternalFrame theFrame = (JInternalFrame) SwingUtilities
+				.getAncestorOfClass(JInternalFrame.class, getCurrentEditor());
+		return theFrame;
+	}
+    
     public JEditorPane getCurrentEditor() {
     	return _toolbarStates.getCurrentEditor();
     }
     
-    public List<JEditorPane> getAllEditors() {
-    	return new ArrayList<JEditorPane>(_editorMap.values());
+    public List<JInternalFrame> getAllInternalFrames() {
+    	return new ArrayList<JInternalFrame>(_iframeMap.values());
     }
     
     public String getUntitledFileName() {
@@ -367,6 +362,7 @@ public class WordMLEditor extends SingleFrameApplication {
     	JMenu fileMenu = FileMenu.getInstance().createJMenu();
     	JMenu editMenu = EditMenu.getInstance().createJMenu();
     	JMenu formatMenu = FormatMenu.getInstance().createJMenu();
+    	JMenu viewMenu = ViewMenu.getInstance().createJMenu();
     	JMenu windowMenu = WindowMenu.getInstance().createJMenu();
     	JMenu helpMenu = HelpMenu.getInstance().createJMenu();
     	
@@ -375,6 +371,8 @@ public class WordMLEditor extends SingleFrameApplication {
     	menubar.add(editMenu);
     	menubar.add(Box.createRigidArea(new Dimension(10, 0)));
     	menubar.add(formatMenu);
+    	menubar.add(Box.createRigidArea(new Dimension(10, 0)));
+    	menubar.add(viewMenu);
     	menubar.add(Box.createRigidArea(new Dimension(10, 0)));
     	menubar.add(windowMenu);
     	menubar.add(Box.createRigidArea(new Dimension(10, 0)));
@@ -416,13 +414,14 @@ public class WordMLEditor extends SingleFrameApplication {
         }
         
         public void internalFrameOpened(InternalFrameEvent e) {
-			JInternalFrame frame = (JInternalFrame) e.getSource();
-			WindowMenu.getInstance().addWindowMenuItem(frame);
+			JInternalFrame iframe = (JInternalFrame) e.getSource();
+			WindowMenu.getInstance().addWindowMenuItem(iframe);
         }
 
         public void internalFrameClosing(InternalFrameEvent e) {
 			JInternalFrame iframe = (JInternalFrame) e.getSource();
-			JEditorPane editorPane = SwingUtil.getJEditorPane(iframe);
+			JEditorPane editorPane = (JEditorPane)
+				SwingUtil.getDescendantOfClass(JEditorPane.class, iframe);
 			if (getToolbarStates().isDocumentDirty(editorPane)) {
 				int answer = showConfirmClosingEditor(editorPane, "internalframe.close");
 				if (answer != JOptionPane.CANCEL_OPTION) {
@@ -434,28 +433,22 @@ public class WordMLEditor extends SingleFrameApplication {
         }
         
         public void internalFrameClosed(InternalFrameEvent e) {
-			JInternalFrame frame = (JInternalFrame) e.getSource();
+			JInternalFrame iframe = (JInternalFrame) e.getSource();
+			String filePath = (String) iframe.getClientProperty(WordMLDocument.FILE_PATH_PROPERTY);
+			_iframeMap.remove(filePath);
 			
-			JEditorPane editor = SwingUtil.getJEditorPane(frame);
-			if (editor != null) {
-				String filepath = 
-					(String) editor.getDocument().getProperty(
-						WordMLDocument.FILE_PATH_PROPERTY);
-				_editorMap.remove(filepath);
-			}
-			
-			WindowMenu.getInstance().removeWindowMenuItem(frame);
-        	_desktop.remove(frame) ;
+			WindowMenu.getInstance().removeWindowMenuItem(iframe);
+        	_desktop.remove(iframe) ;
         }
 
         public void internalFrameActivated(InternalFrameEvent e) {
-			JInternalFrame frame = (JInternalFrame) e.getSource();
-			WindowMenu.getInstance().selectWindowMenuItem(frame);
+			JInternalFrame iframe = (JInternalFrame) e.getSource();
+			WindowMenu.getInstance().selectWindowMenuItem(iframe);
         }
 
         public void internalFrameDeactivated(InternalFrameEvent e) {
-			JInternalFrame frame = (JInternalFrame) e.getSource();
-			WindowMenu.getInstance().unSelectWindowMenuItem(frame);
+			JInternalFrame iframe = (JInternalFrame) e.getSource();
+			WindowMenu.getInstance().unSelectWindowMenuItem(iframe);
         }
 
     }//InternalFrameListener inner class
@@ -465,18 +458,17 @@ public class WordMLEditor extends SingleFrameApplication {
     		boolean cancelExit = false;
     		
     		if (getToolbarStates().isAllDocumentDirty()) {
-    			List<JEditorPane> list = getAllEditors();
-        	
-    			//Start from current editor's frame
-    			list.remove(getCurrentEditor());
-    			list.add(0, getCurrentEditor());
-        	
-    			for (JEditorPane editorPane: list) {
-    				final JInternalFrame iframe = 
-    					(JInternalFrame) SwingUtilities.getAncestorOfClass(
-            				JInternalFrame.class, 
-            				editorPane);
-        		
+    	    	List<JInternalFrame> list = getAllInternalFrames();
+    	    	
+    	    	//Start from current editor's frame
+    	    	JInternalFrame currentFrame = getCurrentInternalFrame();
+    	    	list.remove(currentFrame);
+    	    	list.add(0, currentFrame);
+    	    	
+    	    	for (final JInternalFrame iframe: list) {
+    	    		JEditorPane editorPane = (JEditorPane)
+        				SwingUtil.getDescendantOfClass(
+        					JEditorPane.class, iframe);
     				if (getToolbarStates().isDocumentDirty(editorPane)) {
     					try {
     						iframe.setSelected(true);
@@ -493,9 +485,9 @@ public class WordMLEditor extends SingleFrameApplication {
     						cancelExit = true;
     						break;
     					}
-    				}
-    			}
-    		}
+    				}    	    		
+    	    	} //for (iframe) loop
+    		} //if (getToolbarStates().isAllDocumentDirty())
 
     		boolean canExit = false;
     		if (!cancelExit) {
