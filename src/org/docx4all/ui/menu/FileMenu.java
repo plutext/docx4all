@@ -28,6 +28,7 @@ import java.util.prefs.Preferences;
 
 import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
+import javax.swing.JInternalFrame;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -42,6 +43,7 @@ import org.docx4all.ui.main.Constants;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.util.DocUtil;
+import org.docx4all.util.SwingUtil;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
@@ -356,12 +358,14 @@ public class FileMenu extends UIMenu {
     
     @Action public void saveAllFiles() {
         WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
-    	for (JEditorPane editor: wmlEditor.getAllEditors()) {
-    		if (wmlEditor.getToolbarStates().isDocumentDirty(editor)
-    			&& save(editor, null, SAVE_ALL_FILES_ACTION_NAME)) {
-    			wmlEditor.getToolbarStates().setDocumentDirty(editor, false);
-    		}
-    	}
+        for (JInternalFrame iframe : wmlEditor.getAllInternalFrames()) {
+			JEditorPane editor = (JEditorPane) SwingUtil.getDescendantOfClass(
+					JEditorPane.class, iframe);
+			if (wmlEditor.getToolbarStates().isDocumentDirty(editor)
+					&& save(editor, null, SAVE_ALL_FILES_ACTION_NAME)) {
+				wmlEditor.getToolbarStates().setDocumentDirty(editor, false);
+			}
+		}
     }
     
     @Action public void printPreview() {
@@ -512,6 +516,7 @@ public class FileMenu extends UIMenu {
        			SaveToZipFile saver = 
        				new SaveToZipFile(rootML.getWordprocessingMLPackage());
        			saver.save(saveAsFilePath);
+       			doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, saveAsFilePath);
        			
        		} else if (Constants.HTML_STRING.equals(type)) {
        			FileOutputStream fos = new FileOutputStream(saveAsFilePath);
