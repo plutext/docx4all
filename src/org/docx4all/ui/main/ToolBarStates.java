@@ -27,6 +27,7 @@ import java.util.Hashtable;
 
 import javax.swing.JEditorPane;
 import javax.swing.JInternalFrame;
+import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.InternalFrameAdapter;
@@ -62,7 +63,7 @@ public class ToolBarStates extends InternalFrameAdapter
 	public final static String SCRIPT_BINDING_KEY = "toolBarStates:org.docx4all.ui.main.ToolBarStates";
 	
 	public final static String DOC_DIRTY_PROPERTY_NAME = "documentDirty";
-	public final static String ALL_DOC_DIRTY_PROPERTY_NAME = "allDocumentDirty";
+	public final static String ANY_DOC_DIRTY_PROPERTY_NAME = "anyDocumentDirty";
 	
 	public final static String CURRENT_EDITOR_PROPERTY_NAME = "currentEditor";
 	
@@ -79,7 +80,7 @@ public class ToolBarStates extends InternalFrameAdapter
 	public final static String STYLE_SHEET_PROPERTY_NAME = "styleSheet";
 	public final static String SELECTED_STYLE_PROPERTY_NAME = "selectedStyle";
 	
-	private final Hashtable<JEditorPane, Boolean> _dirtyTable;
+	private final Hashtable<JInternalFrame, Boolean> _dirtyTable;
 	private volatile JEditorPane _currentEditor;
 	private volatile String _fontFamily;
 	private volatile int _fontSize;
@@ -95,7 +96,7 @@ public class ToolBarStates extends InternalFrameAdapter
 	private PropertyChangeSupport changeSupport = null;
 	
 	public ToolBarStates() {
-		_dirtyTable = new Hashtable<JEditorPane, Boolean>(5);
+		_dirtyTable = new Hashtable<JInternalFrame, Boolean>(5);
 		_fontBold = false;
 		_fontItalic = false;
 		_fontUnderlined = false;
@@ -110,7 +111,9 @@ public class ToolBarStates extends InternalFrameAdapter
 	public boolean isDocumentDirty(JEditorPane editor) {
 		Boolean isDirty = Boolean.FALSE;
 		if (editor != null) {
-			isDirty = _dirtyTable.get(editor);
+			JInternalFrame iframe = (JInternalFrame)
+				SwingUtilities.getAncestorOfClass(JInternalFrame.class, editor);
+			isDirty = _dirtyTable.get(iframe);
 			if (isDirty == null) {
 				isDirty = Boolean.FALSE;
 			}
@@ -118,7 +121,7 @@ public class ToolBarStates extends InternalFrameAdapter
 		return isDirty.booleanValue();
 	}
 	
-	public boolean isAllDocumentDirty() {
+	public boolean isAnyDocumentDirty() {
 		boolean isDirty = false;
 		
 		boolean init = true;
@@ -149,10 +152,13 @@ public class ToolBarStates extends InternalFrameAdapter
 				+ " - 'dirty' parameter = " + dirty);
 		}
 		
-		//record current isAllDocumentDirty() state for later use
-		Boolean oldAllDirty = Boolean.valueOf(isAllDocumentDirty());
+		JInternalFrame iframe = (JInternalFrame)
+			SwingUtilities.getAncestorOfClass(JInternalFrame.class, editor);
 		
-		Boolean isDirty = _dirtyTable.get(editor);
+		//record current isAllDocumentDirty() state for later use
+		Boolean oldAllDirty = Boolean.valueOf(isAnyDocumentDirty());
+		
+		Boolean isDirty = _dirtyTable.get(iframe);
 		if (isDirty == null) {
 			isDirty = Boolean.FALSE;
 		}
@@ -163,18 +169,19 @@ public class ToolBarStates extends InternalFrameAdapter
 			return;
 		}
 		
-		_dirtyTable.put(editor, newDirty);
+		_dirtyTable.put(iframe, newDirty);
+		
 		if (editor == _currentEditor) {
 			firePropertyChange(DOC_DIRTY_PROPERTY_NAME, Boolean.valueOf(isDirty), newDirty);
 		}
 
 		//Check the resulting isAllDocumentDirty() state
-		newDirty = Boolean.valueOf(isAllDocumentDirty());
+		newDirty = Boolean.valueOf(isAnyDocumentDirty());
 		if (oldAllDirty == newDirty) {
 			//no change
 			return;
 		}
-		firePropertyChange(ALL_DOC_DIRTY_PROPERTY_NAME, oldAllDirty, newDirty);
+		firePropertyChange(ANY_DOC_DIRTY_PROPERTY_NAME, oldAllDirty, newDirty);
 	}
 	
 	public String getSelectedStyle() {
@@ -336,7 +343,9 @@ public class ToolBarStates extends InternalFrameAdapter
 		//a kind of reseting first
     	setFormatInfo(null, null, SimpleAttributeSet.EMPTY);
 
-		Boolean newDirty = _dirtyTable.get(editor);
+		JInternalFrame iframe = (JInternalFrame)
+			SwingUtilities.getAncestorOfClass(JInternalFrame.class, editor);
+		Boolean newDirty = _dirtyTable.get(iframe);
 		if (newDirty == null) {
 			newDirty = Boolean.FALSE;
 		}
@@ -351,7 +360,7 @@ public class ToolBarStates extends InternalFrameAdapter
 		_currentEditor = editor;
 		firePropertyChange(CURRENT_EDITOR_PROPERTY_NAME, oldEditor, editor);
 
-		_dirtyTable.put(editor, currentDirty);
+		_dirtyTable.put(iframe, currentDirty);
 		setDocumentDirty(newDirty);
 		
     	setFormatInfo(editor);    	
@@ -665,7 +674,7 @@ public class ToolBarStates extends InternalFrameAdapter
 				JInternalFrame.class, iframe);
     	if (editor != null) {
         	setDocumentDirty(editor, false);
-    		_dirtyTable.remove(editor);
+    		_dirtyTable.remove(iframe);
     	}
     	
     	Integer oldNumbers = new Integer(_iframeNumbers);
