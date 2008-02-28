@@ -661,7 +661,8 @@ public class ToolBarStates extends InternalFrameAdapter
     		log.debug("internalFrameClosed():");
     	}
     	JInternalFrame iframe = e.getInternalFrame();
-    	JEditorPane editor = SwingUtil.getJEditorPane(iframe);
+    	JEditorPane editor = (JEditorPane) SwingUtil.getDescendantOfClass(
+				JInternalFrame.class, iframe);
     	if (editor != null) {
         	setDocumentDirty(editor, false);
     		_dirtyTable.remove(editor);
