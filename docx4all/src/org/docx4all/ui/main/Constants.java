@@ -57,7 +57,8 @@ public interface Constants {
 	public final static String DOCX_FILTER_DESC  = "docx.filter.desc";
 	public final static String HTML_FILTER_DESC  = "html.filter.desc";
 	
-	public final static String EDITOR_PANEL_FX = "editorPanel.fx";
+	public final static String CREATE_EDITOR_PANEL_FX = "createEditorPanel.fx";
+	public final static String CREATE_EDITOR_TABBED_PANEL_FX = "createEditorTabbedPanel.fx";
 	public final static String TOOLBAR_FX = "toolbar.fx";
 	
 }// Constants interface
