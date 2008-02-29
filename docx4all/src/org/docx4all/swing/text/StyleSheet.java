@@ -224,15 +224,15 @@ public class StyleSheet extends StyleContext {
 	protected void initDefaultStyle(org.docx4j.wml.Styles docxStyles) {
 		Style defaultStyle = getStyle(DEFAULT_STYLE);
 		
-		if (docxStyles.getPPrDefault() != null) {
-			PPr pPr = docxStyles.getPPrDefault().getPPr();
+		if (docxStyles.getDocDefaults().getPPrDefault() != null) {
+			PPr pPr = docxStyles.getDocDefaults().getPPrDefault().getPPr();
 			if (pPr != null) {
 				StyleSheet.addAttributes(defaultStyle, pPr);
 			}
 		}
 		
-		if (docxStyles.getRPrDefault() != null) {
-			RPr rPr = docxStyles.getRPrDefault().getRPr();
+		if (docxStyles.getDocDefaults().getRPrDefault() != null) {
+			RPr rPr = docxStyles.getDocDefaults().getRPrDefault().getRPr();
 			if (rPr != null) {
 				StyleSheet.addAttributes(defaultStyle, rPr);
 			}
