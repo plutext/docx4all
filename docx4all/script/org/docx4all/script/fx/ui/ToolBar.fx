@@ -88,7 +88,7 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
     }
     
     var saveAllFilesButton = Button {
-        enabledPropertyName: toolBarStates.ALL_DOC_DIRTY_PROPERTY_NAME
+        enabledPropertyName: toolBarStates.ANY_DOC_DIRTY_PROPERTY_NAME
         swingAction: fileMenu.getAction(fileMenu.SAVE_ALL_FILES_ACTION_NAME)
         enabled: false
     }
