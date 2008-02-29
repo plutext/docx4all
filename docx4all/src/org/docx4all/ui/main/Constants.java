@@ -26,15 +26,17 @@ public interface Constants {
 	//=============
 	//Miscellaneous
 	//=============
-	public static final String HTML_STRING = "html";
+	public final static String HTML_STRING = "html";
 	
-	public static final String DOCX_STRING = "docx";
+	public final static String DOCX_STRING = "docx";
 	
-	public static final String EMPTY_STRING = "";
+	public final static String EMPTY_STRING = "";
 	
-	public static final String DOT = ".";
+	public final static String DOT = ".";
 
-	public static final String NEWLINE = "\n";
+	public final static String DIRTY_FLAG = "dirtyFlag";
+	
+	public final static String NEWLINE = "\n";
 	
 	public final static String LAST_OPENED_FILE  = "last.opened.file";
 	public final static String UNTITLED_FILE_NAME = "untitled.file.name";
