@@ -24,7 +24,9 @@ import java.util.Map;
 
 import javax.swing.JEditorPane;
 import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
 
+import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.ui.menu.EditMenu;
@@ -64,10 +66,19 @@ public class FxScriptUIHelper {
     	Map<String, Object> params = new HashMap<String, Object>();
     	params.put("editorPane:javax.swing.JEditorPane", editor);
     	
-    	JPanel panel = (JPanel) _fxEngine.run(FxScript.EDITOR_PANEL_FX, params);
+    	JPanel panel = (JPanel) _fxEngine.run(FxScript.CREATE_EDITOR_PANEL_FX, params);
     	return panel;
     }
     
+    public JTabbedPane createEditorTabbedPanel(WordMLTextPane editor, JEditorPane sourceEditor) {
+    	Map<String, Object> params = new HashMap<String, Object>();
+    	params.put("wmlTextPane:org.docx4all.swing.WordMLTextPane", editor);
+    	params.put("xmlSourceEditor:javax.swing.JEditorPane", sourceEditor);
+    	
+    	JTabbedPane panel = (JTabbedPane) _fxEngine.run(FxScript.CREATE_EDITOR_TABBED_PANEL_FX, params);
+    	return panel;
+    }
+
 }// FxScriptFactory class
 
 
