@@ -46,7 +46,6 @@ import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.StyleSheet;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLStyleConstants;
-import org.docx4all.util.SwingUtil;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -142,47 +141,7 @@ public class ToolBarStates extends InternalFrameAdapter
 	}
 	
 	public void setDocumentDirty(JEditorPane editor, boolean dirty) {
-		if (editor == null) {
-			return;
-		}
-		
-		if (log.isDebugEnabled()) {
-			String file = 
-				(String) editor.getDocument().getProperty(
-					WordMLDocument.FILE_PATH_PROPERTY);
-			log.debug("setDocumentDirty(): File = " + file
-				+ " - 'dirty' parameter = " + dirty);
-		}
-		
-		JInternalFrame iframe = getInternalFrame(editor);
-		
-		//record current isAnyDocumentDirty() state for later use
-		Boolean oldAllDirty = Boolean.valueOf(isAnyDocumentDirty());
-		
-		Boolean isDirty = _dirtyTable.get(iframe);
-		if (isDirty == null) {
-			isDirty = Boolean.FALSE;
-		}
-		
-		Boolean newDirty = Boolean.valueOf(dirty);
-		if (isDirty == newDirty) {
-			//no change
-			return;
-		}
-		
-		_dirtyTable.put(iframe, newDirty);
-		
-		if (editor == _currentEditor) {
-			firePropertyChange(DOC_DIRTY_PROPERTY_NAME, Boolean.valueOf(isDirty), newDirty);
-		}
-
-		//Check the resulting isAnyDocumentDirty() state
-		newDirty = Boolean.valueOf(isAnyDocumentDirty());
-		if (oldAllDirty == newDirty) {
-			//no change
-			return;
-		}
-		firePropertyChange(ANY_DOC_DIRTY_PROPERTY_NAME, oldAllDirty, newDirty);
+		setDocumentDirty(getInternalFrame(editor), dirty);
 	}
 	
 	public void setDocumentDirty(JInternalFrame iframe, boolean dirty) {
@@ -382,7 +341,7 @@ public class ToolBarStates extends InternalFrameAdapter
 		return getInternalFrame(_currentEditor);
 	}
 	
-	public void setCurrentEditor(JEditorPane editor) {
+	private void setCurrentEditor(JEditorPane editor) {
 		if (editor == _currentEditor) {
 			return;
 		}
@@ -398,7 +357,7 @@ public class ToolBarStates extends InternalFrameAdapter
     	
 		Boolean currentDirty = isDocumentDirty();
 		
-		// Before calling setDocumentDirty(newDirty)
+		// Before calling setDocumentDirty(iframe, newDirty) below
 		// we need to satisfy its precondition first;
 		// ie: both _currentEditor and _dirtyTable
 		// have to be current and valid.
@@ -407,7 +366,7 @@ public class ToolBarStates extends InternalFrameAdapter
 		firePropertyChange(CURRENT_EDITOR_PROPERTY_NAME, oldEditor, editor);
 
 		_dirtyTable.put(iframe, currentDirty);
-		setDocumentDirty(newDirty);
+		setDocumentDirty(iframe, newDirty);
 		
     	setFormatInfo(editor);    	
 	}	
@@ -666,7 +625,8 @@ public class ToolBarStates extends InternalFrameAdapter
     	}
     	if (_currentEditor != null 
         		&& _currentEditor.getDocument() == e.getDocument()) {
-    		setDocumentDirty(true);
+    		_currentEditor.putClientProperty(Constants.DIRTY_FLAG, Boolean.TRUE);
+    		setDocumentDirty(_currentEditor, true);
     	}
     }
 
@@ -683,7 +643,8 @@ public class ToolBarStates extends InternalFrameAdapter
     	}
     	if (_currentEditor != null 
         		&& _currentEditor.getDocument() == e.getDocument()) {
-    		setDocumentDirty(true);
+    		_currentEditor.putClientProperty(Constants.DIRTY_FLAG, Boolean.TRUE);
+    		setDocumentDirty(_currentEditor, true);
     	}
     }
 
@@ -698,7 +659,8 @@ public class ToolBarStates extends InternalFrameAdapter
     	}
     	if (_currentEditor != null 
     		&& _currentEditor.getDocument() == e.getDocument()) {
-    		setDocumentDirty(true);
+    		_currentEditor.putClientProperty(Constants.DIRTY_FLAG, Boolean.TRUE);
+    		setDocumentDirty(_currentEditor, true);
     	}
 	}
 
@@ -721,12 +683,8 @@ public class ToolBarStates extends InternalFrameAdapter
     		log.debug("internalFrameClosed():");
     	}
     	JInternalFrame iframe = e.getInternalFrame();
-    	JEditorPane editor = (JEditorPane) SwingUtil.getDescendantOfClass(
-				JInternalFrame.class, iframe);
-    	if (editor != null) {
-        	setDocumentDirty(editor, false);
-    		_dirtyTable.remove(iframe);
-    	}
+    	setDocumentDirty(iframe, false);
+		_dirtyTable.remove(iframe);
     	
     	Integer oldNumbers = new Integer(_iframeNumbers);
     	Integer newNumbers = new Integer(--_iframeNumbers);
