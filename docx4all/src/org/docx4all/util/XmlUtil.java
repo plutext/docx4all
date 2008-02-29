@@ -19,25 +19,87 @@
 
 package org.docx4all.util;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.text.AttributeSet;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
 import javax.xml.namespace.QName;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import org.apache.xerces.dom.NodeImpl;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLIterator;
+import org.docx4all.xml.ObjectFactory;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.PropertiesContainerML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
+import org.docx4j.jaxb.Context;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 
 /**
  *	@author Jojada Tirtowidjojo - 04/01/2008
  */
 public class XmlUtil {
 
+	public final static void serialize(WordprocessingMLPackage wmlPackage, OutputStream out) {
+        try {
+			JAXBContext jc = Context.jc;
+			Marshaller marshaller = jc.createMarshaller();
+			org.w3c.dom.Document w3cDoc = org.docx4j.XmlUtils.neww3cDomDocument();
+
+			marshaller.marshal(wmlPackage.getMainDocumentPart().getJaxbElement(), w3cDoc);
+
+			TransformerFactory tfactory = TransformerFactory.newInstance();
+			Transformer serializer;
+			serializer = tfactory.newTransformer();
+			// Setup indenting to "pretty print"
+			serializer.setOutputProperty(OutputKeys.INDENT, "yes");
+			serializer.setOutputProperty(
+					"{http://xml.apache.org/xslt}indent-amount", "8");
+
+			serializer.transform(new DOMSource(w3cDoc), new StreamResult(out));
+		} catch (Exception exc) {
+            exc.printStackTrace();
+            throw new RuntimeException(exc);
+        }
+    }
+	
+	public final static WordprocessingMLPackage deserialize(
+		WordprocessingMLPackage wmlPackage, InputStream in) {
+		
+		try {
+			JAXBContext jc = Context.jc;
+			Unmarshaller u = jc.createUnmarshaller();
+			u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());
+
+			JAXBElement<org.docx4j.wml.Document> jaxbElem = u.unmarshal(
+					new javax.xml.transform.stream.StreamSource(in),
+					org.docx4j.wml.Document.class);
+
+			if (wmlPackage == null) {
+				wmlPackage = ObjectFactory.createDocumentPackage(jaxbElem.getValue());
+			} else {
+				wmlPackage.getMainDocumentPart().setJaxbElement(jaxbElem.getValue());
+			}
+		} catch (Exception exc) {
+			exc.printStackTrace();
+			throw new RuntimeException(exc);
+		}
+		
+		return wmlPackage;
+	}
+    
 	public final static String getEnclosingTagPair(QName qname) {
 		return getEnclosingTagPair(qname.getPrefix(), qname.getLocalPart());
 	}
