@@ -24,6 +24,8 @@ import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.util.prefs.Preferences;
 
 import javax.swing.JEditorPane;
@@ -34,6 +36,7 @@ import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.text.Document;
+import javax.swing.text.StyledEditorKit;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.DocumentElement;
@@ -44,6 +47,7 @@ import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.util.DocUtil;
 import org.docx4all.util.SwingUtil;
+import org.docx4all.util.XmlUtil;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
@@ -247,10 +251,10 @@ public class FileMenu extends UIMenu {
     @Action public void saveFile() {
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         if (editor.getToolbarStates().isDocumentDirty()) {
-			boolean success = 
-				save(editor.getCurrentEditor(), null, SAVE_FILE_ACTION_NAME);
+        	JInternalFrame iframe = editor.getCurrentInternalFrame();
+			boolean success = save(iframe, null, SAVE_FILE_ACTION_NAME);
 			if (success) {
-				editor.getToolbarStates().setDocumentDirty(false);
+				editor.getToolbarStates().setDocumentDirty(iframe, false);
 			}
 		}
     }
@@ -267,10 +271,9 @@ public class FileMenu extends UIMenu {
         Preferences prefs = Preferences.userNodeForPackage( getClass() );
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         
-        JEditorPane editorPane = editor.getCurrentEditor();
-        Document doc = editorPane.getDocument();
+        JInternalFrame iframe = editor.getCurrentInternalFrame();
         String filePath = 
-			(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
+			(String) iframe.getClientProperty(WordMLDocument.FILE_PATH_PROPERTY);
         File file = new File(filePath);
         
     	ResourceMap rm = editor.getContext().getResourceMap(getClass());
@@ -304,12 +307,12 @@ public class FileMenu extends UIMenu {
 			}// if (file.exists())
 			
 			if (canSave) {
-				boolean success = save(editorPane, filePath, callerActionName);
+				boolean success = save(iframe, filePath, callerActionName);
 				if (success) {
 		       		if (Constants.DOCX_STRING.equals(fileType)) {
 		       			//If saving as .docx then update the document dirty flag 
 		       			//of toolbar states as well as internal frame title
-		       			editor.getToolbarStates().setDocumentDirty(false);
+		       			editor.getToolbarStates().setDocumentDirty(iframe, false);
 		       			editor.updateInternalFrame(file, selectedFile);
 		       		} else {
 		       			//Because document dirty flag is not cleared
@@ -359,11 +362,9 @@ public class FileMenu extends UIMenu {
     @Action public void saveAllFiles() {
         WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
         for (JInternalFrame iframe : wmlEditor.getAllInternalFrames()) {
-			JEditorPane editor = (JEditorPane) SwingUtil.getDescendantOfClass(
-					JEditorPane.class, iframe);
-			if (wmlEditor.getToolbarStates().isDocumentDirty(editor)
-					&& save(editor, null, SAVE_ALL_FILES_ACTION_NAME)) {
-				wmlEditor.getToolbarStates().setDocumentDirty(editor, false);
+			if (wmlEditor.getToolbarStates().isDocumentDirty(iframe)
+					&& save(iframe, null, SAVE_ALL_FILES_ACTION_NAME)) {
+				wmlEditor.getToolbarStates().setDocumentDirty(iframe, false);
 			}
 		}
     }
@@ -438,7 +439,7 @@ public class FileMenu extends UIMenu {
     
     @Action public void closeFile() {
         WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
-        wmlEditor.closeInternalFrame(wmlEditor.getCurrentEditor());
+        wmlEditor.closeInternalFrame(wmlEditor.getCurrentInternalFrame());
     }
     
     @Action public void closeAllFiles() {
@@ -478,51 +479,117 @@ public class FileMenu extends UIMenu {
     }
     
     /**
-     * Saves a JEditorPane document to a file.
+     * Saves editor documents to a file.
      * 
-     * @param editor JEditorPane whose document is going to be saved.
-     * @param saveAsFilePath The destination file path.
-     * @param callerActionName The action name that calls this method.
-     * This is needed as a key to search for failure message properties.
-     * @return true if successful; false, otherwise.
+     * Internal frame may have two editors for presenting two different views
+     * to user namely editor view and source view. WordMLTextPane is used for 
+     * editor view and JEditorPane for source view.
+     * The contents of these two editors are synchronized when user switches
+     * from one view to the other. Therefore, there will be ONLY ONE editor 
+     * that is dirty and has to be saved by this method.
+     * 
+     * @param iframe
+     * @param saveAsFilePath
+     * @param callerActionName
+     * @return
      */
-    public boolean save(JEditorPane editor, String saveAsFilePath, String callerActionName) {
+    public boolean save(JInternalFrame iframe, String saveAsFilePath, String callerActionName) {
     	boolean success = true;
     	
-    	WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
-    	kit.saveCaretText();
-    	
-    	Document doc = editor.getDocument();
-        DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
-		DocumentML rootML = (DocumentML) elem.getElementML();
-
-		//Do not include the last paragraph when saving.
-		//After saving we put it back.
-		elem = (DocumentElement) elem.getElement(elem.getElementCount() - 1);
-		ElementML paraML = elem.getElementML();
-		ElementML bodyML = paraML.getParent();
-		paraML.delete();
-		
 		if (saveAsFilePath == null) {
 			saveAsFilePath = 
-				(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
+				(String) iframe.getClientProperty(WordMLDocument.FILE_PATH_PROPERTY);
 		}
 		
+    	JEditorPane editor = SwingUtil.getSourceEditor(iframe);
+    	if (editor != null
+        		&& ((Boolean) editor.getClientProperty(Constants.DIRTY_FLAG)).booleanValue()) {
+    		try {
+        		final StyledEditorKit kit = (StyledEditorKit) editor.getEditorKit();
+        		final Document doc = editor.getDocument();
+        		final PipedOutputStream out = new PipedOutputStream();
+    			final PipedInputStream in = new PipedInputStream(out);
+    			new Thread(new Runnable() {
+    				public void run() {
+    					try {
+    						kit.write(out, doc, 0, doc.getLength());
+    					} catch (Exception exc) {
+    						exc.printStackTrace();
+    					}
+    				}
+    			}).start();
+    			
+    			WordprocessingMLPackage wmlPackage = XmlUtil.deserialize(null, in);
+    			success = save(wmlPackage, saveAsFilePath, callerActionName);
+    			
+    	        if (success) {
+    	        	editor.putClientProperty(Constants.DIRTY_FLAG, Boolean.FALSE);
+    	        	if (saveAsFilePath.endsWith(Constants.DOCX_STRING)) {
+    	        		doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, saveAsFilePath);
+    	        		iframe.putClientProperty(WordMLDocument.FILE_PATH_PROPERTY, saveAsFilePath);
+    	        	}
+    	        }
+    	        
+    	        if (log.isDebugEnabled()) {
+    	        	log.debug("save(): filePath=" + saveAsFilePath);
+    	        	DocUtil.displayXml(doc);
+    	        }    		
+    		} catch (Exception exc) {
+    			//ignore
+    		}
+    	}
+    	
+    	editor = SwingUtil.getWordMLTextPane(iframe);
+    	if (editor != null
+    		&& ((Boolean) editor.getClientProperty(Constants.DIRTY_FLAG)).booleanValue()) {
+        	WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
+        	kit.saveCaretText();
+        	
+        	Document doc = editor.getDocument();
+            DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
+    		DocumentML rootML = (DocumentML) elem.getElementML();
+
+    		//Do not include the last paragraph when saving.
+    		//After saving we put it back.
+    		elem = (DocumentElement) elem.getElement(elem.getElementCount() - 1);
+    		ElementML paraML = elem.getElementML();
+    		ElementML bodyML = paraML.getParent();
+    		paraML.delete();
+    		
+    		success = save(rootML.getWordprocessingMLPackage(), saveAsFilePath, callerActionName);
+    		
+	        //Remember to put 'paraML' as last paragraph
+	        bodyML.addChild(paraML);
+	        
+	        if (success) {
+	        	editor.putClientProperty(Constants.DIRTY_FLAG, Boolean.FALSE);
+	        	if (saveAsFilePath.endsWith(Constants.DOCX_STRING)) {
+	        		doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, saveAsFilePath);
+	        		iframe.putClientProperty(WordMLDocument.FILE_PATH_PROPERTY, saveAsFilePath);
+	        	}
+	        }
+	        
+	        if (log.isDebugEnabled()) {
+	        	log.debug("save(): filePath=" + saveAsFilePath);
+	        	DocUtil.displayXml(doc);
+	        }    		
+    	}
+
+    	return success;
+    }
+    
+    private boolean save(WordprocessingMLPackage wmlPackage, String saveAsFilePath, String callerActionName) {
+    	boolean success = true;
         try {
-       		int dot = saveAsFilePath.lastIndexOf(Constants.DOT);
-       		String type = (dot > 0) ? saveAsFilePath.substring(dot + 1) : null;
-            
-       		if (Constants.DOCX_STRING.equals(type)) {
-       			SaveToZipFile saver = 
-       				new SaveToZipFile(rootML.getWordprocessingMLPackage());
+       		if (saveAsFilePath.endsWith(Constants.DOCX_STRING)) {
+       			SaveToZipFile saver = new SaveToZipFile(wmlPackage);
        			saver.save(saveAsFilePath);
-       			doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, saveAsFilePath);
        			
-       		} else if (Constants.HTML_STRING.equals(type)) {
+       		} else if (saveAsFilePath.endsWith(Constants.HTML_STRING)) {
        			FileOutputStream fos = new FileOutputStream(saveAsFilePath);
        			javax.xml.transform.stream.StreamResult result = 
 					new javax.xml.transform.stream.StreamResult(fos);
-				rootML.getWordprocessingMLPackage().html(result);
+       			wmlPackage.html(result);
 				
 			} else {
        			throw new Docx4JException("Invalid filepath = " + saveAsFilePath);
@@ -540,21 +607,12 @@ public class FileMenu extends UIMenu {
 				rm.getString(callerActionName + ".Action.errorMessage")
 				+ "\n" 
 				+ saveAsFilePath;
-			wmlEditor.showMessageDialog(title, message, JOptionPane.ERROR_MESSAGE);
-			
-		} finally {
-	        //Remember to put 'paraML' as last paragraph
-	        bodyML.addChild(paraML);
-		}
-        
-        if (log.isDebugEnabled()) {
-        	log.debug("save(): filePath=" + saveAsFilePath);
-        	DocUtil.displayXml(doc);
+			wmlEditor.showMessageDialog(title, message, JOptionPane.ERROR_MESSAGE);	
         }
         
         return success;
     }
-    
+
 }// FileMenu class
 
 
