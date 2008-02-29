@@ -238,7 +238,9 @@ public class StyleSheet extends StyleContext {
 			}
 		}
 		
-		log.debug("initDefaultStyle(): defaultStyle=" + defaultStyle);
+		if (log.isDebugEnabled()) {
+			log.debug("initDefaultStyle(): defaultStyle=" + defaultStyle);
+		}
 	}
 	
 	protected void initLatentStyles(org.docx4j.wml.Styles docxStyles) {
@@ -285,7 +287,9 @@ public class StyleSheet extends StyleContext {
 					WordMLStyleConstants.QFormatAttribute,
 					Boolean.valueOf(lsd.isQFormat()));
 				
-				log.debug("initLatentStyles(): LsdException Style[" + (i++) +"]=" + temp);
+				if (log.isDebugEnabled()) {
+					log.debug("initLatentStyles(): LsdException Style[" + (i++) +"]=" + temp);
+				}
 			}
 		}
 	}
@@ -390,14 +394,18 @@ public class StyleSheet extends StyleContext {
 				defaultStyle.addAttribute(WordMLStyleConstants.DefaultParagraphStyleNameAttribute, uiName);
 			}
 			
-			log.debug("initStyles(): style[" + (i++) + "]=" + temp);
+			if (log.isDebugEnabled()) {
+				log.debug("initStyles(): style[" + (i++) + "]=" + temp);
+			}
 			
 		} //for (org.docx4j.wml.Styles.Style st: styleList)
 		styleList = null;
 		
 		for (Style style: stylesWithBasedOn) {
 			
-			log.debug("initStyles(): style with BasedOn[" + (i++) + "]=" + style);
+			if (log.isDebugEnabled()) {
+				log.debug("initStyles(): style with BasedOn[" + (i++) + "]=" + style);
+			}
 			
 			org.docx4j.wml.Styles.Style wmlStyle = WordMLStyleConstants.getDocxStyle(style);
 			Style parent = getChildStyle(idStyles, wmlStyle.getBasedOn().getVal());
