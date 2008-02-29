@@ -60,7 +60,6 @@ import org.docx4all.ui.menu.FormatMenu;
 import org.docx4all.ui.menu.HelpMenu;
 import org.docx4all.ui.menu.ViewMenu;
 import org.docx4all.ui.menu.WindowMenu;
-import org.docx4all.util.SwingUtil;
 import org.jdesktop.application.ResourceMap;
 import org.jdesktop.application.SingleFrameApplication;
 
@@ -107,9 +106,7 @@ public class WordMLEditor extends SingleFrameApplication {
     			}
     		};
     		
-    		JEditorPane editor = (JEditorPane)
-    			SwingUtil.getDescendantOfClass(JEditorPane.class, iframe);
-    		if (getToolbarStates().isDocumentDirty(editor)) {
+    		if (getToolbarStates().isDocumentDirty(iframe)) {
     			try {
     				iframe.setSelected(true);
     				iframe.setIcon(false);
@@ -117,7 +114,7 @@ public class WordMLEditor extends SingleFrameApplication {
     				;//ignore
     			}
     			
-    			int answer = showConfirmClosingEditor(editor, "internalframe.close");
+    			int answer = showConfirmClosingInternalFrame(iframe, "internalframe.close");
     			if (answer == JOptionPane.CANCEL_OPTION) {
     				break;
     			}
@@ -127,15 +124,10 @@ public class WordMLEditor extends SingleFrameApplication {
     	}
     }
     
-    public void closeInternalFrame(JEditorPane editorPane) {
+    public void closeInternalFrame(JInternalFrame iframe) {
     	boolean canClose = true;
     	
-		JInternalFrame iframe = 
-    		(JInternalFrame) SwingUtilities.getAncestorOfClass(
-    				JInternalFrame.class, 
-    				editorPane);
-		
-		if (getToolbarStates().isDocumentDirty(editorPane)) {
+		if (getToolbarStates().isDocumentDirty(iframe)) {
 			try {
 				iframe.setSelected(true);
 				iframe.setIcon(false);
@@ -143,7 +135,7 @@ public class WordMLEditor extends SingleFrameApplication {
 				;//ignore
 			}
 			
-			int answer = showConfirmClosingEditor(editorPane, "internalframe.close");
+			int answer = showConfirmClosingInternalFrame(iframe, "internalframe.close");
 			canClose = (answer != JOptionPane.CANCEL_OPTION); 
 		}
 		
@@ -313,12 +305,11 @@ public class WordMLEditor extends SingleFrameApplication {
     	return panel;
     }
     
-    private int showConfirmClosingEditor(JEditorPane editorPane, String resourceKeyPrefix) {
+    private int showConfirmClosingInternalFrame(JInternalFrame iframe, String resourceKeyPrefix) {
     	int answer = JOptionPane.CANCEL_OPTION;
     	
 		String filePath = 
-			(String) editorPane.getDocument().getProperty(
-				WordMLDocument.FILE_PATH_PROPERTY);
+			(String) iframe.getClientProperty(WordMLDocument.FILE_PATH_PROPERTY);
 			
 		ResourceMap rm = getContext().getResourceMap();
 		String title = 
@@ -342,13 +333,13 @@ public class WordMLEditor extends SingleFrameApplication {
 		if (answer == JOptionPane.CANCEL_OPTION) {
 			;
 		} else if (answer == JOptionPane.YES_OPTION) {
-			boolean success = FileMenu.getInstance().save(editorPane, null,
+			boolean success = FileMenu.getInstance().save(iframe, null,
 					FileMenu.SAVE_FILE_ACTION_NAME);
 			if (success) {
-				getToolbarStates().setDocumentDirty(editorPane, false);
+				getToolbarStates().setDocumentDirty(iframe, false);
 			}
 		} else {
-			//getToolbarStates().setDocumentDirty(editorPane, false);
+			//getToolbarStates().setDocumentDirty(iframe, false);
 		}
 		
 		return answer;
@@ -418,10 +409,8 @@ public class WordMLEditor extends SingleFrameApplication {
 
         public void internalFrameClosing(InternalFrameEvent e) {
 			JInternalFrame iframe = (JInternalFrame) e.getSource();
-			JEditorPane editorPane = (JEditorPane)
-				SwingUtil.getDescendantOfClass(JEditorPane.class, iframe);
-			if (getToolbarStates().isDocumentDirty(editorPane)) {
-				int answer = showConfirmClosingEditor(editorPane, "internalframe.close");
+			if (getToolbarStates().isDocumentDirty(iframe)) {
+				int answer = showConfirmClosingInternalFrame(iframe, "internalframe.close");
 				if (answer != JOptionPane.CANCEL_OPTION) {
 					iframe.dispose();
 				}
@@ -463,11 +452,8 @@ public class WordMLEditor extends SingleFrameApplication {
     	    	list.remove(currentFrame);
     	    	list.add(0, currentFrame);
     	    	
-    	    	for (final JInternalFrame iframe: list) {
-    	    		JEditorPane editorPane = (JEditorPane)
-        				SwingUtil.getDescendantOfClass(
-        					JEditorPane.class, iframe);
-    				if (getToolbarStates().isDocumentDirty(editorPane)) {
+    	    	for (JInternalFrame iframe: list) {
+    				if (getToolbarStates().isDocumentDirty(iframe)) {
     					try {
     						iframe.setSelected(true);
     						iframe.setIcon(false);
@@ -476,8 +462,8 @@ public class WordMLEditor extends SingleFrameApplication {
     					}
         			
     					int answer = 
-    						showConfirmClosingEditor(
-    							editorPane, 
+    						showConfirmClosingInternalFrame(
+    							iframe, 
     							"Application.exit.saveFirst");
     					if (answer == JOptionPane.CANCEL_OPTION) {
     						cancelExit = true;
