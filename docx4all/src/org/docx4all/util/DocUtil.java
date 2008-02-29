@@ -347,11 +347,20 @@ public class DocUtil {
 	}
 	
 	public final static void displayXml(Document doc) {
-		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+		org.docx4j.wml.Document jaxbDoc = null;
+	
+		if (doc instanceof WordMLDocument) {
+			DocumentElement root = (DocumentElement) doc
+					.getDefaultRootElement();
+
+			jaxbDoc = (org.docx4j.wml.Document) root.getElementML()
+					.getDocxObject();
+		} else {
+			ElementML rootML = (ElementML) doc
+					.getProperty(WordMLStyleConstants.ElementMLAttribute);
+			jaxbDoc = (org.docx4j.wml.Document) rootML.getDocxObject();
+		}
 		
-		org.docx4j.wml.Document jaxbDoc =
-			(org.docx4j.wml.Document) 
-				root.getElementML().getDocxObject();
 		List<Object> list = jaxbDoc.getBody().getBlockLevelElements();
 		int i = 0;
 		for (Object obj : list) {
