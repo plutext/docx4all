@@ -26,12 +26,14 @@ import java.awt.event.ActionListener;
 import java.beans.PropertyVetoException;
 
 import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JEditorPane;
 import javax.swing.JInternalFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.WordMLTextPane;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -115,18 +117,27 @@ public class SwingUtil {
 		return theMenu;
 	}
 	
-    public final static Component getDescendantOfClass(Class<?> c, Container comp) {
+	public final static WordMLTextPane getWordMLTextPane(JInternalFrame iframe) {
+		return (WordMLTextPane) getDescendantOfClass(WordMLTextPane.class, iframe.getContentPane(), true);
+	}
+	
+	public final static JEditorPane getSourceEditor(JInternalFrame iframe) {
+		return (JEditorPane) getDescendantOfClass(JEditorPane.class, iframe.getContentPane(), true);
+	}
+	
+    public final static Component getDescendantOfClass(Class<?> c, Container comp, boolean exactInstance) {
     	Component theObject = null;
     	
     	if (c != null && comp != null) {
 			Component[] carray = comp.getComponents();
 			if (carray != null) {
 				for (int i = 0; i < carray.length && theObject == null; i++) {
-					if (c.isInstance(carray[i])) {
+					if (exactInstance && carray[i].getClass() == c) {
+						theObject = carray[i];
+					} else if (c.isInstance(carray[i])) {
 						theObject = carray[i];
 					} else if (carray[i] instanceof Container) {
-						theObject = getDescendantOfClass(c,
-								(Container) carray[i]);
+						theObject = getDescendantOfClass(c, (Container) carray[i], exactInstance);
 					}
 				}
 			}
