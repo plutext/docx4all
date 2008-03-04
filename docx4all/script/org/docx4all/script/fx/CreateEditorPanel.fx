@@ -19,16 +19,18 @@
 
 package org.docx4all.script.fx;
 
+import org.docx4all.swing.WordMLTextPane;
+
 import org.docx4all.script.fx.ui.EditorPanel;
 import org.docx4all.script.fx.ui.widget.ScrollableEditorPane;
 
 import javafx.ui.HorizontalScrollBarPolicy;
 
-var jEditorPane = editorPane:<<javax.swing.JEditorPane>>;
+var editorView = editorView:<<org.docx4all.swing.WordMLTextPane>>;
 
 var editorPanel = EditorPanel {
     editorPane: ScrollableEditorPane {
-        editor: jEditorPane
+        editor: editorView
         horizontalScrollBarPolicy: NEVER:HorizontalScrollBarPolicy
     }
 };
