@@ -19,6 +19,9 @@
 
 package org.docx4all.util;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -27,6 +30,7 @@ import java.util.List;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
+import javax.swing.text.EditorKit;
 import javax.swing.text.Element;
 import javax.swing.text.Position;
 import javax.swing.text.Segment;
@@ -50,6 +54,7 @@ import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
 import org.docx4all.xml.RunPropertiesML;
 import org.docx4j.XmlUtils;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 
 /**
  *	@author Jojada Tirtowidjojo - 27/11/2007
@@ -60,29 +65,91 @@ public class DocUtil {
 	private final static String TAB = "    ";
 	
 	/**
-	 * When a text is inserted into a document its attributes
-	 * are determined by the text element at the insertion position.
-	 * This text element is called input attribute element and
-	 * has to be editable.
+	 * Makes the xml content of document become the main document part
+	 * of WordprocessingMLPackage.
+	 *  
+	 * @param kit EditorKit instance
+	 * @param doc Xml document
+	 * @param outputPackage WordprocessingMLPackage that will store the resulting output.
+	 *        If it is null a brand new WordprocessingMLPackage will be created. 
+	 * @return The passed in outputPackage argument if it is NOT NULL.
+	 *         A brand new WordprocessingMLPackage; otherwise.
+	 */
+	public final static WordprocessingMLPackage write(
+		final EditorKit kit, 
+		final Document doc, 
+		WordprocessingMLPackage outputPackage) { 	
+		
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		try {
+			kit.write(out, doc, 0, doc.getLength());
+		} catch (BadLocationException exc) {
+			;// ignore
+		} catch (IOException exc) {
+			exc.printStackTrace();
+		}
+		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+		outputPackage = XmlUtil.deserialize(outputPackage, in);
+		return outputPackage;
+	}
+	
+	/**
+	 * Reads the xml document part of WordprocessingMLPackage and puts it into
+	 * Swing EditorKit's default document.
 	 * 
-	 * Given an insertion position there are two potential input attribute 
-	 * elements, namely the one on the left of the insertion position and 
-	 * on the right. By default this method returns the one on the left.
-	 * In the case where this default input attribute element does not exist
-	 * or the insertion position is at the beginning of a paragraph then 
-	 * the other input attribute element will be visited.
+	 * @param kit
+	 *            EditorKit instance
+	 * @param sourcePackage
+	 *            WordprocessingMLPackage to read from
+	 * @return EditorKit's default document
+	 */
+	public final static Document read(
+		final EditorKit kit, 
+		final WordprocessingMLPackage sourcePackage) {
+
+    	Document theDoc = kit.createDefaultDocument();
+    	
+    	ByteArrayOutputStream out = new ByteArrayOutputStream();
+    	XmlUtil.serialize(sourcePackage, out);
+    	
+    	ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+    	out = null;
+    	
+		try {
+			kit.read(in, theDoc, 0);
+		} catch (BadLocationException exc) {
+			;// ignore
+		} catch (IOException exc) {
+			exc.printStackTrace();
+		}
+		
+		return theDoc;
+	}
+	
+	/**
+	 * When a text is inserted into a document its attributes are determined by
+	 * the text element at the insertion position. This text element is called
+	 * input attribute element and has to be editable.
 	 * 
-	 * To override the default behaviour 'bias' parameter
-	 * can be set to either Position.Bias.Forward (for selecting the right element) 
-	 * or Position.Bias.Backward (for the left one).
+	 * Given an insertion position there are two potential input attribute
+	 * elements, namely the one on the left of the insertion position and on the
+	 * right. By default this method returns the one on the left. In the case
+	 * where this default input attribute element does not exist or the
+	 * insertion position is at the beginning of a paragraph then the other
+	 * input attribute element will be visited.
 	 * 
-	 * @param doc the document where input attribute element is desired
-	 * @param offset Offset position
-	 * @param bias Null, default behaviour
-	 *             Position.Bias.Forward, choose the right element
-	 *             Position.Bias.Backward, choose the left element
-	 * @return An editable WordMLDocument.TextElement if any; 
-	 *         Null, otherwise.
+	 * To override the default behaviour 'bias' parameter can be set to either
+	 * Position.Bias.Forward (for selecting the right element) or
+	 * Position.Bias.Backward (for the left one).
+	 * 
+	 * @param doc
+	 *            the document where input attribute element is desired
+	 * @param offset
+	 *            Offset position
+	 * @param bias
+	 *            Null, default behaviour Position.Bias.Forward, choose the
+	 *            right element Position.Bias.Backward, choose the left element
+	 * @return An editable WordMLDocument.TextElement if any; Null, otherwise.
 	 */
 	public final static WordMLDocument.TextElement getInputAttributeElement(
 		WordMLDocument doc, 
@@ -356,9 +423,11 @@ public class DocUtil {
 			jaxbDoc = (org.docx4j.wml.Document) root.getElementML()
 					.getDocxObject();
 		} else {
-			ElementML rootML = (ElementML) doc
-					.getProperty(WordMLStyleConstants.ElementMLAttribute);
-			jaxbDoc = (org.docx4j.wml.Document) rootML.getDocxObject();
+			WordprocessingMLPackage wmlPackage =
+				(WordprocessingMLPackage) doc.getProperty(
+						WordMLDocument.WML_PACKAGE_PROPERTY);
+			jaxbDoc = (org.docx4j.wml.Document) 
+				wmlPackage.getMainDocumentPart().getJaxbElement();
 		}
 		
 		List<Object> list = jaxbDoc.getBody().getBlockLevelElements();
