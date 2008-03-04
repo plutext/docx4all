@@ -19,13 +19,19 @@
 
 package org.docx4all.ui.menu;
 
+import java.awt.Container;
+
+import javax.swing.JEditorPane;
+import javax.swing.JInternalFrame;
 import javax.swing.JMenuItem;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextPane;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
+import org.docx4all.util.SwingUtil;
 import org.jdesktop.application.Action;
 
 /**
@@ -97,15 +103,43 @@ public class ViewMenu extends UIMenu {
 	}
 	
 	@Action public void viewSource() {
-		log.debug("viewSource():...");
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        
+        JEditorPane view = editor.getCurrentEditor();
+		if (view instanceof WordMLTextPane) {
+			JInternalFrame iframe = editor.getCurrentInternalFrame();
+	        if (iframe.getContentPane().getComponent(0) instanceof JTabbedPane) {
+				JTabbedPane tabbedPane = 
+					(JTabbedPane) iframe.getContentPane().getComponent(0);
+				int idx = tabbedPane.indexOfTab(editor.getSourceViewTabTitle());
+				tabbedPane.setSelectedIndex(idx);
+	        } else {
+	        	editor.createSourceViewTab();
+	        }
+		}
 	}
 	
 	@Action public void viewEditor() {
-		log.debug("viewEditor():...");
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        
+        JEditorPane view = editor.getCurrentEditor();
+        if (view instanceof WordMLTextPane) {
+        	return;
+        }
+        
+        JInternalFrame iframe = editor.getCurrentInternalFrame();
+        if (iframe.getContentPane().getComponent(0) instanceof JTabbedPane) {
+        	JTabbedPane tabbedPane = 
+        		(JTabbedPane) iframe.getContentPane().getComponent(0);
+        	int idx = 
+        		tabbedPane.indexOfTab(editor.getEditorViewTabTitle());
+        	tabbedPane.setSelectedIndex(idx);
+        }
 	}
 
 	@Action public void closeSourceView() {
-		log.debug("closeSourceView():...");
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        editor.closeSourceViewTab();
 	}
 	
 	public void setEnabled(String menuItemActionName, boolean isEnabled) {
