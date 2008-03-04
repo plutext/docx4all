@@ -24,8 +24,6 @@ import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.util.prefs.Preferences;
 
 import javax.swing.JEditorPane;
@@ -36,7 +34,7 @@ import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.text.Document;
-import javax.swing.text.StyledEditorKit;
+import javax.swing.text.EditorKit;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.DocumentElement;
@@ -47,7 +45,6 @@ import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.util.DocUtil;
 import org.docx4all.util.SwingUtil;
-import org.docx4all.util.XmlUtil;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
@@ -503,45 +500,37 @@ public class FileMenu extends UIMenu {
 		
     	JEditorPane editor = SwingUtil.getSourceEditor(iframe);
     	if (editor != null
-        		&& ((Boolean) editor.getClientProperty(Constants.DIRTY_FLAG)).booleanValue()) {
-    		try {
-        		final StyledEditorKit kit = (StyledEditorKit) editor.getEditorKit();
-        		final Document doc = editor.getDocument();
-        		final PipedOutputStream out = new PipedOutputStream();
-    			final PipedInputStream in = new PipedInputStream(out);
-    			new Thread(new Runnable() {
-    				public void run() {
-    					try {
-    						kit.write(out, doc, 0, doc.getLength());
-    					} catch (Exception exc) {
-    						exc.printStackTrace();
-    					}
-    				}
-    			}).start();
-    			
-    			WordprocessingMLPackage wmlPackage = XmlUtil.deserialize(null, in);
-    			success = save(wmlPackage, saveAsFilePath, callerActionName);
-    			
-    	        if (success) {
-    	        	editor.putClientProperty(Constants.DIRTY_FLAG, Boolean.FALSE);
-    	        	if (saveAsFilePath.endsWith(Constants.DOCX_STRING)) {
-    	        		doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, saveAsFilePath);
-    	        		iframe.putClientProperty(WordMLDocument.FILE_PATH_PROPERTY, saveAsFilePath);
-    	        	}
-    	        }
-    	        
-    	        if (log.isDebugEnabled()) {
-    	        	log.debug("save(): filePath=" + saveAsFilePath);
-    	        	DocUtil.displayXml(doc);
-    	        }    		
-    		} catch (Exception exc) {
-    			//ignore
-    		}
+        	&& !((Boolean) editor.getClientProperty(Constants.SYNCHRONIZED_FLAG)).booleanValue()) {
+    		//signifies that Source View is not synchronised with Editor View yet.
+    		//Therefore, it is dirty and has to be saved.
+    		
+    		EditorKit kit = editor.getEditorKit();
+    		Document doc = editor.getDocument();
+			WordprocessingMLPackage wmlPackage =
+				(WordprocessingMLPackage) doc.getProperty(
+						WordMLDocument.WML_PACKAGE_PROPERTY);
+			
+    		DocUtil.write(kit, doc, wmlPackage);
+			success = save(wmlPackage, saveAsFilePath, callerActionName);
+
+			if (success) {
+				if (saveAsFilePath.endsWith(Constants.DOCX_STRING)) {
+					doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY,
+							saveAsFilePath);
+					iframe.putClientProperty(WordMLDocument.FILE_PATH_PROPERTY,
+							saveAsFilePath);
+				}
+			}
+
+			if (log.isDebugEnabled()) {
+				log.debug("save(): filePath=" + saveAsFilePath);
+				DocUtil.displayXml(doc);
+			}
+			return success;
     	}
     	
     	editor = SwingUtil.getWordMLTextPane(iframe);
-    	if (editor != null
-    		&& ((Boolean) editor.getClientProperty(Constants.DIRTY_FLAG)).booleanValue()) {
+    	if (editor != null) {
         	WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
         	kit.saveCaretText();
         	
@@ -562,7 +551,6 @@ public class FileMenu extends UIMenu {
 	        bodyML.addChild(paraML);
 	        
 	        if (success) {
-	        	editor.putClientProperty(Constants.DIRTY_FLAG, Boolean.FALSE);
 	        	if (saveAsFilePath.endsWith(Constants.DOCX_STRING)) {
 	        		doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, saveAsFilePath);
 	        		iframe.putClientProperty(WordMLDocument.FILE_PATH_PROPERTY, saveAsFilePath);
