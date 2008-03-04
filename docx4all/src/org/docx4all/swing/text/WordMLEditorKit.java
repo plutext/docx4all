@@ -192,21 +192,32 @@ public class WordMLEditorKit extends DefaultEditorKit {
      * @exception IOException on any I/O error
      */
 	public WordMLDocument read(File f) throws IOException {
-		DocumentML docML = ElementMLFactory.createDocumentML(f);
-		List<ElementSpec> specs = DocUtil.getElementSpecs(docML);
+		if (log.isDebugEnabled()) {
+			log.debug("read(): File = " + f.getAbsolutePath());
+		}
+		
+		WordMLDocument doc = read(ElementMLFactory.createDocumentML(f));
+		return doc;
+	}
+
+	public WordMLDocument read(DocumentML documentML) {
+		if (log.isDebugEnabled()) {
+			log.debug("read(): documentML = " + documentML);
+		}
+		
+		List<ElementSpec> specs = DocUtil.getElementSpecs(documentML);
 		
 		WordMLDocument doc = (WordMLDocument) createDefaultDocument();
 		doc.createElementStructure(specs);
 		
 		if (log.isDebugEnabled()) {
-			log.debug("read(): File = " + f.getAbsolutePath());
 			DocUtil.displayStructure(specs);
 			DocUtil.displayStructure(doc);
 		}
 			
 		return doc;
 	}
-
+	
 	/**
 	 * Write content from a document to the given stream in a format appropriate
 	 * for this kind of content handler.
