@@ -53,6 +53,8 @@ public class WordMLDocument extends DefaultStyledDocument {
 
 	public final static String FILE_PATH_PROPERTY = "filePathProperty";
 	
+	public final static String WML_PACKAGE_PROPERTY = "wmlPackageProperty";
+	
 	public WordMLDocument() {
 		super();
 	}
