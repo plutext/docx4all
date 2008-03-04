@@ -21,7 +21,9 @@ package org.docx4all.ui.main;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.Rectangle;
 import java.beans.PropertyVetoException;
 import java.io.File;
 import java.io.IOException;
@@ -40,17 +42,24 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
 import javax.swing.text.AbstractDocument;
+import javax.swing.text.Document;
+import javax.swing.text.EditorKit;
 
 import org.apache.log4j.Logger;
 import org.docx4all.datatransfer.TransferHandler;
 import org.docx4all.script.FxScriptUIHelper;
 import org.docx4all.swing.WordMLTextPane;
+import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLDocumentFilter;
 import org.docx4all.swing.text.WordMLEditorKit;
@@ -60,6 +69,11 @@ import org.docx4all.ui.menu.FormatMenu;
 import org.docx4all.ui.menu.HelpMenu;
 import org.docx4all.ui.menu.ViewMenu;
 import org.docx4all.ui.menu.WindowMenu;
+import org.docx4all.util.DocUtil;
+import org.docx4all.util.SwingUtil;
+import org.docx4all.xml.DocumentML;
+import org.docx4all.xml.ElementML;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.jdesktop.application.ResourceMap;
 import org.jdesktop.application.SingleFrameApplication;
 
@@ -160,15 +174,15 @@ public class WordMLEditor extends SingleFrameApplication {
         	iframe.addInternalFrameListener(_toolbarStates);
         	iframe.addPropertyChangeListener(WindowMenu.getInstance());
         	
-        	JEditorPane editor = createEditor(f);
-        	JPanel panel = FxScriptUIHelper.getInstance().createEditorPanel(editor);
+        	JEditorPane editorView = createEditorView(f);
+        	JPanel panel = FxScriptUIHelper.getInstance().createEditorPanel(editorView);
         	
         	iframe.getContentPane().add(panel);
         	iframe.pack();
         	_desktop.add(iframe);
         	
-        	editor.requestFocusInWindow();
-        	editor.select(0,0);
+        	editorView.requestFocusInWindow();
+        	editorView.select(0,0);
         	
         	String filePath = f.getAbsolutePath();
         	iframe.putClientProperty(WordMLDocument.FILE_PATH_PROPERTY, filePath);
@@ -220,6 +234,16 @@ public class WordMLEditor extends SingleFrameApplication {
     	return new ArrayList<JInternalFrame>(_iframeMap.values());
     }
     
+    public String getEditorViewTabTitle() {
+        ResourceMap rm = getContext().getResourceMap(WordMLEditor.class);
+        return rm.getString(Constants.EDITOR_VIEW_TAB_TITLE);
+    }
+    
+    public String getSourceViewTabTitle() {
+        ResourceMap rm = getContext().getResourceMap(WordMLEditor.class);
+        return rm.getString(Constants.SOURCE_VIEW_TAB_TITLE);
+    }
+    
     public String getUntitledFileName() {
         ResourceMap rm = getContext().getResourceMap(WordMLEditor.class);
         String filename = rm.getString(Constants.UNTITLED_FILE_NAME);
@@ -254,13 +278,96 @@ public class WordMLEditor extends SingleFrameApplication {
     public void showMessageDialog(String title, String message, int optionType) {
     	JOptionPane.showMessageDialog(getMainFrame(), message, title, optionType);
     }
-        
-    private JEditorPane createEditor(File f) {
-    	JEditorPane editor = new WordMLTextPane();
-    	editor.addFocusListener(_toolbarStates);
-    	editor.setTransferHandler(new TransferHandler());
+    
+    public void createSourceViewTab() {
+		JEditorPane editorView = getCurrentEditor();
+		if (editorView == null || !(editorView instanceof WordMLTextPane)) {
+			return;
+		}
+		JInternalFrame iframe = getCurrentInternalFrame();
+		Rectangle bounds = iframe.getBounds();
+		iframe.getContentPane().removeAll();
+
+		JEditorPane sourceView = createSourceView((WordMLTextPane) editorView);
+		JTabbedPane tabbedPane = 
+			FxScriptUIHelper.getInstance().createEditorTabbedPanel(
+				(WordMLTextPane) editorView, 
+				getEditorViewTabTitle(),
+				sourceView,
+				getSourceViewTabTitle());
+		
+    	iframe.getContentPane().add(tabbedPane);
+    	iframe.validate();
+    	iframe.setBounds(bounds);
     	
-		WordMLEditorKit editorKit = (WordMLEditorKit) editor.getEditorKit();
+    	int idx = tabbedPane.indexOfTab(getSourceViewTabTitle());
+    	tabbedPane.setSelectedIndex(idx);
+    	
+		tabbedPane.addChangeListener(new ViewChangeListener());
+	}
+    
+    public void closeSourceViewTab() {
+		JEditorPane editor = getCurrentEditor();
+		if (editor == null || (editor instanceof WordMLTextPane)) {
+			return;
+		}
+		
+		JInternalFrame iframe = getCurrentInternalFrame();
+		Rectangle bounds = iframe.getBounds();
+		
+		editor = SwingUtil.getWordMLTextPane(iframe);
+		iframe.getContentPane().removeAll();
+		
+    	JPanel panel = FxScriptUIHelper.getInstance().createEditorPanel(editor);	
+    	iframe.getContentPane().add(panel);
+    	iframe.validate();
+    	iframe.setBounds(bounds);
+    	
+    	editor.requestFocusInWindow();
+    }
+    
+    private JEditorPane createSourceView(WordMLTextPane editorView) {
+    	WordMLEditorKit kit = (WordMLEditorKit) editorView.getEditorKit();
+    	kit.saveCaretText();
+    	
+    	DocumentElement elem = 
+    		(DocumentElement) editorView.getDocument().getDefaultRootElement();
+    	WordprocessingMLPackage wmlPackage =
+    		((DocumentML) elem.getElementML()).getWordprocessingMLPackage();
+    	String filePath = 
+    		(String) editorView.getDocument().getProperty(WordMLDocument.FILE_PATH_PROPERTY);
+    	
+    	//Create the Source View
+    	JEditorPane sourceView = new JTextPane();
+    	
+		//Do not include the last paragraph.
+		elem = (DocumentElement) elem.getElement(elem.getElementCount() - 1);
+		ElementML paraML = elem.getElementML();
+		ElementML bodyML = paraML.getParent();
+		paraML.delete();
+
+    	Document doc = DocUtil.read(sourceView.getEditorKit(), wmlPackage);
+    	
+        //Remember to put 'paraML' as last paragraph
+        bodyML.addChild(paraML);
+
+		doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, filePath);
+		doc.putProperty(WordMLDocument.WML_PACKAGE_PROPERTY, wmlPackage);
+    	doc.addDocumentListener(getToolbarStates());
+    	
+    	sourceView.addFocusListener(getToolbarStates());
+    	sourceView.setDocument(doc);
+    	sourceView.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
+    	
+    	return sourceView;
+    }
+    
+    private JEditorPane createEditorView(File f) {
+    	JEditorPane editorView = new WordMLTextPane();
+    	editorView.addFocusListener(_toolbarStates);
+    	editorView.setTransferHandler(new TransferHandler());
+    	
+		WordMLEditorKit editorKit = (WordMLEditorKit) editorView.getEditorKit();
 		editorKit.addInputAttributeListener(_toolbarStates);
 		
     	AbstractDocument doc = null;
@@ -275,17 +382,21 @@ public class WordMLEditor extends SingleFrameApplication {
     				"Error reading file " + f.getName(),
     				"I/O Error",
     				JOptionPane.ERROR_MESSAGE);
+    			doc = null;
     		}
-    	} else {
+    	}
+    	
+    	if (doc == null) {
     		doc = (AbstractDocument) editorKit.createDefaultDocument();
     	}
     	
 		doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, f.getAbsolutePath());
     	doc.addDocumentListener(_toolbarStates);
     	doc.setDocumentFilter(new WordMLDocumentFilter());
-    	editor.setDocument(doc);
+    	editorView.setDocument(doc);
+    	editorView.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
     	
-    	return editor;
+    	return editorView;
     }
     
     private JComponent createMainPanel() {
@@ -438,8 +549,84 @@ public class WordMLEditor extends SingleFrameApplication {
 			WindowMenu.getInstance().unSelectWindowMenuItem(iframe);
         }
 
-    }//InternalFrameListener inner class
+    } //InternalFrameListener inner class
 
+    private class ViewChangeListener implements ChangeListener {
+    	public void stateChanged(ChangeEvent event) {
+    		JTabbedPane pane = (JTabbedPane) event.getSource();
+    		WordMLTextPane editorView = 
+    			(WordMLTextPane)
+    			SwingUtil.getDescendantOfClass(WordMLTextPane.class, pane, true);
+    		JEditorPane sourceView = 
+    			(JEditorPane)
+    			SwingUtil.getDescendantOfClass(JTextPane.class, pane, true);
+    		JEditorPane selectedView = 
+    			(JEditorPane)
+    			SwingUtil.getDescendantOfClass(
+    				JEditorPane.class, (Container) pane.getSelectedComponent(), false);
+    		if (selectedView == editorView) {
+    			Boolean isSynched = (Boolean) sourceView.getClientProperty(Constants.SYNCHRONIZED_FLAG);
+    			if (!isSynched.booleanValue()) {
+    				//means that source view has been edited and
+    				//editorView has to be synchronised.
+    				//Firstly, save source view content into WordprocessingMLPackage
+    				EditorKit kit = sourceView.getEditorKit();
+    				Document sourceDoc = sourceView.getDocument();
+    				WordprocessingMLPackage wmlPackage = 
+    					(WordprocessingMLPackage)
+    						sourceDoc.getProperty(
+    							WordMLDocument.WML_PACKAGE_PROPERTY);
+    				DocUtil.write(kit, sourceDoc, wmlPackage);
+    				sourceDoc = null;
+    				
+    				int caretPos = editorView.getCaretPosition();
+    				
+    				//Now the editor view content becomes invalid because
+    				//its WordprocessingMLPackage's main document part has been
+    				//updated by the saving action above.
+    				//Need to create a new document for editor view.
+    				WordMLDocument oldDoc = (WordMLDocument) editorView.getDocument();
+    		    	String filePath = 
+    		    		(String) oldDoc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
+    		    	
+    				kit = editorView.getEditorKit();
+    				WordMLDocument newDoc = 
+    					((WordMLEditorKit) kit).read(new DocumentML(wmlPackage));
+    		    	newDoc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, filePath);
+    		    	newDoc.addDocumentListener(getToolbarStates());
+    		    	newDoc.setDocumentFilter(oldDoc.getDocumentFilter());
+    		    	
+    		    	log.debug("stateChanged(): NEW Document Structure...");
+    		    	DocUtil.displayStructure(newDoc);
+    		    	
+    		    	editorView.setDocument(newDoc);
+    		    	editorView.validate();
+    		    	editorView.repaint();
+    		    	editorView.setCaretPosition(caretPos);
+    		    	
+    		    	//reset SYNCHRONIZED_FLAG of source view
+    		    	sourceView.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
+    			}
+    		} else if (selectedView == sourceView) {
+    			Boolean isSynched = (Boolean) editorView.getClientProperty(Constants.SYNCHRONIZED_FLAG);
+    			if (!isSynched.booleanValue()) {
+    				int caretPos = sourceView.getCaretPosition();
+    				
+    				JEditorPane newView = createSourceView(editorView);
+    				Document newDoc = newView.getDocument();
+    				
+    				sourceView.setDocument(newDoc);
+    				sourceView.validate();
+    				sourceView.repaint();
+    				sourceView.setCaretPosition(caretPos);
+    				
+    				//reset SYNCHRONIZED_FLAG of editor view
+    				editorView.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
+    			}    			
+    		}
+    	}
+    } //ViewChangeListener inner class
+    
     private class WmlExitListener implements ExitListener {
     	public boolean canExit(EventObject event) {
     		boolean cancelExit = false;
