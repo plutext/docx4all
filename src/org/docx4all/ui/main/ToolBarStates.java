@@ -625,7 +625,7 @@ public class ToolBarStates extends InternalFrameAdapter
     	}
     	if (_currentEditor != null 
         		&& _currentEditor.getDocument() == e.getDocument()) {
-    		_currentEditor.putClientProperty(Constants.DIRTY_FLAG, Boolean.TRUE);
+    		_currentEditor.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.FALSE);
     		setDocumentDirty(_currentEditor, true);
     	}
     }
@@ -643,7 +643,7 @@ public class ToolBarStates extends InternalFrameAdapter
     	}
     	if (_currentEditor != null 
         		&& _currentEditor.getDocument() == e.getDocument()) {
-    		_currentEditor.putClientProperty(Constants.DIRTY_FLAG, Boolean.TRUE);
+    		_currentEditor.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.FALSE);
     		setDocumentDirty(_currentEditor, true);
     	}
     }
@@ -659,7 +659,7 @@ public class ToolBarStates extends InternalFrameAdapter
     	}
     	if (_currentEditor != null 
     		&& _currentEditor.getDocument() == e.getDocument()) {
-    		_currentEditor.putClientProperty(Constants.DIRTY_FLAG, Boolean.TRUE);
+    		_currentEditor.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.FALSE);
     		setDocumentDirty(_currentEditor, true);
     	}
 	}
