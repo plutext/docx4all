@@ -147,8 +147,9 @@ public class DocUtil {
 	 * @param offset
 	 *            Offset position
 	 * @param bias
-	 *            Null, default behaviour Position.Bias.Forward, choose the
-	 *            right element Position.Bias.Backward, choose the left element
+	 *            Null, default behaviour.
+	 *            Position.Bias.Forward, choose the right element.
+	 *            Position.Bias.Backward, choose the left element
 	 * @return An editable WordMLDocument.TextElement if any; Null, otherwise.
 	 */
 	public final static WordMLDocument.TextElement getInputAttributeElement(
