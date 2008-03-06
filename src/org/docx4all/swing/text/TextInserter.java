@@ -74,6 +74,10 @@ public class TextInserter implements TextProcessor {
 			(DocumentElement) doc.getParagraphMLElement(offset, false);
 		if (elem.getEndOffset() == elem.getParentElement().getEndOffset()) {
 			//insert a string in the last paragraph
+
+			//Need not Resolve Parent attribute
+			((MutableAttributeSet) attrs).removeAttribute(StyleConstants.ResolveAttribute);
+			
 			RunML newRun = new RunML(ObjectFactory.createR(text));
 			newRun.addAttributes(attrs, true);
 					
@@ -93,6 +97,10 @@ public class TextInserter implements TextProcessor {
 			
 		} else if (elem.getEndOffset() - elem.getStartOffset() == 1){
 			//insert a string in an empty paragraph
+			
+			//Need not Resolve Parent attribute
+			((MutableAttributeSet) attrs).removeAttribute(StyleConstants.ResolveAttribute);
+			
 			RunML newRun = new RunML(ObjectFactory.createR(text));
 			newRun.addAttributes(attrs, true);
 			
@@ -107,10 +115,16 @@ public class TextInserter implements TextProcessor {
 			int paraEnd = elem.getEndOffset();
 			
 			//Grab the resolve parent of attrs and remove from it. 
-			//This is done so that normal typing case can be 
-			//correctly identified.
-			AttributeSet resolveAttrs = attrs.getResolveParent();
-			((MutableAttributeSet) attrs).removeAttribute(StyleConstants.ResolveAttribute);
+			//This is done so that normal typing case condition can be 
+			//correctly verified.
+			MutableAttributeSet resolveAttrs = null;
+			if (attrs.getResolveParent() != null) {
+				//Keep resolve parent attrs for 'abnormal' typing case condition
+				resolveAttrs = new SimpleAttributeSet(attrs.getResolveParent());
+				//don't need its ElementML attribute
+				resolveAttrs.removeAttribute(WordMLStyleConstants.ElementMLAttribute);
+				((MutableAttributeSet) attrs).removeAttribute(StyleConstants.ResolveAttribute);
+			}
 			
 			elem = DocUtil.getInputAttributeElement(doc, offset, null);
 			
@@ -132,7 +146,8 @@ public class TextInserter implements TextProcessor {
 				MutableAttributeSet newAttrs = new SimpleAttributeSet();
 				if (elem == null) {
 					//No input attribute element.
-					//Grab the attributes of run element at 'offset'
+					//Check the RunML element at 'offset' and
+					//grab its attributes if 'offset' is not at its ends.
 					elem = (DocumentElement) doc.getRunMLElement(offset);
 					if (elem.getStartOffset() < offset && offset < elem.getEndOffset()) {
 						newAttrs.addAttributes(elem.getAttributes().copyAttributes());
