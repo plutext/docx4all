@@ -63,6 +63,11 @@ public class TextRemover implements TextProcessor {
 				// A single partially selected leaf element
 				// is treated as normal string deletion
 				filterBypass.remove(offset, length);
+				
+				if (log.isDebugEnabled()) {
+					log.debug("doAction(): Resulting Structure...");
+					DocUtil.displayStructure(doc);
+				}
 				return;
 			}
 
