@@ -115,7 +115,7 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 		}
 		
 		//FONT FAMILY Attribute
-		String strValue = (String) this.attrs.getAttribute(StyleConstants.FontFamily);
+		String strValue = WordMLStyleConstants.getOriginalFontFamilyName(this.attrs);
 		RPr.RFonts rfonts = rPr.getRFonts();
 		if (rfonts != null) {
 			//Just set the asscii value.
