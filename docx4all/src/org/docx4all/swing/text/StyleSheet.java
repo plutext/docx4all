@@ -162,6 +162,10 @@ public class StyleSheet extends StyleContext {
 	
 	public void setWordprocessingMLPackage(WordprocessingMLPackage docPackage) {
 		this.docPackage = docPackage;
+		
+		//Supply font info before initialising styles
+		FontManager.getInstance().addFontsInUse(docPackage);
+		
 		org.docx4j.wml.Styles docxStyles = 
 			(org.docx4j.wml.Styles)
 				docPackage.getMainDocumentPart().getStyleDefinitionsPart().getJaxbElement();
@@ -223,6 +227,12 @@ public class StyleSheet extends StyleContext {
 	
 	protected void initDefaultStyle(org.docx4j.wml.Styles docxStyles) {
 		Style defaultStyle = getStyle(DEFAULT_STYLE);
+		StyleConstants.setFontFamily(
+				defaultStyle, 
+				FontManager.getInstance().getDocx4AllDefaultFont().getFamily());
+		StyleConstants.setFontSize(
+				defaultStyle, 
+				FontManager.getInstance().getDocx4AllDefaultFont().getSize());
 		
 		if (docxStyles.getDocDefaults()!=null &&
 				docxStyles.getDocDefaults().getPPrDefault() != null) {
@@ -314,42 +324,51 @@ public class StyleSheet extends StyleContext {
 		for (org.docx4j.wml.Styles.Style st: styleList) {			
 			//Latent styles comprises those styles known to an application.
 			//Therefore, all styles in styleList are descendants of latentStyles.
-			Style temp = null;
+			Style tmpStyle = null;
 			String uiName = st.getStyleId();
 			if (st.getName() != null) {
 				//Check whether st is listed in lsdExceptions.
 				//Remember that a <lsdException> specifies the style name 
 				//and NOT the style Id.
 				uiName = st.getName().getVal();
-				temp = getChildStyle(lsdExceptions, uiName);
+				tmpStyle = getChildStyle(lsdExceptions, uiName);
 			}
-			if (temp == null) {
-				temp = new NamedStyle(st.getStyleId(), latentStyles);
+			if (tmpStyle == null) {
+				tmpStyle = new NamedStyle(st.getStyleId(), latentStyles);
 			}
 			
-			temp.addAttribute(
+			tmpStyle.addAttribute(
 					WordMLStyleConstants.StyleUINameAttribute, uiName);
-			temp.addAttribute(
+			tmpStyle.addAttribute(
 					WordMLStyleConstants.DocxObjectAttribute, st);
-			temp.addAttribute(
+			tmpStyle.addAttribute(
 					WordMLStyleConstants.StyleIdAttribute, st.getStyleId());
-			idStyles.addAttribute(st.getStyleId(), temp);
+			idStyles.addAttribute(st.getStyleId(), tmpStyle);
 			
 			if (st.getPPr() != null) {
-				StyleSheet.addAttributes(temp, st.getPPr());
+				StyleSheet.addAttributes(tmpStyle, st.getPPr());
 			}
 			if (st.getRPr() != null) {
-				StyleSheet.addAttributes(temp, st.getRPr());
+				StyleSheet.addAttributes(tmpStyle, st.getRPr());
 			}
+			
+			//Override font family name setting with that provided by Docx4j.
+			//Docx4j tries to mimic the algorithm of MS Word 2007 in finding font name from style.
+			String tmpStr = getWordprocessingMLPackage().getMainDocumentPart().getFontnameFromStyle(st);
+			if (tmpStr != null) {
+				tmpStr = FontManager.getInstance().getFontNameInAction(tmpStr);
+				StyleConstants.setFontFamily(tmpStyle, tmpStr);
+			}
+			
 			if (st.getQFormat() != null) {
-				temp.addAttribute(
+				tmpStyle.addAttribute(
 					WordMLStyleConstants.QFormatAttribute
 					, Boolean.valueOf(st.getQFormat().isVal()));
 			}
 			
-			String type = (st.getType() == null) ? PARAGRAPH_ATTR_VALUE : st.getType();
-			temp.addAttribute(
-				WordMLStyleConstants.StyleTypeAttribute, type);
+			tmpStr = (st.getType() == null) ? PARAGRAPH_ATTR_VALUE : st.getType();
+			tmpStyle.addAttribute(
+				WordMLStyleConstants.StyleTypeAttribute, tmpStr);
 
 			if (st.getLink() != null) {
 				//A link value is a style id.
@@ -361,15 +380,15 @@ public class StyleSheet extends StyleContext {
 							target.getAttribute(WordMLStyleConstants.DocxObjectAttribute);
 					String targetType = 
 						(String) target.getAttribute(WordMLStyleConstants.StyleTypeAttribute);
-					if (PARAGRAPH_ATTR_VALUE.equalsIgnoreCase(type)
+					if (PARAGRAPH_ATTR_VALUE.equalsIgnoreCase(tmpStr)
 							&& CHARACTER_ATTR_VALUE.equalsIgnoreCase(targetType)
 							&& targetDocxStyles.getRPr() != null) {
-						StyleSheet.addAttributes(temp, targetDocxStyles.getRPr());
+						StyleSheet.addAttributes(tmpStyle, targetDocxStyles.getRPr());
 						
-					} else if (CHARACTER_ATTR_VALUE.equalsIgnoreCase(type)
+					} else if (CHARACTER_ATTR_VALUE.equalsIgnoreCase(tmpStr)
 							&& PARAGRAPH_ATTR_VALUE.equalsIgnoreCase(targetType)
 							&& targetDocxStyles.getPPr() != null) {
-						StyleSheet.addAttributes(temp, targetDocxStyles.getPPr());
+						StyleSheet.addAttributes(tmpStyle, targetDocxStyles.getPPr());
 						
 					} else {
 						//Specs says to ignore this
@@ -378,12 +397,12 @@ public class StyleSheet extends StyleContext {
 			} //if (st.getLink() != null)
 			
 			if (st.getBasedOn() != null) {
-				stylesWithBasedOn.add(temp);
+				stylesWithBasedOn.add(tmpStyle);
 			}
 			
-			Boolean qformat = (Boolean) temp.getAttribute(WordMLStyleConstants.QFormatAttribute);
+			Boolean qformat = (Boolean) tmpStyle.getAttribute(WordMLStyleConstants.QFormatAttribute);
 			if (qformat.booleanValue()) {
-				uiStyles.addAttribute(uiName, temp);
+				uiStyles.addAttribute(uiName, tmpStyle);
 			}
 
 			//FIXME: st.isDefault() is still buggy at this moment.
@@ -392,12 +411,12 @@ public class StyleSheet extends StyleContext {
 			if (st.isDefault() 
 				&& qformat.booleanValue()
 				&& uiName.startsWith("Normal")
-				&& PARAGRAPH_ATTR_VALUE.equalsIgnoreCase(type)) {
+				&& PARAGRAPH_ATTR_VALUE.equalsIgnoreCase(tmpStr)) {
 				defaultStyle.addAttribute(WordMLStyleConstants.DefaultParagraphStyleNameAttribute, uiName);
 			}
 			
 			if (log.isDebugEnabled()) {
-				log.debug("initStyles(): style[" + (i++) + "]=" + temp);
+				log.debug("initStyles(): style[" + (i++) + "]=" + tmpStyle);
 			}
 			
 		} //for (org.docx4j.wml.Styles.Style st: styleList)
