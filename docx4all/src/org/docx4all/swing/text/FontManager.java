@@ -187,7 +187,7 @@ public class FontManager {
 		}
 		
 		String fontNameInAction = substituter.getPdfSubstituteFont(fontName);
-		if (fontNameInAction.startsWith("noMapping")) {
+		if (fontNameInAction == null || fontNameInAction.startsWith("noMapping")) {
 			//should not be here unless org.docx4j.fonts.substitutions.FontSubstitutions.xml
 			//is not complete.
 			log.error("Cannot find font substitution for '" + fontName 
