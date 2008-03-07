@@ -975,7 +975,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 			super.create(specs);
 
 			DocumentElement root = (DocumentElement) getDefaultRootElement();
-			String fontName = FontManager.getInstance().getDocx4AllDefaultFont().getFamily();
+			String fontName = FontManager.getInstance().getDocx4AllDefaultFontFamilyName();
 			WordMLStyleConstants.setOriginalFontFamilyName(
 					(MutableAttributeSet) root.getAttributes(),
 					fontName);
@@ -987,7 +987,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 			
 			StyleConstants.setFontSize(
 					(MutableAttributeSet) root.getAttributes(),
-					FontManager.getInstance().getDocx4AllDefaultFont().getSize());
+					FontManager.getInstance().getDocx4AllDefaultFontSize());
 			
 			//Needs to validate the last ParagraphML's parent.
 			DocumentElement lastPara = (DocumentElement) root.getElement(root
@@ -1029,14 +1029,14 @@ public class WordMLDocument extends DefaultStyledDocument {
 		//Document
 		a.addAttribute(WordMLStyleConstants.ElementMLAttribute, docML);
 		
-		String fontName = FontManager.getInstance().getDocx4AllDefaultFont().getFamily();
+		String fontName = FontManager.getInstance().getDocx4AllDefaultFontFamilyName();
 		a.addAttribute(WordMLStyleConstants.OriginalFontFamilyName, fontName);
 		
 		fontName = FontManager.getInstance().getFontNameInAction(fontName);
         a.addAttribute(StyleConstants.FontFamily, fontName);
         a.addAttribute(
         		StyleConstants.FontSize, 
-        		FontManager.getInstance().getDocx4AllDefaultFont().getSize());
+        		FontManager.getInstance().getDocx4AllDefaultFontSize());
 		BlockElement document = new BlockElement(null, a.copyAttributes());
 		a.removeAttributes(a);
 		
