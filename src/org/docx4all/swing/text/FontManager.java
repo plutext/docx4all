@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4j.fonts.Substituter;
@@ -37,6 +38,8 @@ import org.jdesktop.application.ResourceMap;
  *	@author Jojada Tirtowidjojo - 05/03/2008
  */
 public class FontManager {
+	private static Logger log = Logger.getLogger(FontManager.class);
+	
 	public final static String UNKNOWN_FONT_NAME = "<Not Known>";
 	public final static String UNKNOWN_FONT_SIZE = "##";
 	
@@ -100,8 +103,6 @@ public class FontManager {
         
 		DOCX4ALL_DEFAULT_FONT = 
 			new Font(defaultFontName, Font.PLAIN, Integer.parseInt(defaultFontSize));
-		
-
 		
 		boolean isWindows = 
 			(System.getProperty("os.name").toUpperCase().indexOf("WINDOWS") > -1);
@@ -182,9 +183,19 @@ public class FontManager {
 			//Therefore this method returns fontName.
 			return fontName;
 		}
-			
-		return substituter.getPdfSubstituteFont(fontName);
+		
+		String fontNameInAction = substituter.getPdfSubstituteFont(fontName);
+		if (fontNameInAction.startsWith("noMapping")) {
+			//should not be here unless org.docx4j.fonts.substitutions.FontSubstitutions.xml
+			//is not complete.
+			log.error("Cannot find font substitution for '" + fontName 
+				+ "'. Default font name '" + getDocx4AllDefaultFont().getFamily()
+				+ "' is used.");
+			fontNameInAction = getDocx4AllDefaultFont().getFamily();
+		}
+		return fontNameInAction;
 	}
+	
 }// FontManager class
 
 
