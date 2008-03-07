@@ -19,7 +19,6 @@
 
 package org.docx4all.swing.text;
 
-import java.awt.Font;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,7 +42,8 @@ public class FontManager {
 	public final static String UNKNOWN_FONT_NAME = "<Not Known>";
 	public final static String UNKNOWN_FONT_SIZE = "##";
 	
-	public final static Font DOCX4ALL_DEFAULT_FONT;
+	private final static String DOCX4ALL_DEFAULT_FONT_FAMILY_NAME;
+	private final static String DOCX4ALL_DEFAULT_FONT_SIZE;
 	
 	private final static FontManager _instance = new FontManager();
 	
@@ -76,10 +76,10 @@ public class FontManager {
 		//The font name and size are configured in WordMLEditor.properties file
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         ResourceMap rm = editor.getContext().getResourceMap(WordMLEditor.class);
-        String defaultFontName = rm.getString(Constants.APP_DEFAULT_FONT_FAMILY_NAME);
-        String defaultFontSize = rm.getString(Constants.APP_DEFAULT_FONT_SIZE);
+        DOCX4ALL_DEFAULT_FONT_FAMILY_NAME = rm.getString(Constants.APP_DEFAULT_FONT_FAMILY_NAME);
+        DOCX4ALL_DEFAULT_FONT_SIZE = rm.getString(Constants.APP_DEFAULT_FONT_SIZE);
         
-        if (!nameList.contains(defaultFontName)) {
+        if (!nameList.contains(DOCX4ALL_DEFAULT_FONT_FAMILY_NAME)) {
 			//defaultFontName has to be listed in nameList
 			throw new RuntimeException(
 					"Invalid "
@@ -89,7 +89,7 @@ public class FontManager {
         
         boolean invalidSize = true;
         for (String s: AVAILABLE_FONT_SIZES) {
-        	if (s.equals(defaultFontSize)) {
+        	if (s.equals(DOCX4ALL_DEFAULT_FONT_SIZE)) {
         		invalidSize = false;
         	}
         }
@@ -101,8 +101,6 @@ public class FontManager {
 					+ " property value.");
         }
         
-		DOCX4ALL_DEFAULT_FONT = 
-			new Font(defaultFontName, Font.PLAIN, Integer.parseInt(defaultFontSize));
 		
 		boolean isWindows = 
 			(System.getProperty("os.name").toUpperCase().indexOf("WINDOWS") > -1);
@@ -152,8 +150,12 @@ public class FontManager {
 		return AVAILABLE_FONT_SIZES;
 	}
 	
-	public Font getDocx4AllDefaultFont() {
-		return DOCX4ALL_DEFAULT_FONT;
+	public String getDocx4AllDefaultFontFamilyName() {
+		return DOCX4ALL_DEFAULT_FONT_FAMILY_NAME;
+	}
+	
+	public int getDocx4AllDefaultFontSize() {
+		return Integer.parseInt(DOCX4ALL_DEFAULT_FONT_SIZE);
 	}
 	
 	public void addFontsInUse(WordprocessingMLPackage docPackage) {
@@ -189,9 +191,9 @@ public class FontManager {
 			//should not be here unless org.docx4j.fonts.substitutions.FontSubstitutions.xml
 			//is not complete.
 			log.error("Cannot find font substitution for '" + fontName 
-				+ "'. Default font name '" + getDocx4AllDefaultFont().getFamily()
+				+ "'. Default font name '" + getDocx4AllDefaultFontFamilyName()
 				+ "' is used.");
-			fontNameInAction = getDocx4AllDefaultFont().getFamily();
+			fontNameInAction = getDocx4AllDefaultFontFamilyName();
 		}
 		return fontNameInAction;
 	}
