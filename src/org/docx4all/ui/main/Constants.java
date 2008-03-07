@@ -54,6 +54,9 @@ public interface Constants {
 	//=====================
 	//Resource property keys
 	//=====================
+	public final static String APP_DEFAULT_FONT_FAMILY_NAME = "Application.default.font.family.name";
+	public final static String APP_DEFAULT_FONT_SIZE = "Application.default.font.size";
+	
 	public final static String FXSCRIPT_LOCATION = "fxscript.location";
 	
 	public final static String DOCX_FILTER_DESC  = "docx.filter.desc";
