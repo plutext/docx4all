@@ -30,6 +30,7 @@ import javax.swing.text.Element;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
@@ -969,14 +970,30 @@ public class WordMLDocument extends DefaultStyledDocument {
 	protected void createElementStructure(List<ElementSpec> list) {
 		ElementSpec[] specs = new ElementSpec[list.size()];
 		list.toArray(specs);
-		super.create(specs);
-		
-		DocumentElement root = (DocumentElement) getDefaultRootElement();
-		DocumentElement lastPara = 
-			(DocumentElement) root.getElement(root.getElementCount() - 1);
-		ElementML lastParaML = lastPara.getElementML();
-		lastParaML.delete();
-		root.getElementML().getChild(0).addChild(lastParaML);
+		try {
+			writeLock();
+			super.create(specs);
+
+			DocumentElement root = (DocumentElement) getDefaultRootElement();
+			StyleConstants.setFontFamily(
+				(MutableAttributeSet) root.getAttributes(),
+				FontManager.getInstance().getDocx4AllDefaultFont().getFamily());
+			StyleConstants.setFontSize(
+					(MutableAttributeSet) root.getAttributes(),
+					FontManager.getInstance().getDocx4AllDefaultFont().getSize());
+			
+			//Needs to validate the last ParagraphML's parent.
+			DocumentElement lastPara = (DocumentElement) root.getElement(root
+					.getElementCount() - 1);
+			ElementML lastParaML = lastPara.getElementML();
+			//detach from its previous parent
+			lastParaML.delete();
+			//make the new document root as new parent
+			root.getElementML().getChild(0).addChild(lastParaML);
+			
+		} finally {
+			writeUnlock();
+		}
 	}
 	
     /**
@@ -1004,6 +1021,12 @@ public class WordMLDocument extends DefaultStyledDocument {
 		
 		//Document
 		a.addAttribute(WordMLStyleConstants.ElementMLAttribute, docML);
+        a.addAttribute(
+        		StyleConstants.FontFamily, 
+        		FontManager.getInstance().getDocx4AllDefaultFont().getFamily());
+        a.addAttribute(
+        		StyleConstants.FontSize, 
+        		FontManager.getInstance().getDocx4AllDefaultFont().getSize());
 		BlockElement document = new BlockElement(null, a.copyAttributes());
 		a.removeAttributes(a);
 		
