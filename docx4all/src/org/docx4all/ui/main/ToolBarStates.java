@@ -570,7 +570,7 @@ public class ToolBarStates extends InternalFrameAdapter
     	StyleSheet styleSheet, String selectedStyleName, AttributeSet attrs) {
     	setStyleSheet(styleSheet);
     	
-	    setFontFamily(StyleConstants.getFontFamily(attrs));
+    	setFontFamily(WordMLStyleConstants.getOriginalFontFamilyName(attrs));
 	    setFontSize(StyleConstants.getFontSize(attrs));
 	    setFontBold(StyleConstants.isBold(attrs));
 	    setFontItalic(StyleConstants.isItalic(attrs));
