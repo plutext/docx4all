@@ -975,9 +975,16 @@ public class WordMLDocument extends DefaultStyledDocument {
 			super.create(specs);
 
 			DocumentElement root = (DocumentElement) getDefaultRootElement();
+			String fontName = FontManager.getInstance().getDocx4AllDefaultFont().getFamily();
+			WordMLStyleConstants.setOriginalFontFamilyName(
+					(MutableAttributeSet) root.getAttributes(),
+					fontName);
+			
+			fontName = FontManager.getInstance().getFontNameInAction(fontName);
 			StyleConstants.setFontFamily(
-				(MutableAttributeSet) root.getAttributes(),
-				FontManager.getInstance().getDocx4AllDefaultFont().getFamily());
+					(MutableAttributeSet) root.getAttributes(),
+					fontName);
+			
 			StyleConstants.setFontSize(
 					(MutableAttributeSet) root.getAttributes(),
 					FontManager.getInstance().getDocx4AllDefaultFont().getSize());
@@ -1021,9 +1028,12 @@ public class WordMLDocument extends DefaultStyledDocument {
 		
 		//Document
 		a.addAttribute(WordMLStyleConstants.ElementMLAttribute, docML);
-        a.addAttribute(
-        		StyleConstants.FontFamily, 
-        		FontManager.getInstance().getDocx4AllDefaultFont().getFamily());
+		
+		String fontName = FontManager.getInstance().getDocx4AllDefaultFont().getFamily();
+		a.addAttribute(WordMLStyleConstants.OriginalFontFamilyName, fontName);
+		
+		fontName = FontManager.getInstance().getFontNameInAction(fontName);
+        a.addAttribute(StyleConstants.FontFamily, fontName);
         a.addAttribute(
         		StyleConstants.FontSize, 
         		FontManager.getInstance().getDocx4AllDefaultFont().getSize());
