@@ -20,9 +20,8 @@
 package org.docx4all.script.fx.ui;
 
 import org.docx4all.ui.menu.FileMenu;
+import org.docx4all.swing.text.FontManager;
 import org.docx4all.swing.text.StyleSheet;
-
-import java.awt.GraphicsEnvironment;
 
 import javafx.ui.ButtonGroup;
 import javafx.ui.ComboBoxCell;
@@ -122,12 +121,13 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
     }
     
     var fontFamilyCombo = ComboBox {
-        var fontNames = 
-            GraphicsEnvironment.getLocalGraphicsEnvironment().
-                  getAvailableFontFamilyNames()
+        var fontNames = FontManager.getInstance().getAvailableFontFamilyNames()
+        var defaultFontName = FontManager.getInstance().getDocx4AllDefaultFont().getFamily()
         var: self
+        
+        notFoundSelectionText: FontManager.UNKNOWN_FONT_NAME
         selection: select indexof font from font in fontNames
-                   where font.startsWith("Monospaced")
+                   where font.startsWith(defaultFontName)
         cells: foreach (font in fontNames)
                ComboBoxCell { text: font }
             
@@ -136,11 +136,13 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
     }
     
     var fontSizeCombo = ComboBox {
-        var fontSizes = ["8", "9", "10", "11", "12", "14", "16", "18",
-                         "20", "22", "24", "26", "28", "32", "36", "40", 
-                         "44", "48", "52", , "56", "64", "72"]
+        var fontSizes = FontManager.getAvailableFontSizes()
+        var defaultFontSize = FontManager.getInstance().getDocx4AllDefaultFont().getSize()
         var: self
-        selection: 4
+        
+        notFoundSelectionText: FontManager.UNKNOWN_FONT_SIZE
+        selection: select indexof fsize from fsize in fontSizes
+                   where fsize == defaultFontSize.toString()
         cells: foreach (size in fontSizes)
                ComboBoxCell { text: size }
                
