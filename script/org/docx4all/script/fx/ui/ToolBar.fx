@@ -136,7 +136,7 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
     }
     
     var fontSizeCombo = ComboBox {
-        var fontSizes = FontManager.getAvailableFontSizes()
+        var fontSizes = FontManager.getInstance().getAvailableFontSizes()
         var defaultFontSize = FontManager.getInstance().getDocx4AllDefaultFont().getSize()
         var: self
         
