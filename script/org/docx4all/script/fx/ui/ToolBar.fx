@@ -122,7 +122,7 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
     
     var fontFamilyCombo = ComboBox {
         var fontNames = FontManager.getInstance().getAvailableFontFamilyNames()
-        var defaultFontName = FontManager.getInstance().getDocx4AllDefaultFont().getFamily()
+        var defaultFontName = FontManager.getInstance().getDocx4AllDefaultFontFamilyName()
         var: self
         
         notFoundSelectionText: FontManager.UNKNOWN_FONT_NAME
@@ -137,7 +137,7 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
     
     var fontSizeCombo = ComboBox {
         var fontSizes = FontManager.getInstance().getAvailableFontSizes()
-        var defaultFontSize = FontManager.getInstance().getDocx4AllDefaultFont().getSize()
+        var defaultFontSize = FontManager.getInstance().getDocx4AllDefaultFontSize()
         var: self
         
         notFoundSelectionText: FontManager.UNKNOWN_FONT_SIZE
