@@ -230,14 +230,14 @@ public class StyleSheet extends StyleContext {
 	protected void initDefaultStyle(org.docx4j.wml.Styles docxStyles) {
 		Style defaultStyle = getStyle(DEFAULT_STYLE);
 		
-		String name = FontManager.getInstance().getDocx4AllDefaultFont().getFamily();
+		String name = FontManager.getInstance().getDocx4AllDefaultFontFamilyName();
 		WordMLStyleConstants.setOriginalFontFamilyName(defaultStyle, name);
 		
 		name = FontManager.getInstance().getFontNameInAction(name);
 		StyleConstants.setFontFamily(defaultStyle, name);
 		StyleConstants.setFontSize(
 				defaultStyle, 
-				FontManager.getInstance().getDocx4AllDefaultFont().getSize());
+				FontManager.getInstance().getDocx4AllDefaultFontSize());
 		
 		if (docxStyles.getDocDefaults()!=null &&
 				docxStyles.getDocDefaults().getPPrDefault() != null) {
