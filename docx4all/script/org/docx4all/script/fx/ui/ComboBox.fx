@@ -30,6 +30,7 @@ import java.beans.PropertyChangeListener;
 import javafx.ui.ComboBox as JFXComboBox;
 
 public class ComboBox extends JFXComboBox {
+    attribute notFoundSelectionText: String;
     attribute propertyNameToListen: String?;
     attribute swingAction:<<javax.swing.Action>>?;
     
@@ -77,6 +78,12 @@ trigger on (new ComboBox) {
             var idx = 
                 select indexof item from item in self.cells
                     where item.text == newSelectionText;
+                    
+            if (idx < 0) {
+               idx = select indexof item from item in self.cells
+                        where item.text == self.notFoundSelectionText;
+            }
+            
             self.firingActionEvent = false;                    
             self.selection = idx;
         }
