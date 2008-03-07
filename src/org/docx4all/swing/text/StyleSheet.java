@@ -121,7 +121,9 @@ public class StyleSheet extends StyleContext {
 		if (rfonts != null) {
 			String strValue = rfonts.getAscii();
 			if (strValue != null) {
-				StyleConstants.setFontFamily(attrs, strValue);
+				String name = FontManager.getInstance().getFontNameInAction(strValue);
+				WordMLStyleConstants.setOriginalFontFamilyName(attrs, strValue);
+				StyleConstants.setFontFamily(attrs, name);
 			}
 		}
 		
@@ -227,9 +229,12 @@ public class StyleSheet extends StyleContext {
 	
 	protected void initDefaultStyle(org.docx4j.wml.Styles docxStyles) {
 		Style defaultStyle = getStyle(DEFAULT_STYLE);
-		StyleConstants.setFontFamily(
-				defaultStyle, 
-				FontManager.getInstance().getDocx4AllDefaultFont().getFamily());
+		
+		String name = FontManager.getInstance().getDocx4AllDefaultFont().getFamily();
+		WordMLStyleConstants.setOriginalFontFamilyName(defaultStyle, name);
+		
+		name = FontManager.getInstance().getFontNameInAction(name);
+		StyleConstants.setFontFamily(defaultStyle, name);
 		StyleConstants.setFontSize(
 				defaultStyle, 
 				FontManager.getInstance().getDocx4AllDefaultFont().getSize());
@@ -356,6 +361,7 @@ public class StyleSheet extends StyleContext {
 			//Docx4j tries to mimic the algorithm of MS Word 2007 in finding font name from style.
 			String tmpStr = getWordprocessingMLPackage().getMainDocumentPart().getFontnameFromStyle(st);
 			if (tmpStr != null) {
+				WordMLStyleConstants.setOriginalFontFamilyName(tmpStyle, tmpStr);
 				tmpStr = FontManager.getInstance().getFontNameInAction(tmpStr);
 				StyleConstants.setFontFamily(tmpStyle, tmpStr);
 			}
