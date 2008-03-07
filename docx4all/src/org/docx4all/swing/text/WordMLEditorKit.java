@@ -671,7 +671,9 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			if (editor instanceof WordMLTextPane) {
 				if (this.family != null) {
 					MutableAttributeSet attr = new SimpleAttributeSet();
-					StyleConstants.setFontFamily(attr, this.family);
+					
+					String name = FontManager.getInstance().getFontNameInAction(this.family);
+					StyleConstants.setFontFamily(attr, name);
 					setRunMLAttributes((WordMLTextPane) editor, attr, false);
 				} else {
 					UIManager.getLookAndFeel().provideErrorFeedback(editor);
@@ -870,12 +872,6 @@ public class WordMLEditorKit extends DefaultEditorKit {
 					;// ignore
 				}
 				
-				if (log.isDebugEnabled()) {
-					log.debug("DeleteNextCharAction.actionPerformed(): dot=" + dot
-						+ " doc.getLength()=" + doc.getLength()
-						+ " Resulting Structure...");
-				}
-
 			}//if (editor != null)
 		}//actionPerformed()
 	}//DeleteNextCharAction()
@@ -938,12 +934,6 @@ public class WordMLEditorKit extends DefaultEditorKit {
 					
 				} catch (BadLocationException exc) {
 					;//ignore
-				}
-				
-				if (log.isDebugEnabled()) {
-					log.debug("DeletePrevCharAction.actionPerformed(): dot=" + dot
-						+ " doc.getLength()=" + doc.getLength()
-						+ " Resulting Structure...");
 				}
 			}//if (editor != null)
 		}//actionPerformed()
