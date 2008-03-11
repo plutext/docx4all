@@ -31,6 +31,7 @@ import org.docx4all.ui.main.WordMLEditor;
 import org.docx4j.fonts.Substituter;
 import org.docx4j.fonts.microsoft.MicrosoftFonts;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
+import org.docx4j.openpackaging.parts.WordprocessingML.FontTablePart;
 import org.jdesktop.application.ResourceMap;
 
 /**
@@ -117,7 +118,11 @@ public class FontManager {
 			}
 			
 			try {
-				substituter.populateFontMappings(fontsInUse);
+				FontTablePart fontTablePart = 
+					new org.docx4j.openpackaging.parts.WordprocessingML.FontTablePart();
+				org.docx4j.wml.Fonts tablePartDefaultFonts = 
+					(org.docx4j.wml.Fonts) fontTablePart.unmarshalDefaultFonts();
+				substituter.populateFontMappings(fontsInUse, tablePartDefaultFonts);
 			} catch (Exception exc) {
 				throw new RuntimeException(exc);
 			}
@@ -164,15 +169,28 @@ public class FontManager {
 			return;
 		}
 		
-		// Handle fonts - this is platform specific
-		// Algorithm - to be implemented:
-		// 1.  Get a list of all the fonts in the document
 		Map fontsInUse = docPackage.getMainDocumentPart().fontsInUse();
+		FontTablePart fontTablePart = docPackage.getMainDocumentPart().getFontTablePart();
 		
-		// 2.  For each font, find the closest match on the system (use OO's VCL.xcu to do this)
-		//     - do this in a general way, since docx4all needs this as well to display fonts
 		try {
-			substituter.populateFontMappings(fontsInUse);
+			// Handle fonts - this is platform specific
+			// Algorithm - to be implemented:
+			// 1. Get a list of all the fonts in the document
+			org.docx4j.wml.Fonts fonts;
+			if (fontTablePart != null) {
+				fonts = (org.docx4j.wml.Fonts) fontTablePart.getJaxbElement();
+			} else {
+				log.warn("FontTable missing; creating default part.");
+				fontTablePart = new org.docx4j.openpackaging.parts.WordprocessingML.FontTablePart();
+				fonts = (org.docx4j.wml.Fonts) fontTablePart
+						.unmarshalDefaultFonts();
+			}
+
+			// 2. For each font, find the closest match on the system (use OO's
+			// VCL.xcu to do this)
+			// - do this in a general way, since docx4all needs this as well to
+			// display fonts
+			substituter.populateFontMappings(fontsInUse, fonts);
 		} catch (Exception exc) {
 			throw new RuntimeException(exc);
 		}
@@ -186,7 +204,7 @@ public class FontManager {
 			return fontName;
 		}
 		
-		String fontNameInAction = substituter.getPdfSubstituteFont(fontName);
+		String fontNameInAction = substituter.getSubstituteFontXsltExtension(fontName, false);
 		if (fontNameInAction == null || fontNameInAction.startsWith("noMapping")) {
 			//should not be here unless org.docx4j.fonts.substitutions.FontSubstitutions.xml
 			//is not complete.
