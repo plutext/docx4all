@@ -104,6 +104,8 @@ public class XmlUtil {
 			Marshaller marshaller = jc.createMarshaller();
 
 			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+			marshaller.setProperty("com.sun.xml.internal.bind.namespacePrefixMapper", 
+					new org.docx4j.jaxb.NamespacePrefixMapper() ); // Must use 'internal' for Java 6
 			marshaller.marshal(pkg, out);			
 
         } catch (Exception exc) {
