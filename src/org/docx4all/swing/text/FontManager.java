@@ -237,7 +237,7 @@ public class FontManager {
 		//so we need to divide by 2
 		int size = StyleConstants.getFontSize(attr)/2;
 		
-		//But Java2D “point” appears to be smaller than Windows “point.”
+		//But Java2D ï¿½pointï¿½ appears to be smaller than Windows ï¿½point.ï¿½
 		//Adjust with experimental multiplication factor for now.
 		size = size * 14 / 9;
 			
@@ -260,42 +260,46 @@ public class FontManager {
 			String fmKey = Substituter.normalise(family);
 			FontMapping fm = 
 				(FontMapping) substituter.getFontMappings().get(fmKey);
-			
-			if (log.isDebugEnabled()) {
-				log.debug("family=" + family 
-						+ " fmKey=" + fmKey 
-						+ " --> FontMapping=" + fm);
-			}
-			
-			try {
-				int fontFormat = Font.TRUETYPE_FONT;
-				String path = fm.getEmbeddedFile();
-		        if (System.getProperty("os.name").toUpperCase().indexOf("WINDOWS") > -1
-		        	&& path.startsWith("file:/")) {
-		        	path = path.substring(6);
-		        }
-		        
-		        if (log.isDebugEnabled()) {
-		        	log.debug("family=" + family 
-		        			+ " --> FontMapping.getEmbeddedFile()=" + path);
-		        }
-				
-				if (path.toLowerCase().endsWith(".otf")) {
-					fontFormat = Font.TYPE1_FONT;
+			String path = null;
+			if (fm != null && fm.getEmbeddedFile() != null) {
+				path = fm.getEmbeddedFile();
+				if (path.startsWith("file:/")) {
+					if (System.getProperty("os.name").toUpperCase().indexOf("WINDOWS") > -1) {
+						path = path.substring(6);
+					} else {
+						path = path.substring(5);
+					}
 				}
-				theFont = Font.createFont(fontFormat, new File(path));
-				theFont = theFont.deriveFont(style, size);
 				
-	            if (! sun.font.FontManager.fontSupportsDefaultEncoding(theFont)) {
-	            	theFont = sun.font.FontManager.getCompositeFontUIResource(theFont);
-	            }
-	            
-	            FontTableKey key = new FontTableKey(family, style, size);
-				_fontTable.put(key, theFont);
+				if (log.isDebugEnabled()) {
+					log.debug("family=" + family 
+							+ " fmKey=" + fmKey 
+							+ " --> FontMapping=" + fm
+							+ " - FontMapping.getEmbeddedFile()=" + path);
+				}
+				
+				try {
+					int fontFormat = Font.TRUETYPE_FONT;
+					if (path.toLowerCase().endsWith(".otf")) {
+						fontFormat = Font.TYPE1_FONT;
+					}
+					theFont = Font.createFont(fontFormat, new File(path));
+					theFont = theFont.deriveFont(style, size);
+					
+		            if (! sun.font.FontManager.fontSupportsDefaultEncoding(theFont)) {
+		            	theFont = sun.font.FontManager.getCompositeFontUIResource(theFont);
+		            }
+		            
+		            FontTableKey key = new FontTableKey(family, style, size);
+					_fontTable.put(key, theFont);
 
-			} catch (Exception exc) {
-				// should not happen.
-				throw new RuntimeException(exc);
+				} catch (Exception exc) {
+					// should not happen.
+					throw new RuntimeException(exc);
+				}
+			} else {
+				log.warn("Cannot create font '" + family + "'. Use Docx4all default font.");
+				theFont = getFontInAction(getDocx4AllDefaultFontFamilyName(), Font.PLAIN, getDocx4AllDefaultFontSize());
 			}
 		}
 		
@@ -320,6 +324,11 @@ public class FontManager {
             this.fontSize = fontSize;
         }
     
+        public int hashCode() {
+    	    int code = (fontFamilyName != null) ? fontFamilyName.hashCode() : 0;
+            return code ^ fontStyle ^ fontSize;
+        }
+        
         public boolean equals(Object obj) {
             if (obj instanceof FontTableKey) {
             	FontTableKey ftk= (FontTableKey) obj;
