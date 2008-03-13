@@ -19,16 +19,24 @@
 
 package org.docx4all.swing.text;
 
+import java.awt.Font;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import javax.swing.text.AttributeSet;
+import javax.swing.text.StyleConstants;
 
 import org.apache.log4j.Logger;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4j.fonts.Substituter;
+import org.docx4j.fonts.Substituter.FontMapping;
 import org.docx4j.fonts.microsoft.MicrosoftFonts;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.FontTablePart;
@@ -101,32 +109,30 @@ public class FontManager {
 					+ Constants.APP_DEFAULT_FONT_SIZE
 					+ " property value.");
         }
-        
-		
-		boolean isWindows = 
-			(System.getProperty("os.name").toUpperCase().indexOf("WINDOWS") > -1);
-		if (isWindows) {
-			substituter = null;
-		} else {
-			//In NON-WINDOWS platform we initialise substituter with
-			//all available font family names
-			substituter = new Substituter();
-			
-			Map<String, String> fontsInUse = new HashMap<String, String>(nameList.size());
-			for (String s: nameList) {
-				fontsInUse.put(s, s);
-			}
-			
-			try {
-				FontTablePart fontTablePart = 
-					new org.docx4j.openpackaging.parts.WordprocessingML.FontTablePart();
-				org.docx4j.wml.Fonts tablePartDefaultFonts = 
-					(org.docx4j.wml.Fonts) fontTablePart.unmarshalDefaultFonts();
-				substituter.populateFontMappings(fontsInUse, tablePartDefaultFonts);
-			} catch (Exception exc) {
-				throw new RuntimeException(exc);
-			}
+        		
+		// Initialise substituter with all available font family names
+		substituter = new Substituter();
+
+		Map<String, String> fontsInUse = 
+			new HashMap<String, String>(nameList.size());
+		for (String s : nameList) {
+			fontsInUse.put(s, s);
 		}
+
+		try {
+			FontTablePart fontTablePart = 
+				new org.docx4j.openpackaging.parts.WordprocessingML.FontTablePart();
+			org.docx4j.wml.Fonts tablePartDefaultFonts = 
+				(org.docx4j.wml.Fonts) fontTablePart.unmarshalDefaultFonts();
+			// Process embedded fonts in fontTablePart.
+			// This has to be done before calling populateFontMappings()
+			// so that the embedded fonts can be taken into account.
+			fontTablePart.processEmbeddings();
+			substituter.populateFontMappings(fontsInUse, tablePartDefaultFonts);
+		} catch (Exception exc) {
+			throw new RuntimeException(exc);
+		}
+		
 		
 		// Populate AVAILABLE_FONT_FAMILY_NAMES.
 		Collections.sort(nameList);
@@ -135,6 +141,10 @@ public class FontManager {
 		nameList.toArray(AVAILABLE_FONT_FAMILY_NAMES);		
 	}
 	
+    private final Hashtable<FontTableKey, Font> _fontTable = 
+    	new Hashtable<FontTableKey, Font>();
+    private final FontTableKey _fontTableKey = new FontTableKey(null, 0, 0);
+    
 	public final static FontManager getInstance() {
 		return _instance;
 	}
@@ -164,11 +174,6 @@ public class FontManager {
 	}
 	
 	public void addFontsInUse(WordprocessingMLPackage docPackage) {
-		if (substituter == null) {
-			//In Windows we need not a substituter
-			return;
-		}
-		
 		Map fontsInUse = docPackage.getMainDocumentPart().fontsInUse();
 		FontTablePart fontTablePart = docPackage.getMainDocumentPart().getFontTablePart();
 		
@@ -182,40 +187,151 @@ public class FontManager {
 			} else {
 				log.warn("FontTable missing; creating default part.");
 				fontTablePart = new org.docx4j.openpackaging.parts.WordprocessingML.FontTablePart();
-				fonts = (org.docx4j.wml.Fonts) fontTablePart
-						.unmarshalDefaultFonts();
+				fonts = (org.docx4j.wml.Fonts) fontTablePart.unmarshalDefaultFonts();
 			}
 
-			// 2. For each font, find the closest match on the system (use OO's
-			// VCL.xcu to do this)
-			// - do this in a general way, since docx4all needs this as well to
-			// display fonts
+			//2. Process embedded fonts in fontTablePart.
+			//This has to be done before calling populateFontMappings()
+			//so that the embedded fonts can be taken into account.
+			fontTablePart.processEmbeddings();
+			
+			//3. For each font, find the closest match on the system (use OO's
+			//VCL.xcu to do this)
+			//- do this in a general way, since docx4all needs this as well to
+			//display fonts
 			substituter.populateFontMappings(fontsInUse, fonts);
+			
+			if (log.isDebugEnabled()) {
+				int i = 0;
+				Map fontMappings = substituter.getFontMappings();
+				Iterator fontMappingsIterator = fontMappings.entrySet()
+						.iterator();
+				while (fontMappingsIterator.hasNext()) {
+					Map.Entry pairs = (Map.Entry) fontMappingsIterator.next();
+
+					String key = pairs.getKey().toString();
+					FontMapping fm = (FontMapping) pairs.getValue();
+
+					log.debug("FontMapping[" + (i++) + "]: key=" + key
+							+ " tripletName=" + fm.getTripletName() + " -->> "
+							+ fm.getEmbeddedFile());
+				}
+			}
+			
 		} catch (Exception exc) {
 			throw new RuntimeException(exc);
 		}
 	}
 	
-	public String getFontNameInAction(String fontName) {
-		if (substituter == null) {
-			//In Windows we still render the font specified by fontName
-			//although it may not be one of those in getAvailableFontFamilyNames().
-			//Therefore this method returns fontName.
-			return fontName;
+    public Font getFontInAction(AttributeSet attr) {
+		int style = Font.PLAIN;
+		if (StyleConstants.isBold(attr)) {
+			style |= Font.BOLD;
+		}
+		if (StyleConstants.isItalic(attr)) {
+			style |= Font.ITALIC;
+		}
+		String family = StyleConstants.getFontFamily(attr);
+		
+		//font size in OpenXML is in half points, not points,
+		//so we need to divide by 2
+		int size = StyleConstants.getFontSize(attr)/2;
+		
+		//But Java2D “point” appears to be smaller than Windows “point.”
+		//Adjust with experimental multiplication factor for now.
+		size = size * 14 / 9;
+			
+		//Reduce the font size by 2 for superscript or subscript		
+		if (StyleConstants.isSuperscript(attr)
+				|| StyleConstants.isSubscript(attr)) {
+			size -= 2;
+		}
+
+		return getFontInAction(family, style, size);
+	}
+    
+	public Font getFontInAction(String family, int style, int size) {
+		_fontTableKey.setValue(family, style, size);
+		Font theFont = _fontTable.get(_fontTableKey);
+		
+		if (theFont == null) {
+			//Not in cache.
+			//Derive from Substituter.FontMapping
+			String fmKey = Substituter.normalise(family);
+			FontMapping fm = 
+				(FontMapping) substituter.getFontMappings().get(fmKey);
+			
+			if (log.isDebugEnabled()) {
+				log.debug("family=" + family 
+						+ " fmKey=" + fmKey 
+						+ " --> FontMapping=" + fm);
+			}
+			
+			try {
+				int fontFormat = Font.TRUETYPE_FONT;
+				String path = fm.getEmbeddedFile();
+		        if (System.getProperty("os.name").toUpperCase().indexOf("WINDOWS") > -1
+		        	&& path.startsWith("file:/")) {
+		        	path = path.substring(6);
+		        }
+		        
+		        if (log.isDebugEnabled()) {
+		        	log.debug("family=" + family 
+		        			+ " --> FontMapping.getEmbeddedFile()=" + path);
+		        }
+				
+				if (path.toLowerCase().endsWith(".otf")) {
+					fontFormat = Font.TYPE1_FONT;
+				}
+				theFont = Font.createFont(fontFormat, new File(path));
+				theFont = theFont.deriveFont(style, size);
+				
+	            if (! sun.font.FontManager.fontSupportsDefaultEncoding(theFont)) {
+	            	theFont = sun.font.FontManager.getCompositeFontUIResource(theFont);
+	            }
+	            
+	            FontTableKey key = new FontTableKey(family, style, size);
+				_fontTable.put(key, theFont);
+
+			} catch (Exception exc) {
+				// should not happen.
+				throw new RuntimeException(exc);
+			}
 		}
 		
-		String fontNameInAction = substituter.getSubstituteFontXsltExtension(fontName, false);
-		if (fontNameInAction == null || fontNameInAction.startsWith("noMapping")) {
-			//should not be here unless org.docx4j.fonts.substitutions.FontSubstitutions.xml
-			//is not complete.
-			log.error("Cannot find font substitution for '" + fontName 
-				+ "'. Default font name '" + getDocx4AllDefaultFontFamilyName()
-				+ "' is used.");
-			fontNameInAction = getDocx4AllDefaultFontFamilyName();
-		}
-		return fontNameInAction;
+		return theFont;
 	}
 	
+    /**
+     * key for TableFont
+     */
+    private static class FontTableKey {
+        private String fontFamilyName;
+        private int fontStyle;
+        private int fontSize;
+
+        public FontTableKey(String fontFamilyName, int fontStyle, int fontSize) {
+            setValue(fontFamilyName, fontStyle, fontSize);
+        }
+
+        public void setValue(String fontFamilyName, int fontStyle, int fontSize) {
+            this.fontFamilyName = (fontFamilyName != null) ? fontFamilyName.intern() : null;
+            this.fontStyle = fontStyle;
+            this.fontSize = fontSize;
+        }
+    
+        public boolean equals(Object obj) {
+            if (obj instanceof FontTableKey) {
+            	FontTableKey ftk= (FontTableKey) obj;
+                return fontSize == ftk.fontSize 
+                		&& fontStyle == ftk.fontStyle
+                		&& fontFamilyName.equals((ftk.fontFamilyName));
+            }
+            return false;
+        }
+    } //FontTableKey inner class
+
+
 }// FontManager class
 
 
