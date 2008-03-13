@@ -19,6 +19,7 @@
 
 package org.docx4all.swing.text;
 
+import java.awt.Font;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -65,6 +66,10 @@ public class WordMLDocument extends DefaultStyledDocument {
 		return root.getElementML().getStyleSheet();
 	}
 	
+    public Font getFont(AttributeSet attr) {
+    	return FontManager.getInstance().getFontInAction(attr);
+    }
+
 	public Element getParagraphMLElement(int pos, boolean impliedParagraph) {
 		Element elem = getRunMLElement(pos);
 		if (elem != null) {
@@ -975,15 +980,9 @@ public class WordMLDocument extends DefaultStyledDocument {
 			super.create(specs);
 
 			DocumentElement root = (DocumentElement) getDefaultRootElement();
-			String fontName = FontManager.getInstance().getDocx4AllDefaultFontFamilyName();
-			WordMLStyleConstants.setOriginalFontFamilyName(
-					(MutableAttributeSet) root.getAttributes(),
-					fontName);
-			
-			fontName = FontManager.getInstance().getFontNameInAction(fontName);
 			StyleConstants.setFontFamily(
 					(MutableAttributeSet) root.getAttributes(),
-					fontName);
+					FontManager.getInstance().getDocx4AllDefaultFontFamilyName());
 			
 			StyleConstants.setFontSize(
 					(MutableAttributeSet) root.getAttributes(),
@@ -1028,12 +1027,9 @@ public class WordMLDocument extends DefaultStyledDocument {
 		
 		//Document
 		a.addAttribute(WordMLStyleConstants.ElementMLAttribute, docML);
-		
-		String fontName = FontManager.getInstance().getDocx4AllDefaultFontFamilyName();
-		a.addAttribute(WordMLStyleConstants.OriginalFontFamilyName, fontName);
-		
-		fontName = FontManager.getInstance().getFontNameInAction(fontName);
-        a.addAttribute(StyleConstants.FontFamily, fontName);
+        a.addAttribute(
+        		StyleConstants.FontFamily, 
+        		FontManager.getInstance().getDocx4AllDefaultFontFamilyName());
         a.addAttribute(
         		StyleConstants.FontSize, 
         		FontManager.getInstance().getDocx4AllDefaultFontSize());
