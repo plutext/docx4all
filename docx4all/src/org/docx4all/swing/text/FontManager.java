@@ -271,6 +271,13 @@ public class FontManager {
 					}
 				}
 				
+				// Convert %20 to spaces
+				if (path.indexOf("%20")>-1) {
+					java.lang.CharSequence target = (new String("%20")).subSequence(0, 3);
+		               java.lang.CharSequence replacement = (new String(" ")).subSequence(0, 1);		               
+		               path = path.toString().replace(target, replacement);					
+				}
+				
 				if (log.isDebugEnabled()) {
 					log.debug("family=" + family 
 							+ " fmKey=" + fmKey 
