@@ -570,8 +570,10 @@ public class ToolBarStates extends InternalFrameAdapter
     	StyleSheet styleSheet, String selectedStyleName, AttributeSet attrs) {
     	setStyleSheet(styleSheet);
     	
-    	setFontFamily(WordMLStyleConstants.getOriginalFontFamilyName(attrs));
-	    setFontSize(StyleConstants.getFontSize(attrs));
+    	setFontFamily(StyleConstants.getFontFamily(attrs));
+    	//font size in OpenXML is in half points, not points,
+    	//so we need to divide by 2
+	    setFontSize(StyleConstants.getFontSize(attrs)/2);
 	    setFontBold(StyleConstants.isBold(attrs));
 	    setFontItalic(StyleConstants.isItalic(attrs));
 	    setFontUnderlined(StyleConstants.isUnderline(attrs));
