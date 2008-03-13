@@ -53,9 +53,6 @@ public class WordMLStyleConstants {
     public static final Object DefaultParagraphStyleNameAttribute = 
     	new WordMLStyleConstants("defaultParagraphStyleName");
     
-    public static final Object OriginalFontFamilyName = 
-    	new WordMLStyleConstants("originalFontFamilyName");
-    
     private static final Object[] keys = { 
     	ElementMLAttribute, WordMLTagAttribute, DocxObjectAttribute,
     	StyleIdAttribute, StyleUINameAttribute, StyleTypeAttribute,
@@ -133,14 +130,6 @@ public class WordMLStyleConstants {
      */
     public static void setWordMLTag(MutableAttributeSet a, WordML.Tag tag) {
         a.addAttribute(WordMLTagAttribute, tag);
-    }
-    
-    public static String getOriginalFontFamilyName(AttributeSet a) {
-        return (String) a.getAttribute(OriginalFontFamilyName);
-    }
-
-    public static void setOriginalFontFamilyName(MutableAttributeSet a, String name) {
-    	a.addAttribute(OriginalFontFamilyName, name);
     }
     
     private final String name;
