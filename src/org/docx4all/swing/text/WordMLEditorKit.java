@@ -671,10 +671,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			if (editor instanceof WordMLTextPane) {
 				if (this.family != null) {
 					MutableAttributeSet attr = new SimpleAttributeSet();
-					
-					String name = FontManager.getInstance().getFontNameInAction(this.family);
-					WordMLStyleConstants.setOriginalFontFamilyName(attr, this.family);
-					StyleConstants.setFontFamily(attr, name);
+					StyleConstants.setFontFamily(attr, this.family);
 					setRunMLAttributes((WordMLTextPane) editor, attr, false);
 				} else {
 					UIManager.getLookAndFeel().provideErrorFeedback(editor);
