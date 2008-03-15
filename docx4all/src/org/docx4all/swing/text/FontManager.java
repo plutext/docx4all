@@ -287,7 +287,7 @@ public class FontManager {
 				
 				try {
 					int fontFormat = Font.TRUETYPE_FONT;
-					if (path.toLowerCase().endsWith(".otf")) {
+					if (path.toLowerCase().endsWith(".otf") || path.toLowerCase().endsWith(".pfb")) {
 						fontFormat = Font.TYPE1_FONT;
 					}
 					theFont = Font.createFont(fontFormat, new File(path));
