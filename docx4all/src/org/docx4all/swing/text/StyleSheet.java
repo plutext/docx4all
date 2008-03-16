@@ -61,9 +61,12 @@ public class StyleSheet extends StyleContext {
     private static StyleSheet defaultStyleSheet;
     
     public static final StyleSheet getDefaultStyleSheet() {
+    	log.info("");
         if (defaultStyleSheet == null) {
         	defaultStyleSheet = new StyleSheet();
+        	log.info("creating empty document in order to read default styles");
         	defaultStyleSheet.setWordprocessingMLPackage(ObjectFactory.createEmptyDocumentPackage());
+        	log.info("\n\n .. done .. created empty document ");
         }
         return defaultStyleSheet;
     }

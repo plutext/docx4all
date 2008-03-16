@@ -555,6 +555,7 @@ public class ToolBarStates extends InternalFrameAdapter
     }
     
     private void setDefaultFormatInfo() {
+    	log.info("");
     	StyleSheet styleSheet = StyleSheet.getDefaultStyleSheet();
     	
 		Style style = styleSheet.getStyle(StyleSheet.DEFAULT_STYLE);
