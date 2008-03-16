@@ -68,7 +68,9 @@ public class FontManager {
 	private final static String[] AVAILABLE_FONT_FAMILY_NAMES;
 	
 	static {
+        log.info("Static initializer..");
 		//Prepare available fonts that are listed in font combobox.
+        log.info("Initialising fonts nameList.");
 		Map<String, MicrosoftFonts.Font> msFontsFilenames = 
 			Substituter.getMsFontsFilenames();
 		List<String> nameList = new ArrayList<String>();
@@ -111,6 +113,7 @@ public class FontManager {
         }
         		
 		// Initialise substituter with all available font family names
+        log.info("Initialising substituter.");
 		substituter = new Substituter();
 
 		Map<String, String> fontsInUse = 
@@ -122,12 +125,21 @@ public class FontManager {
 		try {
 			FontTablePart fontTablePart = 
 				new org.docx4j.openpackaging.parts.WordprocessingML.FontTablePart();
+			// For present purposes, use a fairly complete list of
+			// panose values which can be found in the default part.
 			org.docx4j.wml.Fonts tablePartDefaultFonts = 
 				(org.docx4j.wml.Fonts) fontTablePart.unmarshalDefaultFonts();
+			
+			// NB - we don't actually attach this part to any WordMLPackage
+			
 			// Process embedded fonts in fontTablePart.
 			// This has to be done before calling populateFontMappings()
 			// so that the embedded fonts can be taken into account.
 			fontTablePart.processEmbeddings();
+			
+			// NB, the above won't have any effect, since there are no
+			// embedded fonts in the default part which we just unmarshalled
+			
 			substituter.populateFontMappings(fontsInUse, tablePartDefaultFonts);
 		} catch (Exception exc) {
 			throw new RuntimeException(exc);
@@ -139,6 +151,8 @@ public class FontManager {
 		nameList.add(0, UNKNOWN_FONT_NAME);
 		AVAILABLE_FONT_FAMILY_NAMES = new String[nameList.size()];
 		nameList.toArray(AVAILABLE_FONT_FAMILY_NAMES);		
+		
+		log.info("FontManager static initialization complete.");
 	}
 	
     private final Hashtable<FontTableKey, Font> _fontTable = 
@@ -174,6 +188,20 @@ public class FontManager {
 	}
 	
 	public void addFontsInUse(WordprocessingMLPackage docPackage) {
+		
+		Exception e = new Exception();
+		e.printStackTrace();
+
+		// Then is run once when the editor is starting up
+		// from Stylesheet.setWordprocessingMLPackage,
+		// which itself is invoked from:
+		// org.docx4all.swing.text.StyleSheet.getDefaultStyleSheet(StyleSheet.java:68) (on startup)
+		
+		// and then FOUR times when a document is opened?
+		
+		
+		log.info("");
+		
 		Map fontsInUse = docPackage.getMainDocumentPart().fontsInUse();
 		FontTablePart fontTablePart = docPackage.getMainDocumentPart().getFontTablePart();
 		
@@ -186,6 +214,7 @@ public class FontManager {
 				fonts = (org.docx4j.wml.Fonts) fontTablePart.getJaxbElement();
 			} else {
 				log.warn("FontTable missing; creating default part.");
+								
 				fontTablePart = new org.docx4j.openpackaging.parts.WordprocessingML.FontTablePart();
 				fonts = (org.docx4j.wml.Fonts) fontTablePart.unmarshalDefaultFonts();
 			}
@@ -195,10 +224,7 @@ public class FontManager {
 			//so that the embedded fonts can be taken into account.
 			fontTablePart.processEmbeddings();
 			
-			//3. For each font, find the closest match on the system (use OO's
-			//VCL.xcu to do this)
-			//- do this in a general way, since docx4all needs this as well to
-			//display fonts
+			//3. For each font, find the closest match on the system 
 			substituter.populateFontMappings(fontsInUse, fonts);
 			
 			if (log.isDebugEnabled()) {

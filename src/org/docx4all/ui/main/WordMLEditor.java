@@ -93,15 +93,55 @@ public class WordMLEditor extends SingleFrameApplication {
 	}
 
     @Override protected void startup() {
+    	log.info("");
     	_iframeMap = new HashMap<String, JInternalFrame>();
+    	log.info("setting up InternalFrameListener");
     	_internalFrameListener = new InternalFrameListener();
+    	log.info("setting up ToolBarStates");
     	_toolbarStates = new ToolBarStates();
     	
+    	log.info("setting up WmlExitListener");
     	addExitListener(new WmlExitListener());
-    	
+
+    	log.info("setting up createMenuBar");    	
     	getMainFrame().setJMenuBar(createMenuBar());
     	
+    	log.info("setting up createMainPanel");    	
         show(createMainPanel());
+    	log.info("startup() complete.");
+        
+/*      
+ * 		Why getDefaultStyleSheet at this stage?
+ *   
+    	at org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart.<init>(MainDocumentPart.java:65)
+    	at org.docx4all.xml.ObjectFactory.createDocumentPackage(ObjectFactory.java:107)
+    	at org.docx4all.xml.ObjectFactory.createEmptyDocumentPackage(ObjectFactory.java:146)
+    	at org.docx4all.swing.text.StyleSheet.getDefaultStyleSheet(StyleSheet.java:66)
+    	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+    	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:39)
+    	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:25)
+    	at java.lang.reflect.Method.invoke(Method.java:597)
+    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$ExpressionValueImpl.invokeMethod(TypeFactoryImpl.java:10873)
+    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$ExpressionValueImpl.execute(TypeFactoryImpl.java:19324)
+    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$ExpressionValueImpl.execute(TypeFactoryImpl.java:19293)
+    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$ExpressionValueImpl.execute(TypeFactoryImpl.java:20632)
+    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$ExpressionValueImpl.execute(TypeFactoryImpl.java:20632)
+    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$Interpreter.assignment(TypeFactoryImpl.java:22929)
+    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$ExpressionValueImpl.execute(TypeFactoryImpl.java:18797)
+    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$Interpreter.interpret(TypeFactoryImpl.java:24163)
+    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$Interpreter.doStmtList(TypeFactoryImpl.java:24125)
+    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$Interpreter.interpret(TypeFactoryImpl.java:24246)
+    	at net.java.javafx.typeImpl.Compilation$CompilationUnitImpl.init(Compilation.java:456)
+    	at net.java.javafx.typeImpl.Compilation$CompilationUnitImpl.execute(Compilation.java:402)
+    	at net.java.javafx.jsr223.JavaFXScriptEngine.eval(JavaFXScriptEngine.java:78)
+    	at javax.script.AbstractScriptEngine.eval(AbstractScriptEngine.java:232)
+    	at org.docx4all.script.FxScriptEngine.run(FxScriptEngine.java:125)
+    	at org.docx4all.script.FxScriptUIHelper.createToolBar(FxScriptUIHelper.java:61)
+    	at org.docx4all.ui.main.WordMLEditor.createMainPanel(WordMLEditor.java:412)
+    	at org.docx4all.ui.main.WordMLEditor.startup(WordMLEditor.java:109)
+        
+        */
+        
     }
     
     public void closeAllInternalFrames() { 
@@ -162,6 +202,8 @@ public class WordMLEditor extends SingleFrameApplication {
     	if (f == null) {
     		return;
     	}
+    	
+		log.info(f.getAbsolutePath());
     	
     	JInternalFrame iframe = _iframeMap.get(f.getAbsolutePath());
         if (iframe != null) {

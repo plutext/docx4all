@@ -241,6 +241,7 @@ public class FileMenu extends UIMenu {
         if (returnVal == JFileChooser.APPROVE_OPTION) {
 			File file = getSelectedFile(chooser, Constants.DOCX_STRING);
 			prefs.put(Constants.LAST_OPENED_FILE, file.getAbsolutePath());
+			log.info("\n\n Opening " + file.getAbsolutePath());
 			editor.createInternalFrame(file);
 		}
     }
