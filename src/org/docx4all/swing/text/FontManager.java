@@ -239,7 +239,7 @@ public class FontManager {
 					FontMapping fm = (FontMapping) pairs.getValue();
 
 					log.debug("FontMapping[" + (i++) + "]: key=" + key
-							+ " tripletName=" + fm.getTripletName() + " -->> "
+							+ " tripletName=" + fm.getPostScriptName() + " -->> "
 							+ fm.getEmbeddedFile());
 				}
 			}
@@ -307,8 +307,8 @@ public class FontManager {
 				if (log.isDebugEnabled()) {
 					log.debug("family=" + family 
 							+ " fmKey=" + fmKey 
-							+ " --> FontMapping=" + fm
-							+ " - FontMapping.getEmbeddedFile()=" + path);
+//							+ " --> FontMapping=" + fm
+							+ " - " + path);
 				}
 				
 				try {
@@ -331,7 +331,14 @@ public class FontManager {
 					throw new RuntimeException(exc);
 				}
 			} else {
-				log.warn("Cannot create font '" + family + "'. Use Docx4all default font.");
+				log.warn("Cannot create font '" + family + "', using key '" + fmKey + "'");
+				if (fm==null) {
+					log.warn(".. no mapping for that key.");
+				} else {
+					log.warn(".. found a mapping, but getEmbeddedFile returned null!");					
+				}
+					
+				log.info("Using Docx4all default font.");
 				theFont = getFontInAction(getDocx4AllDefaultFontFamilyName(), Font.PLAIN, getDocx4AllDefaultFontSize());
 			}
 		}
