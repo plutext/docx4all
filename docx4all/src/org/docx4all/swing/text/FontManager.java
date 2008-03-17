@@ -60,7 +60,7 @@ public class FontManager {
 	
 	private final static String[] AVAILABLE_FONT_SIZES = new String[] {
 		UNKNOWN_FONT_SIZE,
-	    "8", "9", "10", "11", "12", "14", "16", "18",
+	    "8", "9", "10", "11", "12", "13", "14", "16", "18",
 	    "20", "22", "24", "26", "28", "32", "36", "40", 
 	    "44", "48", "52", "56", "64", "72"
 	};
@@ -263,7 +263,7 @@ public class FontManager {
 		//so we need to divide by 2
 		int size = StyleConstants.getFontSize(attr)/2;
 		
-		//But Java2D �point� appears to be smaller than Windows �point.�
+		//But Java2D 'point size' appears to be smaller than Windows 'point size'
 		//Adjust with experimental multiplication factor for now.
 		size = size * 14 / 9;
 			
