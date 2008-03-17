@@ -44,7 +44,7 @@ public class WordMLTextPane extends JEditorPane {
 
 	public WordMLTextPane() {
 		super();
-        setEditorKit(createDefaultEditorKit());
+		getEditorKit().install(this);
 	}
 	
     public void setDocument(Document doc) {
