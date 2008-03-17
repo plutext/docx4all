@@ -164,38 +164,6 @@ public class XmlUtil {
 		return wmlPackage;
 	}
 
-	/**
-	 * Deserialise the inputstream into a main document part and put into wmlPackage.
-	 * 
-	 * @param wmlPackage
-	 * @param in
-	 */
-	public final static WordprocessingMLPackage olddeserialize(
-		WordprocessingMLPackage wmlPackage, InputStream in) {
-		
-		try {
-			JAXBContext jc = Context.jc;
-			Unmarshaller u = jc.createUnmarshaller();
-			u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());
-
-			JAXBElement<org.docx4j.wml.Document> jaxbElem = u.unmarshal(
-					new javax.xml.transform.stream.StreamSource(in),
-					org.docx4j.wml.Document.class);
-
-			if (wmlPackage == null) {
-				wmlPackage = ObjectFactory.createDocumentPackage(jaxbElem.getValue());
-			} else {
-				wmlPackage.getMainDocumentPart().setJaxbElement(jaxbElem.getValue());
-			}
-		} catch (Exception exc) {
-			exc.printStackTrace();
-			throw new RuntimeException(exc);
-		}
-		
-		return wmlPackage;
-	}
-	
-	
 	public final static String getEnclosingTagPair(QName qname) {
 		return getEnclosingTagPair(qname.getPrefix(), qname.getLocalPart());
 	}
