@@ -35,13 +35,11 @@ public class DocumentML extends ElementML {
 	private static Logger log = Logger.getLogger(DocumentML.class);
 	
 	private final WordprocessingMLPackage docPackage;
-	private final StyleSheet styleSheet;
+	private StyleSheet styleSheet;
 	
 	public DocumentML(WordprocessingMLPackage docPackage) {
 		super((docPackage != null) ? docPackage.getMainDocumentPart().getJaxbElement() : null, false);
 		this.docPackage = docPackage;
-		this.styleSheet = new StyleSheet();
-		this.styleSheet.setWordprocessingMLPackage(docPackage);
 	}
 
 	public WordprocessingMLPackage getWordprocessingMLPackage() {
@@ -49,6 +47,10 @@ public class DocumentML extends ElementML {
 	}
 
 	public StyleSheet getStyleSheet() {
+		if (this.styleSheet == null) {
+			this.styleSheet = new StyleSheet();
+			this.styleSheet.setWordprocessingMLPackage(docPackage);
+		}
 		return this.styleSheet;
 	}
 	
