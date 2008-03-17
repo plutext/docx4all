@@ -250,9 +250,13 @@ public class FormatMenu extends UIMenu {
 	}
 	
 	@Action public void fontSize(ActionEvent actionEvent) {
+		//font size in drop down list is half the rendered size
+		//Therefore we multiply by 2.
+		//See:FontManager.getFontInAction(AttributeSet) where
+		//the rendered size is worked out.
+		int size = Integer.parseInt(actionEvent.getActionCommand()) * 2;
         StyledTextAction action =
-			new WordMLEditorKit.FontSizeAction(
-				FONT_SIZE_ACTION_NAME, Integer.parseInt(actionEvent.getActionCommand()));
+			new WordMLEditorKit.FontSizeAction(FONT_SIZE_ACTION_NAME, size);
 		action.actionPerformed(actionEvent);
 	}
 	
