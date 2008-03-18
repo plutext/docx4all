@@ -239,31 +239,29 @@ public class WordMLDocument extends DefaultStyledDocument {
 					insertString(offset, Constants.NEWLINE, newAttrs);
 				}
 				
-				DefaultDocumentEvent changes = new DefaultDocumentEvent(offset,
-						length, DocumentEvent.EventType.CHANGE);
 				Element rootE = getDefaultRootElement();
-				int startIdx = rootE.getElementIndex(offset);
-				int endIdx = rootE.getElementIndex(offset
+				int start = rootE.getElementIndex(offset);
+				int end = rootE.getElementIndex(offset
 						+ ((length > 0) ? length - 1 : 0));
 				
-				for (int i = startIdx; i <= endIdx; i++) {
-					DocumentElement paraE = (DocumentElement) rootE
-							.getElement(i);
+				for (int i = start; i <= end; i++) {
+					DocumentElement paraE = (DocumentElement) rootE.getElement(i);
 					ParagraphML paraML = (ParagraphML) paraE.getElementML();
+					for (ElementML child: paraML.getChildren()) {
+						//Clean up child's attributes
+						PropertiesContainerML propML = 
+							((RunML) child).getRunProperties();
+						if (propML != null) {
+							propML.removeAttributes(propML.getAttributeSet());
+							propML.save();
+						}
+					}
 					paraML.addAttributes(newAttrs, true);
-
-					MutableAttributeSet paraAttr = (MutableAttributeSet) paraE
-							.getAttributes();
-					// changes.addEdit(
-					// new AttributeUndoableEdit(paraE, attrsCopy, replace));
-					paraAttr.removeAttributes(paraAttr);
-					paraAttr.addAttribute(WordMLStyleConstants.ElementMLAttribute, paraML);
-					paraAttr.addAttributes(newAttrs);
-					paraAttr.setResolveParent(style);
 				}
-
-				changes.end();
-				fireChangedUpdate(changes);
+				
+				start = rootE.getElement(start).getStartOffset();
+				end = rootE.getElement(end).getEndOffset();
+				refreshParagraphs(start, end - start);
 				// fireUndoableEditUpdate(new UndoableEditEvent(this, changes));
 			} //if (StyleSheet.PARAGRAPH_ATTR_VALUE.equals(type))
 			
@@ -1120,14 +1118,6 @@ public class WordMLDocument extends DefaultStyledDocument {
 			super(parent, a);
 		}
 
-		public String getName() {
-			ElementML elem = getElementML();
-			if (elem != null) {
-				return elem.toString();
-			}
-			return super.getName();
-		}
-
 		public ElementML getElementML() {
 			return (ElementML) getAttribute(WordMLStyleConstants.ElementMLAttribute);
 		}
@@ -1186,6 +1176,20 @@ public class WordMLDocument extends DefaultStyledDocument {
 			log.debug("save(): this=" + this);
 		}
 
+		public String getName() {
+			//This name has to be unique so that this element
+			//cannot be joined when document structure is edited
+			ElementML elem = getElementML();
+			if (elem != null) {
+				return "BlockElement@" + hashCode() + "[" + elem.toString() + "]";
+			}
+			return super.getName();
+		}
+
+		public String toString() {
+		    return getName() + "(" + getStartOffset() + "," +
+			getEndOffset() + ")\n";
+		}
 	}// BlockElement inner class
 
     public class TextElement extends LeafElement implements DocumentElement {
@@ -1214,17 +1218,24 @@ public class WordMLDocument extends DefaultStyledDocument {
 			return isEditable;
 		}
 		
+		public void save() {
+			;//TODO: Saving 
+			log.debug("save(): this=" + this);
+		}
+		
 		public String getName() {
+			//This name has to be unique so that this element
+			//cannot be joined when document structure is edited
 			ElementML elem = getElementML();
 			if (elem != null) {
-				return elem.toString();
+				return "TextElement@" + hashCode() + "[" + elem.toString() + "]";
 			}
 			return super.getName();
 		}
 
-		public void save() {
-			;//TODO: Saving 
-			log.debug("save(): this=" + this);
+		public String toString() {
+		    return getName() + "(" + getStartOffset() + "," +
+			getEndOffset() + ")\n";
 		}
 	}// TextElement inner class
     
