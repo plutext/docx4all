@@ -46,6 +46,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Caret;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.Document;
+import javax.swing.text.Element;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.Position;
 import javax.swing.text.SimpleAttributeSet;
@@ -346,6 +347,13 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		return (WordMLDocument.TextElement) caretListener.caretElement;
 	}
 	
+	private void refreshCaretElement(JEditorPane editor) {
+		caretListener.caretElement = null;
+		int start = editor.getSelectionStart();
+		int end = editor.getSelectionEnd();
+		caretListener.updateCaretElement(start, end, editor);
+	}
+	
 	private void initKeyBindings(JEditorPane editor) {
 		ActionMap myActionMap = new ActionMap();
 		InputMap myInputMap = new InputMap();
@@ -538,6 +546,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				doc.setRunStyle(p0, p1 - p0, styleId);
 				editor.setCaretPosition(mark);
 				editor.moveCaretPosition(dot);
+				kit.refreshCaretElement(editor);
 			} else {
 				Style style = doc.getStyleSheet().getReferredStyle(styleId);
 				if (style != null) {
@@ -566,12 +575,13 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			
 			int p0 = editor.getSelectionStart();
 			int p1 = editor.getSelectionEnd();
-			
 			WordMLDocument doc = (WordMLDocument) editor.getDocument();
 			doc.setParagraphStyle(p0, (p1 - p0), styleId);
 			
 			editor.setCaretPosition(mark);
 			editor.moveCaretPosition(dot);
+			
+			kit.refreshCaretElement(editor);
 			
 			if (log.isDebugEnabled()) {
 				DocUtil.displayStructure(doc);
