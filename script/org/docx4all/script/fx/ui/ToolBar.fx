@@ -137,12 +137,12 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
     
     var fontSizeCombo = ComboBox {
         var fontSizes = FontManager.getInstance().getAvailableFontSizes()
-        var defaultFontSize = FontManager.getInstance().getDocx4AllDefaultFontSize()
+        var defaultFontSize = FontManager.getInstance().getDocx4AllDefaultFontSize()/2
         var: self
         
         notFoundSelectionText: FontManager.UNKNOWN_FONT_SIZE
         selection: select indexof fsize from fsize in fontSizes
-                   where fsize == defaultFontSize.toString()
+                   where fsize == defaultFontSize.intValue().toString()
         cells: foreach (size in fontSizes)
                ComboBoxCell { text: size }
                
