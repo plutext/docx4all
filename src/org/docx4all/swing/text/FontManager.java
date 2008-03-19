@@ -87,9 +87,13 @@ public class FontManager {
 		//The font name and size are configured in WordMLEditor.properties file
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         ResourceMap rm = editor.getContext().getResourceMap(WordMLEditor.class);
-        DOCX4ALL_DEFAULT_FONT_FAMILY_NAME = rm.getString(Constants.APP_DEFAULT_FONT_FAMILY_NAME);
-        DOCX4ALL_DEFAULT_FONT_SIZE = rm.getString(Constants.APP_DEFAULT_FONT_SIZE);
-        
+        String temp = rm.getString(Constants.APP_DEFAULT_FONT_FAMILY_NAME);
+        if (temp == null || temp.trim().length() == 0) {
+        	temp = "Times New Roman";
+        } else {
+        	temp = temp.trim();
+        }
+        DOCX4ALL_DEFAULT_FONT_FAMILY_NAME = temp;
         if (!nameList.contains(DOCX4ALL_DEFAULT_FONT_FAMILY_NAME)) {
 			//defaultFontName has to be listed in nameList
 			throw new RuntimeException(
@@ -98,6 +102,13 @@ public class FontManager {
 					+ " property value.");
         }
         
+        temp = rm.getString(Constants.APP_DEFAULT_FONT_SIZE);
+        if (temp == null || temp.trim().length() == 0) {
+        	temp = "22";
+        } else {
+        	temp = temp.trim();
+        }
+        DOCX4ALL_DEFAULT_FONT_SIZE = temp;
         boolean invalidSize = true;
         for (String s: AVAILABLE_FONT_SIZES) {
         	if (s.equals(DOCX4ALL_DEFAULT_FONT_SIZE)) {
@@ -185,6 +196,28 @@ public class FontManager {
 	
 	public int getDocx4AllDefaultFontSize() {
 		return Integer.parseInt(DOCX4ALL_DEFAULT_FONT_SIZE);
+	}
+	
+	public String getSourceViewFontFamilyName() {
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        ResourceMap rm = editor.getContext().getResourceMap(WordMLEditor.class);
+        String name = rm.getString(Constants.SOURCE_VIEW_FONT_FAMILY_NAME);
+        if (name == null || name.trim().length() == 0) {
+        	name = getDocx4AllDefaultFontFamilyName();
+        }
+        return name.trim();
+	}
+	
+	public int getSourceViewFontSize() {
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        ResourceMap rm = editor.getContext().getResourceMap(WordMLEditor.class);
+        
+        int theSize = getDocx4AllDefaultFontSize();
+        String s = rm.getString(Constants.SOURCE_VIEW_FONT_SIZE);
+        if (s != null && s.length() > 0) {
+        	theSize = Integer.parseInt(s.trim());
+        }
+        return theSize;
 	}
 	
 	public void addFontsInUse(WordprocessingMLPackage docPackage) {
