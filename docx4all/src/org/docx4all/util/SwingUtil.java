@@ -31,7 +31,6 @@ import javax.swing.JInternalFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
-import javax.swing.JTextPane;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
@@ -123,7 +122,7 @@ public class SwingUtil {
 	}
 	
 	public final static JEditorPane getSourceEditor(JInternalFrame iframe) {
-		return (JEditorPane) getDescendantOfClass(JTextPane.class, iframe.getContentPane(), true);
+		return (JEditorPane) getDescendantOfClass(JEditorPane.class, iframe.getContentPane(), true);
 	}
 	
     public final static Component getDescendantOfClass(Class<?> c, Container comp, boolean exactInstance) {
