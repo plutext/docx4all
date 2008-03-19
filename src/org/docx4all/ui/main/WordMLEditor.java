@@ -44,7 +44,6 @@ import javax.swing.JMenuBar;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
-import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 import javax.swing.border.EmptyBorder;
@@ -55,7 +54,10 @@ import javax.swing.event.InternalFrameEvent;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.Document;
 import javax.swing.text.EditorKit;
+import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.PlainDocument;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
 
 import org.apache.log4j.Logger;
 import org.bounce.text.xml.XMLDocument;
@@ -65,6 +67,7 @@ import org.docx4all.datatransfer.TransferHandler;
 import org.docx4all.script.FxScriptUIHelper;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
+import org.docx4all.swing.text.FontManager;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLDocumentFilter;
 import org.docx4all.swing.text.WordMLEditorKit;
@@ -352,6 +355,16 @@ public class WordMLEditor extends SingleFrameApplication {
     	
     	//Create the Source View
     	JEditorPane sourceView = new JEditorPane();
+    	
+    	MutableAttributeSet attrs = new SimpleAttributeSet();
+    	StyleConstants.setFontFamily(
+    		attrs, 
+    		FontManager.getInstance().getSourceViewFontFamilyName());
+    	StyleConstants.setFontSize(
+    		attrs,
+    		FontManager.getInstance().getSourceViewFontSize());
+    	sourceView.setFont(FontManager.getInstance().getFontInAction(attrs));
+    	
     	// Instantiate a XMLEditorKit with wrapping enabled.
         XMLEditorKit kit = new XMLEditorKit( true);
         // Set the wrapping style.
@@ -381,42 +394,6 @@ public class WordMLEditor extends SingleFrameApplication {
         kit.setStyle(
         	XMLStyleConstants.ATTRIBUTE_NAME, new Color( 255, 0, 0), Font.PLAIN);
    	
-    	sourceView.addFocusListener(getToolbarStates());
-    	sourceView.setDocument(doc);
-    	sourceView.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
-    	
-    	return sourceView;
-    }
-    
-    private JEditorPane createSourceViewORIG(WordMLTextPane editorView) {
-    	WordMLEditorKit kit = (WordMLEditorKit) editorView.getEditorKit();
-    	kit.saveCaretText();
-    	
-    	DocumentElement elem = 
-    		(DocumentElement) editorView.getDocument().getDefaultRootElement();
-    	WordprocessingMLPackage wmlPackage =
-    		((DocumentML) elem.getElementML()).getWordprocessingMLPackage();
-    	String filePath = 
-    		(String) editorView.getDocument().getProperty(WordMLDocument.FILE_PATH_PROPERTY);
-    	
-    	//Create the Source View
-    	JEditorPane sourceView = new JTextPane();
-    	
-		//Do not include the last paragraph.
-		elem = (DocumentElement) elem.getElement(elem.getElementCount() - 1);
-		ElementML paraML = elem.getElementML();
-		ElementML bodyML = paraML.getParent();
-		paraML.delete();
-
-    	Document doc = DocUtil.read(sourceView, wmlPackage);
-    	
-        //Remember to put 'paraML' as last paragraph
-        bodyML.addChild(paraML);
-
-		doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, filePath);
-		doc.putProperty(WordMLDocument.WML_PACKAGE_PROPERTY, wmlPackage);
-    	doc.addDocumentListener(getToolbarStates());
-    	
     	sourceView.addFocusListener(getToolbarStates());
     	sourceView.setDocument(doc);
     	sourceView.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
