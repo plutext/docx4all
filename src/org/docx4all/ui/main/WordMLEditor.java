@@ -23,6 +23,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Rectangle;
 import java.beans.PropertyVetoException;
 import java.io.File;
@@ -54,8 +55,12 @@ import javax.swing.event.InternalFrameEvent;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.Document;
 import javax.swing.text.EditorKit;
+import javax.swing.text.PlainDocument;
 
 import org.apache.log4j.Logger;
+import org.bounce.text.xml.XMLDocument;
+import org.bounce.text.xml.XMLEditorKit;
+import org.bounce.text.xml.XMLStyleConstants;
 import org.docx4all.datatransfer.TransferHandler;
 import org.docx4all.script.FxScriptUIHelper;
 import org.docx4all.swing.WordMLTextPane;
@@ -109,39 +114,6 @@ public class WordMLEditor extends SingleFrameApplication {
     	log.info("setting up createMainPanel");    	
         show(createMainPanel());
     	log.info("startup() complete.");
-        
-/*      
- * 		Why getDefaultStyleSheet at this stage?
- *   
-    	at org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart.<init>(MainDocumentPart.java:65)
-    	at org.docx4all.xml.ObjectFactory.createDocumentPackage(ObjectFactory.java:107)
-    	at org.docx4all.xml.ObjectFactory.createEmptyDocumentPackage(ObjectFactory.java:146)
-    	at org.docx4all.swing.text.StyleSheet.getDefaultStyleSheet(StyleSheet.java:66)
-    	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
-    	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:39)
-    	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:25)
-    	at java.lang.reflect.Method.invoke(Method.java:597)
-    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$ExpressionValueImpl.invokeMethod(TypeFactoryImpl.java:10873)
-    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$ExpressionValueImpl.execute(TypeFactoryImpl.java:19324)
-    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$ExpressionValueImpl.execute(TypeFactoryImpl.java:19293)
-    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$ExpressionValueImpl.execute(TypeFactoryImpl.java:20632)
-    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$ExpressionValueImpl.execute(TypeFactoryImpl.java:20632)
-    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$Interpreter.assignment(TypeFactoryImpl.java:22929)
-    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$ExpressionValueImpl.execute(TypeFactoryImpl.java:18797)
-    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$Interpreter.interpret(TypeFactoryImpl.java:24163)
-    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$Interpreter.doStmtList(TypeFactoryImpl.java:24125)
-    	at net.java.javafx.typeImpl.TypeFactoryImpl$ModuleImpl$Interpreter.interpret(TypeFactoryImpl.java:24246)
-    	at net.java.javafx.typeImpl.Compilation$CompilationUnitImpl.init(Compilation.java:456)
-    	at net.java.javafx.typeImpl.Compilation$CompilationUnitImpl.execute(Compilation.java:402)
-    	at net.java.javafx.jsr223.JavaFXScriptEngine.eval(JavaFXScriptEngine.java:78)
-    	at javax.script.AbstractScriptEngine.eval(AbstractScriptEngine.java:232)
-    	at org.docx4all.script.FxScriptEngine.run(FxScriptEngine.java:125)
-    	at org.docx4all.script.FxScriptUIHelper.createToolBar(FxScriptUIHelper.java:61)
-    	at org.docx4all.ui.main.WordMLEditor.createMainPanel(WordMLEditor.java:412)
-    	at org.docx4all.ui.main.WordMLEditor.startup(WordMLEditor.java:109)
-        
-        */
-        
     }
     
     public void closeAllInternalFrames() { 
@@ -369,6 +341,54 @@ public class WordMLEditor extends SingleFrameApplication {
     }
     
     private JEditorPane createSourceView(WordMLTextPane editorView) {
+    	((WordMLEditorKit) editorView.getEditorKit()).saveCaretText();
+    	
+    	DocumentElement elem = 
+    		(DocumentElement) editorView.getDocument().getDefaultRootElement();
+    	WordprocessingMLPackage wmlPackage =
+    		((DocumentML) elem.getElementML()).getWordprocessingMLPackage();
+    	String filePath = 
+    		(String) editorView.getDocument().getProperty(WordMLDocument.FILE_PATH_PROPERTY);
+    	
+    	//Create the Source View
+    	JEditorPane sourceView = new JEditorPane();
+    	// Instantiate a XMLEditorKit with wrapping enabled.
+        XMLEditorKit kit = new XMLEditorKit( true);
+        // Set the wrapping style.
+        kit.setWrapStyleWord( true);
+        sourceView.setEditorKit( kit);
+        
+		//Do not include the last paragraph which is an extra paragraph.
+		elem = (DocumentElement) elem.getElement(elem.getElementCount() - 1);
+		ElementML paraML = elem.getElementML();
+		ElementML bodyML = paraML.getParent();
+		paraML.delete();
+
+    	Document doc = DocUtil.read(sourceView, wmlPackage);
+    	
+        //Remember to put 'paraML' as last paragraph
+        bodyML.addChild(paraML);
+
+		doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, filePath);
+		doc.putProperty(WordMLDocument.WML_PACKAGE_PROPERTY, wmlPackage);
+    	doc.addDocumentListener(getToolbarStates());
+		
+		//Below are the properties used by bounce.jar library
+		//See http://www.edankert.com/bounce/xmleditorkit.html
+		doc.putProperty(PlainDocument.tabSizeAttribute, new Integer(4));
+		doc.putProperty(XMLDocument.AUTO_INDENTATION_ATTRIBUTE, Boolean.TRUE);
+		doc.putProperty(XMLDocument.TAG_COMPLETION_ATTRIBUTE, Boolean.TRUE);
+        kit.setStyle(
+        	XMLStyleConstants.ATTRIBUTE_NAME, new Color( 255, 0, 0), Font.PLAIN);
+   	
+    	sourceView.addFocusListener(getToolbarStates());
+    	sourceView.setDocument(doc);
+    	sourceView.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
+    	
+    	return sourceView;
+    }
+    
+    private JEditorPane createSourceViewORIG(WordMLTextPane editorView) {
     	WordMLEditorKit kit = (WordMLEditorKit) editorView.getEditorKit();
     	kit.saveCaretText();
     	
@@ -388,7 +408,7 @@ public class WordMLEditor extends SingleFrameApplication {
 		ElementML bodyML = paraML.getParent();
 		paraML.delete();
 
-    	Document doc = DocUtil.read(sourceView.getEditorKit(), wmlPackage);
+    	Document doc = DocUtil.read(sourceView, wmlPackage);
     	
         //Remember to put 'paraML' as last paragraph
         bodyML.addChild(paraML);
@@ -596,16 +616,26 @@ public class WordMLEditor extends SingleFrameApplication {
     private class ViewChangeListener implements ChangeListener {
     	public void stateChanged(ChangeEvent event) {
     		JTabbedPane pane = (JTabbedPane) event.getSource();
+        	int tabIdx = pane.indexOfTab(getEditorViewTabTitle());
     		WordMLTextPane editorView = 
     			(WordMLTextPane)
-    			SwingUtil.getDescendantOfClass(WordMLTextPane.class, pane, true);
+    				SwingUtil.getDescendantOfClass(
+    					WordMLTextPane.class, 
+    					(Container) pane.getComponentAt(tabIdx), 
+    					true);
+        	tabIdx = pane.indexOfTab(getSourceViewTabTitle());    		
     		JEditorPane sourceView = 
     			(JEditorPane)
-    			SwingUtil.getDescendantOfClass(JTextPane.class, pane, true);
+    				SwingUtil.getDescendantOfClass(
+    					JEditorPane.class, 
+    					(Container) pane.getComponentAt(tabIdx), 
+    					false);
     		JEditorPane selectedView = 
     			(JEditorPane)
-    			SwingUtil.getDescendantOfClass(
-    				JEditorPane.class, (Container) pane.getSelectedComponent(), false);
+    				SwingUtil.getDescendantOfClass(
+    					JEditorPane.class, 
+    					(Container) pane.getSelectedComponent(), 
+    					false);
     		if (selectedView == editorView) {
     			Boolean isSynched = (Boolean) sourceView.getClientProperty(Constants.SYNCHRONIZED_FLAG);
     			if (!isSynched.booleanValue()) {
