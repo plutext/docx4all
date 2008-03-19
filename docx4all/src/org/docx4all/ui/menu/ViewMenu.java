@@ -19,19 +19,15 @@
 
 package org.docx4all.ui.menu;
 
-import java.awt.Container;
-
 import javax.swing.JEditorPane;
 import javax.swing.JInternalFrame;
 import javax.swing.JMenuItem;
 import javax.swing.JTabbedPane;
-import javax.swing.JTextPane;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
-import org.docx4all.util.SwingUtil;
 import org.jdesktop.application.Action;
 
 /**
@@ -162,12 +158,12 @@ public class ViewMenu extends UIMenu {
         } else if (VIEW_EDITOR_ACTION_NAME.equals(actionName)) {
     		toolbarStates.addPropertyChangeListener(
         			ToolBarStates.CURRENT_EDITOR_PROPERTY_NAME,
-        			new EnableOnEqualType(theItem, JTextPane.class));
+        			new EnableOnEqualType(theItem, JEditorPane.class));
        	
         } else if (CLOSE_SOURCE_VIEW_ACTION_NAME.equals(actionName)) {
     		toolbarStates.addPropertyChangeListener(
         			ToolBarStates.CURRENT_EDITOR_PROPERTY_NAME,
-        			new EnableOnEqualType(theItem, JTextPane.class));
+        			new EnableOnEqualType(theItem, JEditorPane.class));
         }
         
 		return theItem;
