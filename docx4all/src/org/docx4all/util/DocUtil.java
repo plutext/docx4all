@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 
+import javax.swing.JEditorPane;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
@@ -95,19 +96,20 @@ public class DocUtil {
 	
 	/**
 	 * Reads the xml document part of WordprocessingMLPackage and puts it into
-	 * Swing EditorKit's default document.
+	 * Swing JEditorPane's document.
 	 * 
-	 * @param kit
-	 *            EditorKit instance
+	 * @param targetView
+	 *            The destination view for the reading
 	 * @param sourcePackage
 	 *            WordprocessingMLPackage to read from
-	 * @return EditorKit's default document
+	 * @return targetView's document
 	 */
 	public final static Document read(
-		final EditorKit kit, 
+		final JEditorPane targetView, 
 		final WordprocessingMLPackage sourcePackage) {
 
-    	Document theDoc = kit.createDefaultDocument();
+		EditorKit kit = targetView.getEditorKit();
+    	Document theDoc = targetView.getDocument();
     	
     	ByteArrayOutputStream out = new ByteArrayOutputStream();
     	XmlUtil.serialize(sourcePackage, out);
