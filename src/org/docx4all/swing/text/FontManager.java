@@ -222,15 +222,11 @@ public class FontManager {
 	
 	public void addFontsInUse(WordprocessingMLPackage docPackage) {
 		
-		Exception e = new Exception();
-		e.printStackTrace();
-
 		// Then is run once when the editor is starting up
 		// from Stylesheet.setWordprocessingMLPackage,
 		// which itself is invoked from:
-		// org.docx4all.swing.text.StyleSheet.getDefaultStyleSheet(StyleSheet.java:68) (on startup)
-		
-		// and then FOUR times when a document is opened?
+		// org.docx4all.swing.text.StyleSheet.getDefaultStyleSheet(StyleSheet.java:68) (on startup)		
+		// and then again when a document is opened.
 		
 		
 		log.info("");
@@ -272,8 +268,10 @@ public class FontManager {
 					FontMapping fm = (FontMapping) pairs.getValue();
 
 					log.debug("FontMapping[" + (i++) + "]: key=" + key
-							+ " tripletName=" + fm.getPostScriptName() + " -->> "
-							+ fm.getEmbeddedFile());
+//							+ " tripletName=" + fm.getPostScriptName() + " -->> "
+//							+ fm.getEmbeddedFile());
+							+ " physicalFontMapKey=" + fm.getPhysicalFont().getName() + " -->> "
+							+ fm.getPhysicalFont().getEmbeddedFile());
 				}
 			}
 			
@@ -320,22 +318,12 @@ public class FontManager {
 			FontMapping fm = 
 				(FontMapping) substituter.getFontMappings().get(fmKey);
 			String path = null;
-			if (fm != null && fm.getEmbeddedFile() != null) {
-				path = fm.getEmbeddedFile();
-				if (path.startsWith("file:/")) {
-					if (System.getProperty("os.name").toUpperCase().indexOf("WINDOWS") > -1) {
-						path = path.substring(6);
-					} else {
-						path = path.substring(5);
-					}
-				}
+			if (fm != null && fm.getPhysicalFont() != null 
+					&& fm.getPhysicalFont().getEmbeddedFile() != null) {
+				path = fm.getPhysicalFont().getEmbeddedFile();
 				
-				// Convert %20 to spaces
-				if (path.indexOf("%20")>-1) {
-					java.lang.CharSequence target = (new String("%20")).subSequence(0, 3);
-		               java.lang.CharSequence replacement = (new String(" ")).subSequence(0, 1);		               
-		               path = path.toString().replace(target, replacement);					
-				}
+				// Strip file:, and replace %20 with spaces
+				path = org.docx4j.fonts.FontUtils.pathFromURL(path);
 				
 				if (log.isDebugEnabled()) {
 					log.debug("family=" + family 
@@ -415,22 +403,4 @@ public class FontManager {
 
 
 }// FontManager class
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
