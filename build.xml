@@ -8,7 +8,7 @@
     <property environment="env"/>
     <property name="ECLIPSE_HOME" value="../../../../usr/lib/eclipse"/>
     <property name="AppFramework-1.03.location" value="../AppFramework-1.03"/>
-    <property name="docx4j.location" value="../docx4j"/>
+    <property name="docx4j.location" value="../docx4j-001"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="1.6"/>
     <property name="source" value="1.6"/>
@@ -24,7 +24,7 @@
     </path>
     <path id="Maven Dependencies.libraryclasspath">
         <pathelement location="${m2Repository}/dom4j/dom4j/1.6.1/dom4j-1.6.1.jar"/>
-        <pathelement location="${m2Repository}/javax/jcr/jcr/1.0/jcr-1.0.jar"/>
+        <!--<pathelement location="${m2Repository}/javax/jcr/jcr/1.0/jcr-1.0.jar"/>-->
         <pathelement location="${m2Repository}/log4j/log4j/1.2.13/log4j-1.2.13.jar"/>
         <pathelement location="${m2Repository}/xerces/xercesImpl/2.8.1/xercesImpl-2.8.1.jar"/>
         <pathelement location="${m2Repository}/xml-apis/xml-apis/1.3.03/xml-apis-1.3.03.jar"/>
@@ -32,12 +32,16 @@
     </path>
     <path id="docx4j.classpath">
         <pathelement location="${docx4j.location}/bin"/>
-        <pathelement location="${docx4j.location}/lib/core-renderer.jar"/>
-        <pathelement location="${docx4j.location}/lib/core-renderer-minimal.jar"/>
-        <pathelement location="${docx4j.location}/lib/itext-paulo-155.jar"/>
+        <pathelement location="${docx4j.location}/lib/core-renderer-cvs.jar"/>
+        <!--<pathelement location="${docx4j.location}/lib/core-renderer-minimal.jar"/>-->
+        <pathelement location="${docx4j.location}/lib/fop-fonts.jar"/>
+        <pathelement location="/home/jharrop/xhtmlrenderer/xhtmlrenderer/lib/iText-2.0.8.jar"/>
         <pathelement location="${docx4j.location}/lib/minium.jar"/>
         <pathelement location="${docx4j.location}/lib/parent-pointer-plugin-1.0-SNAPSHOT.jar"/>
+		<pathelement location="${docx4j.location}/lib/xalan-2.7.0-patched-6396599-stripped.jar"/>
         <pathelement location="${docx4j.location}/lib/PDFRenderer.jar"/>
+		<pathelement location="${docx4j.location}/lib/xmlgraphics-commons-1.3svn.jar"/>
+
         <path refid="Maven Dependencies.libraryclasspath"/>
     </path>
     <path id="docx4all.classpath">
@@ -49,6 +53,7 @@
         <pathelement location="lib/javafxrt.jar"/>
         <pathelement location="lib/PDFRenderer.jar"/>
         <pathelement location="lib/swing-layout.jar"/>
+        <pathelement location="lib/bounce.jar"/>
         <path refid="Maven Dependencies.libraryclasspath"/>
     </path>
     <target name="init">
