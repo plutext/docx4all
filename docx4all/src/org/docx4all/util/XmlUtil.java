@@ -106,6 +106,22 @@ public class XmlUtil {
 			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 			marshaller.setProperty("com.sun.xml.internal.bind.namespacePrefixMapper", 
 					new org.docx4j.jaxb.NamespacePrefixMapper() ); // Must use 'internal' for Java 6
+			/* Setting the property as above is all you need to do for the code
+			 * to compile in Eclipse (or using Ant on the Mac with Apple's Java 6 preview).
+			 * 
+			 * However if you try to compile it using javac (eg via Ant), you may get: 
+			 * 
+			 * [javac] /home/dev/workspace/docx4all/src/org/docx4all/util/XmlUtil.java:108: cannot access com.sun.xml.internal.bind.marshaller.NamespacePrefixMapper
+			 * [javac] class file for com.sun.xml.internal.bind.marshaller.NamespacePrefixMapper not found
+			 * 
+			 * To get around this, see
+			 * Step 4 in http://pragmaticintegration.blogspot.com/2007/11/moving-jaxb-20-applications-built-by.html
+			 * 
+			 * The workaround is to add bootclasspathref="jre.libs" includeJavaRuntime="yes" to the javac task,
+			 * which I have done.
+			 * 
+			 */
+			
 			marshaller.marshal(pkg, out);			
 
         } catch (Exception exc) {
