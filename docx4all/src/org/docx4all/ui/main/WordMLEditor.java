@@ -24,7 +24,11 @@ import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Rectangle;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
+import java.awt.event.MouseMotionListener;
 import java.beans.PropertyVetoException;
 import java.io.File;
 import java.io.IOException;
@@ -51,6 +55,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
+import javax.swing.plaf.basic.BasicInternalFrameUI;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.Document;
 import javax.swing.text.EditorKit;
@@ -59,6 +64,10 @@ import javax.swing.text.PlainDocument;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
+import net.sf.vfsjfilechooser.utils.VFSUtils;
+
+import org.apache.commons.vfs.FileObject;
+import org.apache.commons.vfs.FileSystemException;
 import org.apache.log4j.Logger;
 import org.bounce.text.xml.XMLDocument;
 import org.bounce.text.xml.XMLEditorKit;
@@ -94,6 +103,7 @@ public class WordMLEditor extends SingleFrameApplication {
 	private JDesktopPane _desktop;
 	private Map<String, JInternalFrame> _iframeMap;
 	private InternalFrameListener _internalFrameListener;
+	private MouseMotionListener _titleBarMouseListener;
 	private ToolBarStates _toolbarStates;
 	
 	public static void main(String[] args) {
@@ -103,8 +113,13 @@ public class WordMLEditor extends SingleFrameApplication {
     @Override protected void startup() {
     	log.info("");
     	_iframeMap = new HashMap<String, JInternalFrame>();
+    	
     	log.info("setting up InternalFrameListener");
     	_internalFrameListener = new InternalFrameListener();
+    	
+    	log.info("setting up TitleBarMouseListener");
+    	_titleBarMouseListener = new TitleBarMouseListener();
+    	
     	log.info("setting up ToolBarStates");
     	_toolbarStates = new ToolBarStates();
     	
@@ -173,23 +188,30 @@ public class WordMLEditor extends SingleFrameApplication {
 		}
     }
     
-    public void createInternalFrame(File f) {
+    public void createInternalFrame(FileObject f) {
     	if (f == null) {
     		return;
     	}
     	
-		log.info(f.getAbsolutePath());
+		log.info(VFSUtils.getFriendlyName(f.getName().getURI()));
     	
-    	JInternalFrame iframe = _iframeMap.get(f.getAbsolutePath());
+    	JInternalFrame iframe = _iframeMap.get(f.getName().getURI());
         if (iframe != null) {
         	iframe.setVisible(true);
         	
         } else {
-        	iframe = new JInternalFrame(f.getName(), true, true, true, true);
+        	iframe = new JInternalFrame(f.getName().getBaseName(), true, true, true, true);
         	iframe.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         	iframe.addInternalFrameListener(_internalFrameListener);
         	iframe.addInternalFrameListener(_toolbarStates);
         	iframe.addPropertyChangeListener(WindowMenu.getInstance());
+        	
+        	if (iframe.getUI() instanceof BasicInternalFrameUI) {
+        		BasicInternalFrameUI ui = (BasicInternalFrameUI) iframe.getUI();
+        		ui.getNorthPane().addMouseMotionListener(_titleBarMouseListener);
+        	} else {
+        		//TODO: How about in Mac ?
+        	}
         	
         	JEditorPane editorView = createEditorView(f);
         	JPanel panel = FxScriptUIHelper.getInstance().createEditorPanel(editorView);
@@ -201,7 +223,7 @@ public class WordMLEditor extends SingleFrameApplication {
         	editorView.requestFocusInWindow();
         	editorView.select(0,0);
         	
-        	String filePath = f.getAbsolutePath();
+        	String filePath = f.getName().getURI();
         	iframe.putClientProperty(WordMLDocument.FILE_PATH_PROPERTY, filePath);
         	_iframeMap.put(filePath, iframe);
         	
@@ -217,17 +239,17 @@ public class WordMLEditor extends SingleFrameApplication {
 		}
     }
     
-    public void updateInternalFrame(File oldFile, File newFile) {
+    public void updateInternalFrame(FileObject oldFile, FileObject newFile) {
     	if (oldFile.equals(newFile)) {
     		return;
     	}
     	
-    	String filePath = oldFile.getAbsolutePath();
-    	JInternalFrame iframe = _iframeMap.remove(filePath);
+    	String fileUri = oldFile.getName().getURI();
+    	JInternalFrame iframe = _iframeMap.remove(fileUri);
     	if (iframe != null) {
-    		filePath = newFile.getAbsolutePath();
-    		iframe.putClientProperty(WordMLDocument.FILE_PATH_PROPERTY, filePath);
-			iframe.setTitle(newFile.getName());   		
+    		fileUri = newFile.getName().getURI();
+    		iframe.putClientProperty(WordMLDocument.FILE_PATH_PROPERTY, fileUri);
+			iframe.setTitle(newFile.getName().getBaseName());   		
     	}    	
     }
     
@@ -401,7 +423,7 @@ public class WordMLEditor extends SingleFrameApplication {
     	return sourceView;
     }
     
-    private JEditorPane createEditorView(File f) {
+    private JEditorPane createEditorView(FileObject f) {
     	JEditorPane editorView = new WordMLTextPane();
     	editorView.addFocusListener(_toolbarStates);
     	editorView.setTransferHandler(new TransferHandler());
@@ -411,25 +433,32 @@ public class WordMLEditor extends SingleFrameApplication {
 		
     	AbstractDocument doc = null;
     	
-    	if (f.exists()) {
-    		try {
+    	try {
+    		if (f.exists()) {
     			doc = editorKit.read(f);
-    			
-    		} catch (IOException exc) {
-    			exc.printStackTrace();
-    			showMessageDialog(
-    				"Error reading file " + f.getName(),
-    				"I/O Error",
-    				JOptionPane.ERROR_MESSAGE);
-    			doc = null;
     		}
-    	}
-    	
+    	} catch (FileSystemException exc) {
+    		exc.printStackTrace();
+			showMessageDialog(
+				"I/O Error",
+				"Error when checking " + VFSUtils.getFriendlyName(f.getName().getURI()),
+				JOptionPane.ERROR_MESSAGE);
+			doc = null;
+    		
+		} catch (IOException exc) {
+			exc.printStackTrace();
+			showMessageDialog(
+				"I/O Error",
+				"Error reading file " + VFSUtils.getFriendlyName(f.getName().getURI()),
+				JOptionPane.ERROR_MESSAGE);
+			doc = null;
+		}
+		
     	if (doc == null) {
     		doc = (AbstractDocument) editorKit.createDefaultDocument();
     	}
     	
-		doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, f.getAbsolutePath());
+		doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, f.getName().getURI());
     	doc.addDocumentListener(_toolbarStates);
     	doc.setDocumentFilter(new WordMLDocumentFilter());
     	editorView.setDocument(doc);
@@ -518,6 +547,31 @@ public class WordMLEditor extends SingleFrameApplication {
     	menubar.add(helpMenu);
     	
     	return menubar;
+    }
+    
+    private class TitleBarMouseListener extends MouseMotionAdapter {
+        public void mouseMoved(MouseEvent e){
+        	JComponent titlePane = (JComponent) e.getSource();
+
+        	JInternalFrame frame = (JInternalFrame) titlePane.getParent();
+        	String tmp = frame.getTitle();
+        	FontMetrics fm = frame.getFontMetrics(frame.getFont());
+        	int width = fm.charsWidth(tmp.toCharArray(), 0, tmp.length());
+      
+        	Rectangle tbounds = titlePane.getBounds();
+        	tbounds.width = width;
+        	
+        	if (tbounds.contains(e.getX(), e.getY())) {
+        		if (!tmp.startsWith(getUntitledFileName())) {
+                	tmp = (String) frame.getClientProperty(WordMLDocument.FILE_PATH_PROPERTY);
+                	//do not display password
+                	tmp = VFSUtils.getFriendlyName(tmp);
+        		}
+            	titlePane.setToolTipText(tmp);
+            } else {
+            	titlePane.setToolTipText(null);
+            }
+        }
     }
     
     private class InternalFrameListener extends InternalFrameAdapter {
