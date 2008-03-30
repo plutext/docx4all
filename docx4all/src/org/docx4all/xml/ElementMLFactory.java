@@ -19,14 +19,15 @@
 
 package org.docx4all.xml;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
 import javax.swing.text.AttributeSet;
 
+import org.apache.commons.vfs.FileObject;
+import org.docx4all.ui.main.Constants;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
-import org.docx4j.openpackaging.io.LoadFromZipFile;
+import org.docx4j.openpackaging.io.LoadFromVFSZipFile;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.Document;
 
@@ -45,16 +46,17 @@ public class ElementMLFactory {
 		return new DocumentML(docPackage);
 	}
 	
-	public final static DocumentML createDocumentML(File f) throws IOException {
-		if (f == null || !f.getName().endsWith(".docx")) {
+	public final static DocumentML createDocumentML(FileObject f) throws IOException {
+		if (f == null || !Constants.DOCX_STRING.equalsIgnoreCase(f.getName().getExtension())) {
 			throw new IllegalArgumentException("Not a .docx file."); 
 		}
-		
+
 		DocumentML docML = null;
 		try {
-			LoadFromZipFile loader = new LoadFromZipFile();
+			LoadFromVFSZipFile loader = new LoadFromVFSZipFile();
 			WordprocessingMLPackage wordMLPackage = 
-				(WordprocessingMLPackage) loader.get(f);
+				(WordprocessingMLPackage) 
+					loader.getPackageFromFileObject(f);
 			docML = new DocumentML(wordMLPackage);
 		} catch (Docx4JException exc) {
 			throw new IOException(exc);
