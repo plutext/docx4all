@@ -64,5 +64,35 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
       <artifactId>jaxen</artifactId>
       <version>1.1.1</version>
     </dependency>
+    <dependency>
+      <!-- required for docx4j -->
+      <groupId>avalon</groupId>
+      <artifactId>avalon-framework</artifactId>
+      <version>4.1.4</version>
+    </dependency>
+    <dependency>
+      <!-- required for docx4j -->
+      <groupId>xerces</groupId>
+      <artifactId>xercesImpl</artifactId>
+      <version>2.8.1</version>
+    </dependency>
+    <dependency>
+      <!-- required for fop fonts -->
+      <groupId>commons-logging</groupId>
+      <artifactId>commons-logging-api</artifactId>
+      <version>1.1</version>
+    </dependency>
+    <dependency>
+      <!-- required for fop fonts -->
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>1.3.1</version>
+    </dependency>
+    <dependency>
+      <!-- required for webdav enabled Commons-VFS and VFSJFileChooser -->
+      <groupId>commons-httpclient</groupId>
+      <artifactId>commons-httpclient</artifactId>
+      <version>2.0.2</version>
+    </dependency>
   </dependencies>
 </project>
