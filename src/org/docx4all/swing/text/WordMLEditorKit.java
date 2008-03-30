@@ -25,7 +25,6 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Serializable;
@@ -46,7 +45,6 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Caret;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.Document;
-import javax.swing.text.Element;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.Position;
 import javax.swing.text.SimpleAttributeSet;
@@ -55,6 +53,9 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.TextAction;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
+import net.sf.vfsjfilechooser.utils.VFSUtils;
+
+import org.apache.commons.vfs.FileObject;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.event.InputAttributeEvent;
@@ -192,9 +193,9 @@ public class WordMLEditorKit extends DefaultEditorKit {
      * @param f  The file to read from
      * @exception IOException on any I/O error
      */
-	public WordMLDocument read(File f) throws IOException {
+	public WordMLDocument read(FileObject f) throws IOException {
 		if (log.isDebugEnabled()) {
-			log.debug("read(): File = " + f.getAbsolutePath());
+			log.debug("read(): File = " + VFSUtils.getFriendlyName(f.getName().getURI()));
 		}
 		
 		WordMLDocument doc = read(ElementMLFactory.createDocumentML(f));
