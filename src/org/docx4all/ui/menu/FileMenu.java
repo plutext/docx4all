@@ -41,6 +41,7 @@ import net.sf.vfsjfilechooser.utils.VFSUtils;
 import org.apache.commons.vfs.FileObject;
 import org.apache.commons.vfs.FileSystemException;
 import org.apache.commons.vfs.VFS;
+import org.apache.commons.vfs.provider.UriParser;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
@@ -213,16 +214,21 @@ public class FileMenu extends UIMenu {
     }
     
 	@Action public void newFile() {
+        Preferences prefs = Preferences.userNodeForPackage( getClass() );
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        
 		FileObject fo = null;
 		try {
-			StringBuffer path = new StringBuffer("tmp://");
-			path.append(System.getProperty("user.home"));
-			path.append("/.docx4all/tmp/");
-			path.append(editor.getUntitledFileName());
-			path.append(++_untitledFileNumber);
-			path.append(".docx");
-			fo = VFS.getManager().resolveFile(path.toString());
+			//Prepare the new file name
+			StringBuffer newFile = new StringBuffer();
+			newFile.append(editor.getUntitledFileName());
+			newFile.append(++_untitledFileNumber);
+			newFile.append(".docx");
+			
+			//Put the new file in the same directory as last opened file's
+	        String lastFileUri = prefs.get(Constants.LAST_OPENED_FILE, Constants.EMPTY_STRING);
+			fo = VFS.getManager().resolveFile(lastFileUri).getParent();
+			fo = fo.resolveFile(newFile.toString());
 			
 		} catch (FileSystemException exc) {
 			exc.printStackTrace();
@@ -234,6 +240,7 @@ public class FileMenu extends UIMenu {
 	    	editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
 			return;
 		}
+		
 		editor.createInternalFrame(fo);
 	}
 	
@@ -312,64 +319,88 @@ public class FileMenu extends UIMenu {
         int returnVal = chooser.showSaveDialog((Component) actionEvent.getSource());
         if (returnVal == JFileChooser.APPROVE_OPTION) {
 			FileObject selectedFile = getSelectedFile(chooser, fileType);
+			
+			//Check selectedFile's existence and ask user confirmation when needed.
 			if (selectedFile != null) {
-				String selectedFilePath = selectedFile.getName().getURI();
-				if (log.isDebugEnabled()) {
-					log.debug("saveAsFile(): selectedFile = " 
-						+ VFSUtils.getFriendlyName(selectedFilePath));
-				}
-				
-				prefs.put(Constants.LAST_OPENED_FILE, selectedFilePath);
-				
-				boolean selectedFileExists = false;
 				try {
-					selectedFileExists = selectedFile.exists();
+					boolean selectedFileExists = selectedFile.exists();
+					if (!selectedFileExists) {
+						FileObject parent = selectedFile.getParent();
+						String uri = UriParser.decode(parent.getName().getURI());
+						
+						if (System.getProperty("os.name").toUpperCase().indexOf("WINDOWS") > -1
+							&& parent.getName().getScheme().startsWith("file")
+							&& !parent.isWriteable()
+							&& (uri.indexOf("/Documents") > -1 
+								|| uri.indexOf("/My Documents") > -1)) {
+							//TODO: Check whether we still need this workaround.
+							//See http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4939819
+							//Re: File.canWrite() returns false for the "My Documents" directory (win)
+							String localpath = org.docx4j.utils.VFSUtils.getLocalFilePath(parent);
+							File f = new File(localpath);
+							f.setWritable(true, true);
+						}
+						
+						selectedFile.createFile();
+						
+					} else if (!selectedFile.getName().getURI().equalsIgnoreCase(filePath)) {
+			            String title = 
+			            	rm.getString(callerActionName + ".Action.text");
+			            String message =
+			            	VFSUtils.getFriendlyName(selectedFile.getName().getURI()) 
+			            	+ "\n"
+			            	+ rm.getString(callerActionName + ".Action.confirmMessage");
+			            int answer = 
+			            	editor.showConfirmDialog(
+			            		title, 
+			            		message, 
+			            		JOptionPane.YES_NO_OPTION, 
+			            		JOptionPane.QUESTION_MESSAGE);
+			            if (answer != JOptionPane.YES_OPTION) {
+			            	selectedFile = null;
+			            }
+					}// if (file.exists())
+					
 				} catch (FileSystemException exc) {
 					exc.printStackTrace();//ignore
-					log.warn("Couldn't check file existence. File = " 
-						+ selectedFilePath);
+					log.error("Couldn't create new file or assure file existence. File = " 
+						+ selectedFile.getName().getURI());
+					selectedFile = null;
+				}
+			}
+			
+			//Check whether there has been an error, cancellation by user
+			//or may proceed to saving file.
+			if (selectedFile != null) {
+				//Proceed to saving file
+				String selectedPath = selectedFile.getName().getURI();
+				if (log.isDebugEnabled()) {
+					log.debug("saveAsFile(): selectedFile = " 
+						+ VFSUtils.getFriendlyName(selectedPath));
 				}
 				
-				boolean canSave = true;
-				if (selectedFileExists
-					&& !selectedFilePath.equalsIgnoreCase(filePath)) {
-		            String title = 
-		            	rm.getString(callerActionName + ".Action.text");
-		            String message =
-		            	selectedFilePath 
-		            	+ "\n"
-		            	+ rm.getString(callerActionName + ".Action.confirmMessage");
-		            int answer = 
-		            	editor.showConfirmDialog(
-		            		title, 
-		            		message, 
-		            		JOptionPane.YES_NO_OPTION, 
-		            		JOptionPane.QUESTION_MESSAGE);
-		            canSave = (answer == JOptionPane.YES_OPTION);
-				}// if (file.exists())
+				prefs.put(Constants.LAST_OPENED_FILE, selectedPath);
 				
-				if (canSave) {
-					boolean success = save(iframe, filePath, callerActionName);
-					if (success) {
-			       		if (Constants.DOCX_STRING.equals(fileType)) {
-			       			//If saving as .docx then update the document dirty flag 
-			       			//of toolbar states as well as internal frame title
-			       			editor.getToolbarStates().setDocumentDirty(iframe, false);
-			       			editor.updateInternalFrame(file, selectedFile);
-			       		} else {
-			       			//Because document dirty flag is not cleared
-			       			//and internal frame title is not changed,
-			       			//we present a success message.
-				            String title = 
-				            	rm.getString(callerActionName + ".Action.text");
-				            String message =
-				            	VFSUtils.getFriendlyName(filePath)
-				            	+ "\n"
-				            	+ rm.getString(callerActionName + ".Action.successMessage");
-			            	editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
-			       		}
-					}
-				}
+				boolean success = save(iframe, selectedPath, callerActionName);
+				if (success) {
+		       		if (Constants.DOCX_STRING.equals(fileType)) {
+		       			//If saving as .docx then update the document dirty flag 
+		       			//of toolbar states as well as internal frame title
+		       			editor.getToolbarStates().setDocumentDirty(iframe, false);
+		       			editor.updateInternalFrame(file, selectedFile);
+		       		} else {
+		       			//Because document dirty flag is not cleared
+		       			//and internal frame title is not changed,
+		       			//we present a success message.
+			            String title = 
+			            	rm.getString(callerActionName + ".Action.text");
+			            String message =
+			            	VFSUtils.getFriendlyName(selectedPath)
+			            	+ "\n"
+			            	+ rm.getString(callerActionName + ".Action.successMessage");
+		            	editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
+		       		}
+				}				
 			} else {
 				log.error("saveAsFile(): selectedFile = NULL"); 
 	            String title = 
