@@ -26,7 +26,9 @@ import javax.swing.text.AttributeSet;
 import javax.xml.bind.JAXBElement;
 
 import org.apache.log4j.Logger;
-import org.apache.xerces.dom.NodeImpl;
+//import org.apache.xerces.dom.NodeImpl;
+//import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
+import org.w3c.dom.Node;
 import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
 import org.docx4j.wml.RPr;
@@ -204,14 +206,17 @@ public class RunML extends ElementML {
 			run = ObjectFactory.createR(renderedText);
 			this.isDummy = true;
 			
-		} else if (docxObject instanceof NodeImpl) {
+		} else if (docxObject instanceof Node) {
+			// If Xerces is on the path, this will be a org.apache.xerces.dom.NodeImpl;
+			// otherwise, it will be com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
+			
 			String renderedText = 
-				XmlUtil.getEnclosingTagPair((NodeImpl) docxObject);
+				XmlUtil.getEnclosingTagPair((Node) docxObject);
 			run = ObjectFactory.createR(renderedText);
 			this.isDummy = true;
 			
 		} else {
-			throw new IllegalArgumentException("Unsupported Docx Object = " + docxObject);			
+			throw new IllegalArgumentException("Unsupported Docx Object = " + docxObject.getClass().getName());			
 		}
 		
 		initRunProperties(run);
