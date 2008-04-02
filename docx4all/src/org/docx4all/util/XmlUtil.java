@@ -30,13 +30,8 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.namespace.QName;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 
-import org.apache.xerces.dom.NodeImpl;
+import org.w3c.dom.Node;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLIterator;
 import org.docx4all.xml.ObjectFactory;
@@ -184,7 +179,7 @@ public class XmlUtil {
 		return getEnclosingTagPair(qname.getPrefix(), qname.getLocalPart());
 	}
 	
-	public final static String getEnclosingTagPair(NodeImpl node) {
+	public final static String getEnclosingTagPair(Node node) {
 		return getEnclosingTagPair(node.getPrefix(), node.getLocalName());
 	}
 	
