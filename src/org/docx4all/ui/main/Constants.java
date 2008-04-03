@@ -39,6 +39,8 @@ public interface Constants {
 	public final static String NEWLINE = "\n";
 	
 	public final static String LAST_OPENED_FILE  = "last.opened.file";
+	public final static String LAST_OPENED_LOCAL_FILE = "last.opened.local.file";
+	
 	public final static String UNTITLED_FILE_NAME = "untitled.file.name";
 	
 	public final static String ON_VALUE = "on";
