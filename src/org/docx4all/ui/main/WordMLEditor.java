@@ -67,7 +67,6 @@ import javax.swing.text.StyleConstants;
 import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.commons.vfs.FileObject;
-import org.apache.commons.vfs.FileSystemException;
 import org.apache.log4j.Logger;
 import org.bounce.text.xml.XMLDocument;
 import org.bounce.text.xml.XMLEditorKit;
@@ -437,20 +436,16 @@ public class WordMLEditor extends SingleFrameApplication {
     		if (f.exists()) {
     			doc = editorKit.read(f);
     		}
-    	} catch (FileSystemException exc) {
-    		exc.printStackTrace();
-			showMessageDialog(
-				"I/O Error",
-				"Error when checking " + VFSUtils.getFriendlyName(f.getName().getURI()),
-				JOptionPane.ERROR_MESSAGE);
-			doc = null;
-    		
 		} catch (IOException exc) {
 			exc.printStackTrace();
-			showMessageDialog(
-				"I/O Error",
-				"Error reading file " + VFSUtils.getFriendlyName(f.getName().getURI()),
-				JOptionPane.ERROR_MESSAGE);
+			
+			ResourceMap rm = getContext().getResourceMap();
+			String title = rm.getString(Constants.INIT_EDITOR_VIEW_IO_ERROR_DIALOG_TITLE);
+			StringBuffer msg = new StringBuffer();
+			msg.append(rm.getString(Constants.INIT_EDITOR_VIEW_IO_ERROR_MESSAGE));
+			msg.append(Constants.NEWLINE);
+			msg.append(VFSUtils.getFriendlyName(f.getName().getURI()));
+			showMessageDialog(title, msg.toString(), JOptionPane.ERROR_MESSAGE);
 			doc = null;
 		}
 		
