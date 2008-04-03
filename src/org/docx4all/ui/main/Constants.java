@@ -68,9 +68,14 @@ public interface Constants {
 	public final static String CREATE_EDITOR_TABBED_PANEL_FX = "createEditorTabbedPanel.fx";
 	public final static String TOOLBAR_FX = "toolbar.fx";
 	
-	public final static String EDITOR_VIEW_TAB_TITLE = "editor.view.tab.title";
-	public final static String SOURCE_VIEW_TAB_TITLE = "source.view.tab.title";
+	public final static String INIT_EDITOR_VIEW_IO_ERROR_DIALOG_TITLE = 
+		"init.editor.view.io.error.dialog.title";
+	public final static String INIT_EDITOR_VIEW_IO_ERROR_MESSAGE =
+		"init.editor.view.io.errorMessage";
 	
+	public final static String EDITOR_VIEW_TAB_TITLE = "editor.view.tab.title";
+	
+	public final static String SOURCE_VIEW_TAB_TITLE = "source.view.tab.title";
 	public final static String SOURCE_VIEW_FONT_FAMILY_NAME = "source.view.font.family.name";
 	public final static String SOURCE_VIEW_FONT_SIZE = "source.view.font.size";
 }// Constants interface
