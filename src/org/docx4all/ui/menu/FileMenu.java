@@ -31,6 +31,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JInternalFrame;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.filechooser.FileSystemView;
 import javax.swing.text.Document;
 import javax.swing.text.EditorKit;
 
@@ -225,9 +226,17 @@ public class FileMenu extends UIMenu {
 			newFile.append(++_untitledFileNumber);
 			newFile.append(".docx");
 			
-			//Put the new file in the same directory as last opened file's
-	        String lastFileUri = prefs.get(Constants.LAST_OPENED_FILE, Constants.EMPTY_STRING);
-			fo = VFS.getManager().resolveFile(lastFileUri).getParent();
+			//put new file in same directory as last opened local file's.
+			//if there isn't last opened local file, put it in the
+			//swing file chooser's default directory.
+	        String lastFile = 
+	        	prefs.get(Constants.LAST_OPENED_LOCAL_FILE, Constants.EMPTY_STRING);
+	        if (lastFile.length() == 0) {
+	        	fo = VFS.getManager().toFileObject(
+	        			FileSystemView.getFileSystemView().getDefaultDirectory());
+	        } else {
+	        	fo = VFS.getManager().resolveFile(lastFile).getParent();
+	        }
 			fo = fo.resolveFile(newFile.toString());
 			
 		} catch (FileSystemException exc) {
@@ -267,6 +276,9 @@ public class FileMenu extends UIMenu {
 			if (file != null) {
 				lastFileUri = file.getName().getURI();
 				prefs.put(Constants.LAST_OPENED_FILE, lastFileUri);
+				if (file.getName().getScheme().equals(("file"))) {
+					prefs.put(Constants.LAST_OPENED_LOCAL_FILE, lastFileUri);
+				}
 				log.info("\n\n Opening " + VFSUtils.getFriendlyName(lastFileUri));
 				editor.createInternalFrame(file);
 			}
@@ -380,6 +392,9 @@ public class FileMenu extends UIMenu {
 				}
 				
 				prefs.put(Constants.LAST_OPENED_FILE, selectedPath);
+				if (selectedFile.getName().getScheme().equals("file")) {
+					prefs.put(Constants.LAST_OPENED_LOCAL_FILE, selectedPath);
+				}
 				
 				boolean success = save(iframe, selectedPath, callerActionName);
 				if (success) {
