@@ -38,6 +38,8 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 
+import net.sf.vfsjfilechooser.utils.VFSUtils;
+
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.event.InputAttributeEvent;
@@ -153,7 +155,8 @@ public class ToolBarStates extends InternalFrameAdapter
 			String file = 
 				(String) iframe.getClientProperty(
 					WordMLDocument.FILE_PATH_PROPERTY);
-			log.debug("setDocumentDirty(): File = " + file
+			log.debug("setDocumentDirty(): File = " 
+				+ VFSUtils.getFriendlyName(file)
 				+ " - 'dirty' parameter = " + dirty);
 		}
 		
