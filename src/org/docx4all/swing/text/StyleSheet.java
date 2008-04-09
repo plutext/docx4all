@@ -38,10 +38,12 @@ import org.docx4j.wml.HpsMeasure;
 import org.docx4j.wml.Jc;
 import org.docx4j.wml.PPr;
 import org.docx4j.wml.RPr;
-import org.docx4j.wml.STJc;
-import org.docx4j.wml.Underline;
-import org.docx4j.wml.PPr.PStyle;
-import org.docx4j.wml.RPr.RStyle;
+import org.docx4j.wml.Jc;
+import org.docx4j.wml.JcEnumeration;
+import org.docx4j.wml.U;
+import org.docx4j.wml.PPrBase.PStyle;
+import org.docx4j.wml.RStyle;
+import org.docx4j.wml.RFonts;
 import org.docx4j.wml.Styles.LatentStyles.LsdException;
 
 /**
@@ -75,19 +77,19 @@ public class StyleSheet extends StyleContext {
 		//ALIGNMENT attribute
 		Jc jc = pPr.getJc();
 		if (jc != null) {
-			if (jc.getVal() == STJc.LEFT) {
+			if (jc.getVal() == JcEnumeration.LEFT) {
 				StyleConstants.setAlignment(
 						attrs,
 						StyleConstants.ALIGN_LEFT);
-			} else if (jc.getVal() == STJc.RIGHT) {
+			} else if (jc.getVal() == JcEnumeration.RIGHT) {
 				StyleConstants.setAlignment(
 						attrs,
 						StyleConstants.ALIGN_RIGHT);
-			} else if (jc.getVal() == STJc.CENTER) {
+			} else if (jc.getVal() == JcEnumeration.CENTER) {
 				StyleConstants.setAlignment(
 						attrs,
 						StyleConstants.ALIGN_CENTER);
-			} else if (jc.getVal() == STJc.BOTH) {
+			} else if (jc.getVal() == JcEnumeration.BOTH) {
 				StyleConstants.setAlignment(
 						attrs,
 						StyleConstants.ALIGN_JUSTIFIED);
@@ -120,7 +122,7 @@ public class StyleSheet extends StyleContext {
 		}
 		
 		//FONT FAMILY Attribute
-		RPr.RFonts rfonts = rPr.getRFonts();
+		RFonts rfonts = rPr.getRFonts();
 		if (rfonts != null) {
 			String strValue = rfonts.getAscii();
 			if (strValue != null) {
@@ -143,15 +145,16 @@ public class StyleSheet extends StyleContext {
 	public final static boolean hasUnderlineSet(RPr rPr) {
 		boolean hasUnderlineSet = false;
 		
-		Underline u = rPr.getU();
+		U u = rPr.getU();
 		if (u != null) {
 			String none = null;
-			for (String s : u.getVal()) {
+			String s = u.getVal().value();
+			//for (String s : u.getVal()) {
 				if (s.equalsIgnoreCase("none")) {
 					none = s;
 				}
-			}
-			hasUnderlineSet = (none == null && !u.getVal().isEmpty());
+			//}
+			hasUnderlineSet = (none == null && u.getVal()!=null);
 		}
 		
 		return hasUnderlineSet;

@@ -63,7 +63,7 @@ public class WordMLFragment implements Cloneable {
 				} else {
 					String s = (sarray[i].length() == 0) ? null : sarray[i];
 					ParagraphML para = 
-						new ParagraphML(ObjectFactory.createPara(s));
+						new ParagraphML(ObjectFactory.createP(s));
 					boolean isFragmented =
 						(s != null) && (i == sarray.length - 1);
 					list.add(new ElementMLRecord(para, isFragmented));

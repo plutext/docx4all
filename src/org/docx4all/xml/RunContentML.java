@@ -60,6 +60,9 @@ public class RunContentML extends ElementML {
 				t.setValue(textContent);
 				
 			}
+		} else if (docxObject instanceof org.docx4j.wml.Text ) {
+			
+			((org.docx4j.wml.Text)docxObject).setValue(textContent);
 		}
 	}
 	
@@ -90,24 +93,28 @@ public class RunContentML extends ElementML {
 	public void setDocxParent(Object docxParent) {
 		if (this.docxObject == null) {
 			;//do nothing
+		} else if (docxObject instanceof org.docx4j.wml.Text ) {
+			
+			((org.docx4j.wml.Text)docxObject).setParent(docxParent);
+			
 		} else if (this.docxObject instanceof org.docx4j.wml.Br) {
 			org.docx4j.wml.Br br = 
 				(org.docx4j.wml.Br) this.docxObject;
 			br.setParent(docxParent);
 
-		} else if (docxObject instanceof org.docx4j.wml.Cr) {
-			org.docx4j.wml.Cr cr = 
-				(org.docx4j.wml.Cr) this.docxObject;
+		} else if (docxObject instanceof org.docx4j.wml.R.Cr) {
+			org.docx4j.wml.R.Cr cr = 
+				(org.docx4j.wml.R.Cr) this.docxObject;
 			cr.setParent(docxParent);
 
-		} else if (docxObject instanceof org.docx4j.wml.NoBreakHyphen) {
-			org.docx4j.wml.NoBreakHyphen nbh = 
-				(org.docx4j.wml.NoBreakHyphen) this.docxObject;
+		} else if (docxObject instanceof org.docx4j.wml.R.NoBreakHyphen) {
+			org.docx4j.wml.R.NoBreakHyphen nbh = 
+				(org.docx4j.wml.R.NoBreakHyphen) this.docxObject;
 			nbh.setParent(docxParent);
 
-		} else if (docxObject instanceof org.docx4j.wml.SoftHyphen) {
-			org.docx4j.wml.SoftHyphen sh = 
-				(org.docx4j.wml.SoftHyphen) this.docxObject;
+		} else if (docxObject instanceof org.docx4j.wml.R.SoftHyphen) {
+			org.docx4j.wml.R.SoftHyphen sh = 
+				(org.docx4j.wml.R.SoftHyphen) this.docxObject;
 			sh.setParent(docxParent);
 
 		} else if (docxObject instanceof JAXBElement<?>) {
@@ -134,21 +141,30 @@ public class RunContentML extends ElementML {
 	protected void init(Object docxObject) {
 		if (docxObject == null) {
 			;//implied RunContentML
+		
+		} else if (docxObject instanceof org.docx4j.wml.Text ) {
 			
+			String s = ((org.docx4j.wml.Text)docxObject).getValue();
+			if (s != null && s.length() > 0) {
+				this.textContent = s;
+			} else {
+				this.textContent = Constants.TEXT_ELEMENT_EMPTY_VALUE;
+			}
+						
 		} else if (docxObject instanceof org.docx4j.wml.Br) {
 			// TODO: Full support of BR element
 			this.textContent = Constants.NEWLINE;
 			
-		} else if (docxObject instanceof org.docx4j.wml.Cr) {
+		} else if (docxObject instanceof org.docx4j.wml.R.Cr) {
 			this.textContent = Constants.NEWLINE;
 										
-		} else if (docxObject instanceof org.docx4j.wml.NoBreakHyphen) {
+		} else if (docxObject instanceof org.docx4j.wml.R.NoBreakHyphen) {
 			//Unsupported yet
 			QName name = Context.jc.createJAXBIntrospector().getElementName(docxObject);
 			this.textContent = XmlUtil.getEnclosingTagPair(name);
 			this.isDummy = true;
 
-		} else if (docxObject instanceof org.docx4j.wml.SoftHyphen) {
+		} else if (docxObject instanceof org.docx4j.wml.R.SoftHyphen) {
 			//Unsupported yet
 			QName name = Context.jc.createJAXBIntrospector().getElementName(docxObject);
 			this.textContent = XmlUtil.getEnclosingTagPair(name);

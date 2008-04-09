@@ -34,6 +34,7 @@ import org.docx4j.XmlUtils;
 import org.docx4j.wml.BooleanDefaultTrue;
 import org.docx4j.wml.HpsMeasure;
 import org.docx4j.wml.RPr;
+import org.docx4j.wml.RFonts;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -103,7 +104,7 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 					//and color yet we do not touch the 
 					//original setting of rPr underline
 				} else {
-					org.docx4j.wml.Underline u = 
+					org.docx4j.wml.U u = 
 						ObjectFactory.createUnderline("single", "auto");
 					rPr.setU(u);
 				}
@@ -116,7 +117,7 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 		
 		//FONT FAMILY Attribute
 		String strValue = StyleConstants.getFontFamily(this.attrs);
-		RPr.RFonts rfonts = rPr.getRFonts();
+		RFonts rfonts = rPr.getRFonts();
 		if (rfonts != null) {
 			//Just set the asscii value.
 			//Do not touch other attributes.

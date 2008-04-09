@@ -175,7 +175,7 @@ public class RunML extends ElementML {
 			if ("org.docx4j.wml.RunTrackChange".equals(typeName)) {
 				org.docx4j.wml.RunTrackChange rtc =
 					(org.docx4j.wml.RunTrackChange) jaxbElem.getValue();
-				theChildren = rtc.getEGContentRunContent();
+				theChildren = rtc.getCustomXmlOrSmartTagOrSdt(); // Horrible name
 			} else {
 				throw new IllegalArgumentException(
 						"Unsupported Docx Object Type = " + typeName);

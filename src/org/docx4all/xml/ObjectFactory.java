@@ -30,7 +30,7 @@ import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.StyleDefinitionsPart;
 import org.docx4j.wml.BooleanDefaultTrue;
 import org.docx4j.wml.P;
-import org.docx4j.wml.STJc;
+import org.docx4j.wml.JcEnumeration;
 import org.docx4j.wml.Text;
 
 
@@ -41,10 +41,10 @@ public class ObjectFactory {
 	private final static org.docx4j.wml.ObjectFactory _jaxbFactory = 
 		new org.docx4j.wml.ObjectFactory();
 
-	public final static JAXBElement<P> createPara(String textContent) {
-		org.docx4j.wml.P p = createP(textContent);
-		return _jaxbFactory.createP(p);
-	}
+//	public final static JAXBElement<P> createPara(String textContent) {
+//		org.docx4j.wml.P p = createP(textContent);
+//		return _jaxbFactory.createP(p);
+//	}
 	
 	public final static org.docx4j.wml.P createP(String textContent) {
 		org.docx4j.wml.P p = _jaxbFactory.createP();
@@ -61,7 +61,7 @@ public class ObjectFactory {
 	}
 	
 	public final static org.docx4j.wml.PPr.PStyle createPStyle(String styleId) {
-		org.docx4j.wml.PPr.PStyle pStyle = _jaxbFactory.createPPrPStyle();
+		org.docx4j.wml.PPr.PStyle pStyle = _jaxbFactory.createPPrBasePStyle();
 		pStyle.setVal(styleId);
 		return pStyle;
 	}
@@ -70,13 +70,13 @@ public class ObjectFactory {
 		org.docx4j.wml.R r = _jaxbFactory.createR();
 		
 		if (org.docx4all.ui.main.Constants.NEWLINE.equals(textContent)) {
-			org.docx4j.wml.Cr cr = _jaxbFactory.createCr();
+			org.docx4j.wml.R.Cr cr = _jaxbFactory.createRCr();
 			r.getRunContent().add(cr);
 			cr.setParent(r);
 		} else if (textContent != null) {
 			org.docx4j.wml.Text text = _jaxbFactory.createText();
 			text.setValue(textContent);
-			r.getRunContent().add(_jaxbFactory.createT(text));
+			r.getRunContent().add(text);
 			text.setParent(r);
 		}
 		return r;
@@ -86,17 +86,24 @@ public class ObjectFactory {
 		return _jaxbFactory.createRPr();
 	}
 	
-	public final static org.docx4j.wml.RPr.RStyle createRStyle(String styleId) {
-		org.docx4j.wml.RPr.RStyle rStyle = _jaxbFactory.createRPrRStyle();
+	public final static org.docx4j.wml.RStyle createRStyle(String styleId) {
+		org.docx4j.wml.RStyle rStyle = _jaxbFactory.createRStyle();
 		rStyle.setVal(styleId);
 		return rStyle;
 	}
 	
-	public final static JAXBElement<Text> createT(String textContent) {
+//	public final static JAXBElement<Text> createT(String textContent) {
+//		org.docx4j.wml.Text text = _jaxbFactory.createText();
+//		text.setValue(textContent);
+//		return _jaxbFactory.createT(text);
+//	}
+
+	public final static org.docx4j.wml.Text createT(String textContent) {
 		org.docx4j.wml.Text text = _jaxbFactory.createText();
 		text.setValue(textContent);
-		return _jaxbFactory.createT(text);
+		return text;
 	}
+	
 	
 	public static WordprocessingMLPackage createDocumentPackage(org.docx4j.wml.Document doc) {
 		// Create a package
@@ -136,7 +143,7 @@ public class ObjectFactory {
 		org.docx4j.wml.P  para = createP(Constants.NEWLINE);
 		
 		org.docx4j.wml.Body  body = _jaxbFactory.createBody();
-		body.getBlockLevelElements().add(_jaxbFactory.createP(para));
+		body.getEGBlockLevelElts().add(para);
 		para.setParent(body);
 		
 		org.docx4j.wml.Document doc = _jaxbFactory.createDocument();
@@ -152,13 +159,13 @@ public class ObjectFactory {
         if (align != null) {
         	theJc = _jaxbFactory.createJc();
 			if (align.intValue() == StyleConstants.ALIGN_LEFT) {
-				theJc.setVal(STJc.LEFT);
+				theJc.setVal(JcEnumeration.LEFT);
 			} else if (align.intValue() == StyleConstants.ALIGN_RIGHT) {
-				theJc.setVal(STJc.RIGHT);
+				theJc.setVal(JcEnumeration.RIGHT);
 			} else if (align.intValue() == StyleConstants.ALIGN_CENTER) {
-				theJc.setVal(STJc.CENTER);
+				theJc.setVal(JcEnumeration.CENTER);
 			} else if (align.intValue() == StyleConstants.ALIGN_JUSTIFIED) {
-				theJc.setVal(STJc.BOTH);
+				theJc.setVal(JcEnumeration.BOTH);
 			} else {
 				theJc = null;
 			}
@@ -173,15 +180,16 @@ public class ObjectFactory {
 		return bdt;
 	}
 	
-	public final static org.docx4j.wml.Underline createUnderline(String value, String color) {
-		org.docx4j.wml.Underline u = _jaxbFactory.createUnderline();
-		u.getVal().add(value);
+	public final static org.docx4j.wml.U createUnderline(String value, String color) {
+		org.docx4j.wml.U u = _jaxbFactory.createU();
+		org.docx4j.wml.UnderlineEnumeration ue = org.docx4j.wml.UnderlineEnumeration.fromValue(value); 
+		u.setVal(ue);
 		u.setColor(color);
 		return u;
 	}
 	
-	public final static org.docx4j.wml.RPr.RFonts createRPrRFonts(String ascii) {
-		org.docx4j.wml.RPr.RFonts rfonts = _jaxbFactory.createRPrRFonts();
+	public final static org.docx4j.wml.RFonts createRPrRFonts(String ascii) {
+		org.docx4j.wml.RFonts rfonts = _jaxbFactory.createRFonts();
 		rfonts.setAscii(ascii);
 		return rfonts;
 	}

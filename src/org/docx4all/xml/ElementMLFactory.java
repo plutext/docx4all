@@ -80,7 +80,7 @@ public class ElementMLFactory {
 		ParagraphPropertiesML newPPr,
 		RunPropertiesML newRPr) {
 		
-    	ParagraphML thePara = new ParagraphML(ObjectFactory.createPara(null));
+    	ParagraphML thePara = new ParagraphML(ObjectFactory.createP(null));
     	thePara.setParagraphProperties(newPPr);
     	
 		RunML newRunML = null;
