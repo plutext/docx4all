@@ -81,7 +81,7 @@ public class TextInserter implements TextProcessor {
 			RunML newRun = new RunML(ObjectFactory.createR(text));
 			newRun.addAttributes(attrs, true);
 					
-			ParagraphML newPara = new ParagraphML(ObjectFactory.createPara(null));
+			ParagraphML newPara = new ParagraphML(ObjectFactory.createP(null));
 			newPara.addChild(newRun);
 			
 			ParagraphML para = (ParagraphML) elem.getElementML();
