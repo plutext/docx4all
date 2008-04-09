@@ -103,7 +103,7 @@ public class BodyML extends ElementML {
 		
 		org.docx4j.wml.Body body = 
 			(org.docx4j.wml.Body) this.docxObject;
-		return body.getBlockLevelElements();
+		return body.getEGBlockLevelElts();
 	}
 	
 	protected void init(Object docxObject) {
@@ -128,7 +128,7 @@ public class BodyML extends ElementML {
 			return;
 		}
 		
-		List <Object> bodyChildren = body.getBlockLevelElements();
+		List <Object> bodyChildren = body.getEGBlockLevelElts();
 		if (!bodyChildren.isEmpty()) {
 			this.children = new ArrayList<ElementML>(bodyChildren.size());
 			for (Object o : bodyChildren) {
