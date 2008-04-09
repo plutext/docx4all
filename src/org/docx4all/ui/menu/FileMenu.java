@@ -494,10 +494,12 @@ public class FileMenu extends UIMenu {
 		try {
 			WordprocessingMLPackage wordMLPackage = rootML
 					.getWordprocessingMLPackage();
-			// Create temporary .pdf file.
+			//Create temporary .pdf file.
+			//Remember that filePath is in Commons-VFS format which
+			//uses '/' as separator char.
 			String tmpName = 
 				filePath.substring(
-					filePath.lastIndexOf(File.separator),
+					filePath.lastIndexOf("/"),
 					filePath.lastIndexOf(Constants.DOT));
 			File tmpFile = File.createTempFile(tmpName + ".tmp", ".pdf");
 			// Delete the temporary file when program exits.
