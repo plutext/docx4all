@@ -433,7 +433,7 @@ public class DocUtil {
 				wmlPackage.getMainDocumentPart().getJaxbElement();
 		}
 		
-		List<Object> list = jaxbDoc.getBody().getBlockLevelElements();
+		List<Object> list = jaxbDoc.getBody().getEGBlockLevelElts();
 		int i = 0;
 		for (Object obj : list) {
 			String s = XmlUtils.marshaltoString(obj, true);
