@@ -121,15 +121,6 @@ public class ParagraphPropertiesML extends ElementML implements PropertiesContai
 		this.parent = parent;
 	}
 	
-	public void setDocxParent(Object docxParent) {
-		PPr pPr = (PPr) getDocxObject();
-		if (pPr == null) {
-			;//do nothing
-		} else {
-			pPr.setParent(docxParent);
-		}
-	}
-	
 	public List<Object> getDocxChildren() {
 		return null;//do not have children
 	}

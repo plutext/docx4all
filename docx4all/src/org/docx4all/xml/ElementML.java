@@ -19,6 +19,7 @@
 
 package org.docx4all.xml;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -72,12 +73,28 @@ public abstract class ElementML implements Cloneable {
 	}
 	
 	public abstract void setParent(ElementML parent);
-	public abstract void setDocxParent(Object docxParent);
 	public abstract Object clone();
 
 	protected abstract void init(Object docxObject);
 	protected abstract List<Object> getDocxChildren();
 	
+	public void setDocxParent(Object docxParent) {
+		if (this.docxObject == null) {
+			;//do nothing
+		} else {
+			try {
+				this.docxObject.getClass().getMethod("setParent", Object.class)
+					.invoke(this.docxObject, docxParent);
+			} catch (NoSuchMethodException exc) {
+				;//ignore
+			} catch (IllegalAccessException exc) {
+				;//ignore
+			} catch (InvocationTargetException exc) {
+				;//ignore
+			}
+		}
+	}// setDocxParent()
+
 	public boolean canAddChild(int idx, ElementML child) {
 		boolean canAdd = true;
 		

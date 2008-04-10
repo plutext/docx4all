@@ -90,50 +90,6 @@ public class RunContentML extends ElementML {
 		this.parent = parent;
 	}
 	
-	public void setDocxParent(Object docxParent) {
-		if (this.docxObject == null) {
-			;//do nothing
-		} else if (docxObject instanceof org.docx4j.wml.Text ) {
-			
-			((org.docx4j.wml.Text)docxObject).setParent(docxParent);
-			
-		} else if (this.docxObject instanceof org.docx4j.wml.Br) {
-			org.docx4j.wml.Br br = 
-				(org.docx4j.wml.Br) this.docxObject;
-			br.setParent(docxParent);
-
-		} else if (docxObject instanceof org.docx4j.wml.R.Cr) {
-			org.docx4j.wml.R.Cr cr = 
-				(org.docx4j.wml.R.Cr) this.docxObject;
-			cr.setParent(docxParent);
-
-		} else if (docxObject instanceof org.docx4j.wml.R.NoBreakHyphen) {
-			org.docx4j.wml.R.NoBreakHyphen nbh = 
-				(org.docx4j.wml.R.NoBreakHyphen) this.docxObject;
-			nbh.setParent(docxParent);
-
-		} else if (docxObject instanceof org.docx4j.wml.R.SoftHyphen) {
-			org.docx4j.wml.R.SoftHyphen sh = 
-				(org.docx4j.wml.R.SoftHyphen) this.docxObject;
-			sh.setParent(docxParent);
-
-		} else if (docxObject instanceof JAXBElement<?>) {
-			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
-			String typeName = jaxbElem.getDeclaredType().getName();
-			if (hasSupportedTextValue(jaxbElem)) {
-				org.docx4j.wml.Text t = 
-					(org.docx4j.wml.Text) jaxbElem.getValue();
-				t.setParent(docxParent);
-				
-			} else {
-				throw new IllegalArgumentException(
-						"Unsupported Docx Object Type = " + typeName);
-			}
-		} else {
-			;//should not come here. See init().
-		}
-	}// setDocxParent()
-	
 	public List<Object> getDocxChildren() {
 		return null;//do not have children
 	}
