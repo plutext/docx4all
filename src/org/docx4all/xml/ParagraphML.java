@@ -152,42 +152,6 @@ public class ParagraphML extends ElementML {
 		this.parent = parent;
 	}
 	
-	public void setDocxParent(Object docxParent) {		
-		if (this.docxObject == null) {
-			;//do nothing
-		} else if (this.docxObject instanceof P) {
-			
-			((org.docx4j.wml.P)docxObject).setParent(docxParent);
-			
-		} else if (this.docxObject instanceof JAXBElement) {
-			JAXBElement<?> jaxbElem = (JAXBElement<?>) this.docxObject;
-			String typeName = jaxbElem.getDeclaredType().getName();
-
-			if ("org.docx4j.wml.P".equals(typeName)) {
-				org.docx4j.wml.P p = 
-					(org.docx4j.wml.P) jaxbElem.getValue();
-				p.setParent(docxParent);
-			} else if ("org.docx4j.wml.Tbl".equals(typeName)) {
-				org.docx4j.wml.Tbl tbl =
-					(org.docx4j.wml.Tbl) jaxbElem.getValue();
-				tbl.setParent(docxParent);
-			} else if ("org.docx4j.wml.RunTrackChange".equals(typeName)) {
-				org.docx4j.wml.RunTrackChange rtc =
-					(org.docx4j.wml.RunTrackChange) jaxbElem.getValue();
-				rtc.setParent(docxParent);
-			} else {
-				throw new IllegalArgumentException(
-						"Unsupported Docx Object Type = " + typeName);
-			}
-		} else if (this.docxObject instanceof org.docx4j.wml.SdtBlock) {
-			org.docx4j.wml.SdtBlock sdt = 
-				(org.docx4j.wml.SdtBlock) docxObject;
-			sdt.setParent(docxParent);
-		} else {
-			;//should not come here. See init().
-		}
-	}// setDocxParent()
-	
 	protected List<Object> getDocxChildren() {
 		List<Object> theChildren = null;
 		

@@ -26,12 +26,10 @@ import javax.swing.text.AttributeSet;
 import javax.xml.bind.JAXBElement;
 
 import org.apache.log4j.Logger;
-//import org.apache.xerces.dom.NodeImpl;
-//import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
-import org.w3c.dom.Node;
 import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
 import org.docx4j.wml.RPr;
+import org.w3c.dom.Node;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -132,31 +130,6 @@ public class RunML extends ElementML {
 		}
 		this.parent = parent;
 	}
-	
-	public void setDocxParent(Object docxParent) {
-		if (this.docxObject == null) {
-			;//do nothing
-		} else if (this.docxObject instanceof org.docx4j.wml.R) {
-			org.docx4j.wml.R run = 
-				(org.docx4j.wml.R) this.docxObject;
-			run.setParent(docxParent);
-			
-		} else if (this.docxObject instanceof JAXBElement) {
-			JAXBElement<?> jaxbElem = (JAXBElement<?>) this.docxObject;
-			String typeName = jaxbElem.getDeclaredType().getName();
-
-			if ("org.docx4j.wml.RunTrackChange".equals(typeName)) {
-				org.docx4j.wml.RunTrackChange rtc =
-					(org.docx4j.wml.RunTrackChange) jaxbElem.getValue();
-				rtc.setParent(docxParent);
-			} else {
-				throw new IllegalArgumentException(
-						"Unsupported Docx Object Type = " + typeName);
-			}
-		} else {
-			;//should not come here. See init().
-		}
-	}// setDocxParent()
 	
 	protected List<Object> getDocxChildren() {
 		List<Object> theChildren = null;

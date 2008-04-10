@@ -33,8 +33,8 @@ import org.docx4all.swing.text.WordMLStyleConstants;
 import org.docx4j.XmlUtils;
 import org.docx4j.wml.BooleanDefaultTrue;
 import org.docx4j.wml.HpsMeasure;
-import org.docx4j.wml.RPr;
 import org.docx4j.wml.RFonts;
+import org.docx4j.wml.RPr;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -180,15 +180,6 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 			throw new IllegalArgumentException("NOT a RunML.");
 		}
 		this.parent = parent;
-	}
-	
-	public void setDocxParent(Object docxParent) {
-		RPr rPr = (RPr) getDocxObject();
-		if (rPr == null) {
-			;//do nothing
-		} else {
-			rPr.setParent(docxParent);
-		}
 	}
 	
 	public List<Object> getDocxChildren() {

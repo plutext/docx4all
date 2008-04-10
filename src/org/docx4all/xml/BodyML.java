@@ -24,7 +24,6 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.docx4j.XmlUtils;
-import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 
 /**
  *	@author Jojada Tirtowidjojo - 08/01/2008
@@ -84,17 +83,6 @@ public class BodyML extends ElementML {
 		}
 		this.parent = parent;
 	}
-	
-	public void setDocxParent(Object docxParent) {
-		if (this.docxObject == null) {
-			;//do nothing
-		} else if (docxParent instanceof WordprocessingMLPackage){
-			((org.docx4j.wml.Body) this.docxObject).setParent(docxParent);
-		} else {
-			throw new IllegalArgumentException(
-					"docxParent = " + docxParent.getClass().getName());
-		}
-	}// setDocxParent()
 	
 	protected List<Object> getDocxChildren() {
 		if (this.docxObject == null) {
