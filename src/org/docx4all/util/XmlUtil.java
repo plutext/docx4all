@@ -84,8 +84,8 @@ public class XmlUtil {
 
         	org.docx4j.openpackaging.parts.WordprocessingML.StyleDefinitionsPart stylesPart = documentPart.getStyleDefinitionsPart();
         	
-        	pkgPartDocument.setName(stylesPart.getPartName().getName());
-        	pkgPartDocument.setContentType(stylesPart.getContentType() );
+        	pkgPartStyles.setName(stylesPart.getPartName().getName());
+        	pkgPartStyles.setContentType(stylesPart.getContentType() );
         	
         	org.docx4j.wml.Package.Part.XmlData XmlDataStyles = factory.createPackagePartXmlData();
         	
