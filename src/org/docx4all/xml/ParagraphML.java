@@ -23,12 +23,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.text.AttributeSet;
-import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBIntrospector;
+import javax.xml.namespace.QName;
 
 import org.apache.log4j.Logger;
 import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
-import org.docx4j.wml.P;
+import org.docx4j.jaxb.Context;
 import org.docx4j.wml.PPr;
 
 /**
@@ -78,35 +79,15 @@ public class ParagraphML extends ElementML {
 		}
 		
 		this.pPr = pPr;
-//		if (docxObject instanceof JAXBElement) {
-//			// Old code
-//			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
-//			String typeName = jaxbElem.getDeclaredType().getName();
-//			
-//			if ("org.docx4j.wml.P".equals(typeName)) {
-//				org.docx4j.wml.PPr newDocxPPr = null;
-//				if (pPr != null) {
-//					pPr.setParent(ParagraphML.this);
-//					newDocxPPr = 
-//						(org.docx4j.wml.PPr) pPr.getDocxObject();
-//				}
-//				org.docx4j.wml.P p = 
-//					(org.docx4j.wml.P) jaxbElem.getValue();
-//				p.setPPr(newDocxPPr);
-//				
-//				if (newDocxPPr != null) {
-//					newDocxPPr.setParent(p);
-//				}
-//			}
-//		} else 
-			if (docxObject instanceof P) {
+		
+		if (this.docxObject instanceof org.docx4j.wml.P) {
 			org.docx4j.wml.PPr newDocxPPr = null;
 			if (pPr != null) {
 				pPr.setParent(ParagraphML.this);
 				newDocxPPr = 
 					(org.docx4j.wml.PPr) pPr.getDocxObject();
 			}
-			((org.docx4j.wml.P)docxObject).setPPr(newDocxPPr);
+			((org.docx4j.wml.P)this.docxObject).setPPr(newDocxPPr);
 			
 			if (newDocxPPr != null) {
 				newDocxPPr.setParent(docxObject);
@@ -155,40 +136,31 @@ public class ParagraphML extends ElementML {
 	protected List<Object> getDocxChildren() {
 		List<Object> theChildren = null;
 		
+		JAXBIntrospector inspector = Context.jc.createJAXBIntrospector();
+		
 		if (this.docxObject == null) {
 			;//do nothing
-		} else if (this.docxObject instanceof P) {
 			
-			theChildren = ((org.docx4j.wml.P)docxObject).getParagraphContent();			
+		} else if (inspector.isElement(docxObject)) {
+			Object value = JAXBIntrospector.getValue(docxObject);
+			if (value instanceof org.docx4j.wml.P) {
+				theChildren = ((org.docx4j.wml.P)value).getParagraphContent();
 			
-		} else if (this.docxObject instanceof JAXBElement) {
-			JAXBElement<?> jaxbElem = (JAXBElement<?>) this.docxObject;
-			String typeName = jaxbElem.getDeclaredType().getName();
-
-			if ("org.docx4j.wml.P".equals(typeName)) {
-				org.docx4j.wml.P p = 
-					(org.docx4j.wml.P) jaxbElem.getValue();
-				theChildren = p.getParagraphContent();
-			} else if ("org.docx4j.wml.Tbl".equals(typeName)) {
-				org.docx4j.wml.Tbl tbl =
-					(org.docx4j.wml.Tbl) jaxbElem.getValue();
+			/*
+			} else if (value instanceof org.docx4j.wml.Tbl) {
+				org.docx4j.wml.Tbl tbl = (org.docx4j.wml.Tbl) value;
 				theChildren = new ArrayList<Object>();
 				theChildren.addAll(tbl.getEGRangeMarkupElements());
-			} else if ("org.docx4j.wml.RunTrackChange".equals(typeName)) {
-				org.docx4j.wml.RunTrackChange rtc =
-					(org.docx4j.wml.RunTrackChange) jaxbElem.getValue();
-				theChildren = rtc.getCustomXmlOrSmartTagOrSdt(); // Horrible name for list!
-			} else {
-				throw new IllegalArgumentException(
-						"Unsupported Docx Object Type = " + typeName);
-			}
-		} else if (this.docxObject instanceof org.docx4j.wml.SdtBlock) {
-			org.docx4j.wml.SdtBlock sdt = 
-				(org.docx4j.wml.SdtBlock) docxObject;
-			org.docx4j.wml.SdtContentBlock content = sdt.getSdtContent();
-			if (content != null) {
-				theChildren = new ArrayList<Object>();
-				theChildren.add(content);
+			
+			} else if (value instanceof org.docx4j.wml.SdtBlock) {
+				org.docx4j.wml.SdtBlock sdt = 
+					(org.docx4j.wml.SdtBlock) value;
+				org.docx4j.wml.SdtContentBlock content = sdt.getSdtContent();
+				if (content != null) {
+					theChildren = new ArrayList<Object>();
+					theChildren.add(content);
+				}
+			*/
 			}
 		} else {
 			;//should not come here. See init().
@@ -203,36 +175,30 @@ public class ParagraphML extends ElementML {
 		
 		org.docx4j.wml.P para = null;
 		
+		JAXBIntrospector inspector = Context.jc.createJAXBIntrospector();
+		
 		if (docxObject == null) {
 			;//implied ParagraphML
-
-		} else if (this.docxObject instanceof P) {
-			para = (org.docx4j.wml.P)docxObject;
-			this.isDummy = false;
-			// JBH - More needed here?
-		} else if (docxObject instanceof JAXBElement) {
-			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
-			String typeName = jaxbElem.getDeclaredType().getName();
 			
-			if ("org.docx4j.wml.P".equals(typeName)) {
-				para = (org.docx4j.wml.P) jaxbElem.getValue();
+		} else if (inspector.isElement(docxObject)) {
+			Object value = JAXBIntrospector.getValue(docxObject);
+			if (value instanceof org.docx4j.wml.P) {
+				para = (org.docx4j.wml.P) value;
 				this.isDummy = false;
 				
+			//} else if (value instanceof org.docx4j.wml.Tbl) {
+				//unsupported yet
+				
+			//} else if (value instanceof org.docx4j.wml.SdtBlock) {
+				//unsupported yet
 			} else {
 				//Create a dummy ParagraphML for this unsupported element
-				// TODO: A more informative text content in dummy ParagraphML
-				String renderedText = 
-					XmlUtil.getEnclosingTagPair(jaxbElem.getName());
+				//TODO: A more informative text content in dummy ParagraphML
+				QName name = inspector.getElementName(docxObject);
+				String renderedText = XmlUtil.getEnclosingTagPair(name);
 				para = ObjectFactory.createP(renderedText);
 				this.isDummy = true;
 			}
-			
-		} else if (docxObject instanceof org.docx4j.wml.SdtBlock) {
-			//Unsupported yet
-			// TODO: A more informative text content in dummy ParagraphML
-			String s = "<w:sdt></w:sdt>";
-			para = ObjectFactory.createP(s);
-			this.isDummy = true;
 	
 		} else {
 			throw new IllegalArgumentException("Unsupported Docx Object = " + docxObject);			
