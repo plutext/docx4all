@@ -21,7 +21,7 @@ package org.docx4all.xml;
 
 import java.util.List;
 
-import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBIntrospector;
 import javax.xml.namespace.QName;
 
 import org.apache.log4j.Logger;
@@ -52,17 +52,15 @@ public class RunContentML extends ElementML {
 	
 	public void setTextContent(String textContent) {
 		this.textContent = textContent;
-		if (docxObject instanceof JAXBElement<?>) {
-			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
-			if (hasSupportedTextValue((JAXBElement<?>) jaxbElem)) {
-				org.docx4j.wml.Text t = 
-					(org.docx4j.wml.Text) jaxbElem.getValue();
+		
+		JAXBIntrospector inspector = Context.jc.createJAXBIntrospector();
+		if (this.docxObject != null 
+			&& inspector.isElement(this.docxObject)) {
+			Object value = JAXBIntrospector.getValue(this.docxObject);
+			if (value instanceof org.docx4j.wml.Text) {
+				org.docx4j.wml.Text t = (org.docx4j.wml.Text) value;
 				t.setValue(textContent);
-				
 			}
-		} else if (docxObject instanceof org.docx4j.wml.Text ) {
-			
-			((org.docx4j.wml.Text)docxObject).setValue(textContent);
 		}
 	}
 	
@@ -95,67 +93,49 @@ public class RunContentML extends ElementML {
 	}
 	
 	protected void init(Object docxObject) {
+		JAXBIntrospector inspector = Context.jc.createJAXBIntrospector();
+		
 		if (docxObject == null) {
 			;//implied RunContentML
-		
-		} else if (docxObject instanceof org.docx4j.wml.Text ) {
 			
-			String s = ((org.docx4j.wml.Text)docxObject).getValue();
-			if (s != null && s.length() > 0) {
-				this.textContent = s;
-			} else {
-				this.textContent = Constants.TEXT_ELEMENT_EMPTY_VALUE;
-			}
-						
-		} else if (docxObject instanceof org.docx4j.wml.Br) {
-			// TODO: Full support of BR element
-			this.textContent = Constants.NEWLINE;
-			
-		} else if (docxObject instanceof org.docx4j.wml.R.Cr) {
-			this.textContent = Constants.NEWLINE;
-										
-		} else if (docxObject instanceof org.docx4j.wml.R.NoBreakHyphen) {
-			//Unsupported yet
-			QName name = Context.jc.createJAXBIntrospector().getElementName(docxObject);
-			this.textContent = XmlUtil.getEnclosingTagPair(name);
-			this.isDummy = true;
+		} else if (inspector.isElement(docxObject)) {
+			Object value = JAXBIntrospector.getValue(docxObject);
 
-		} else if (docxObject instanceof org.docx4j.wml.R.SoftHyphen) {
-			//Unsupported yet
-			QName name = Context.jc.createJAXBIntrospector().getElementName(docxObject);
-			this.textContent = XmlUtil.getEnclosingTagPair(name);
-			this.isDummy = true;
-
-		} else if (docxObject instanceof JAXBElement<?>) {
-			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
-			if (hasSupportedTextValue(jaxbElem)) {
-				org.docx4j.wml.Text t = 
-					(org.docx4j.wml.Text) 
-						jaxbElem.getValue();
-				String s = t.getValue();
+			if (value instanceof org.docx4j.wml.Text) {
+				String s = ((org.docx4j.wml.Text) value).getValue();
 				if (s != null && s.length() > 0) {
 					this.textContent = s;
 				} else {
 					this.textContent = Constants.TEXT_ELEMENT_EMPTY_VALUE;
 				}
+
+			} else if (value instanceof org.docx4j.wml.Br) {
+				// TODO: Full support of BR element
+				this.textContent = Constants.NEWLINE;
+
+			} else if (value instanceof org.docx4j.wml.R.Cr) {
+				this.textContent = Constants.NEWLINE;
+
+			//} else if (value instanceof org.docx4j.wml.R.NoBreakHyphen) {
+				// Unsupported yet
+
+			//} else if (value instanceof org.docx4j.wml.R.SoftHyphen) {
+				// Unsupported yet
+
 			} else {
-				//Create a dummy RunContentML for this unsupported element
+				// Create a dummy RunContentML for this unsupported element
 				// TODO: A more informative text content in dummy RunContentML
-				this.textContent = XmlUtil.getEnclosingTagPair(jaxbElem.getName());
+				QName name = inspector.getElementName(value);
+				this.textContent = XmlUtil.getEnclosingTagPair(name);
 				this.isDummy = true;
 			}
 		} else {
-			throw new IllegalArgumentException("Unsupported Docx Object = " + docxObject);			
+			throw new IllegalArgumentException(
+					"Unsupported Docx Object = " + docxObject);
 		}
 		
 	}// init()
 	
-	private static boolean hasSupportedTextValue(JAXBElement<?> elem) {
-		String typeName = elem.getDeclaredType().getName();
-		return "org.docx4j.wml.Text".equals(typeName) 
-			&& "t".equals(elem.getName().getLocalPart());
-	}
-		
 }// RunContentML class
 
 
