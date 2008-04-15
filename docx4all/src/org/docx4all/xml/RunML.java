@@ -23,11 +23,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.text.AttributeSet;
-import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBIntrospector;
+import javax.xml.namespace.QName;
 
 import org.apache.log4j.Logger;
 import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
+import org.docx4j.jaxb.Context;
 import org.docx4j.wml.RPr;
 import org.w3c.dom.Node;
 
@@ -134,27 +136,15 @@ public class RunML extends ElementML {
 	protected List<Object> getDocxChildren() {
 		List<Object> theChildren = null;
 		
+		JAXBIntrospector inspector = Context.jc.createJAXBIntrospector();
 		if (this.docxObject == null) {
-			;//do nothing
-		} else if (this.docxObject instanceof org.docx4j.wml.R) {
-			org.docx4j.wml.R run = 
-				(org.docx4j.wml.R) this.docxObject;
-			theChildren = run.getRunContent();
-			
-		} else if (this.docxObject instanceof JAXBElement) {
-			JAXBElement<?> jaxbElem = (JAXBElement<?>) this.docxObject;
-			String typeName = jaxbElem.getDeclaredType().getName();
-
-			if ("org.docx4j.wml.RunTrackChange".equals(typeName)) {
-				org.docx4j.wml.RunTrackChange rtc =
-					(org.docx4j.wml.RunTrackChange) jaxbElem.getValue();
-				theChildren = rtc.getCustomXmlOrSmartTagOrSdt(); // Horrible name
-			} else {
-				throw new IllegalArgumentException(
-						"Unsupported Docx Object Type = " + typeName);
+			;//implied RunML
+		} else if (inspector.isElement(this.docxObject)) {
+			Object value = JAXBIntrospector.getValue(this.docxObject);
+			if (value instanceof org.docx4j.wml.R) {
+				org.docx4j.wml.R run = (org.docx4j.wml.R) value;
+				theChildren = run.getRunContent();
 			}
-		} else {
-			;//should not come here. See init().
 		}
 
 		return theChildren;
@@ -163,33 +153,37 @@ public class RunML extends ElementML {
 	protected void init(Object docxObject) {
 		org.docx4j.wml.R run = null;
 		
+		JAXBIntrospector inspector = Context.jc.createJAXBIntrospector();
+		
 		if (docxObject == null) {
 			;//implied RunML
 			
-		} else if (docxObject instanceof org.docx4j.wml.R) {
-			run = (org.docx4j.wml.R) docxObject;
-			this.isDummy = false;
+		} else if (inspector.isElement(docxObject)) {
+			Object value = JAXBIntrospector.getValue(docxObject);
 			
-		} else if (docxObject instanceof JAXBElement) {
-			JAXBElement<?> jaxbElem = (JAXBElement<?>) docxObject;
-			//Create a dummy RunML for this unsupported element
-			// TODO: A more informative text content in dummy RunML
-			String renderedText = 
-				XmlUtil.getEnclosingTagPair(jaxbElem.getName());
-			run = ObjectFactory.createR(renderedText);
-			this.isDummy = true;
+			if (value instanceof org.docx4j.wml.R) {
+				run = (org.docx4j.wml.R) value;
+				this.isDummy = false;
+			} else {
+				//Create a dummy RunML for this unsupported element
+				// TODO: A more informative text content in dummy RunML
+				QName name = inspector.getElementName(docxObject);
+				String renderedText = XmlUtil.getEnclosingTagPair(name);
+				run = ObjectFactory.createR(renderedText);
+				this.isDummy = true;
+			}
 			
 		} else if (docxObject instanceof Node) {
+			//docxObject is NOT a JAXB Element
 			// If Xerces is on the path, this will be a org.apache.xerces.dom.NodeImpl;
 			// otherwise, it will be com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
-			
-			String renderedText = 
-				XmlUtil.getEnclosingTagPair((Node) docxObject);
+			String renderedText = XmlUtil.getEnclosingTagPair((Node) docxObject);
 			run = ObjectFactory.createR(renderedText);
 			this.isDummy = true;
-			
+				
 		} else {
-			throw new IllegalArgumentException("Unsupported Docx Object = " + docxObject.getClass().getName());			
+			throw new IllegalArgumentException(
+					"Unsupported Docx Object = " + docxObject.getClass().getName());			
 		}
 		
 		initRunProperties(run);
