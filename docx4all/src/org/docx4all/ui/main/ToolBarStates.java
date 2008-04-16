@@ -697,6 +697,9 @@ public class ToolBarStates extends InternalFrameAdapter
     	firePropertyChange(IFRAME_NUMBERS_PROPERTY_NAME, oldNumbers, newNumbers);
     	
     	if (_iframeNumbers == 0) {
+    		//a kind of reseting first
+        	setFormatInfo(null, null, SimpleAttributeSet.EMPTY);
+        	//Bring up default setting
     		setDefaultFormatInfo();
     	}
     }
