@@ -22,16 +22,13 @@ package org.docx4all.xml;
 import java.math.BigInteger;
 
 import javax.swing.text.StyleConstants;
-import javax.xml.bind.JAXBElement;
 
 import org.docx4all.ui.main.Constants;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.StyleDefinitionsPart;
 import org.docx4j.wml.BooleanDefaultTrue;
-import org.docx4j.wml.P;
 import org.docx4j.wml.JcEnumeration;
-import org.docx4j.wml.Text;
 
 
 /**
@@ -198,6 +195,18 @@ public class ObjectFactory {
 		org.docx4j.wml.HpsMeasure sz = _jaxbFactory.createHpsMeasure();
 		sz.setVal(new BigInteger(value.toString()));
 		return sz;
+	}
+	
+	public final static org.docx4j.wml.Id createId(BigInteger val) {
+		org.docx4j.wml.Id id = _jaxbFactory.createId();
+		id.setVal(val);
+		return id;
+	}
+	
+	public final static org.docx4j.wml.Tag createTag(String val) {
+		org.docx4j.wml.Tag tag = _jaxbFactory.createTag();
+		tag.setVal(val);
+		return tag;
 	}
 	
 	private ObjectFactory() {
