@@ -127,8 +127,10 @@ public class ParagraphML extends ElementML {
 	}
 		
 	public void setParent(ElementML parent) {
-		if (parent != null && !(parent instanceof BodyML)) {
-			throw new IllegalArgumentException("NOT a BodyML.");
+		if (parent != null 
+			&& !(parent instanceof BodyML)
+			&& !(parent instanceof SdtBlockML)) {
+			throw new IllegalArgumentException("Parent type = " + parent.getClass().getSimpleName());
 		}
 		this.parent = parent;
 	}
@@ -145,23 +147,8 @@ public class ParagraphML extends ElementML {
 			Object value = JAXBIntrospector.getValue(docxObject);
 			if (value instanceof org.docx4j.wml.P) {
 				theChildren = ((org.docx4j.wml.P)value).getParagraphContent();
-			
-			/*
-			} else if (value instanceof org.docx4j.wml.Tbl) {
-				org.docx4j.wml.Tbl tbl = (org.docx4j.wml.Tbl) value;
-				theChildren = new ArrayList<Object>();
-				theChildren.addAll(tbl.getEGRangeMarkupElements());
-			
-			} else if (value instanceof org.docx4j.wml.SdtBlock) {
-				org.docx4j.wml.SdtBlock sdt = 
-					(org.docx4j.wml.SdtBlock) value;
-				org.docx4j.wml.SdtContentBlock content = sdt.getSdtContent();
-				if (content != null) {
-					theChildren = new ArrayList<Object>();
-					theChildren.add(content);
-				}
-			*/
 			}
+			
 		} else {
 			;//should not come here. See init().
 		}
@@ -170,9 +157,6 @@ public class ParagraphML extends ElementML {
 	}
 	
 	protected void init(Object docxObject) {
-		
-		System.out.print("ParagraphML - init");
-		
 		org.docx4j.wml.P para = null;
 		
 		JAXBIntrospector inspector = Context.jc.createJAXBIntrospector();
@@ -186,11 +170,6 @@ public class ParagraphML extends ElementML {
 				para = (org.docx4j.wml.P) value;
 				this.isDummy = false;
 				
-			//} else if (value instanceof org.docx4j.wml.Tbl) {
-				//unsupported yet
-				
-			//} else if (value instanceof org.docx4j.wml.SdtBlock) {
-				//unsupported yet
 			} else {
 				//Create a dummy ParagraphML for this unsupported element
 				//TODO: A more informative text content in dummy ParagraphML
