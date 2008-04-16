@@ -1,0 +1,87 @@
+Index: /home/jharrop/workspace200711/vfsjfilechooser/src/net/sf/vfsjfilechooser/plaf/basic/BasicVFSDirectoryModel.java
+===================================================================
+--- /home/jharrop/workspace200711/vfsjfilechooser/src/net/sf/vfsjfilechooser/plaf/basic/BasicVFSDirectoryModel.java	(revision 6)
++++ /home/jharrop/workspace200711/vfsjfilechooser/src/net/sf/vfsjfilechooser/plaf/basic/BasicVFSDirectoryModel.java	(working copy)
+@@ -40,6 +40,8 @@
+ import javax.swing.SwingUtilities;
+ import javax.swing.event.ListDataEvent;
+ 
++import java.util.Comparator;
++import java.util.Collections;
+ 
+ /**
+  * The DirectoryModel implementation based on Swing BasicDirectoryModel
+@@ -251,29 +253,52 @@
+      *
+      * @param v
+      */
+-    protected void sort(Vector<?extends FileObject> v) {
+-        // ShellFolder.sortFiles(v);
++    protected void sort(Vector v) {
++        // org.apache.commons.vfs.provider.local.LocalFile cannot be cast to java.io.File
++        // so can't use sun.awt.shell.ShellFolder.sortFiles(v);        
++        
++    	// Convert the vector to a list
++    	List<FileObject> files = new java.util.ArrayList<FileObject>();
++        for (int i = 0; i < v.size(); i++) {
++            FileObject f = (FileObject) v.elementAt(i);
++            files.add(f);
++        }
++    	
++    	// sort it
++        Collections.sort(files, fileComparator);
++    	
++    	// Convert it back to a vector
++        v.clear();
++        for (FileObject f : files ) {
++        	v.add(f);
++        }
++        
+     }
++    
++    // Adapted from awt/sun/awt/shell/ShellFolderManager
++    private Comparator fileComparator = new Comparator() {
++        public int compare(Object a, Object b) {
++            return compare((FileObject) a, (FileObject) b);
++        }
+ 
+-    // Obsolete - not used
+-    /**
+-     *
+-     * @param a
+-     * @param b
+-     * @return
+-     */
+-    protected boolean lt(FileObject a, FileObject b) {
+-        // First ignore case when comparing
+-        int diff = a.getName().toString().toLowerCase()
+-                    .compareTo(b.getName().toString().toLowerCase());
++        public int compare(FileObject f1, FileObject f2) {
++
++        	String name1 = f1.getName().toString();
++                String name2 = f2.getName().toString();
+ 
+-        if (diff != 0) {
+-            return diff < 0;
+-        } else {
+-            // May differ in case (e.g. "mail" vs. "Mail")
+-            return a.getName().compareTo(b.getName()) < 0;
++                // First ignore case when comparing
++                int diff = name1.toLowerCase().compareTo(
++                        name2.toLowerCase());
++                if (diff != 0) {
++                    return diff;
++                } else {
++                    // May differ in case (e.g. "mail" vs. "Mail")
++                    // We need this test for consistent sorting
++                    return name1.compareTo(name2);
++                }
+         }
+-    }
++    };
++    	
+ 
+     /**
+      * Adds a PropertyChangeListener to the listener list. The listener is
+
+
