@@ -22,6 +22,8 @@ package org.docx4all.xml;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.bind.JAXBIntrospector;
+
 import org.apache.log4j.Logger;
 import org.docx4j.XmlUtils;
 
@@ -48,11 +50,10 @@ public class BodyML extends ElementML {
 	}
 	
 	public boolean canAddChild(int idx, ElementML child) {
-		boolean canAdd = true;
+		boolean canAdd = false;
 		
-		if (!(child instanceof ParagraphML)) {
-			canAdd = false;
-		} else {
+		if ((child instanceof ParagraphML)
+			|| (child instanceof SdtBlockML)) {
 			canAdd = super.canAddChild(idx, child);
 		}
 		
@@ -60,8 +61,9 @@ public class BodyML extends ElementML {
 	}
 		
 	public void addChild(int idx, ElementML child, boolean adopt) {
-		if (!(child instanceof ParagraphML)) {
-			throw new IllegalArgumentException("NOT a ParagraphML");
+		if (!(child instanceof ParagraphML)
+			&& !(child instanceof SdtBlockML)) {
+			throw new IllegalArgumentException("Child type = " + child.getClass().getSimpleName());
 		}
 		if (child.getParent() != null) {
 			throw new IllegalArgumentException("Not an orphan.");
@@ -119,10 +121,21 @@ public class BodyML extends ElementML {
 		List <Object> bodyChildren = body.getEGBlockLevelElts();
 		if (!bodyChildren.isEmpty()) {
 			this.children = new ArrayList<ElementML>(bodyChildren.size());
-			for (Object o : bodyChildren) {
-				ParagraphML paraML = new ParagraphML(o);
-				paraML.setParent(BodyML.this);
-				this.children.add(paraML);
+			
+			ElementML ml = null;
+			for (Object obj : bodyChildren) {
+				obj = JAXBIntrospector.getValue(obj);
+				
+				if (obj instanceof org.docx4j.wml.SdtBlock) {
+					ml = new SdtBlockML((org.docx4j.wml.SdtBlock) obj);
+				//} else if (obj instanceof org.docx4j.wml.Tbl) {
+					//unsupported yet
+				} else {
+					ml = new ParagraphML(obj);
+				}
+				
+				ml.setParent(BodyML.this);
+				this.children.add(ml);
 			}
 		}
 	}// initChildren()
