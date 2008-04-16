@@ -58,12 +58,7 @@ public abstract class ElementML implements Cloneable {
 		this.docxObject = docxObject;
 		this.isDummy = isDummy;
 		
-		
 		if (this.docxObject != null) {
-			if (!(this.docxObject instanceof javax.xml.bind.JAXBElement)) {			
-				System.out.println("ElementML constructor: " 
-						+ docxObject.getClass().getName());
-			}
 			QName name = Context.jc.createJAXBIntrospector().getElementName(docxObject);
 			if (name != null) {
 				tag = WordML.getTag(name.getLocalPart());
@@ -326,9 +321,6 @@ public abstract class ElementML implements Cloneable {
 	}
 	
 	public ElementML getChild(int idx) {
-		
-		System.out.println("Getting child .. ");
-		
 		if (this.children != null && !this.children.isEmpty()) {
 			return this.children.get(idx);
 		}
