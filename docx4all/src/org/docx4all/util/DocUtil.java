@@ -416,6 +416,29 @@ public class DocUtil {
 		return thePath;
 	}
 	
+	public final static DocumentElement getCommonParentElement(
+		DocumentElement elem1, 
+		DocumentElement elem2) {
+
+		if (elem1.getDocument() != elem2.getDocument()) {
+			throw new IllegalArgumentException("Elements belong to two different documents");
+		}
+		
+		List<Element> path = new ArrayList<Element>();
+		Element temp = elem1;
+		while (temp != null) {
+			path.add(temp);
+			temp = temp.getParentElement();
+		}
+		
+		temp = elem2;
+		while (temp != null && path.indexOf(temp) == -1) {
+			temp = temp.getParentElement();
+		}
+		
+		return (DocumentElement) temp;
+	}
+	
 	public final static void displayXml(Document doc) {
 		org.docx4j.wml.Document jaxbDoc = null;
 	
@@ -519,43 +542,60 @@ public class DocUtil {
 			ElementSpec es = list.get(i);
 			StringBuffer info = new StringBuffer();
 			
-			ElementML elemML = WordMLStyleConstants.getElementML(es.getAttributes());
+			ElementML elemML = 
+				(es.getAttributes() != null)
+					? WordMLStyleConstants.getElementML(es.getAttributes())
+					: null;
 			if (es.getType() == ElementSpec.StartTagType) {
-				info.append(getTabSpace(++depth));
-				info.append("OPEN <");
-				info.append(elemML.getTag());
-				info.append("> - ");
-				info.append(elemML.toString());
-				
-			} else if (es.getType() == ElementSpec.ContentType) {
-				String text = ((RunContentML) elemML).getTextContent();
-				if (text.length() > 25) {
-					text = text.substring(0, 25);
-				}
-				
-				StringBuffer sb = new StringBuffer();
-				int lf = text.indexOf(Constants.NEWLINE);
-				if (lf >= 0) {
-					sb.append(text.substring(0, lf));
-					sb.append("<<NEWLINE>>");
-					sb.append(text.substring(lf + 1));
+				if (elemML == null) {
+					info.append(getTabSpace(++depth));
+					info.append("OPEN <NULL> - ...");
 				} else {
-					sb.append(text);
+					info.append(getTabSpace(++depth));
+					info.append("OPEN <");
+					info.append(elemML.getTag());
+					info.append("> - ");
+					info.append(elemML.toString());
 				}
-				
-				info.append(getTabSpace(depth + 1));
-				info.append("TEXT - ");
-				info.append(elemML.toString());
-				info.append("[");
-				info.append(sb.toString());
-				info.append("]");
-				
+			} else if (es.getType() == ElementSpec.ContentType) {
+				if (elemML == null) {
+					info.append(getTabSpace(depth + 1));
+					info.append("TEXT - RunContentML=NULL [...]");
+				} else {
+					String text = ((RunContentML) elemML).getTextContent();
+					if (text.length() > 25) {
+						text = text.substring(0, 25);
+					}
+					
+					StringBuffer sb = new StringBuffer();
+					int lf = text.indexOf(Constants.NEWLINE);
+					if (lf >= 0) {
+						sb.append(text.substring(0, lf));
+						sb.append("<<NEWLINE>>");
+						sb.append(text.substring(lf + 1));
+					} else {
+						sb.append(text);
+					}
+					
+					info.append(getTabSpace(depth + 1));
+					info.append("TEXT - ");
+					info.append(elemML.toString());
+					info.append("[");
+					info.append(sb.toString());
+					info.append("]");
+				}				
 			} else {
-				info.append(getTabSpace(depth--));
-				info.append("CLOSE <");
-				info.append(elemML.getTag());
-				info.append("> - ");
-				info.append(elemML.toString());
+				if (elemML == null) {
+					info.append(getTabSpace(depth--));
+					info.append("CLOSE <NULL> - ...");
+				} else {
+					info.append(getTabSpace(depth--));
+					info.append("CLOSE <");
+					info.append(elemML.getTag());
+					info.append("> - ");
+					info.append(elemML.toString());
+				}
+				depth = Math.max(depth, -1);
 			}
 			log.debug(info.toString());
 		}
