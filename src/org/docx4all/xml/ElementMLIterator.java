@@ -50,11 +50,9 @@ public class ElementMLIterator {
     		;//false
     		
     	} else {
-    		StackEntry se = stack.peek();
-    		if (se.hasNext()) {
-    			hasNext = true;
-    		} else if (stack.size() > 1) {
-    			hasNext = true;
+    		for (int i=stack.size()-1; 0 <= i && !hasNext; i--) {
+    			StackEntry se = stack.elementAt(i);
+    			hasNext = se.hasNext();
     		}
     	}
     	
