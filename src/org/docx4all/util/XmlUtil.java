@@ -26,12 +26,10 @@ import java.util.List;
 
 import javax.swing.text.AttributeSet;
 import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.namespace.QName;
 
-import org.w3c.dom.Node;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLIterator;
 import org.docx4all.xml.ObjectFactory;
@@ -42,6 +40,7 @@ import org.docx4all.xml.RunML;
 import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
+import org.w3c.dom.Node;
 
 /**
  *	@author Jojada Tirtowidjojo - 04/01/2008
@@ -265,6 +264,26 @@ public class XmlUtil {
 		}
 		
 		return theElem;
+	}
+	
+	public final static void deleteIteration(ElementML root, int startIdx, int endIdx) {
+		List<ElementML> list = new ArrayList<ElementML>();
+		
+		ElementMLIterator it = new ElementMLIterator(root);
+		int i = -1;
+		while (it.hasNext() && i < endIdx) {
+			ElementML ml = it.next();
+			i++;
+			if (startIdx <= i) {
+				list.add(ml);
+			}
+		}
+		
+		if (!list.isEmpty()) {
+			for (ElementML ml: list) {
+				ml.delete();
+			}
+		}
 	}
 	
 	public final static void setAttributes(
