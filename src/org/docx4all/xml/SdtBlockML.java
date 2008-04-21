@@ -73,12 +73,16 @@ public class SdtBlockML extends ElementML {
 	}
 
 	public Object clone() {
-		org.docx4j.wml.SdtBlock obj = null;
+		org.docx4j.wml.SdtBlock sdt = null;
 		if (this.docxObject != null) {
-			obj = (org.docx4j.wml.SdtBlock) XmlUtils.deepCopy(this.docxObject);
+			sdt = (org.docx4j.wml.SdtBlock) XmlUtils.deepCopy(this.docxObject);
+			org.docx4j.wml.SdtPr pr = sdt.getSdtPr();
+			if (pr != null) {
+				pr.setId();
+			}
 		}
 
-		return new SdtBlockML(obj, this.isDummy);
+		return new SdtBlockML(sdt, this.isDummy);
 	}
 
 	public boolean canAddChild(int idx, ElementML child) {
