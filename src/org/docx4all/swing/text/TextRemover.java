@@ -57,11 +57,13 @@ public class TextRemover implements TextProcessor {
     	List<DocumentElement> list = textSelector.getDocumentElements();
     	DocumentElement tempE = list.get(0);
 		
-    	//Handle the first leaf element specially
+    	//Handle the first leaf element specially.
     	if (tempE.isLeaf() && !textSelector.isFullySelected(tempE)) {
 			if (list.size() == 1) {
 				// A single partially selected leaf element
-				// is treated as normal string deletion
+				// is treated as normal string deletion.
+				// A normal string deletion does not involve
+				// ElementML manipulation.
 				filterBypass.remove(offset, length);
 				
 				if (log.isDebugEnabled()) {
@@ -71,6 +73,7 @@ public class TextRemover implements TextProcessor {
 				return;
 			}
 
+			//Process deletion by manipulating ElementML
 			int count = offset - tempE.getStartOffset();
 			String text = doc.getText(tempE.getStartOffset(), count);
 			RunContentML rcml = (RunContentML) tempE.getElementML();
@@ -113,8 +116,9 @@ public class TextRemover implements TextProcessor {
 		
 		if (firstPara.getStartOffset() < offset
 			&& offset + length < lastPara.getEndOffset() - 1
-			&& firstPara != lastPara) {
-			//Merge firstPara and lastPara if both are not fully selected.
+			&& firstPara != lastPara
+			&& firstPara.getParentElement() == lastPara.getParentElement()) {
+			//Merge firstPara and lastPara if both are siblings and not fully selected.
 			mergeElementML(firstPara, lastPara);
 		}
 
