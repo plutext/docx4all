@@ -256,9 +256,13 @@ public class DocUtil {
 	}
 
 	public final static ElementML splitElementML(DocumentElement elem, int atIndex) {
+    	ElementML elemML = elem.getElementML();		
 		if (elem.getStartOffset() == elem.getEndOffset()
-			|| elem.getElementML().isImplied()
-			|| elem.getParentElement() == null) {
+			|| elemML.isImplied()
+			|| elem.getParentElement() == null
+			|| !(elemML instanceof ParagraphML
+				|| elemML instanceof RunML
+				|| elemML instanceof RunContentML)) {
 			throw new IllegalArgumentException("Invalid elem=" + elem);
 		}
 		
@@ -312,7 +316,6 @@ public class DocUtil {
 		}
     	list = null;
     	
-    	ElementML elemML = elem.getElementML();
     	ElementML newSibling = null;
     	
     	if (elemML instanceof ParagraphML) {
@@ -460,7 +463,7 @@ public class DocUtil {
 		int i = 0;
 		for (Object obj : list) {
 			String s = XmlUtils.marshaltoString(obj, true);
-			log.debug("BodyChild[" + i + "]=" + s);
+			log.debug("displayXml(): BodyChild[" + i + "]=" + s);
 			i++;
 		}
 	}
