@@ -22,8 +22,11 @@ package org.docx4all.xml;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.bind.JAXBIntrospector;
+
 import org.apache.log4j.Logger;
 import org.docx4j.XmlUtils;
+import org.docx4j.jaxb.Context;
 
 /**
  *	@author Jojada Tirtowidjojo - 16/04/2008
@@ -33,12 +36,12 @@ public class SdtBlockML extends ElementML {
 
 	private SdtPrML sdtPr;
 
-	public SdtBlockML(org.docx4j.wml.SdtBlock sdtBlock) {
-		this(sdtBlock, false);
+	public SdtBlockML(Object docxObject) {
+		this(docxObject, false);
 	}
 
-	public SdtBlockML(org.docx4j.wml.SdtBlock sdtBlock, boolean isDummy) {
-		super(sdtBlock, isDummy);
+	public SdtBlockML(Object docxObject, boolean isDummy) {
+		super(docxObject, isDummy);
 	}
 
 	/**
@@ -64,7 +67,9 @@ public class SdtBlockML extends ElementML {
 				sdtPr.setParent(SdtBlockML.this);
 				newDocxSdtPr = (org.docx4j.wml.SdtPr) sdtPr.getDocxObject();
 			}
-			((org.docx4j.wml.SdtBlock) this.docxObject).setSdtPr(newDocxSdtPr);
+			org.docx4j.wml.SdtBlock sdtBlock = 
+				(org.docx4j.wml.SdtBlock) JAXBIntrospector.getValue(this.docxObject);
+			sdtBlock.setSdtPr(newDocxSdtPr);
 
 			if (newDocxSdtPr != null) {
 				newDocxSdtPr.setParent(this.docxObject);
@@ -73,18 +78,31 @@ public class SdtBlockML extends ElementML {
 	}
 
 	public Object clone() {
-		org.docx4j.wml.SdtBlock sdt = null;
+		Object obj = null;
 		if (this.docxObject != null) {
-			sdt = (org.docx4j.wml.SdtBlock) XmlUtils.deepCopy(this.docxObject);
-			org.docx4j.wml.SdtPr pr = sdt.getSdtPr();
+			obj = XmlUtils.deepCopy(this.docxObject);
+			org.docx4j.wml.SdtBlock sdtBlock = 
+				(org.docx4j.wml.SdtBlock) JAXBIntrospector.getValue(obj);
+			org.docx4j.wml.SdtPr pr = sdtBlock.getSdtPr();
 			if (pr != null) {
 				pr.setId();
-			}
+			}			
 		}
 
-		return new SdtBlockML(sdt, this.isDummy);
+		return new SdtBlockML(obj, this.isDummy);
 	}
 
+	public boolean canAddSibling(ElementML elem, boolean after) {
+		boolean canAdd = false;
+		
+		if (elem instanceof SdtBlockML) {
+			//TODO:Current implementation disallows other types of sibling
+			canAdd = super.canAddSibling(elem, after);
+		}
+		
+		return canAdd;
+	}
+	
 	public boolean canAddChild(int idx, ElementML child) {
 		boolean canAdd = true;
 
@@ -121,7 +139,7 @@ public class SdtBlockML extends ElementML {
 			;//do nothing
 		} else {
 			org.docx4j.wml.SdtBlock sdtBlock = 
-				(org.docx4j.wml.SdtBlock) this.docxObject;
+				(org.docx4j.wml.SdtBlock) JAXBIntrospector.getValue(this.docxObject);
 			theChildren = sdtBlock.getSdtContent().getEGContentBlockContent();
 		}
 
@@ -129,8 +147,27 @@ public class SdtBlockML extends ElementML {
 	}
 
 	protected void init(Object docxObject) {
-		initSdtProperties((org.docx4j.wml.SdtBlock) docxObject);
-		initChildren((org.docx4j.wml.SdtBlock) docxObject);
+		org.docx4j.wml.SdtBlock sdtBlock = null;
+		
+		JAXBIntrospector inspector = Context.jc.createJAXBIntrospector();
+		
+		if (docxObject == null) {
+			;//implied SdtBlockML
+			
+		} else if (inspector.isElement(docxObject)) {
+			Object value = JAXBIntrospector.getValue(docxObject);
+			if (value instanceof org.docx4j.wml.SdtBlock) {
+				sdtBlock = (org.docx4j.wml.SdtBlock) value;
+				this.isDummy = false;
+			} else {
+				throw new IllegalArgumentException("Unsupported Docx Object = " + docxObject);			
+			}
+		} else {
+			throw new IllegalArgumentException("Unsupported Docx Object = " + docxObject);			
+		}
+		
+		initSdtProperties(sdtBlock);
+		initChildren(sdtBlock);
 	}
 
 	private void initSdtProperties(org.docx4j.wml.SdtBlock sdtBlock) {
