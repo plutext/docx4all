@@ -19,16 +19,12 @@
 
 package org.docx4all.swing.text;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
-import javax.swing.text.DefaultStyledDocument.ElementSpec;
 import javax.swing.text.DocumentFilter.FilterBypass;
 
 import org.apache.log4j.Logger;
@@ -72,7 +68,8 @@ public class TextInserter implements TextProcessor {
 		final WordMLDocument doc = (WordMLDocument) filterBypass.getDocument();
 		DocumentElement elem = 
 			(DocumentElement) doc.getParagraphMLElement(offset, false);
-		if (elem.getEndOffset() == elem.getParentElement().getEndOffset()) {
+		if (elem.getParentElement() == doc.getDefaultRootElement()
+			&& elem.getEndOffset() == doc.getDefaultRootElement().getEndOffset()) {
 			//insert a string in the last paragraph
 
 			//Need not Resolve Parent attribute
@@ -117,6 +114,8 @@ public class TextInserter implements TextProcessor {
 			//Grab the resolve parent of attrs and remove from it. 
 			//This is done so that normal typing case condition can be 
 			//correctly verified.
+			//Typing is normal if a new ElementML needs not be created as
+			//a result of typing; otherwise it is abnormal.
 			MutableAttributeSet resolveAttrs = null;
 			if (attrs.getResolveParent() != null) {
 				//Keep resolve parent attrs for 'abnormal' typing case condition
@@ -229,34 +228,8 @@ public class TextInserter implements TextProcessor {
 				null);
 		paraML.addSibling(newParaML, !before);
 		
-		//Prepare the ElementSpecs of newParaML
-		List<ElementSpec> newParaSpecs = DocUtil.getElementSpecs(newParaML);
-		List<ElementSpec> specList = new ArrayList<ElementSpec>(
-				newParaSpecs.size() + 3);
-		// Close RunML
-		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
-		// Close Implied ParagraphML
-		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
-		// Close ParagraphML
-		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
-		// New paragraphs
-		specList.addAll(newParaSpecs);
-		newParaSpecs = null;
-		
-		// Has to convert to array
-		ElementSpec[] specsArray = new ElementSpec[specList.size()];
-		specsArray = specList.toArray(specsArray);
-		specList = null;
-		
-		try {
-			WordMLDocument doc = (WordMLDocument) paraE.getDocument();
-			int pos = before ? paraE.getStartOffset() : paraE.getEndOffset();
-
-			doc.insertElementSpecs(pos, specsArray);
-		} catch (BadLocationException exc) {
-			//ignore
-			exc.printStackTrace();
-		}
+		WordMLDocument doc = (WordMLDocument) paraE.getDocument();
+		doc.refreshParagraphs(paraE.getStartOffset(), 1);
 	}
 
 	private Style getPStyle(AttributeSet attrs) {
