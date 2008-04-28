@@ -49,6 +49,7 @@ import org.docx4all.xml.PropertiesContainerML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
 import org.docx4all.xml.RunPropertiesML;
+import org.docx4all.xml.SdtBlockML;
 
 public class WordMLDocument extends DefaultStyledDocument {
 	private static Logger log = Logger.getLogger(WordMLDocument.class);
@@ -409,33 +410,23 @@ public class WordMLDocument extends DefaultStyledDocument {
 		
 		writeLock();
 		try {
-			DocumentElement textE = (DocumentElement) getCharacterElement(Math.max(offset - 1, 0));
+			DocumentElement rootE = 
+				(DocumentElement) getDefaultRootElement();
+			DocumentElement textE = 
+				(DocumentElement) getCharacterElement(Math.max(offset - 1, 0));
 			if (0 < offset
 					&& offset < textE.getEndOffset()
-					&& (!textE.isEditable() || (paraContentRecords == null && paragraphRecords != null))) {
+					&& (!textE.isEditable() 
+						|| (paraContentRecords == null && paragraphRecords != null))) {
 				throw new BadLocationException("Cannot insert here", offset);
 			}
 
-			DocumentElement paraAtOffset = (DocumentElement) getParagraphMLElement(offset, false);
-
-			if (paraAtOffset.getEndOffset() == paraAtOffset.getParentElement().getEndOffset()) {
-				//Insert at the last paragraph in the document.
-				if (paraContentRecords != null) {
-					List<ElementML> contents = new ArrayList<ElementML>(
-							paraContentRecords.size());
-					for (ElementMLRecord rec : paraContentRecords) {
-						contents.add(rec.getElementML());
-					}
-					ElementML newParaML = ElementMLFactory.createParagraphML(
-							contents, null, null);
-					paraAtOffset.getElementML().addSibling(newParaML, false);
-				}
-
-				if (paragraphRecords != null) {
-					pasteRecordsBefore((ParagraphML) paraAtOffset.getElementML(), paragraphRecords);
-				}
-
+			DocumentElement targetE = (DocumentElement) getParagraphMLElement(offset, false);
+			if (targetE.getEndOffset() == rootE.getEndOffset()) {
+				insertAtLastParagraph(paraContentRecords, paragraphRecords);
+				
 			} else if (paraContentRecords != null && paragraphRecords == null) {
+				//Note that textE is a leaf/character element at Math.max(offset-1,0)
 				DocumentElement runE = (DocumentElement) textE.getParentElement();
 				
 				if (runE.getEndOffset() == offset) {
@@ -448,30 +439,33 @@ public class WordMLDocument extends DefaultStyledDocument {
 						runE = (DocumentElement) getRunMLElement(offset);
 						ElementML runML = runE.getElementML();
 						if (newlineRunML == runML && runML.isImplied()) {
-							// Paste at an empty paragraph
-							ElementML paraML = paraAtOffset.getElementML();
+							// Paste at an empty paragraph.
+							// This may happen when offset == 0.
+							targetE = (DocumentElement) 
+								runE.getParentElement().getParentElement();
+							ElementML targetML = targetE.getElementML();
 							for (ElementMLRecord rec: paraContentRecords) {
-								paraML.addChild(rec.getElementML());
+								targetML.addChild(rec.getElementML());
 							}
 							
 						} else if (newlineRunML == runML) {
 							// Paste after a soft break
-							RunContentML softBreak = (RunContentML) textE
-									.getElementML();
-
+							RunContentML softBreak = 
+								(RunContentML) textE.getElementML();
 							//Split soft break before pasting.
-							List<ElementML> runContents = new ArrayList<ElementML>(
-									runE.getElementCount());
+							List<ElementML> runContents = 
+								new ArrayList<ElementML>(runE.getElementCount());
 							for (int i = 0; i < runE.getElementCount(); i++) {
-								DocumentElement tempE = (DocumentElement) runE
-										.getElement(i);
+								DocumentElement tempE = 
+									(DocumentElement) runE.getElement(i);
 								ElementML ml = tempE.getElementML();
 								ml.delete();
 								runContents.add(ml);
 							}
 
-							RunPropertiesML rPr = (RunPropertiesML) ((RunML) runML)
-									.getRunProperties();
+							RunPropertiesML rPr = 
+								(RunPropertiesML) 
+									((RunML) runML).getRunProperties();
 							if (rPr != null) {
 								rPr = (RunPropertiesML) rPr.clone();
 							}
@@ -485,13 +479,12 @@ public class WordMLDocument extends DefaultStyledDocument {
 							// Paste after a common break.
 							// This is to paste before 'runML' which is
 							// the RunML at 'offset'
-							pasteRecordsBefore((RunML) runML,
-									paraContentRecords);
+							pasteRecordsBefore((RunML) runML, paraContentRecords);
 						}
 					} else {
 						// paste at somewhere inside a paragraph
-						pasteRecordsAfter((RunContentML) textE.getElementML(),
-								paraContentRecords);
+						pasteRecordsAfter(
+							(RunContentML) textE.getElementML(), paraContentRecords);
 					}
 				} else if (runE.getStartOffset() == offset) {
 					//paste at the start of runE.
@@ -503,87 +496,234 @@ public class WordMLDocument extends DefaultStyledDocument {
 				} else {
 					//paste at somewhere inside runE.
 					//This necessitates splitting runE.
-					DocUtil
-							.splitElementML(runE, offset
-									- runE.getStartOffset());
-					pasteRecordsAfter((RunContentML) textE.getElementML(),
-							paraContentRecords);
+					DocUtil.splitElementML(runE, offset	- runE.getStartOffset());
+					pasteRecordsAfter((RunContentML) textE.getElementML(), paraContentRecords);
 				}
 
 			} else if (paraContentRecords != null && paragraphRecords != null) {
-				if (paraAtOffset.getStartOffset() == offset) {
-					ParagraphML paraML = (ParagraphML) paraAtOffset
-							.getElementML();
-					ParagraphPropertiesML pPr = (ParagraphPropertiesML) paraML
-							.getParagraphProperties();
+				//targetE is ParagraphML element at 'offset' position
+				if (targetE.getStartOffset() == offset) {
+					//Whether fragment can be pasted at 'offset' position or not
+					//depends on whether the paragraphRecords can be pasted.
+					//Because paragraphRecords are siblings checking for the last 
+					//record is enough.
+					ElementMLRecord rec = paragraphRecords.get(paragraphRecords.size() - 1);
+					targetE = getElementToPasteAt(targetE, rec, false);
+					if (targetE == null) {
+						//Cannot paste
+						throw new BadLocationException("Cannot insert here", offset);
+					}
+					
+					//Prepare a new ParagraphML to accommodate paraContentRecords
+					ParagraphPropertiesML pPr = (ParagraphPropertiesML) 
+						((ParagraphML) targetE.getElementML()).getParagraphProperties();
 					if (pPr != null) {
 						pPr = (ParagraphPropertiesML) pPr.clone();
 					}
-
-					List<ElementML> contents = new ArrayList<ElementML>(
-							paraContentRecords.size());
-					for (ElementMLRecord rec : paraContentRecords) {
-						contents.add(rec.getElementML());
+					List<ElementML> contents = 
+						new ArrayList<ElementML>(paraContentRecords.size());
+					for (ElementMLRecord temp : paraContentRecords) {
+						contents.add(temp.getElementML());
 					}
-					ParagraphML newSibling = ElementMLFactory
-							.createParagraphML(contents, pPr, null);
-					paraML.addSibling(newSibling, false);
+					ElementML newParaML = 
+						ElementMLFactory.createParagraphML(contents, pPr, null);
+				
+					ElementML targetML = targetE.getElementML();
+					if (targetML instanceof ParagraphML) {
+						targetML.addSibling(newParaML, false);
+					} else if (targetML instanceof SdtBlockML) {
+						SdtBlockML newSdtBlockML = ElementMLFactory.createSdtBlockML();
+						newSdtBlockML.addChild(newParaML, true);
+						targetML.addSibling(newSdtBlockML, false);
+					} else {
+						//Do not know how to accommodate newParaML 
+						//that contains paraContentRecords.
+						//Bail out.
+						throw new BadLocationException("Cannot insert here", offset);
+					}
+					
+					for (int i=0; i < paragraphRecords.size(); i++) {
+						rec = paragraphRecords.get(i);
+						ElementML ml = rec.getElementML();
+						targetML.addSibling(ml, false);
+					}						
 
-					pasteRecordsBefore(paraML, paragraphRecords);
-
-					ElementMLRecord lastRec = paragraphRecords
-							.get(paragraphRecords.size() - 1);
-					if (lastRec.isFragmented()) {
+					//Currently we limit the following merging feature
+					//to ParagraphML elements only.
+					if (rec.isFragmented()
+						&& rec.getElementML() instanceof ParagraphML
+						&& targetML instanceof ParagraphML) {
 						// Join the last fragmented record
-						// with the content of 'paraML'
-						contents = XmlUtil.deleteChildren(paraML);
-						paraML.delete();
-						RunContentML rcml = XmlUtil.getLastRunContentML(lastRec
-								.getElementML());
+						// with the content of 'targetML'
+						contents = XmlUtil.deleteChildren(targetML);
+						targetML.delete();
+						RunContentML rcml = 
+							XmlUtil.getLastRunContentML(rec.getElementML());
 						pasteElementMLsAfter(rcml, contents);
 					}
 				} else {
-					ParagraphML newSibling = (ParagraphML) DocUtil
-							.splitElementML(paraAtOffset, offset
-									- paraAtOffset.getStartOffset());
-					pasteRecordsAfter((RunContentML) textE.getElementML(),
-							paraContentRecords);
-
-					pasteRecordsBefore(newSibling, paragraphRecords);
-
-					ElementMLRecord lastRec = paragraphRecords
-							.get(paragraphRecords.size() - 1);
-					if (lastRec.isFragmented()) {
-						// Join the last fragmented record
-						// with the content of 'newSibling'
-						List<ElementML> contents = XmlUtil
-								.deleteChildren(newSibling);
-						newSibling.delete();
-						RunContentML rcml = XmlUtil.getLastRunContentML(lastRec
-								.getElementML());
-						pasteElementMLsAfter(rcml, contents);
-					}
+					//Pasting fragment here requires splitting the content of targetE
+					splitParagraphMLAndPaste(offset, paraContentRecords, paragraphRecords);
 				}
 
 			} else if (paraContentRecords == null && paragraphRecords != null) {
-				if (paraAtOffset.getStartOffset() < offset) {
-					ParagraphML newSibling = 
-						(ParagraphML) DocUtil.splitElementML(
-							paraAtOffset, 
-							offset - paraAtOffset.getStartOffset());
-					pasteRecordsBefore(newSibling, paragraphRecords);
+				//targetE is ParagraphML element at 'offset' position.
+				if (targetE.getStartOffset() == offset) {
+					//Check whether paragraphRecords can be pasted.
+					//Because paragraphRecords are siblings checking for the last 
+					//record is enough.
+					ElementMLRecord rec = paragraphRecords.get(paragraphRecords.size() - 1);
+					targetE = getElementToPasteAt(targetE, rec, false);
+					if (targetE == null) {
+						//Cannot paste
+						throw new BadLocationException("Cannot insert here", offset);
+					}
+					
+					for (int i=0; i < paragraphRecords.size(); i++) {
+						rec = paragraphRecords.get(i);
+						ElementML ml = rec.getElementML();
+						targetE.getElementML().addSibling(ml, false);
+					}
+		        	
 				} else {
-					pasteRecordsBefore((ParagraphML) paraAtOffset.getElementML(),
-						paragraphRecords);
+					//Pasting fragment here requires splitting the content of targetE
+					splitParagraphMLAndPaste(offset, paraContentRecords, paragraphRecords);
 				}
 			}
 
-			refreshParagraphs(paraAtOffset.getStartOffset(), 0);
+			refreshParagraphs(targetE.getStartOffset(), 0);
 			
 		} finally {
 			writeUnlock();
 		}
 	} //insertFragment
+	
+	private void insertAtLastParagraph(
+		List<ElementMLRecord> paraContentRecords,
+		List<ElementMLRecord> paragraphRecords) 
+		throws BadLocationException {
+		
+		DocumentElement rootE = (DocumentElement) getDefaultRootElement();
+		DocumentElement lastParaE = 
+			(DocumentElement) rootE.getElement(rootE.getElementCount() - 1);
+		if (paraContentRecords != null) {
+			//Need to check whether we may create a new ParagraphML
+			//to accommodate paraContentRecords. 
+			if (paragraphRecords != null
+				&& (paragraphRecords.get(0).getElementML() instanceof SdtBlockML)) {
+				//if paragraphRecords contains a SdtBlockML then we cannot
+				//create a new ParagraphML and insert it at the last paragraph
+				//because ParagraphML cannot become the sibling of SdtBlockML.
+				throw new BadLocationException("Cannot insert here", rootE.getEndOffset() - 1);				
+			}
+			
+			//Create a new ParagraphML to accommodate paraContentRecords
+			List<ElementML> contents = new ArrayList<ElementML>(
+					paraContentRecords.size());
+			for (ElementMLRecord rec : paraContentRecords) {
+				contents.add(rec.getElementML());
+			}
+			ElementML newParaML = ElementMLFactory.createParagraphML(
+					contents, null, null);
+			
+			if (rootE.getElementCount() > 1 ) {
+				//lastParaE has an older sibling.
+				//Check whether newParaML may become sibling.
+				DocumentElement olderSibling = 
+					(DocumentElement) rootE.getElement(rootE.getElementCount() - 2);
+				if (!olderSibling.getElementML().canAddSibling(newParaML, true)) {
+					throw new BadLocationException("Cannot insert here", rootE.getEndOffset() - 1);				
+				}
+				olderSibling.getElementML().addSibling(newParaML, true);
+			} else {
+				lastParaE.getElementML().addSibling(newParaML, false);
+			}
+		}
+		
+		if (paragraphRecords != null) {
+			pasteRecordsBefore((ParagraphML) lastParaE.getElementML(), paragraphRecords);
+		}
+	}
+	
+	/**
+	 * Splits the content of ParagraphML element at 'offset' position
+	 * and pastes 'paraContentRecords' and 'paragraphRecords' in between.
+	 * 
+	 * @param offset the offset position within document.
+	 * @param paraContentRecords a list of ElementMLRecords that contains RunML and/or
+	 * RunContentML objects
+	 * @param paragraphRecords a list of ElementMLRecords that contains ElementML objects
+	 * that are rendered as paragraph blocks; for example: ParagraphML or TableML
+	 */
+	private void splitParagraphMLAndPaste(
+		int offset, 
+		List<ElementMLRecord> paraContentRecords,
+		List<ElementMLRecord> paragraphRecords) 
+		throws BadLocationException {
+		
+		DocumentElement paraE = (DocumentElement) getParagraphMLElement(offset, false);
+		ElementML paraML = paraE.getElementML();
+		
+		if (paragraphRecords != null) {
+			//paragraphRecords has to be able to become siblings of 'paraML'.
+			ElementMLRecord rec = paragraphRecords.get(0);
+			//Because paragraphRecords are siblings 
+			//checking the last record is enough.
+			if (!paraML.canAddSibling(rec.getElementML(), true)) {
+				//paragraphRecords cannot become siblings of ParagraphML
+				throw new BadLocationException("Cannot insert here", offset);
+			}
+		}
+		
+		//Split the content of 'paraE' at 'offset' position
+		ParagraphML newSibling = 
+			(ParagraphML)
+				DocUtil.splitElementML(
+					paraE, 
+					offset - paraE.getStartOffset());
+		if (paraContentRecords != null) {
+			DocumentElement textE = 
+				(DocumentElement) getCharacterElement(Math.max(offset - 1, 0));
+			pasteRecordsAfter((RunContentML) textE.getElementML(), paraContentRecords);
+		}
+
+		if (paragraphRecords != null) {
+			pasteRecordsBefore(newSibling, paragraphRecords);
+
+			ElementMLRecord lastRec = paragraphRecords.get(paragraphRecords.size() - 1);
+			//Currently we limit the following merging feature
+			//to ParagraphML elements only.
+			if (lastRec.isFragmented()
+				&& lastRec.getElementML() instanceof ParagraphML) {
+				// Join the last fragmented record
+				// with the content of 'targetML'
+				List<ElementML> contents = XmlUtil.deleteChildren(newSibling);
+				newSibling.delete();
+				RunContentML rcml = 
+					XmlUtil.getLastRunContentML(lastRec.getElementML());
+				pasteElementMLsAfter(rcml, contents);
+			}
+		}
+	}
+
+	private DocumentElement getElementToPasteAt(
+		DocumentElement elem, 
+		ElementMLRecord record,
+		boolean pasteAfter) {
+		
+		DocumentElement theElem = null;
+		
+		if (elem.getElementML().canAddSibling(record.getElementML(), pasteAfter)) {
+			theElem = elem;
+		} else {
+			elem = (DocumentElement) elem.getParentElement();
+			if (elem != null && elem != getDefaultRootElement()) {
+				theElem = getElementToPasteAt(elem, record, pasteAfter);
+			}
+		}
+		
+		return theElem;
+	}
 	
 	private boolean canbePastedAsString(List<ElementMLRecord> paraContentRecords) {
 		boolean canbe = true;
@@ -765,14 +905,14 @@ public class WordMLDocument extends DefaultStyledDocument {
 
 			ElementML tempContainerML = new ImpliedContainerML();
     		for (idx = topIdx + 1; idx < bottomIdx; idx++) {
-    			ElementML paraML = bodyML.getChild(idx);
-    			tempContainerML.addChild(paraML, false);
+    			ElementML childML = bodyML.getChild(idx);
+    			tempContainerML.addChild(childML, false);
     		}
     		
+    		//Prepare the ElementSpecs of all refreshed ElementML
         	List<ElementSpec> tempSpecs = DocUtil.getElementSpecs(tempContainerML);
-        	//Excludes the opening and closing specs of tempContainerML
+        	//Excludes the opening and closing specs
         	tempSpecs = tempSpecs.subList(1, tempSpecs.size() - 1);
-        	
         	
         	if (log.isDebugEnabled()) {
             	log.debug("refreshParagraphs(): offset=" + offset 
@@ -781,27 +921,35 @@ public class WordMLDocument extends DefaultStyledDocument {
         		DocUtil.displayStructure(tempSpecs);
         	}
         	
-    		List<ElementSpec> specList = 
-    			new ArrayList<ElementSpec>(tempSpecs.size() + 3);
-    		// Close RunML
-    		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
-    		// Close Implied ParagraphML
-    		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
-    		// Close ParagraphML
-    		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
-    		specList.addAll(tempSpecs);
-    		
-    		tempSpecs = null;
-        	tempContainerML = null;
-        	
-    		final ElementSpec[] specsArray = new ElementSpec[specList.size()];
-    		specList.toArray(specsArray);
-    		specList = null;
+        	//The inserted ElementSpecs will consist of those that close the paragraph
+        	//at (offset - 1) and those kept in tempSpecs.
+    		List<ElementSpec> specList = new ArrayList<ElementSpec>();
         	
         	filter.setEnabled(false);
         	
         	if (startOffset == getLength()) {
-        		//Do not need to remove the last paragraph element
+        		//Refreshing the last paragraph of this document.
+        		//if the last paragraph has an older sibling
+        		//then create ElementSpecs for closing older sibling element;
+        		//otherwise create ElementSpecs for closing the last paragraph.
+    			Element tempE = 
+    				rootE.getElement(Math.max(rootE.getElementCount() - 2, 0));
+    			while (!tempE.isLeaf()) {
+    				specList.add(new ElementSpec(null, ElementSpec.EndTagType));
+    				tempE = tempE.getElement(0);
+    			}
+        		
+        		//Add those kept in tempSpecs.
+        		specList.addAll(tempSpecs);
+        		
+        		tempSpecs = null;
+            	tempContainerML = null;
+            	
+        		final ElementSpec[] specsArray = new ElementSpec[specList.size()];
+        		specList.toArray(specsArray);
+        		specList = null;
+        		
+        		//Do not need to remove the last paragraph after this insertion
 				insert(startOffset, specsArray);
         		
 				if (log.isDebugEnabled()) {
@@ -812,6 +960,26 @@ public class WordMLDocument extends DefaultStyledDocument {
 				}
 				
         	} else {
+        		//Create ElementSpecs for closing the last paragraph selected
+        		//in this refresh action.
+        		idx = rootE.getElementIndex(endOffset - 1);
+        		Element tempE = rootE.getElement(idx);
+        		while (!tempE.isLeaf()) {
+        			specList.add(new ElementSpec(null, ElementSpec.EndTagType));
+        			tempE = tempE.getElement(0);
+        		}
+        		
+        		specList.addAll(tempSpecs);
+        		
+        		tempSpecs = null;
+            	tempContainerML = null;
+            	
+        		final ElementSpec[] specsArray = new ElementSpec[specList.size()];
+        		specList.toArray(specsArray);
+        		specList = null;
+        		
+        		//The ElementSpecs is inserted right at the end of the last paragraph
+        		//selected in this refresh action.
 				insert(endOffset, specsArray);
 				
 				if (log.isDebugEnabled()) {
@@ -821,6 +989,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 					DocUtil.displayStructure(this);
 				}
 				
+				//Remove all old paragraphs selected in this refresh action
 				remove(startOffset, endOffset - startOffset);
 
 			}
@@ -884,49 +1053,46 @@ public class WordMLDocument extends DefaultStyledDocument {
         List<ElementSpec> specs = new ArrayList<ElementSpec>();
         if (rightImpliedPara.getStartOffset() == offset + length) {
         	if (offset > 0) {
-        		DocumentElement rightPara = 
-        			(DocumentElement) rightImpliedPara.getParentElement();
-        	
-        		// Close RunML
-        		specs.add(new ElementSpec(null, ElementSpec.EndTagType));
-        		// Close Implied ParagraphML
-        		specs.add(new ElementSpec(null, ElementSpec.EndTagType));
-        		if (rightImpliedPara.getStartOffset() == rightPara.getStartOffset()) {
-        			// Close ParagraphML
-        			specs.add(new ElementSpec(null, ElementSpec.EndTagType));
-        			// Open New ParagraphML
-        			ElementSpec es = 
-        				new ElementSpec(
-        						rightPara.getAttributes(), 
-        						ElementSpec.StartTagType);
-        			es.setDirection(ElementSpec.JoinNextDirection);
-        			specs.add(es);
+        		//Needs to fill in specs with a collection of ElementSpecs
+        		//that closes the paragraph block that consists of leftLeaf
+        		//and opens a new paragraph block that consists of rightLeaf.
+        		DocumentElement commonParent = 
+        			DocUtil.getCommonParentElement(leftLeaf, rightLeaf);
+        		
+        		Element tempE = leftLeaf.getParentElement();
+        		while (tempE != commonParent) {
+        			//Close ElementSpec from leftLeaf's parent up to commonParent
+            		specs.add(new ElementSpec(null, ElementSpec.EndTagType)); 
+            		tempE = tempE.getParentElement();
         		}
-        		//Open new Implied ParagraphML
-        		ElementSpec es = 
-        			new ElementSpec(
-        					rightImpliedPara.getAttributes(), 
-        					ElementSpec.StartTagType);
-        		es.setDirection(ElementSpec.JoinNextDirection);
-        		specs.add(es);
-        		//Open new RunML
-        		es = new ElementSpec(
-        				rightLeaf.getParentElement().getAttributes(), 
-        				ElementSpec.StartTagType);
-        		es.setDirection(ElementSpec.JoinNextDirection);
-        		specs.add(es);
-            	
-            	//Add new leaf
-            	es = new ElementSpec(
+        		
+       			List<ElementSpec> newOpenSpecs = new ArrayList<ElementSpec>();
+        		//ElementSpecs that opens a new paragraph block start with
+        		//a new leaf ElementSpec for rightLeaf's content.
+       			ElementSpec es = 
+       				new ElementSpec(
             			rightLeaf.getAttributes(), 
             			ElementSpec.ContentType, 
             			length);
             	es.setDirection(ElementSpec.JoinNextDirection);
-            	specs.add(es);
+            	newOpenSpecs.add(es);
+            	
+            	tempE = rightLeaf.getParentElement();
+            	while(tempE != commonParent) {
+            		//Open ElementSpec from rightLeaf's parent up to commonParent
+        			es = new ElementSpec(tempE.getAttributes(), ElementSpec.StartTagType);
+        			es.setDirection(ElementSpec.JoinNextDirection);
+        			newOpenSpecs.add(es);
+        			tempE = tempE.getParentElement();
+            	}
+            	
+            	//Add newOpenSpecs to specs in reverse order
+        		for (int i=newOpenSpecs.size()-1; 0 <= i; i--) {
+        			specs.add(newOpenSpecs.get(i));
+        		}
         	} else {
         		//Should never come here ?
         	}
-        	
         } else if (attrs.getAttributeCount() > 0
         			&& leftLeaf.getAttributes().containsAttributes(attrs)) {
         	
