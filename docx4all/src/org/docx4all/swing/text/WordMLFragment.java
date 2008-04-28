@@ -27,6 +27,7 @@ import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ObjectFactory;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.RunContentML;
+import org.docx4all.xml.RunML;
 
 /**
  *	@author Jojada Tirtowidjojo - 17/01/2008
@@ -79,10 +80,11 @@ public class WordMLFragment implements Cloneable {
 			new ArrayList<ElementMLRecord>();
 		
 		for (int i=records.length-1; i >= 0; i--) {
-			if (records[i].getElementML() instanceof ParagraphML) {
-				theRecords.add(0, records[i]);
-			} else {
+			ElementML ml = records[i].getElementML();
+			if ((ml instanceof RunML) || (ml instanceof RunContentML)) {
 				break;
+			} else {
+				theRecords.add(0, records[i]);
 			}
 		}
 		
@@ -98,10 +100,11 @@ public class WordMLFragment implements Cloneable {
 			new ArrayList<ElementMLRecord>();
 		
 		for (ElementMLRecord rec: records) {
-			if (rec.getElementML() instanceof ParagraphML) {
-				break;
+			ElementML ml = rec.getElementML();
+			if ((ml instanceof RunML) || (ml instanceof RunContentML)) {
+				theRecords.add(rec);				
 			} else {
-				theRecords.add(rec);
+				break;
 			}
 		}
 		
