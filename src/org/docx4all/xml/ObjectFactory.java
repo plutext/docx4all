@@ -209,6 +209,17 @@ public class ObjectFactory {
 		return tag;
 	}
 	
+	public final static org.docx4j.wml.SdtBlock createSdtBlock() {
+		org.docx4j.wml.SdtBlock sdtBlock = _jaxbFactory.createSdtBlock();
+		org.docx4j.wml.SdtPr sdtPr = _jaxbFactory.createSdtPr();
+		org.docx4j.wml.SdtContentBlock content = _jaxbFactory.createSdtContentBlock();
+		
+		sdtPr.setId();
+		sdtBlock.setSdtPr(sdtPr);
+		sdtBlock.setSdtContent(content);
+		return sdtBlock;
+	}
+	
 	private ObjectFactory() {
 		;//uninstantiable
 	}
