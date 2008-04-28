@@ -124,10 +124,10 @@ public class BodyML extends ElementML {
 			
 			ElementML ml = null;
 			for (Object obj : bodyChildren) {
-				obj = JAXBIntrospector.getValue(obj);
+				Object value = JAXBIntrospector.getValue(obj);
 				
-				if (obj instanceof org.docx4j.wml.SdtBlock) {
-					ml = new SdtBlockML((org.docx4j.wml.SdtBlock) obj);
+				if (value instanceof org.docx4j.wml.SdtBlock) {
+					ml = new SdtBlockML(obj);
 				//} else if (obj instanceof org.docx4j.wml.Tbl) {
 					//unsupported yet
 				} else {
