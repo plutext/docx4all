@@ -147,6 +147,11 @@ public class ElementMLFactory {
 		return theProp;
 	}
 	
+	public final static SdtBlockML createSdtBlockML() {
+		SdtBlockML theBlock = new SdtBlockML(ObjectFactory.createSdtBlock());
+		return theBlock;
+	}
+	
 	private ElementMLFactory() {
 		;//uninstantiable
 	}
