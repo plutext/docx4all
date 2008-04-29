@@ -19,7 +19,6 @@
 
 package org.docx4all.script.fx.ui;
 
-import org.docx4all.ui.menu.FileMenu;
 import org.docx4all.swing.text.FontManager;
 import org.docx4all.swing.text.StyleSheet;
 
@@ -99,15 +98,21 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
     }
     
     var cutButton = Button {
+        enabledPropertyName: toolBarStates.CUT_ENABLED_PROPERTY_NAME
         swingAction: editMenu.getAction(editMenu.CUT_ACTION_NAME)
+        enabled: toolBarStates.isCutEnabled()
     }
     
     var copyButton = Button {
+        enabledPropertyName: toolBarStates.COPY_ENABLED_PROPERTY_NAME
         swingAction: editMenu.getAction(editMenu.COPY_ACTION_NAME)
+        enabled: toolBarStates.isCopyEnabled()
     }
     
     var pasteButton = Button {
+        enabledPropertyName: toolBarStates.PASTE_ENABLED_PROPERTY_NAME
         swingAction: editMenu.getAction(editMenu.PASTE_ACTION_NAME)
+        enabled: toolBarStates.isPasteEnabled()
     }
     
     var styleCombo = StylesComboBox {
