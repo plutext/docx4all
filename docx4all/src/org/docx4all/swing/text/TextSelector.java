@@ -68,19 +68,41 @@ public class TextSelector {
 	}
 	
 	public List<ElementMLRecord> getElementMLRecords() {
-		List<ElementMLRecord> theList = new ArrayList<ElementMLRecord>();
+		List<ElementMLRecord> theList = null;
 		
-		DocumentElement root = (DocumentElement) _doc.getDefaultRootElement();
+		DocumentElement parent =
+			DocUtil.getCommonParentElement(
+				(DocumentElement) _doc.getParagraphMLElement(_offset, true), 
+				(DocumentElement) _doc.getParagraphMLElement(_offset + _length - 1, true));
+		while (parent.getParentElement() != null
+				&& _offset <= parent.getParentElement().getStartOffset() 
+				&& parent.getParentElement().getEndOffset() <= _offset + _length) {
+			parent = (DocumentElement) parent.getParentElement();
+		}
 		
-		int startIdx = root.getElementIndex(_offset);
-		int endIdx = root.getElementIndex(_offset + _length - 1);
-		
-		for (int idx=startIdx; idx <= endIdx; idx++) {
-			DocumentElement block = (DocumentElement) root.getElement(idx);
-			int startOffset = Math.max(block.getStartOffset(), _offset);
-			int endOffset = Math.min(block.getEndOffset(), _offset + _length);
-			ElementSelector es = new ElementSelector(block, startOffset, endOffset);
-			theList.addAll(es.getElementMLRecords());
+		if (_offset <= parent.getStartOffset() 
+			&& parent.getEndOffset() <= _offset + _length) {
+			
+			ElementSelector es = 
+				new ElementSelector(
+					parent, 
+					parent.getStartOffset(), 
+					parent.getEndOffset());
+			theList = es.getElementMLRecords();
+			
+		} else {
+			theList = new ArrayList<ElementMLRecord>();
+			
+			int startIdx = parent.getElementIndex(_offset);
+			int endIdx = parent.getElementIndex(_offset + _length - 1);
+			
+			for (int idx=startIdx; idx <= endIdx; idx++) {
+				DocumentElement elem = (DocumentElement) parent.getElement(idx);
+				int startOffset = Math.max(elem.getStartOffset(), _offset);
+				int endOffset = Math.min(elem.getEndOffset(), _offset + _length);
+				ElementSelector es = new ElementSelector(elem, startOffset, endOffset);
+				theList.addAll(es.getElementMLRecords());
+			}
 		}
 		
 		return theList;
