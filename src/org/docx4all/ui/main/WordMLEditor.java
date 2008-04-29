@@ -26,6 +26,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Rectangle;
+import java.awt.datatransfer.Clipboard;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.event.MouseMotionListener;
@@ -72,6 +73,7 @@ import org.bounce.text.xml.XMLDocument;
 import org.bounce.text.xml.XMLEditorKit;
 import org.bounce.text.xml.XMLStyleConstants;
 import org.docx4all.datatransfer.TransferHandler;
+import org.docx4all.datatransfer.WordMLTransferable;
 import org.docx4all.script.FxScriptUIHelper;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
@@ -121,6 +123,16 @@ public class WordMLEditor extends SingleFrameApplication {
     	
     	log.info("setting up ToolBarStates");
     	_toolbarStates = new ToolBarStates();
+    	Clipboard clipboard = getContext().getClipboard();
+    	clipboard.addFlavorListener(_toolbarStates);
+		//As a FlavorListener, _toolbarStates will ONLY be notified
+    	//when there is a DataFlavor change in Clipboard. 
+    	//Therefore, make sure that toolbarStates' _isPasteEnable property 
+    	//is initialised correctly.
+		boolean available = 
+			clipboard.isDataFlavorAvailable(WordMLTransferable.STRING_FLAVOR)
+			|| clipboard.isDataFlavorAvailable(WordMLTransferable.WORDML_FRAGMENT_FLAVOR);
+		_toolbarStates.setPasteEnabled(available);
     	
     	log.info("setting up WmlExitListener");
     	addExitListener(new WmlExitListener());
@@ -131,6 +143,7 @@ public class WordMLEditor extends SingleFrameApplication {
     	log.info("setting up createMainPanel");    	
         show(createMainPanel());
     	log.info("startup() complete.");
+    	
     }
     
     public void closeAllInternalFrames() { 
@@ -425,6 +438,7 @@ public class WordMLEditor extends SingleFrameApplication {
     private JEditorPane createEditorView(FileObject f) {
     	JEditorPane editorView = new WordMLTextPane();
     	editorView.addFocusListener(_toolbarStates);
+    	editorView.addCaretListener(_toolbarStates);
     	editorView.setTransferHandler(new TransferHandler());
     	
 		WordMLEditorKit editorKit = (WordMLEditorKit) editorView.getEditorKit();
