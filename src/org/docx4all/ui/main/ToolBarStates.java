@@ -19,6 +19,9 @@
 
 package org.docx4all.ui.main;
 
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.FlavorEvent;
+import java.awt.datatransfer.FlavorListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.beans.PropertyChangeListener;
@@ -28,6 +31,8 @@ import java.util.Hashtable;
 import javax.swing.JEditorPane;
 import javax.swing.JInternalFrame;
 import javax.swing.SwingUtilities;
+import javax.swing.event.CaretEvent;
+import javax.swing.event.CaretListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.InternalFrameAdapter;
@@ -41,6 +46,7 @@ import javax.swing.text.StyleConstants;
 import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.log4j.Logger;
+import org.docx4all.datatransfer.WordMLTransferable;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.event.InputAttributeEvent;
 import org.docx4all.swing.event.InputAttributeListener;
@@ -53,7 +59,7 @@ import org.docx4all.swing.text.WordMLStyleConstants;
  *	@author Jojada Tirtowidjojo - 30/11/2007
  */
 public class ToolBarStates extends InternalFrameAdapter 
-	implements FocusListener, DocumentListener, InputAttributeListener {
+	implements FocusListener, DocumentListener, InputAttributeListener, FlavorListener, CaretListener {
 	
 	private static Logger log = Logger.getLogger(ToolBarStates.class);
 	
@@ -67,6 +73,10 @@ public class ToolBarStates extends InternalFrameAdapter
 	public final static String ANY_DOC_DIRTY_PROPERTY_NAME = "anyDocumentDirty";
 	
 	public final static String CURRENT_EDITOR_PROPERTY_NAME = "currentEditor";
+	
+	public final static String CUT_ENABLED_PROPERTY_NAME = "cutEnabled";
+	public final static String COPY_ENABLED_PROPERTY_NAME = "copyEnabled";
+	public final static String PASTE_ENABLED_PROPERTY_NAME = "pastedEnabled";
 	
 	public final static String FONT_FAMILY_PROPERTY_NAME = "fontFamily";
 	public final static String FONT_SIZE_PROPERTY_NAME = "fontSize";
@@ -86,6 +96,7 @@ public class ToolBarStates extends InternalFrameAdapter
 	private volatile String _fontFamily;
 	private volatile int _fontSize;
 	private volatile boolean _fontBold, _fontItalic, _fontUnderlined;
+	private volatile boolean _isCutEnabled, _isCopyEnabled, _isPasteEnabled;
 	
 	private volatile int _iframeNumbers;
 	
@@ -101,6 +112,9 @@ public class ToolBarStates extends InternalFrameAdapter
 		_fontBold = false;
 		_fontItalic = false;
 		_fontUnderlined = false;
+		_isCutEnabled = false;
+		_isCopyEnabled = false;
+		_isPasteEnabled = false;		
 		_iframeNumbers = 0;
 		_alignment = -1;
 	}
@@ -228,6 +242,72 @@ public class ToolBarStates extends InternalFrameAdapter
 		StyleSheet oldValue = _styleSheet;
 		_styleSheet = styleSheet;
 		firePropertyChange(STYLE_SHEET_PROPERTY_NAME, oldValue, styleSheet);
+	}
+	
+	public boolean isCutEnabled() {
+		return _isCutEnabled;
+	}
+	
+	public void setCutEnabled(boolean enabled) {
+		if (log.isDebugEnabled()) {
+			log.debug("setCutEnabled(): _isCutEnabled = " + _isCutEnabled + " enabled param = " + enabled);
+		}
+	
+		if (_isCutEnabled == enabled) {
+			return;
+		}
+		
+		boolean oldValue = _isCutEnabled;
+		_isCutEnabled = enabled;
+		
+		firePropertyChange(
+			CUT_ENABLED_PROPERTY_NAME, 
+			Boolean.valueOf(oldValue), 
+			Boolean.valueOf(enabled));
+	}
+	
+	public boolean isCopyEnabled() {
+		return _isCopyEnabled;
+	}
+	
+	public void setCopyEnabled(boolean enabled) {
+		if (log.isDebugEnabled()) {
+			log.debug("setCopyEnabled(): _isCopyEnabled = " + _isCopyEnabled + " enabled param = " + enabled);
+		}
+	
+		if (_isCopyEnabled == enabled) {
+			return;
+		}
+		
+		boolean oldValue = _isCopyEnabled;
+		_isCopyEnabled = enabled;
+		
+		firePropertyChange(
+			COPY_ENABLED_PROPERTY_NAME, 
+			Boolean.valueOf(oldValue), 
+			Boolean.valueOf(enabled));
+	}
+	
+	public boolean isPasteEnabled() {
+		return _isPasteEnabled;
+	}
+	
+	public void setPasteEnabled(boolean enabled) {
+		if (log.isDebugEnabled()) {
+			log.debug("setPasteEnabled(): _isPasteEnabled = " + _isPasteEnabled + " enabled param = " + enabled);
+		}
+	
+		if (_isPasteEnabled == enabled) {
+			return;
+		}
+		
+		boolean oldValue = _isPasteEnabled;
+		_isPasteEnabled = enabled;
+		
+		firePropertyChange(
+			PASTE_ENABLED_PROPERTY_NAME, 
+			Boolean.valueOf(oldValue), 
+			Boolean.valueOf(enabled));
 	}
 	
 	public int getAlignment() {
@@ -371,7 +451,12 @@ public class ToolBarStates extends InternalFrameAdapter
 		_dirtyTable.put(iframe, currentDirty);
 		setDocumentDirty(iframe, newDirty);
 		
-    	setFormatInfo(editor);    	
+    	setFormatInfo(editor);
+    	
+    	boolean hasSelection = 
+    		(editor.getSelectionStart() < editor.getSelectionEnd());
+    	setCopyEnabled(hasSelection);
+    	setCutEnabled(hasSelection);
 	}	
 	
     /**
@@ -713,6 +798,33 @@ public class ToolBarStates extends InternalFrameAdapter
     		setFormatInfo(_currentEditor);
     	}
     }
+
+	//=====================================
+	//FlavorListener Implementation
+	//=====================================
+	public void flavorsChanged(FlavorEvent e) {
+		Clipboard clipboard = (Clipboard) e.getSource();
+		boolean available = 
+			clipboard.isDataFlavorAvailable(WordMLTransferable.STRING_FLAVOR)
+			|| clipboard.isDataFlavorAvailable(WordMLTransferable.WORDML_FRAGMENT_FLAVOR);
+
+		//This flavorsChanged() method is fired IF AND ONLY IF there is a DataFlavor change
+		//in Clipboard. Therefore, make sure that _isPasteEnable property is initialised correctly.
+		//See: WordMLEditor.startup() method where _isPasteEnable property is initialised. 
+		setPasteEnabled(available);
+	}
+	
+	//=====================================
+	//CaretListener Implementation
+	//=====================================
+	public void caretUpdate(CaretEvent e) {
+    	if (_currentEditor == e.getSource()) {
+        	boolean hasSelection = 
+        		(_currentEditor.getSelectionStart() < _currentEditor.getSelectionEnd());
+        	setCopyEnabled(hasSelection);
+        	setCutEnabled(hasSelection);
+    	}
+	}
 
 }// ToolBarStates class
 
