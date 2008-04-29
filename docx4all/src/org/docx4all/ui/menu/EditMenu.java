@@ -21,10 +21,11 @@ package org.docx4all.ui.menu;
 
 import java.awt.event.ActionEvent;
 
+import javax.swing.JMenuItem;
 import javax.swing.text.DefaultEditorKit;
-import javax.swing.text.StyleConstants;
 
-import org.docx4all.swing.text.WordMLEditorKit;
+import org.docx4all.ui.main.ToolBarStates;
+import org.docx4all.ui.main.WordMLEditor;
 import org.jdesktop.application.Action;
 
 /**
@@ -99,6 +100,31 @@ public class EditMenu extends UIMenu {
 		return EDIT_MENU_NAME;
 	}
 	
+    protected JMenuItem createMenuItem(String actionName) {
+    	JMenuItem theItem = super.createMenuItem(actionName);
+    	
+		WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+		ToolBarStates toolbarStates = editor.getToolbarStates();
+    	if (CUT_ACTION_NAME.equals(actionName)) {
+    		theItem.setEnabled(toolbarStates.isCutEnabled());
+			toolbarStates.addPropertyChangeListener(
+				ToolBarStates.CUT_ENABLED_PROPERTY_NAME, 
+				new EnableOnEqual(theItem, Boolean.TRUE));
+    	} else if (COPY_ACTION_NAME.equals(actionName)) {
+    		theItem.setEnabled(toolbarStates.isCopyEnabled());
+			toolbarStates.addPropertyChangeListener(
+				ToolBarStates.COPY_ENABLED_PROPERTY_NAME, 
+				new EnableOnEqual(theItem, Boolean.TRUE));
+    	} else if (PASTE_ACTION_NAME.equals(actionName)) {
+    		theItem.setEnabled(toolbarStates.isPasteEnabled());
+			toolbarStates.addPropertyChangeListener(
+				ToolBarStates.PASTE_ENABLED_PROPERTY_NAME, 
+				new EnableOnEqual(theItem, Boolean.TRUE));
+    	}
+    	
+		return theItem;
+    }
+    
 	@Action public void cut(ActionEvent evt) {
 		DefaultEditorKit.CutAction action = 
 			new DefaultEditorKit.CutAction();
