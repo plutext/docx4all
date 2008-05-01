@@ -27,10 +27,9 @@ import javax.swing.text.View;
 
 import org.apache.log4j.Logger;
 import org.docx4all.xml.ElementML;
-import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
-import org.docx4all.xml.WordML;
+import org.docx4all.xml.SdtBlockML;
 
 public class ViewFactory implements javax.swing.text.ViewFactory {
 	private static Logger log = Logger.getLogger(ViewFactory.class);
@@ -56,6 +55,8 @@ public class ViewFactory implements javax.swing.text.ViewFactory {
 			theView = new RunView(elem);
 		} else if (elementML instanceof RunContentML) {
 			theView = new LabelView(elem);
+		} else if (elementML instanceof SdtBlockML) {
+			theView = new SdtBlockView(elem);
 		} else {
 			theView = new BoxView(elem, View.Y_AXIS);
 		}
