@@ -50,6 +50,8 @@ public class WordMLStyleConstants {
 	
 	public static final Object RStyleAttribute = new WordMLStyleConstants("rStyle");
 	
+	public static final Object BorderVisibleAttribute = new WordMLStyleConstants("borderVisible");
+	
     public static final Object DefaultParagraphStyleNameAttribute = 
     	new WordMLStyleConstants("defaultParagraphStyleName");
     
@@ -58,6 +60,7 @@ public class WordMLStyleConstants {
     	StyleIdAttribute, StyleUINameAttribute, StyleTypeAttribute,
     	UiPriorityAttribute, QFormatAttribute,
     	PStyleAttribute, RStyleAttribute,
+    	BorderVisibleAttribute,
     	DefaultParagraphStyleNameAttribute
     };
 
@@ -80,6 +83,27 @@ public class WordMLStyleConstants {
 	 */
     public static ElementML getElementML(AttributeSet a) {
         return (ElementML) a.getAttribute(ElementMLAttribute);
+    }
+
+    /**
+     * Sets the BorderVisible attribute.
+     *
+     * @param a the attribute set
+     * @param b visible or invisible
+     */
+    public static void setBorderVisible(MutableAttributeSet a, boolean b) {
+        a.addAttribute(BorderVisibleAttribute, Boolean.valueOf(b));
+    }
+
+    /**
+	 * Gets the BorderVisible setting from the attribute list.
+	 * 
+	 * @param a the attribute set
+	 * @return true or false value of BorderVisible attribute
+	 */
+    public static boolean getBorderVisible(AttributeSet a) {
+        Boolean val = (Boolean) a.getAttribute(BorderVisibleAttribute);
+        return (val != null) ? val.booleanValue() : false;
     }
 
     /**
