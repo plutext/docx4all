@@ -109,10 +109,12 @@
       <artifactId>wss4j</artifactId>
       <version>1.5.0</version>
     </dependency>
+    <!-- Can't use this to build JNLP, since it is already signed. 
+         So use an unsigned copy from lib/ instead.
     <dependency>
       <groupId>bouncycastle</groupId>
       <artifactId>bcprov-jdk16</artifactId>
       <version>136</version>
-    </dependency>
-  </dependencies>
+    </dependency>-->
+  </dependencies>  
 </project>
