@@ -225,24 +225,24 @@ public class WordMLDocument extends DefaultStyledDocument {
 
 		    AttributeSet attrsCopy = attrs.copyAttributes();
 		    
-			Element rootE = getDefaultRootElement();
-			int startIdx = rootE.getElementIndex(offset);
-			int endIdx = rootE.getElementIndex(offset + ((length > 0) ? length - 1 : 0));
-			for (int i = startIdx; i <= endIdx; i++) {
-				DocumentElement paraE = (DocumentElement) rootE.getElement(i);
+		    int pos = offset;
+		    while (pos <= offset + length) {
+		    	DocumentElement paraE = 
+		    		(DocumentElement) getParagraphMLElement(pos, false);
 				ParagraphML paraML = (ParagraphML) paraE.getElementML();
 				paraML.addAttributes(attrsCopy, replace);
 				
-				MutableAttributeSet paraAttr = 
+				MutableAttributeSet elemAttr = 
 					(MutableAttributeSet) paraE.getAttributes();
 				//changes.addEdit(
 				//	new AttributeUndoableEdit(paraE, attrsCopy, replace));
 				if (replace) {
-					paraAttr.removeAttributes(paraAttr);
+					elemAttr.removeAttributes(elemAttr);
 				}
-				paraAttr.addAttributes(attrs);
-			}
-
+				elemAttr.addAttributes(attrs);
+				pos += (paraE.getEndOffset() - paraE.getStartOffset());
+		    }
+		    
 			changes.end();
 			fireChangedUpdate(changes);
 			//fireUndoableEditUpdate(new UndoableEditEvent(this, changes));
