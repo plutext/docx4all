@@ -175,6 +175,39 @@ public class WordMLDocument extends DefaultStyledDocument {
 		}
 	}
     
+    public void setSdtBlockBorderVisble(int offset, boolean visible) {
+		try {
+			writeLock();
+			DocumentElement elem = (DocumentElement) getDefaultRootElement();
+			elem = (DocumentElement) elem.getElement(elem.getElementIndex(offset));
+			ElementML elemML = elem.getElementML();
+			if (elemML instanceof SdtBlockML) {
+				MutableAttributeSet blockAttrs = 
+					(MutableAttributeSet) elem.getAttributes();
+				boolean currentlyVisible = WordMLStyleConstants.getBorderVisible(blockAttrs);
+				if (currentlyVisible == visible) {
+					;//do nothing
+				} else {
+					offset = elem.getStartOffset();
+					int length = elem.getEndOffset() - offset;
+					DefaultDocumentEvent changes = 
+						new DefaultDocumentEvent(offset, length, DocumentEvent.EventType.CHANGE);
+					
+					((SdtBlockML) elemML).setBorderVisible(visible);
+					if (visible) {
+						WordMLStyleConstants.setBorderVisible(blockAttrs, visible);
+					} else {
+						blockAttrs.removeAttribute(WordMLStyleConstants.BorderVisibleAttribute);
+					}
+					changes.end();
+					fireChangedUpdate(changes);
+				}
+			}
+		} finally {
+			writeUnlock();
+		}
+	}
+    
     public void setParagraphMLAttributes(int offset, int length,
 			AttributeSet attrs, boolean replace) {
 
