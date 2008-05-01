@@ -125,6 +125,7 @@ public class TextInserter implements TextProcessor {
 				((MutableAttributeSet) attrs).removeAttribute(StyleConstants.ResolveAttribute);
 			}
 			
+			//Keep input attribute element which is a WordMLDocument.TextElement
 			elem = DocUtil.getInputAttributeElement(doc, offset, null);
 			
 			if (attrs.getAttributeCount() > 0
@@ -143,16 +144,17 @@ public class TextInserter implements TextProcessor {
 				//The attributes of this newRun depends on both 
 				//'attrs' and 'elem' which is the input attribute element.
 				MutableAttributeSet newAttrs = new SimpleAttributeSet();
+				DocumentElement runE = null;
 				if (elem == null) {
 					//No input attribute element.
 					//Check the RunML element at 'offset' and
 					//grab its attributes if 'offset' is not at its ends.
-					elem = (DocumentElement) doc.getRunMLElement(offset);
-					if (elem.getStartOffset() < offset && offset < elem.getEndOffset()) {
-						newAttrs.addAttributes(elem.getAttributes().copyAttributes());
+					runE = (DocumentElement) doc.getRunMLElement(offset);
+					if (runE.getStartOffset() < offset && offset < runE.getEndOffset()) {
+						newAttrs.addAttributes(runE.getAttributes().copyAttributes());
 					}
 				} else {
-					elem = (DocumentElement) elem.getParentElement();
+					runE = (DocumentElement) elem.getParentElement();
 					newAttrs.addAttributes(elem.getAttributes().copyAttributes());
 				}
 				newAttrs.addAttributes(attrs);
@@ -162,18 +164,18 @@ public class TextInserter implements TextProcessor {
 				newAttrs.removeAttribute(WordMLStyleConstants.ElementMLAttribute);
 				newRun.addAttributes(newAttrs, true);
 				
-				if (elem.getStartOffset() < offset && offset < elem.getEndOffset()) {
-					if (elem.isEditable()) {
+				if (runE.getStartOffset() < offset && offset < runE.getEndOffset()) {
+					if (elem != null && elem.isEditable()) {
 						//Has to be editable so that it can be split.
-						int idx = offset - elem.getStartOffset();
-						DocUtil.splitElementML(elem, idx);
-						elem.getElementML().addSibling(newRun, true);
+						int idx = offset - runE.getStartOffset();
+						DocUtil.splitElementML(runE, idx);
+						runE.getElementML().addSibling(newRun, true);
 						
 						doc.refreshParagraphs(paraStart, (paraEnd-paraStart));
 					}
 				} else {
-					boolean after = (elem.getEndOffset() == offset);
-					elem.getElementML().addSibling(newRun, after);
+					boolean after = (runE.getEndOffset() == offset);
+					runE.getElementML().addSibling(newRun, after);
 					
 					doc.refreshParagraphs(paraStart, (paraEnd-paraStart));
 				}
