@@ -168,7 +168,15 @@ public class RunML extends ElementML {
 				//Create a dummy RunML for this unsupported element
 				// TODO: A more informative text content in dummy RunML
 				QName name = inspector.getElementName(docxObject);
-				String renderedText = XmlUtil.getEnclosingTagPair(name);
+				String renderedText;
+				if (name != null) {
+					renderedText = XmlUtil.getEnclosingTagPair(name);
+				} else {
+					// Should not happen but it could.
+					renderedText = "<w:unknownTag></w:unknownTag>";
+					log.warn("init(): Unknown tag was detected for a JAXBElement = "
+						+ XmlUtils.marshaltoString(docxObject, true));
+				}
 				run = ObjectFactory.createR(renderedText);
 				this.isDummy = true;
 			}
