@@ -186,7 +186,15 @@ public class ParagraphML extends ElementML {
 				//Create a dummy ParagraphML for this unsupported element
 				//TODO: A more informative text content in dummy ParagraphML
 				QName name = inspector.getElementName(docxObject);
-				String renderedText = XmlUtil.getEnclosingTagPair(name);
+				String renderedText;
+				if (name != null) {
+					renderedText = XmlUtil.getEnclosingTagPair(name);
+				} else {
+					// Should not happen but it could.
+					renderedText = "<w:unknownTag></w:unknownTag>";
+					log.warn("init(): Unknown tag was detected for a JAXBElement = "
+						+ XmlUtils.marshaltoString(docxObject, true));
+				}
 				para = ObjectFactory.createP(renderedText);
 				this.isDummy = true;
 			}
