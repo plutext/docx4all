@@ -36,6 +36,7 @@ import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.PropertiesContainerML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
+import org.docx4all.xml.SdtBlockML;
 
 public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	private List<ElementSpec> _elementSpecs = new ArrayList<ElementSpec>();
@@ -51,10 +52,13 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 			
 		} else if (elem instanceof ParagraphML) {
 			openElementSpec((ParagraphML) elem);
+		
+		} else if (elem instanceof SdtBlockML) {
+			openElementSpec((SdtBlockML) elem);
 			
 		} else if (elem instanceof BodyML) {
 			;//bypass
-			
+		
 		} else {
 			SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
 			WordMLStyleConstants.setElementML(elemAttrs, elem);
@@ -73,13 +77,21 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		} else if (elem instanceof ParagraphML) {
 			closeElementSpec((ParagraphML) elem);
 			
+		} else if (elem instanceof SdtBlockML) {
+			closeElementSpec((SdtBlockML) elem);
+			
 		} else if (elem instanceof BodyML) {
 			;//bypass
 			
 		} else {
-			SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
-			WordMLStyleConstants.setElementML(elemAttrs, elem);
-			closeElementSpec(elemAttrs);
+			closeElementSpec((AttributeSet) null);
+			//It turns out that closing ElementSpec can be done 
+			//without passing any AttributeSet.
+			//If later on this causes problem then comment out
+			//the above line and uncomment the following lines.
+			//SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
+			//WordMLStyleConstants.setElementML(elemAttrs, elem);
+			//closeElementSpec(elemAttrs);
 		}
 	}
 	
@@ -159,18 +171,25 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		WordMLStyleConstants.setElementML(tempAttrs, rcML);
 		addContentElementSpec(tempAttrs, rcML.getTextContent());
 		
-		closeElementSpec(runAttrs.copyAttributes());
+		closeElementSpec((AttributeSet) null);
+		//It turns out that closing ElementSpec can be done 
+		//without passing any AttributeSet.
+		//If later on this causes problem then comment out
+		//the above line and uncomment the following lines.
+		//closeElementSpec(runAttrs.copyAttributes());
 		
 		//Remember to close the inserted IMPLIED_PARAGRAPH
-		tempAttrs = new SimpleAttributeSet();
-		WordMLStyleConstants.setElementML(tempAttrs, ElementML.IMPLIED_PARAGRAPH);
-		closeElementSpec(tempAttrs);
+		closeElementSpec((AttributeSet) null);
+		//tempAttrs = new SimpleAttributeSet();
+		//WordMLStyleConstants.setElementML(tempAttrs, ElementML.IMPLIED_PARAGRAPH);
+		//closeElementSpec(tempAttrs);
 		
 		//Close ParagraphML BLOCK
-		tempAttrs = new SimpleAttributeSet();
-		WordMLStyleConstants.setElementML(tempAttrs, paragraphML);
-		closeElementSpec(tempAttrs);
-		
+		closeElementSpec((AttributeSet) null);
+		//tempAttrs = new SimpleAttributeSet();
+		//WordMLStyleConstants.setElementML(tempAttrs, paragraphML);
+		//closeElementSpec(tempAttrs);
+
 		if (resetAttr) {
 			_paragraphAttrs = null;
 		}
@@ -205,10 +224,15 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	}
 	
 	private void closeElementSpec(RunML runML, boolean resetAttr) {
-		SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
-		WordMLStyleConstants.setElementML(elemAttrs, runML);
-		closeElementSpec(elemAttrs);
-		
+		closeElementSpec((AttributeSet) null);
+		//It turns out that closing ElementSpec can be done 
+		//without passing any AttributeSet.
+		//If later on this causes problem then comment out
+		//the above line and uncomment the following lines.
+		//SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
+		//WordMLStyleConstants.setElementML(elemAttrs, runML);
+		//closeElementSpec(elemAttrs);
+
 		if (resetAttr) {
 			_runAttrs = null;
 		}
@@ -230,10 +254,15 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 			closeElementSpec(runML, false);
 			
 			//Close the inserted IMPLIED_PARAGRAPH
-			elemAttrs = new SimpleAttributeSet();
-			WordMLStyleConstants.setElementML(elemAttrs, ElementML.IMPLIED_PARAGRAPH);
-			closeElementSpec(elemAttrs);
-			
+			closeElementSpec((AttributeSet) null);
+			//It turns out that closing ElementSpec can be done 
+			//without passing any AttributeSet.
+			//If later on this causes problem then comment out
+			//the above line and uncomment the following lines.
+			//elemAttrs = new SimpleAttributeSet();
+			//WordMLStyleConstants.setElementML(elemAttrs, ElementML.IMPLIED_PARAGRAPH);
+			//closeElementSpec(elemAttrs);
+
 			//Open a new IMPLIED_PARAGRAPH
 			openElementSpec(elemAttrs.copyAttributes());
 			
@@ -241,7 +270,20 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 			openElementSpec(_runAttrs.copyAttributes());
 		}
 	}
-		
+	
+	private void openElementSpec(SdtBlockML sdtBlockML) {
+		SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
+		WordMLStyleConstants.setElementML(elemAttrs, sdtBlockML);
+		if (sdtBlockML.isBorderVisible()) {
+			WordMLStyleConstants.setBorderVisible(elemAttrs, true);
+		}
+		openElementSpec(elemAttrs);
+	}
+	
+	private void closeElementSpec(SdtBlockML sdtBlockML) {
+		closeElementSpec((AttributeSet) null);
+	}
+	
 }// ElementMLIteratorCallback class
 
 
