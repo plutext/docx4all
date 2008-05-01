@@ -142,7 +142,7 @@ public class SdtBlockView extends BoxView {
 		}
 		
 		if (rowsList.size() > 1) {
-			//the last row
+			//the last row is processed separately
 			row = (View) rowsList.get(rowsList.size() - 1);
 			start = 
 				SwingUtil.getBounds(
@@ -158,14 +158,14 @@ public class SdtBlockView extends BoxView {
 				rightMost = Math.max(rightMost, end.x);
 				
 				leftMost -= getLeftInset();
-				rightMost += getRightInset();
+				rightMost += (getRightInset() - 1);
 				
 				theOutline.addPoint(leftMost, alloc.y); //vertice #1
 				theOutline.addPoint(rightMost, alloc.y);//vertice #2
 				theOutline.addPoint(rightMost, end.y); //vertice #3
-				theOutline.addPoint(end.x + getRightInset(), end.y); //vertice #4
+				theOutline.addPoint(end.x + getRightInset() - 1, end.y); //vertice #4
 				theOutline.addPoint(
-					end.x + getRightInset(), 
+					end.x + getRightInset() - 1, 
 					end.y + end.height + getBottomInset()); //vertice #5
 				theOutline.addPoint(
 					leftMost, 
@@ -176,7 +176,7 @@ public class SdtBlockView extends BoxView {
 				leftMost = Math.min(leftMost, start.x);
 				rightMost = Math.max(rightMost, end.x);
 				leftMost -= getLeftInset();
-				rightMost += getRightInset();
+				rightMost += (getRightInset() - 1);
 				theOutline.addPoint(leftMost, alloc.y);
 				theOutline.addPoint(rightMost, alloc.y);
 				theOutline.addPoint(rightMost, alloc.y + alloc.height);
@@ -185,7 +185,7 @@ public class SdtBlockView extends BoxView {
 		} else {
 			//Border is simply a rectangle
 			leftMost -= getLeftInset();
-			rightMost += getRightInset();
+			rightMost += (getRightInset() - 1);
 			theOutline.addPoint(leftMost, alloc.y);
 			theOutline.addPoint(rightMost, alloc.y);
 			theOutline.addPoint(rightMost, alloc.y + alloc.height);
