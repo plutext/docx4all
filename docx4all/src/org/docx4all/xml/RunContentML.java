@@ -125,7 +125,7 @@ public class RunContentML extends ElementML {
 			} else {
 				// Create a dummy RunContentML for this unsupported element
 				// TODO: A more informative text content in dummy RunContentML
-				QName name = inspector.getElementName(value);
+				QName name = inspector.getElementName(docxObject);
 				if (name != null) {
 					this.textContent = XmlUtil.getEnclosingTagPair(name);
 					this.isDummy = true;
@@ -134,7 +134,7 @@ public class RunContentML extends ElementML {
 					this.textContent="<w:unknownTag></w:unknownTag>";
 					this.isDummy = true;
 					log.warn("init(): Unknown tag was detected for a JAXBElement = "
-							+ XmlUtils.marshaltoString(value, true));
+							+ XmlUtils.marshaltoString(docxObject, true));
 				}
 			}
 		} else {
