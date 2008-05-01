@@ -21,9 +21,13 @@ package org.docx4all.util;
 
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Rectangle;
+import java.awt.Shape;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyVetoException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JEditorPane;
@@ -31,9 +35,11 @@ import javax.swing.JInternalFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.text.View;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
+import org.docx4all.swing.text.ParagraphView;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -146,6 +152,29 @@ public class SwingUtil {
 		return theObject;
     }
     
+    public final static Rectangle getBounds(Shape s) {
+    	//Prevent from constructing a new Rectangle object
+    	//if Shape s is already a Rectangle
+    	return (s instanceof Rectangle) ? (Rectangle) s : s.getBounds();
+    }
+    
+    public final static List<View> getRowView(View v) {
+    	List<View> theList = new ArrayList<View>();
+    	
+    	boolean isRow = (v instanceof ParagraphView);
+    	for (int i=0; i < v.getViewCount(); i++) {
+    		View temp = v.getView(i);
+    		if (isRow) {
+    			theList.add(temp);
+    		} else {
+    			theList.addAll(getRowView(temp));
+    		}
+    	}
+    	
+    	return theList;
+    }
+    
+
 	private SwingUtil() {
 		;//uninstantiable
 	}
