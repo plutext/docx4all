@@ -19,12 +19,19 @@
 
 package org.docx4all.xml;
 
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.namespace.QName;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.StyleSheet;
 import org.docx4j.XmlUtils;
+import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 
@@ -38,8 +45,77 @@ public class DocumentML extends ElementML {
 	private StyleSheet styleSheet;
 	
 	public DocumentML(WordprocessingMLPackage docPackage) {
-		super((docPackage != null) ? docPackage.getMainDocumentPart().getJaxbElement() : null, false);
+		
+		if (docPackage!=null) {
+			// First, apply filter
+			log.info("Filtering document..");
+			docPackage = applyFilter(docPackage);
+			log.info(".. filter done.");
+			
+			this.docxObject = docPackage.getMainDocumentPart().getJaxbElement();
+		} else {			
+			this.docxObject = null;
+		}
+		
+		//super((docPackage != null) ? docPackage.getMainDocumentPart().getJaxbElement() : null, false);
+		this.isDummy = false;
+		if (this.docxObject != null) {
+			QName name = Context.jc.createJAXBIntrospector().getElementName(docxObject);
+			if (name != null) {
+				tag = WordML.getTag(name.getLocalPart());
+			}
+		}
+		init(docxObject);			
+		
 		this.docPackage = docPackage;
+	}
+	
+	/** 
+	 * 
+	 * When a document is first loaded, filter its contents using these standard
+	 * settings.
+	 * 
+	 * */
+	public WordprocessingMLPackage applyFilter(WordprocessingMLPackage wordMLPackage) {
+
+		try {
+			// Apply the filter
+			WordprocessingMLPackage.FilterSettings filterSettings = new WordprocessingMLPackage.FilterSettings();
+			filterSettings.setRemoveProofErrors(true);
+			filterSettings.setRemoveContentControls(false);
+			filterSettings.setRemoveRsids(true);
+			filterSettings.setTidyForDocx4all(true);
+			wordMLPackage.filter(filterSettings);
+					
+		   	// Create a org.docx4j.wml.Package object
+	    	org.docx4j.wml.Package wmlPackageEl = wordMLPackage.exportPkgXml();
+
+			org.docx4j.wml.Document wmlDocument = null;
+			org.docx4j.wml.Styles wmlStyles = null;
+			for (org.docx4j.wml.Package.Part p : wmlPackageEl.getPart() ) {
+				
+				if (p.getXmlData().getDocument()!= null) {
+					wmlDocument = p.getXmlData().getDocument();
+				}				
+				if (p.getXmlData().getStyles()!= null) {
+					wmlStyles = p.getXmlData().getStyles();
+				}				
+			}
+				
+			if (wordMLPackage == null) {
+				wordMLPackage = ObjectFactory.createDocumentPackage(wmlDocument);
+			} else {
+				wordMLPackage.getMainDocumentPart().setJaxbElement(wmlDocument);
+			}
+			
+			// That handled the Main Document Part; now set the Style part.
+			wordMLPackage.getMainDocumentPart().getStyleDefinitionsPart().setJaxbElement(wmlStyles);
+			
+		} catch (Exception exc) {
+			exc.printStackTrace();
+			throw new RuntimeException(exc);
+		}
+		return wordMLPackage;
 	}
 
 	public WordprocessingMLPackage getWordprocessingMLPackage() {
