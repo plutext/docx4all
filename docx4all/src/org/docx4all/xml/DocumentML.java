@@ -86,31 +86,7 @@ public class DocumentML extends ElementML {
 			filterSettings.setRemoveRsids(true);
 			filterSettings.setTidyForDocx4all(true);
 			wordMLPackage.filter(filterSettings);
-					
-		   	// Create a org.docx4j.wml.Package object
-	    	org.docx4j.wml.Package wmlPackageEl = wordMLPackage.exportPkgXml();
-
-			org.docx4j.wml.Document wmlDocument = null;
-			org.docx4j.wml.Styles wmlStyles = null;
-			for (org.docx4j.wml.Package.Part p : wmlPackageEl.getPart() ) {
-				
-				if (p.getXmlData().getDocument()!= null) {
-					wmlDocument = p.getXmlData().getDocument();
-				}				
-				if (p.getXmlData().getStyles()!= null) {
-					wmlStyles = p.getXmlData().getStyles();
-				}				
-			}
-				
-			if (wordMLPackage == null) {
-				wordMLPackage = ObjectFactory.createDocumentPackage(wmlDocument);
-			} else {
-				wordMLPackage.getMainDocumentPart().setJaxbElement(wmlDocument);
-			}
-			
-			// That handled the Main Document Part; now set the Style part.
-			wordMLPackage.getMainDocumentPart().getStyleDefinitionsPart().setJaxbElement(wmlStyles);
-			
+								
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			throw new RuntimeException(exc);
