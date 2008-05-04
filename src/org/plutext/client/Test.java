@@ -1,6 +1,8 @@
 package org.plutext.client;
 
 import org.alfresco.webservice.util.AuthenticationUtils;
+import org.plutext.client.webservice.PlutextService_ServiceLocator;
+import org.plutext.client.webservice.PlutextWebService;
 
 public class Test {
 

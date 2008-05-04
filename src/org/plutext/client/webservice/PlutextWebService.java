@@ -5,7 +5,7 @@
  * by the Apache Axis 1.4 Apr 22, 2006 (06:55:48 PDT) WSDL2Java emitter.
  */
 
-package org.plutext.client;
+package org.plutext.client.webservice;
 
 public interface PlutextWebService extends java.rmi.Remote {
     public java.lang.String[] getTransforms(java.lang.String docID, long firstSequenceNumber) throws java.rmi.RemoteException;

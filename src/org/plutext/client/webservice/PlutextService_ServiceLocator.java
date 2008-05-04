@@ -5,9 +5,9 @@
  * by the Apache Axis 1.4 Apr 22, 2006 (06:55:48 PDT) WSDL2Java emitter.
  */
 
-package org.plutext.client;
+package org.plutext.client.webservice;
 
-public class PlutextService_ServiceLocator extends org.apache.axis.client.Service implements org.plutext.client.PlutextService_Service {
+public class PlutextService_ServiceLocator extends org.apache.axis.client.Service implements org.plutext.client.webservice.PlutextService_Service {
 
     public PlutextService_ServiceLocator() {
     }
@@ -39,7 +39,7 @@ public class PlutextService_ServiceLocator extends org.apache.axis.client.Servic
         PlutextServiceWSDDServiceName = name;
     }
 
-    public org.plutext.client.PlutextWebService getPlutextService() throws javax.xml.rpc.ServiceException {
+    public org.plutext.client.webservice.PlutextWebService getPlutextService() throws javax.xml.rpc.ServiceException {
        java.net.URL endpoint;
         try {
             endpoint = new java.net.URL(PlutextService_address);
@@ -50,9 +50,9 @@ public class PlutextService_ServiceLocator extends org.apache.axis.client.Servic
         return getPlutextService(endpoint);
     }
 
-    public org.plutext.client.PlutextWebService getPlutextService(java.net.URL portAddress) throws javax.xml.rpc.ServiceException {
+    public org.plutext.client.webservice.PlutextWebService getPlutextService(java.net.URL portAddress) throws javax.xml.rpc.ServiceException {
         try {
-            org.plutext.client.PlutextServiceSoapBindingStub _stub = new org.plutext.client.PlutextServiceSoapBindingStub(portAddress, this);
+            org.plutext.client.webservice.PlutextServiceSoapBindingStub _stub = new org.plutext.client.webservice.PlutextServiceSoapBindingStub(portAddress, this);
             _stub.setPortName(getPlutextServiceWSDDServiceName());
             return _stub;
         }
@@ -72,8 +72,8 @@ public class PlutextService_ServiceLocator extends org.apache.axis.client.Servic
      */
     public java.rmi.Remote getPort(Class serviceEndpointInterface) throws javax.xml.rpc.ServiceException {
         try {
-            if (org.plutext.client.PlutextWebService.class.isAssignableFrom(serviceEndpointInterface)) {
-                org.plutext.client.PlutextServiceSoapBindingStub _stub = new org.plutext.client.PlutextServiceSoapBindingStub(new java.net.URL(PlutextService_address), this);
+            if (org.plutext.client.webservice.PlutextWebService.class.isAssignableFrom(serviceEndpointInterface)) {
+                org.plutext.client.webservice.PlutextServiceSoapBindingStub _stub = new org.plutext.client.webservice.PlutextServiceSoapBindingStub(new java.net.URL(PlutextService_address), this);
                 _stub.setPortName(getPlutextServiceWSDDServiceName());
                 return _stub;
             }
