@@ -297,7 +297,7 @@ public abstract class ElementML implements Cloneable {
 	/**
 	 * A dummy ElementML is an ElementML that is declared as dummy.
 	 * 
-	 * @return true, if this is an implied ElementML
+	 * @return true, if this ElementML has been declared as dummy.
 	 *         false, otherwise
 	 */
 	public boolean isDummy() {
