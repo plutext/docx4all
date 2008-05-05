@@ -202,6 +202,31 @@ public class XmlUtil {
 		return sb.toString();
 	}
 	
+	/** 
+	 * 
+	 * Filters out certain features of WordprocessingML which docx4all can’t yet handle, 
+	 * into something it can. Examples include proofErr, hyperlink, and lastRenderedPageBreak.
+	 * 
+	 * @param wmlPackage
+	 */
+	public final static WordprocessingMLPackage applyFilter(WordprocessingMLPackage wmlPackage) {
+		try {
+			// Apply the filter
+			WordprocessingMLPackage.FilterSettings filterSettings = 
+				new WordprocessingMLPackage.FilterSettings();
+			filterSettings.setRemoveProofErrors(true);
+			filterSettings.setRemoveContentControls(false);
+			filterSettings.setRemoveRsids(true);
+			filterSettings.setTidyForDocx4all(true);
+			wmlPackage.filter(filterSettings);
+								
+		} catch (Exception exc) {
+			exc.printStackTrace();
+			throw new RuntimeException(exc);
+		}
+		return wmlPackage;
+	}
+
 	/**
 	 * Empty the children of parent argument
 	 * 
