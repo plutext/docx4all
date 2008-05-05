@@ -26,6 +26,7 @@ import javax.swing.text.AttributeSet;
 
 import org.apache.commons.vfs.FileObject;
 import org.docx4all.ui.main.Constants;
+import org.docx4all.util.XmlUtil;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.io.LoadFromVFSZipFile;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
@@ -47,6 +48,10 @@ public class ElementMLFactory {
 	}
 	
 	public final static DocumentML createDocumentML(FileObject f) throws IOException {
+		return createDocumentML(f, false);
+	}
+	
+	public final static DocumentML createDocumentML(FileObject f, boolean applyFilter) throws IOException {
 		if (f == null || !Constants.DOCX_STRING.equalsIgnoreCase(f.getName().getExtension())) {
 			throw new IllegalArgumentException("Not a .docx file."); 
 		}
@@ -57,6 +62,9 @@ public class ElementMLFactory {
 			WordprocessingMLPackage wordMLPackage = 
 				(WordprocessingMLPackage) 
 					loader.getPackageFromFileObject(f);
+			if (applyFilter) {
+				wordMLPackage = XmlUtil.applyFilter(wordMLPackage);
+			}
 			docML = new DocumentML(wordMLPackage);
 		} catch (Docx4JException exc) {
 			throw new IOException(exc);
@@ -65,7 +73,6 @@ public class ElementMLFactory {
 		return docML;
 	}
 	
-
 	/**
 	 * Creates a ParagraphML whose children are specified in 'contents' param.
 	 * 
