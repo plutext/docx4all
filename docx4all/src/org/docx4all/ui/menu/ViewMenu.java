@@ -19,6 +19,8 @@
 
 package org.docx4all.ui.menu;
 
+import java.awt.event.ActionEvent;
+
 import javax.swing.JEditorPane;
 import javax.swing.JInternalFrame;
 import javax.swing.JMenuItem;
@@ -73,11 +75,15 @@ public class ViewMenu extends UIMenu {
 	
 	public final static String CLOSE_SOURCE_VIEW_ACTION_NAME = "closeSourceView";
 	
+	public final static String APPLY_FILTER_ACTION_NAME = "applyFilter";
+	
 	private static final String[] _menuItemActionNames = {
 		VIEW_EDITOR_ACTION_NAME,
 		VIEW_SOURCE_ACTION_NAME,
 		SEPARATOR_CODE,
-		CLOSE_SOURCE_VIEW_ACTION_NAME
+		CLOSE_SOURCE_VIEW_ACTION_NAME,
+		SEPARATOR_CODE,
+		APPLY_FILTER_ACTION_NAME
 	};
 	
 	public static ViewMenu getInstance() {
@@ -138,6 +144,17 @@ public class ViewMenu extends UIMenu {
         editor.closeSourceViewTab();
 	}
 	
+	@Action public void applyFilter(ActionEvent evt) {
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        
+        JEditorPane view = editor.getCurrentEditor();
+        if (view instanceof WordMLTextPane) {
+        	WordMLTextPane tp = (WordMLTextPane) view;
+        	tp.applyFilter();
+        	editor.getToolbarStates().setFilterApplied(tp.isFilterApplied());
+        }		
+	}
+	
 	public void setEnabled(String menuItemActionName, boolean isEnabled) {
 		javax.swing.Action itemAction = getAction(menuItemActionName);
 		itemAction.setEnabled(isEnabled);
@@ -164,6 +181,11 @@ public class ViewMenu extends UIMenu {
     		toolbarStates.addPropertyChangeListener(
         			ToolBarStates.CURRENT_EDITOR_PROPERTY_NAME,
         			new EnableOnEqualType(theItem, JEditorPane.class));
+    		
+        } else if (APPLY_FILTER_ACTION_NAME.equals(actionName)) {
+    		toolbarStates.addPropertyChangeListener(
+        			ToolBarStates.FILTER_APPLIED_PROPERTY_NAME,
+        			new EnableOnEqual(theItem, Boolean.FALSE));
         }
         
 		return theItem;
