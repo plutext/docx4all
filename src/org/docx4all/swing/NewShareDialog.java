@@ -1,0 +1,202 @@
+/*
+ *  Copyright 2007, Plutext Pty Ltd.
+ *   
+ *  This file is part of Docx4all.
+
+    Docx4all is free software: you can redistribute it and/or modify
+    it under the terms of version 3 of the GNU General Public License 
+    as published by the Free Software Foundation.
+
+    Docx4all is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License   
+    along with Docx4all.  If not, see <http://www.gnu.org/licenses/>.
+    
+ */
+
+package org.docx4all.swing;
+
+import java.awt.Frame;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
+import javax.swing.JCheckBox;
+import javax.swing.JDialog;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+
+/**
+ *	@author Jojada Tirtowidjojo - 01/05/2008
+ */
+public class NewShareDialog extends JDialog implements PropertyChangeListener {
+	//====================
+	//ACTION COMMAND NAMES
+	//====================
+	//These names are used for detecting answers given by user to dialog panel.
+	private final static String GROUP_ON_PARAGRAPH_ACTION_COMMAND = "groupOnParagraph";
+	private final static String GROUP_ON_HEADING1_ACTION_COMMAND = "groupOnHeading1";
+	private final static String PROMPT_CHECKIN_COMMENT_ACTION_COMMAND = "promptCheckinComment";
+	
+    public final static String NEXT_BUTTON_TEXT = "Next";
+    public final static String CANCEL_BUTTON_TEXT = "Cancel";
+    
+    private JOptionPane optionPane;
+    
+    private ButtonGroup contentGroupOptions;
+    private JCheckBox promptCheckin;
+    
+    private Object value;
+    
+	public NewShareDialog(Frame owner) {
+		super(owner, true);
+		this.value = CANCEL_BUTTON_TEXT;
+		setTitle("New Share");
+		
+		JPanel contentGroupPanel = createContentGroupPanel();
+		JPanel saveOptionsPanel = createSaveOptionsPanel();
+		
+		Object[] options = {NEXT_BUTTON_TEXT, CANCEL_BUTTON_TEXT};
+		Object[] array = {contentGroupPanel, saveOptionsPanel};
+		this.optionPane = 
+			new JOptionPane(
+				  array,
+                  JOptionPane.PLAIN_MESSAGE,
+                  JOptionPane.YES_NO_OPTION,
+                  null,
+                  options,
+                  options[0]);
+		
+	    //Make this dialog display it.
+        setContentPane(this.optionPane);
+
+        //Handle window closing correctly.
+        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+        addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent we) {
+				/*
+				 * Instead of directly closing the window, we're going to change
+				 * the JOptionPane's value property.
+				 */
+				NewShareDialog.this.optionPane.setValue(new Integer(JOptionPane.CLOSED_OPTION));
+			}
+		});
+        
+        //Register an event handler that reacts to option pane state changes.
+        this.optionPane.addPropertyChangeListener(this);
+	}
+	
+	public boolean isGroupOnEachParagraph() {
+		return (GROUP_ON_PARAGRAPH_ACTION_COMMAND 
+			== contentGroupOptions.getSelection().getActionCommand());
+	}
+	
+	public boolean isGroupOnHeading1() {
+		return (GROUP_ON_HEADING1_ACTION_COMMAND
+			== contentGroupOptions.getSelection().getActionCommand());
+	}
+	
+	public boolean isPromptForCheckinComment() {
+		return promptCheckin.isSelected();
+	}
+	
+    public Object getValue() {
+    	return this.value;
+    }
+    
+	 /** This method reacts to state changes in the option pane. */
+    public void propertyChange(PropertyChangeEvent e) {
+        String prop = e.getPropertyName();
+
+        if (isVisible()
+        	&& (e.getSource() == this.optionPane)
+        	&& (JOptionPane.VALUE_PROPERTY.equals(prop) 
+        		|| JOptionPane.INPUT_VALUE_PROPERTY.equals(prop))) {
+            Object userAnswer = this.optionPane.getValue();
+
+            if (userAnswer == JOptionPane.UNINITIALIZED_VALUE) {
+                //ignore reset
+                return;
+            }
+
+            //Reset the JOptionPane's value.
+            //If you don't do this, then if the user
+            //presses the same button next time, no
+            //property change event will be fired.
+            this.optionPane.setValue(
+                    JOptionPane.UNINITIALIZED_VALUE);
+
+            setVisible(false);
+            
+            if (NEXT_BUTTON_TEXT.equals(userAnswer)) {
+            	this.value = NEXT_BUTTON_TEXT;
+            } else {
+            	//User closed dialog or clicked cancel
+            	this.value = CANCEL_BUTTON_TEXT;
+            }
+        }
+    }
+
+	private JPanel createContentGroupPanel() {
+		// Content Groups Panel with its all radio buttons
+		JPanel thePanel = new JPanel();
+		thePanel.setBorder(BorderFactory.createTitledBorder("Content Groups"));
+		thePanel.setLayout(new BoxLayout(thePanel, BoxLayout.Y_AXIS));
+		
+		JRadioButton paragraphRadio = new JRadioButton("Group on each paragraph");
+		paragraphRadio.setActionCommand(GROUP_ON_PARAGRAPH_ACTION_COMMAND);
+		
+		JRadioButton heading1Radio = new JRadioButton("Group on Heading 1");
+		heading1Radio.setActionCommand(GROUP_ON_HEADING1_ACTION_COMMAND);
+		
+		this.contentGroupOptions = new ButtonGroup();
+		this.contentGroupOptions.add(paragraphRadio);
+		this.contentGroupOptions.add(heading1Radio);
+		paragraphRadio.setSelected(true);
+		
+		thePanel.add(paragraphRadio);
+		thePanel.add(heading1Radio);
+		return thePanel;
+	}
+	
+	private JPanel createSaveOptionsPanel() {
+		//Save Options Panel with its check box
+		JPanel thePanel = new JPanel();
+		thePanel.setBorder(BorderFactory.createTitledBorder("Save Options"));
+		thePanel.setLayout(new BoxLayout(thePanel, BoxLayout.Y_AXIS));
+		
+		this.promptCheckin = new JCheckBox("Prompt for Checkin Comment");
+		this.promptCheckin.setActionCommand(PROMPT_CHECKIN_COMMENT_ACTION_COMMAND);
+		
+		thePanel.add(this.promptCheckin);
+		return thePanel;
+	}
+	
+}// NewShareDialog class
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
