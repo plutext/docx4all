@@ -29,11 +29,15 @@ import javax.swing.text.EditorKit;
 import javax.swing.text.MutableAttributeSet;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLEditorKit;
 import org.docx4all.swing.text.WordMLFragment;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.util.DocUtil;
+import org.docx4all.util.XmlUtil;
+import org.docx4all.xml.DocumentML;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.jdesktop.application.ResourceMap;
 
 /**
@@ -42,9 +46,41 @@ import org.jdesktop.application.ResourceMap;
 public class WordMLTextPane extends JEditorPane {
 	private static Logger log = Logger.getLogger(WordMLTextPane.class);
 
+	private boolean _filterApplied;
+	
 	public WordMLTextPane() {
 		super();
 		getEditorKit().install(this);
+		_filterApplied = false;
+	}
+	
+	public void applyFilter() {
+		if (isFilterApplied()) {
+			return;
+		}
+		
+		WordMLDocument oldDoc = (WordMLDocument) getDocument();
+		try {
+			oldDoc.readLock();
+			
+        	WordMLEditorKit kit = (WordMLEditorKit) getEditorKit();
+        	
+        	DocumentElement root = (DocumentElement) oldDoc.getDefaultRootElement();
+        	DocumentML docML = (DocumentML) root.getElementML();
+        	
+        	WordprocessingMLPackage wmlPackage = 
+        		XmlUtil.applyFilter(docML.getWordprocessingMLPackage());
+        	WordMLDocument newDoc = kit.read(new DocumentML(wmlPackage));
+        	setDocument(newDoc);
+
+    		_filterApplied = true;
+		} finally {
+			oldDoc.readUnlock();
+		}
+	}
+	
+	public boolean isFilterApplied() {
+		return _filterApplied;
 	}
 	
     public void setDocument(Document doc) {
