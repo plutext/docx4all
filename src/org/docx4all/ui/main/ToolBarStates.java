@@ -84,6 +84,8 @@ public class ToolBarStates extends InternalFrameAdapter
 	public final static String FONT_ITALIC_PROPERTY_NAME = "fontItalic";
 	public final static String FONT_UNDERLINED_PROPERTY_NAME = "fontUnderlined";
 	
+	public final static String FILTER_APPLIED_PROPERTY_NAME = "filterApplied";
+	
 	public final static String IFRAME_NUMBERS_PROPERTY_NAME = "iframeNumbers";
 	
 	public final static String ALIGNMENT_PROPERTY_NAME = "alignment";
@@ -97,6 +99,7 @@ public class ToolBarStates extends InternalFrameAdapter
 	private volatile int _fontSize;
 	private volatile boolean _fontBold, _fontItalic, _fontUnderlined;
 	private volatile boolean _isCutEnabled, _isCopyEnabled, _isPasteEnabled;
+	private volatile boolean _filterApplied;
 	
 	private volatile int _iframeNumbers;
 	
@@ -114,7 +117,8 @@ public class ToolBarStates extends InternalFrameAdapter
 		_fontUnderlined = false;
 		_isCutEnabled = false;
 		_isCopyEnabled = false;
-		_isPasteEnabled = false;		
+		_isPasteEnabled = false;
+		_filterApplied = true;
 		_iframeNumbers = 0;
 		_alignment = -1;
 	}
@@ -416,6 +420,23 @@ public class ToolBarStates extends InternalFrameAdapter
 		firePropertyChange(FONT_UNDERLINED_PROPERTY_NAME, oldValue, underlined);
 	}	
 	
+	public boolean isFilterApplied() {
+		return _filterApplied;
+	}
+	
+	public void setFilterApplied(boolean applied) {
+		if (log.isDebugEnabled()) {
+			log.debug("setFilterApplied(): _filterApplied = " + _filterApplied + " applied param = " + applied);
+		}
+	
+		if (_filterApplied == applied) {
+			return;
+		}
+		boolean oldValue = _filterApplied;
+		_filterApplied = applied;
+		firePropertyChange(FILTER_APPLIED_PROPERTY_NAME, oldValue, applied);
+	}	
+	
 	public JEditorPane getCurrentEditor() {
 		return _currentEditor;
 	}
@@ -453,10 +474,16 @@ public class ToolBarStates extends InternalFrameAdapter
 		
     	setFormatInfo(editor);
     	
-    	boolean hasSelection = 
-    		(editor.getSelectionStart() < editor.getSelectionEnd());
-    	setCopyEnabled(hasSelection);
-    	setCutEnabled(hasSelection);
+    	boolean b = (editor.getSelectionStart() < editor.getSelectionEnd());
+    	setCopyEnabled(b);
+    	setCutEnabled(b);
+    	
+    	if (editor instanceof WordMLTextPane) {
+    		b = ((WordMLTextPane) editor).isFilterApplied();
+    	} else {
+    		b = false;
+    	}
+    	setFilterApplied(b);
 	}	
 	
     /**
