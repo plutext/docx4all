@@ -44,6 +44,8 @@ import org.apache.commons.vfs.FileSystemException;
 import org.apache.commons.vfs.VFS;
 import org.apache.commons.vfs.provider.UriParser;
 import org.apache.log4j.Logger;
+import org.docx4all.swing.NewShareDialog;
+import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLEditorKit;
@@ -52,6 +54,7 @@ import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.util.DocUtil;
 import org.docx4all.util.SwingUtil;
+import org.docx4all.util.XmlUtil;
 import org.docx4all.vfs.FileNameExtensionFilter;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
@@ -127,6 +130,11 @@ public class FileMenu extends UIMenu {
 	public final static String SAVE_ALL_FILES_ACTION_NAME = "saveAllFiles";
 	
 	/**
+	 * The action name of Save As Shared Document menu
+	 */
+	public final static String SAVE_AS_SHARED_DOC_ACTION_NAME = "saveAsSharedDoc";
+	
+	/**
 	 * The action name of Print Preview menu
 	 */
 	public final static String PRINT_PREVIEW_ACTION_NAME = "printPreview";
@@ -149,10 +157,13 @@ public class FileMenu extends UIMenu {
 	private static final String[] _menuItemActionNames = {
 		NEW_FILE_ACTION_NAME,
 		OPEN_FILE_ACTION_NAME,
+		SEPARATOR_CODE,		
 		SAVE_FILE_ACTION_NAME,
 		SAVE_AS_DOCX_ACTION_NAME,
 		SAVE_AS_HTML_ACTION_NAME,
 		SAVE_ALL_FILES_ACTION_NAME,
+		SEPARATOR_CODE,
+		SAVE_AS_SHARED_DOC_ACTION_NAME,
 		SEPARATOR_CODE,
 		PRINT_PREVIEW_ACTION_NAME,
 		SEPARATOR_CODE,
@@ -201,8 +212,9 @@ public class FileMenu extends UIMenu {
     		toolbarStates.addPropertyChangeListener(
     				ToolBarStates.ANY_DOC_DIRTY_PROPERTY_NAME, 
     				new EnableOnEqual(theItem, Boolean.TRUE));
-    		
-    	} else if (PRINT_PREVIEW_ACTION_NAME.equals(actionName)
+    	
+    	} else if (SAVE_AS_SHARED_DOC_ACTION_NAME.equals(actionName)
+    		|| PRINT_PREVIEW_ACTION_NAME.equals(actionName)
     		|| CLOSE_FILE_ACTION_NAME.equals(actionName)
     		|| CLOSE_ALL_FILES_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
@@ -253,6 +265,31 @@ public class FileMenu extends UIMenu {
 		editor.createInternalFrame(fo);
 	}
 	
+	@Action public void saveAsSharedDoc(ActionEvent actionEvent) {
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        JEditorPane view = editor.getCurrentEditor();
+        if (view instanceof WordMLTextPane) {
+			NewShareDialog d = new NewShareDialog(editor.getMainFrame());
+			d.pack();
+			d.setLocationRelativeTo(editor.getMainFrame());
+			d.setVisible(true);
+			if (d.getValue() == NewShareDialog.NEXT_BUTTON_TEXT) {
+	        	WordMLDocument doc = (WordMLDocument) view.getDocument();
+	        	DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+	        	DocumentML docML = (DocumentML) root.getElementML();
+	        	WordprocessingMLPackage wmlPackage = docML.getWordprocessingMLPackage();
+	        	XmlUtil.setSharedDocumentProperties(wmlPackage, d);
+	        	int val = 
+	        		saveAsFile(SAVE_AS_SHARED_DOC_ACTION_NAME, actionEvent, Constants.DOCX_STRING);
+	        	if (val != JFileChooser.APPROVE_OPTION) {
+	        		//Cancelled or Error
+	        		XmlUtil.removeSharedDocumentProperties(wmlPackage);
+	        	}
+			}
+			d.dispose();
+		}
+	}
+		
     @Action public void openFile(ActionEvent actionEvent) {
         Preferences prefs = Preferences.userNodeForPackage( getClass() );
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
@@ -308,7 +345,7 @@ public class FileMenu extends UIMenu {
     	saveAsFile(SAVE_AS_DOCX_ACTION_NAME, actionEvent, Constants.DOCX_STRING);
     }
     
-    private void saveAsFile(String callerActionName, ActionEvent actionEvent, String fileType) {
+    private int saveAsFile(String callerActionName, ActionEvent actionEvent, String fileType) {
         Preferences prefs = Preferences.userNodeForPackage( getClass() );
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
     	ResourceMap rm = editor.getContext().getResourceMap(getClass());
@@ -426,6 +463,8 @@ public class FileMenu extends UIMenu {
 			}
 			
 		}//if (returnVal == JFileChooser.APPROVE_OPTION)
+        
+        return returnVal;
     }// saveAsFile()
     
     /**
