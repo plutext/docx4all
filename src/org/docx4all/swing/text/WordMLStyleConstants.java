@@ -122,8 +122,8 @@ public class WordMLStyleConstants {
 	 * @param a the attribute set
 	 * @return the org.docx4j.wml.Styles.Style object, null if none
 	 */
-    public static org.docx4j.wml.Styles.Style getDocxStyle(AttributeSet a) {
-        return (org.docx4j.wml.Styles.Style) a.getAttribute(DocxObjectAttribute);
+    public static org.docx4j.wml.Style getDocxStyle(AttributeSet a) {
+        return (org.docx4j.wml.Style) a.getAttribute(DocxObjectAttribute);
     }
 
     /**
@@ -132,7 +132,7 @@ public class WordMLStyleConstants {
      * @param a the attribute set
      * @param style the org.docx4j.wml.Styles.Style
      */
-    public static void setDocxStyle(MutableAttributeSet a, org.docx4j.wml.Styles.Style style) {
+    public static void setDocxStyle(MutableAttributeSet a, org.docx4j.wml.Style style) {
         a.addAttribute(DocxObjectAttribute, style);
     }
 

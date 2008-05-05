@@ -314,7 +314,7 @@ public class StyleSheet extends StyleContext {
 	}
 	
 	protected void initStyles(org.docx4j.wml.Styles docxStyles) {
-		List<org.docx4j.wml.Styles.Style> styleList = docxStyles.getStyle();
+		List<org.docx4j.wml.Style> styleList = docxStyles.getStyle();
 		if (styleList.isEmpty()) {
 			return;
 		}
@@ -328,7 +328,7 @@ public class StyleSheet extends StyleContext {
 		
 		int i=0;
 		List<Style> stylesWithBasedOn = new ArrayList<Style>();
-		for (org.docx4j.wml.Styles.Style st: styleList) {			
+		for (org.docx4j.wml.Style st: styleList) {			
 			//Latent styles comprises those styles known to an application.
 			//Therefore, all styles in styleList are descendants of latentStyles.
 			Style tmpStyle = null;
@@ -381,8 +381,8 @@ public class StyleSheet extends StyleContext {
 				//Check whether the link style has already been created.
 				Style target = getChildStyle(idStyles, st.getLink().getVal());
 				if (target != null) {
-					org.docx4j.wml.Styles.Style targetDocxStyles =
-						(org.docx4j.wml.Styles.Style)
+					org.docx4j.wml.Style targetDocxStyles =
+						(org.docx4j.wml.Style)
 							target.getAttribute(WordMLStyleConstants.DocxObjectAttribute);
 					String targetType = 
 						(String) target.getAttribute(WordMLStyleConstants.StyleTypeAttribute);
@@ -434,7 +434,7 @@ public class StyleSheet extends StyleContext {
 				log.debug("initStyles(): style with BasedOn[" + (i++) + "]=" + style);
 			}
 			
-			org.docx4j.wml.Styles.Style wmlStyle = WordMLStyleConstants.getDocxStyle(style);
+			org.docx4j.wml.Style wmlStyle = WordMLStyleConstants.getDocxStyle(style);
 			Style parent = getChildStyle(idStyles, wmlStyle.getBasedOn().getVal());
 			if (parent != null) {
 				String type = (String) style.getAttribute(WordMLStyleConstants.StyleTypeAttribute);
