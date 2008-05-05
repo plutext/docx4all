@@ -30,6 +30,8 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.namespace.QName;
 
+import org.docx4all.swing.NewShareDialog;
+import org.docx4all.ui.main.Constants;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLIterator;
 import org.docx4all.xml.ObjectFactory;
@@ -39,6 +41,7 @@ import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
 import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
+import org.docx4j.openpackaging.parts.DocPropsCustomPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.w3c.dom.Node;
 
@@ -226,7 +229,108 @@ public class XmlUtil {
 		}
 		return wmlPackage;
 	}
+	
+	public final static org.docx4j.docProps.custom.Properties.Property
+		getCustomProperty(WordprocessingMLPackage wmlPackage, String propertyName) {
+		
+		org.docx4j.docProps.custom.Properties.Property theProp = null;
+		
+		DocPropsCustomPart docPropsCustomPart = wmlPackage.getDocPropsCustomPart();
+		org.docx4j.docProps.custom.Properties customProps = 
+			(org.docx4j.docProps.custom.Properties) docPropsCustomPart.getJaxbElement();
+		List<org.docx4j.docProps.custom.Properties.Property> list = customProps.getProperty();
+		
+		if (list != null) {
+			for (org.docx4j.docProps.custom.Properties.Property temp: list) {
+				String s = temp.getName();
+				if (propertyName.equals(s)) {
+					theProp = temp;
+					break;
+				}
+			}
+		}
+		
+		return theProp;
+	}
 
+	public final static void removeSharedDocumentProperties(WordprocessingMLPackage wmlPackage) {
+		DocPropsCustomPart docPropsCustomPart = wmlPackage.getDocPropsCustomPart();
+		org.docx4j.docProps.custom.Properties customProps = 
+			(org.docx4j.docProps.custom.Properties) docPropsCustomPart.getJaxbElement();
+		List<org.docx4j.docProps.custom.Properties.Property> list = customProps.getProperty();
+		if (list != null) {
+			org.docx4j.docProps.custom.Properties.Property groupingProp = null;
+			org.docx4j.docProps.custom.Properties.Property checkinProp = null;
+			
+			for (org.docx4j.docProps.custom.Properties.Property temp: list) {
+				String s = temp.getName();
+				if (Constants.PLUTEXT_GROUPING_PROPERTY_NAME.equals(s)) {
+					groupingProp = temp;
+				} else if (Constants.PLUTEXT_CHECKIN_MESSAGE_ENABLED_PROPERTY_NAME.equals(s)) {
+					checkinProp = temp;
+				}
+				if (groupingProp != null && checkinProp != null) {
+					break;
+				}
+			}
+			
+			if (groupingProp != null) {
+				list.remove(groupingProp);
+			}
+			if (checkinProp != null) {
+				list.remove(checkinProp);
+			}
+		}
+	}
+
+	public final static void setSharedDocumentProperties(
+		WordprocessingMLPackage wmlPackage,
+		NewShareDialog dialog) {
+		
+		org.docx4j.openpackaging.parts.DocPropsCustomPart docPropsCustomPart = 
+			wmlPackage.getDocPropsCustomPart();
+		org.docx4j.docProps.custom.Properties customProps = 
+			(org.docx4j.docProps.custom.Properties) docPropsCustomPart.getJaxbElement();
+		org.docx4j.docProps.custom.ObjectFactory factory = 
+			new org.docx4j.docProps.custom.ObjectFactory();
+
+		//Set plutext:Grouping property
+    	org.docx4j.docProps.custom.Properties.Property tempProp =
+    		XmlUtil.getCustomProperty(
+    			wmlPackage, Constants.PLUTEXT_GROUPING_PROPERTY_NAME);
+    	if (tempProp == null) {
+    		tempProp = factory.createPropertiesProperty();
+    		tempProp.setName(Constants.PLUTEXT_GROUPING_PROPERTY_NAME);
+    		tempProp.setFmtid(
+    			org.docx4j.openpackaging.parts.DocPropsCustomPart.fmtidValLpwstr); // Magic string
+    		tempProp.setPid(customProps.getNextId()); 
+    		customProps.getProperty().add(tempProp);
+    	}
+    	if (dialog.isGroupOnEachParagraph()) {
+    		tempProp.setLpwstr("EachBlock");
+    	} else {
+    		tempProp.setLpwstr("Heading1");
+    	}
+    	
+		//Set plutext:CheckinMessageEnabled property
+    	tempProp =
+    		XmlUtil.getCustomProperty(
+    			wmlPackage, Constants.PLUTEXT_CHECKIN_MESSAGE_ENABLED_PROPERTY_NAME);
+    	if (tempProp == null) {
+    		tempProp = factory.createPropertiesProperty();
+    		tempProp.setName(Constants.PLUTEXT_CHECKIN_MESSAGE_ENABLED_PROPERTY_NAME);
+    		tempProp.setFmtid(
+    			org.docx4j.openpackaging.parts.DocPropsCustomPart.fmtidValLpwstr); // Magic string
+    		tempProp.setPid(customProps.getNextId()); 
+    		customProps.getProperty().add(tempProp);
+    	}
+    	if (dialog.isPromptForCheckinComment()) {
+    		tempProp.setLpwstr(Boolean.TRUE.toString());
+    	} else {
+    		tempProp.setLpwstr(Boolean.FALSE.toString());
+    	}
+	}
+	
 	/**
 	 * Empty the children of parent argument
 	 * 
