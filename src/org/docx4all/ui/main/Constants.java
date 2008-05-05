@@ -53,6 +53,10 @@ public interface Constants {
 	
 	public final static String TEXT_ELEMENT_EMPTY_VALUE = ":";
 	
+	public final static String PLUTEXT_GROUPING_PROPERTY_NAME = "plutext:Grouping";
+	public final static String PLUTEXT_CHECKIN_MESSAGE_ENABLED_PROPERTY_NAME = 
+		"plutext:CheckinMessageEnabled";
+	
 	//=====================
 	//Resource property keys
 	//=====================
