@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<p:transforms xmlns:p="http://www.plutext.org/transforms" 
+xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.plutext.org/transforms /home/dev/workspace/docx4j/src/main/resources/xsd/wml/transforms.xsd ">
+<!--
+   <p:t p:op="" p:snum="0" p:tstamp="0">
+    <p:style/>
+  </p:t>
+ -->
+<p:t p:tstamp='1209863628001' p:snum='58' p:op='update'><w:sdt xmlns:ns2="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:ns4="http://schemas.openxmlformats.org/schemaLibrary/2006/main" xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage"><w:sdtPr><w:id w:val="421042426"/><w:tag w:val="3"/></w:sdtPr><w:sdtContent><w:p w:rsidRDefault="00385F0B" w:rsidR="009F280F"><w:r><w:t xml:space="preserve">I now have very </w:t></w:r></w:p></w:sdtContent></w:sdt></p:t>
+
+<p:t p:tstamp='1209863628001' p:snum='59' p:op='insert' p:after='421042426'>
+<w:sdt xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:ns2="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:ns4="http://schemas.openxmlformats.org/schemaLibrary/2006/main" xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+ <w:sdtPr>
+    <w:id w:val="392150867"/>
+    <w:tag w:val="0"/>
+  </w:sdtPr>
+  <w:sdtContent>
+    <w:p w:rsidR="009F280F" w:rsidRDefault="009F280F">
+      <w:r>
+        <w:t xml:space="preserve">Interesting </w:t>
+      </w:r>
+    </w:p>
+  </w:sdtContent>
+</w:sdt>
+</p:t>
+
+<p:t p:tstamp='1209863763053' p:snum='62' p:op='style'>
+<w:style xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:type="paragraph" w:styleId="Heading1">
+  <w:name w:val="heading 1"/>
+  <w:basedOn w:val="Normal"/>
+  <w:next w:val="Normal"/>
+  <w:link w:val="Heading1Char"/>
+  <w:uiPriority w:val="9"/>
+  <w:qFormat/>
+  <w:rsid w:val="009F280F"/>
+  <w:pPr>
+    <w:keepNext/>
+    <w:keepLines/>
+    <w:spacing w:before="480" w:after="0"/>
+    <w:outlineLvl w:val="0"/>
+  </w:pPr>
+  <w:rPr>
+    <w:rFonts w:asciiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorHAnsi" w:cstheme="majorBidi"/>
+    <w:b/>
+    <w:bCs/>
+    <w:color w:val="365F91" w:themeColor="accent1" w:themeShade="BF"/>
+    <w:sz w:val="28"/>
+    <w:szCs w:val="28"/>
+  </w:rPr>
+</w:style>
+</p:t>   
+</p:transforms>
