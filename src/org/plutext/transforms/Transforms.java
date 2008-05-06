@@ -50,8 +50,8 @@ import org.jvnet.jaxb2_commons.ppp.Child;
  *             &lt;complexContent>
  *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *                 &lt;choice>
- *                   &lt;element name="style" type="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}CT_Style"/>
- *                   &lt;element name="sdt" type="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}CT_SdtBlock"/>
+ *                   &lt;element ref="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}style"/>
+ *                   &lt;element ref="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}sdt"/>
  *                 &lt;/choice>
  *                 &lt;attribute name="tstamp" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedLong" />
  *                 &lt;attribute name="snum" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedByte" />
@@ -150,8 +150,8 @@ public class Transforms
      *   &lt;complexContent>
      *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
      *       &lt;choice>
-     *         &lt;element name="style" type="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}CT_Style"/>
-     *         &lt;element name="sdt" type="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}CT_SdtBlock"/>
+     *         &lt;element ref="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}style"/>
+     *         &lt;element ref="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}sdt"/>
      *       &lt;/choice>
      *       &lt;attribute name="tstamp" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedLong" />
      *       &lt;attribute name="snum" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedByte" />
@@ -174,7 +174,9 @@ public class Transforms
         implements Child
     {
 
+        @XmlElement(namespace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main")
         protected Style style;
+        @XmlElement(namespace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main")
         protected SdtBlock sdt;
         @XmlAttribute(namespace = "http://www.plutext.org/transforms", required = true)
         @XmlSchemaType(name = "unsignedLong")
