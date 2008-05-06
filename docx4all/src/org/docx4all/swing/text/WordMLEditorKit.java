@@ -490,8 +490,6 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				UIManager.getLookAndFeel().provideErrorFeedback(editor);
 				editor.moveCaretPosition(start);
 			}
-			
-			
 	    }
 	    
         public void propertyChange(PropertyChangeEvent evt) {
@@ -538,7 +536,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	    		int idx = elem.getElementIndex(lastSdtBlockPosition.getOffset());
 	    		elem = (DocumentElement) elem.getElement(idx);
 	    		if (elem.getStartOffset() <= caretPos.getOffset()
-	    			&& caretPos.getOffset() <= elem.getEndOffset()) {
+	    			&& caretPos.getOffset() < elem.getEndOffset()) {
 	    			;//do nothing
 	    		} else {
 		    		doc.setSdtBlockBorderVisble(lastSdtBlockPosition.getOffset(), false);
