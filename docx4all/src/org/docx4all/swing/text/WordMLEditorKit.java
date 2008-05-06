@@ -539,8 +539,8 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	    			&& caretPos.getOffset() < elem.getEndOffset()) {
 	    			;//do nothing
 	    		} else {
-		    		doc.setSdtBlockBorderVisble(lastSdtBlockPosition.getOffset(), false);
-		    		doc.setSdtBlockBorderVisble(caretPos.getOffset(), true);
+		    		doc.setSdtBlockBorderVisible(lastSdtBlockPosition.getOffset(), false);
+		    		doc.setSdtBlockBorderVisible(caretPos.getOffset(), true);
 		    		lastSdtBlockPosition = caretPos;
 	    		}
 	    	} else {
@@ -548,7 +548,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	    		int idx = elem.getElementIndex(caretPos.getOffset());
 	    		elem = (DocumentElement) elem.getElement(idx);
 	    		if (elem.getElementML() instanceof SdtBlockML) {
-		    		doc.setSdtBlockBorderVisble(caretPos.getOffset(), true);
+		    		doc.setSdtBlockBorderVisible(caretPos.getOffset(), true);
 		    		lastSdtBlockPosition = caretPos;
 	    		}
 	    	}
@@ -557,7 +557,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	    private void clearSdtBlockSelection(JEditorPane editor) {
 	    	if (lastSdtBlockPosition != null) {
 		    	WordMLDocument doc = (WordMLDocument) editor.getDocument();
-	    		doc.setSdtBlockBorderVisble(lastSdtBlockPosition.getOffset(), false);
+	    		doc.setSdtBlockBorderVisible(lastSdtBlockPosition.getOffset(), false);
 	    		lastSdtBlockPosition = null;
 	    	}
 	    }
