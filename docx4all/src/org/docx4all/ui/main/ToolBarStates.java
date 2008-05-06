@@ -50,6 +50,7 @@ import org.docx4all.datatransfer.WordMLTransferable;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.event.InputAttributeEvent;
 import org.docx4all.swing.event.InputAttributeListener;
+import org.docx4all.swing.event.WordMLDocumentEvent;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.StyleSheet;
 import org.docx4all.swing.text.WordMLDocument;
@@ -777,8 +778,20 @@ public class ToolBarStates extends InternalFrameAdapter
     	}
     	if (_currentEditor != null 
     		&& _currentEditor.getDocument() == e.getDocument()) {
-    		_currentEditor.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.FALSE);
-    		setDocumentDirty(_currentEditor, true);
+    		boolean isDirty = true;
+    		
+    		if (e instanceof WordMLDocumentEvent) {
+    			String name = ((WordMLDocumentEvent) e).getEventName();
+    			if (WordMLDocumentEvent.BORDER_VISIBILITY_CHANGE_EVT_NAME.equals(name)) {
+    				//Border visibility change does not make document dirty.
+    				isDirty = false;
+    			}
+    		}
+    		
+    		if (isDirty) {
+    			_currentEditor.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.FALSE);
+    			setDocumentDirty(_currentEditor, true);
+    		}
     	}
 	}
 
