@@ -34,6 +34,7 @@ import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.event.WordMLDocumentEvent;
 import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.util.DocUtil;
@@ -175,7 +176,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 		}
 	}
     
-    public void setSdtBlockBorderVisble(int offset, boolean visible) {
+    public void setSdtBlockBorderVisible(int offset, boolean visible) {
 		try {
 			writeLock();
 			DocumentElement elem = (DocumentElement) getDefaultRootElement();
@@ -191,7 +192,11 @@ public class WordMLDocument extends DefaultStyledDocument {
 					offset = elem.getStartOffset();
 					int length = elem.getEndOffset() - offset;
 					DefaultDocumentEvent changes = 
-						new DefaultDocumentEvent(offset, length, DocumentEvent.EventType.CHANGE);
+						new WordMLDefaultDocumentEvent(
+							offset, 
+							length, 
+							DocumentEvent.EventType.CHANGE,
+							WordMLDocumentEvent.BORDER_VISIBILITY_CHANGE_EVT_NAME);
 					
 					((SdtBlockML) elemML).setBorderVisible(visible);
 					if (visible) {
@@ -1438,5 +1443,17 @@ public class WordMLDocument extends DefaultStyledDocument {
 		}
 	}// TextElement inner class
     
+    public class WordMLDefaultDocumentEvent extends DefaultDocumentEvent implements WordMLDocumentEvent {
+    	private String eventName;
+        
+    	public WordMLDefaultDocumentEvent(int offs, int len, DocumentEvent.EventType type, String eventName) {
+        	super(offs, len, type);
+        	this.eventName = eventName;
+        }
+        
+    	public String getEventName() {
+    		return eventName;
+    	}
+    }
 }// WordMLDocument class
 
