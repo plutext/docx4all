@@ -42,6 +42,8 @@ import org.docx4j.wml.Id;
         {
             log.debug("StateDocx constructor fired");
 
+            uptodate = true;
+            
             try
             {
 
@@ -120,16 +122,6 @@ import org.docx4j.wml.Id;
 			this.chunkingStrategy = chunkingStrategy;
 		}
 
-        // Whether the cursor is currently in a 
-        // content control
-        // EXPERIMENTAL - see whether we can track this!
-/*        private Boolean inControl = false;
-        public Boolean InControl
-        {
-            get { return inControl; }
-            set { inControl = value; }
-        }
-*/
 
         private SdtBlock currentCC = null;
 		public SdtBlock getCurrentCC() {
@@ -137,6 +129,10 @@ import org.docx4j.wml.Id;
 		}
 		public void setCurrentCC(SdtBlock currentCC) {
 			this.currentCC = currentCC;
+			
+			if (currentCC ==null) {
+				return;
+			}
 			
 			// Looks like this method is only called when
 			// entering a content control?
@@ -147,12 +143,12 @@ import org.docx4j.wml.Id;
 			
 			// But could check, just to make sure?
 			
-			ContentControlSnapshot ccs = (ContentControlSnapshot)contentControlSnapshots.get(currentCC.getSdtPr().getId());
+			ContentControlSnapshot ccs = (ContentControlSnapshot)contentControlSnapshots.get(
+												currentCC.getSdtPr().getId());
 			if (ccs==null) {
 				ccs = new ContentControlSnapshot(currentCC);
 				contentControlSnapshots.put(currentCC.getSdtPr().getId(), ccs);				
 			}
-			ccs.refresh();
 		}
 
 
@@ -194,12 +190,12 @@ import org.docx4j.wml.Id;
 
 
         //Boolean uptodate = true;
-        public Boolean Uptodate;
-		public Boolean getUptodate() {
+        public boolean uptodate;
+		public boolean getUptodate() {
 			return (tSequenceNumberApplied == tSequenceNumberHighestFetched);
 		}
-		public void setUptodate(Boolean uptodate) {
-			Uptodate = uptodate;
+		public void setUptodate(boolean uptodate) {
+			this.uptodate = uptodate;
 		}
 
     }

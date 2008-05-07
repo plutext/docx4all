@@ -165,7 +165,7 @@ import org.plutext.transforms.Transforms.T;
         {
             log.debug("applyUpdates invoked.");
 
-            if (stateDocx.Uptodate)
+            if (stateDocx.getUptodate() )
             {
                 log.debug(".. but Uptodate - nothing to do.");
             }

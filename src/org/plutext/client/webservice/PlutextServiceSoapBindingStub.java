@@ -158,6 +158,8 @@ public class PlutextServiceSoapBindingStub extends org.apache.axis.client.Stub i
             cachedSerFactories.add(new org.apache.axis.encoding.ser.ArraySerializerFactory(qName, qName2));
             cachedDeserFactories.add(new org.apache.axis.encoding.ser.ArrayDeserializerFactory());
 
+            
+            
     }
 
     protected org.apache.axis.client.Call createCall() throws java.rmi.RemoteException {
@@ -193,6 +195,8 @@ public class PlutextServiceSoapBindingStub extends org.apache.axis.client.Stub i
             // is the reason why registration is only needed for the first call.
             synchronized (this) {
                 if (firstCall()) {
+                	
+                	
                     // must set encoding style before registering serializers
                     _call.setSOAPVersion(org.apache.axis.soap.SOAPConstants.SOAP11_CONSTANTS);
                     _call.setEncodingStyle(org.apache.axis.Constants.URI_SOAP11_ENC);
@@ -216,6 +220,15 @@ public class PlutextServiceSoapBindingStub extends org.apache.axis.client.Stub i
                             _call.registerTypeMapping(cls, qName, sf, df, false);
                         }
                     }
+                    
+                	// Unsuccessful workaround for org.xml.sax.SAXException: Found character data inside an array element while deserializing
+//                	_call.registerTypeMapping(int.class, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "int"),                  
+//                			org.apache.axis.encoding.ser.ArraySerializerFactory.class, 
+//                			org.apache.axis.encoding.ser.ArrayDeserializerFactory.class, false); 
+//                	_call.registerTypeMapping(int.class, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "int"),                  
+//                			org.apache.axis.encoding.ser.SimpleSerializerFactory.class, 
+//                			org.apache.axis.encoding.ser.SimpleDeserializerFactory.class, false); 
+                    
                 }
             }
             return _call;

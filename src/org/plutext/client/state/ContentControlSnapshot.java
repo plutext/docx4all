@@ -51,6 +51,7 @@ import org.docx4j.wml.Id;
             log.debug("constructor invoked");
 //            pointInTimeXml = getContentControlXMLNormalised(cc);
             pointInTimeXml = getContentControlXML(cc);
+            dirty = false;
 
             id = cc.getSdtPr().getId();
         }

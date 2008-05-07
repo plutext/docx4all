@@ -149,34 +149,32 @@ import java.util.HashMap;
 
         public void userEntersContentControl(SdtBlock cc)
         {
+
+        	log.debug("Enter started  (" + cc.getSdtPr().getId().getVal() );
+        	
         	log.debug("Fetching updates..");
         	//serverFrom.fetchUpdates();  // TODO - eventually put this in a background thread
         	
-
-            //log.debug("Entered '" + ContentControlSnapshot.getDebugRunSample(cc) + "'");
 
             stateDocx.setCurrentCC( cc );
 
             log.debug("invoking applyUpdates from _Enter handler");
             serverFrom.applyUpdates(null); // anywhere in the document, but nothing forced
             
+        	log.debug(".. finished Enter (" + cc.getSdtPr().getId().getVal() );
 
         }
 
 
         public void userExitsContentControl(SdtBlock cc)
         {
-            
-            // We really are exiting this control 
-            //stateDocx.setCurrentCC(null);
+                    	
+        	log.debug("Exit started  (" + cc.getSdtPr().getId().getVal());
 
-//            String ccID = cc.ID;
-//            Word.Range tmpRange = cc.Range;
-            
+            stateDocx.setCurrentCC(null);
+        	
             try
             {
-
-
                 ContentControlSnapshot lastKnownState = stateDocx.getContentControlSnapshots().get(cc.getSdtPr().getId() );
 
 				// Start a new session
@@ -245,6 +243,12 @@ import java.util.HashMap;
                 // Has the content control changed?
 //                String currentXML = ContentControlSnapshot.getContentControlXMLNormalised(cc);
                 String currentXML = ContentControlSnapshot.getContentControlXML(cc);
+                
+                log.debug("Current: " + currentXML);
+                
+                log.debug("Last known: " + lastKnownState.getPointInTimeXml());
+                
+                
                 if (!currentXML.equals(lastKnownState.getPointInTimeXml()))
                 {
                     log.debug("CC OpenXML changed!");
@@ -320,7 +324,7 @@ import java.util.HashMap;
             } catch (Exception e) {
             	e.printStackTrace();
             }
-            log.debug("    _Exit >>>");
+        	log.debug(".. finished Exit (" + cc.getSdtPr().getId().getVal() );
         }
 
 

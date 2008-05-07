@@ -215,7 +215,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		
 		DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
 		DocumentML docML = (DocumentML) elem.getElementML();
-		String docId = "/alfresco/plutextwebdav/User Homes/jojada/Test1.docx";
+		String docId = "/alfresco/plutextwebdav/User Homes/jharrop/docx4all1.docx";
 		serverTo = new ServerTo(docML.getWordprocessingMLPackage(), docId);
 		
 		return doc;
@@ -564,7 +564,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 							Position.Bias.Forward);
 					lastSdtBlockPosition = null;
 					
-					DocumentElement elem = (DocumentElement) currentSdt.getElement();
+					DocumentElement elem = (DocumentElement) lastSdt.getElement();
 					
 					serverTo.userExitsContentControl(
 						(org.docx4j.wml.SdtBlock) elem.getElementML().getDocxObject());
