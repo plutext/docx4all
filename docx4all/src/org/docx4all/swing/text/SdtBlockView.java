@@ -34,7 +34,6 @@ import javax.swing.text.Element;
 import javax.swing.text.Position;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.View;
-import javax.swing.text.ViewFactory;
 
 import org.docx4all.util.SwingUtil;
 
@@ -52,7 +51,10 @@ public class SdtBlockView extends BoxView {
 	public SdtBlockView(Element elem) {
 		super(elem, View.Y_AXIS);
 		setInsets(INSET_TOP, INSET_LEFT, INSET_BOTTOM, INSET_RIGHT);
-		isBorderVisible = WordMLStyleConstants.getBorderVisible(getAttributes());
+	}
+	
+	public void setBorderVisible(boolean b) {
+		isBorderVisible = b;
 	}
 	
 	public boolean isBorderVisible() {
@@ -75,43 +77,22 @@ public class SdtBlockView extends BoxView {
     	}
     }
     
-    public void changedUpdate(DocumentEvent changes, Shape a, ViewFactory f) {
-		isBorderVisible = WordMLStyleConstants.getBorderVisible(getAttributes());
-    	super.changedUpdate(changes, a, f);
-    }
-    
-    protected void forwardUpdate(DocumentEvent.ElementChange ec, 
-			 DocumentEvent e, Shape a, ViewFactory f) {
-    	super.forwardUpdate(ec, e, a, f);
-    	
-    	if (isBorderVisible()) {
-    		// Repaint in order to refresh border drawing
-    	    Component c = getContainer();
-    	    if ((a != null) && (c != null)) {
-    	    	Rectangle alloc = SwingUtil.getBounds(a);
-				c.repaint(alloc.x, alloc.y, alloc.width, alloc.height + getBottomInset());
-			}
-    	}
-    }
-   
     /**
-     * Construct a Polygon that represents the border of this view.
-     * 
-     * The polygon is a union of the border of each paragraph line inside this view.
-     * If a paragraph is left justified, this method aims to construct a polygon that
-     * has six vertices and looks like the following:
-     * <1>------------------------------<2>
-     *  | Left justified paragraph line1 |
-     *  |       <4>---------------------<3>
-     *  | line 2 |
-     * <6>-----<5>
-     * 
-     * For other types of paragraph alignment, the polygon will be simply a rectangle.
-     * 
-     * @param allocation
-     * @return
-     * @throws BadLocationException
-     */
+	 * Construct a Polygon that represents the border of this view.
+	 * 
+	 * The polygon is a union of the border of each paragraph line inside this
+	 * view. If a paragraph is left justified, this method aims to construct a
+	 * polygon that has six vertices and looks like the following:
+	 * <1>------------------------------<2> | Left justified paragraph line1 | |
+	 * <4>---------------------<3> | line 2 | <6>-----<5>
+	 * 
+	 * For other types of paragraph alignment, the polygon will be simply a
+	 * rectangle.
+	 * 
+	 * @param allocation
+	 * @return
+	 * @throws BadLocationException
+	 */
     private Polygon getBorderOutline(Shape allocation) throws BadLocationException {
     	Polygon theOutline = new Polygon();
     	
