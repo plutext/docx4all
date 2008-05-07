@@ -58,6 +58,7 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.TextAction;
+import javax.swing.text.View;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
 import net.sf.vfsjfilechooser.utils.VFSUtils;
@@ -72,6 +73,7 @@ import org.docx4all.util.DocUtil;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.SdtBlockML;
+import org.plutext.client.ServerTo;
 
 public class WordMLEditorKit extends DefaultEditorKit {
 	private static Logger log = Logger.getLogger(WordMLEditorKit.class);
@@ -105,6 +107,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	private Cursor defaultCursor = DefaultCursor;
 	private CaretListener caretListener;
 	private MouseListener mouseListener;
+	private ServerTo serverTo;
 	
     /**
      * This is the set of attributes used to store the
@@ -209,6 +212,12 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		}
 		
 		WordMLDocument doc = read(ElementMLFactory.createDocumentML(f));
+		
+		DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
+		DocumentML docML = (DocumentML) elem.getElementML();
+		String docId = "/alfresco/plutextwebdav/User Homes/jojada/Test1.docx";
+		serverTo = new ServerTo(docML.getWordprocessingMLPackage(), docId);
+		
 		return doc;
 	}
 
@@ -275,6 +284,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		caretListener.updateCaretElement(0, 0, c);
 
 		initKeyBindings(c);
+		
 	}
 
 	/**
@@ -472,24 +482,28 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		
 	    public void caretUpdate(CaretEvent evt) {			
 	    	JEditorPane editor = (JEditorPane) evt.getSource();
+    		int start = Math.min(evt.getDot(), evt.getMark());
+    		int end = Math.max(evt.getDot(), evt.getMark());
+    		
 	    	WordMLDocument doc = (WordMLDocument) editor.getDocument();
-	    	int start = Math.min(evt.getDot(), evt.getMark());
-	    	int end = Math.max(evt.getDot(), evt.getMark());
-	    	
 	    	try {
-	    		//Validate selected area if any
+	    		doc.readLock();
+	    		
 				if (start != end) {
+		    		//Validate selected area if any
 					new TextSelector(doc, start, end - start);
-					clearSdtBlockSelection(editor);
-				} else {
-					selectSdtBlock(editor);
 				}
-
 				updateCaretElement(start, end, editor);
+			
+				if (start == end) {
+					selectSdtBlock(editor, start);
+				}
 			} catch (BadSelectionException exc) {
 				UIManager.getLookAndFeel().provideErrorFeedback(editor);
 				editor.moveCaretPosition(start);
-			}
+	    	} finally {
+	    		doc.readUnlock();
+	    	}
 	    }
 	    
         public void propertyChange(PropertyChangeEvent evt) {
@@ -522,45 +536,64 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			}
 	    }
 	    
-	    private void selectSdtBlock(JEditorPane editor) {
-	    	WordMLDocument doc = (WordMLDocument) editor.getDocument();
-	    	Position caretPos = null;
-	    	try {
-	    		caretPos = doc.createPosition(editor.getCaretPosition());
-	    	} catch (BadLocationException exc) {
-	    		return;
-	    	}
-	    	
-	    	if (lastSdtBlockPosition != null) {
-	    		DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
-	    		int idx = elem.getElementIndex(lastSdtBlockPosition.getOffset());
-	    		elem = (DocumentElement) elem.getElement(idx);
-	    		if (elem.getStartOffset() <= caretPos.getOffset()
-	    			&& caretPos.getOffset() < elem.getEndOffset()) {
-	    			;//do nothing
-	    		} else {
-		    		doc.setSdtBlockBorderVisible(lastSdtBlockPosition.getOffset(), false);
-		    		doc.setSdtBlockBorderVisible(caretPos.getOffset(), true);
-		    		lastSdtBlockPosition = caretPos;
-	    		}
-	    	} else {
-	    		DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
-	    		int idx = elem.getElementIndex(caretPos.getOffset());
-	    		elem = (DocumentElement) elem.getElement(idx);
-	    		if (elem.getElementML() instanceof SdtBlockML) {
-		    		doc.setSdtBlockBorderVisible(caretPos.getOffset(), true);
-		    		lastSdtBlockPosition = caretPos;
-	    		}
-	    	}
-	    }
+	    private void selectSdtBlock(JEditorPane editor, int pos) {
+			WordMLDocument doc = (WordMLDocument) editor.getDocument();
+			
+			BasicTextUI ui = (BasicTextUI) editor.getUI();
+			View root = ui.getRootView(editor).getView(0);
+
+			SdtBlockView currentSdt = null;
+			int idx = root.getViewIndex(pos, Position.Bias.Forward);
+			View v = root.getView(idx);
+			if (v instanceof SdtBlockView) {
+				currentSdt = (SdtBlockView) v;
+			}
+
+			SdtBlockView lastSdt = null;
+			if (lastSdtBlockPosition != null) {
+				idx = root.getViewIndex(lastSdtBlockPosition.getOffset(),
+						Position.Bias.Forward);
+				lastSdt = (SdtBlockView) root.getView(idx);
+			}
+
+			if (currentSdt != lastSdt) {
+				if (lastSdt != null) {
+					lastSdt.setBorderVisible(false);
+					ui.damageRange(editor, lastSdt.getStartOffset(), lastSdt
+							.getEndOffset(), Position.Bias.Forward,
+							Position.Bias.Forward);
+					lastSdtBlockPosition = null;
+					
+					DocumentElement elem = (DocumentElement) currentSdt.getElement();
+					
+					serverTo.userExitsContentControl(
+						(org.docx4j.wml.SdtBlock) elem.getElementML().getDocxObject());
+					
+				}
+			}
+			
+			if (currentSdt != null) {
+				if (!currentSdt.isBorderVisible()) {
+					DocumentElement elem = (DocumentElement)  currentSdt.getElement();
+					
+					serverTo.userEntersContentControl(
+							(org.docx4j.wml.SdtBlock) elem.getElementML().getDocxObject());
+					
+					
+				}
+				currentSdt.setBorderVisible(true);
+				ui.damageRange(editor, currentSdt.getStartOffset(),
+						currentSdt.getEndOffset(), Position.Bias.Forward,
+						Position.Bias.Forward);
+				try {
+					lastSdtBlockPosition = doc.createPosition(pos);
+				} catch (BadLocationException exc) {
+					lastSdtBlockPosition = null;// should not happen
+				}
+				
+			}
+		}
 	    
-	    private void clearSdtBlockSelection(JEditorPane editor) {
-	    	if (lastSdtBlockPosition != null) {
-		    	WordMLDocument doc = (WordMLDocument) editor.getDocument();
-	    		doc.setSdtBlockBorderVisible(lastSdtBlockPosition.getOffset(), false);
-	    		lastSdtBlockPosition = null;
-	    	}
-	    }
 	}// CaretListener inner class
 	
 	public abstract static class StyledTextAction extends javax.swing.text.StyledEditorKit.StyledTextAction {

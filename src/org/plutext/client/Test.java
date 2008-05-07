@@ -9,7 +9,7 @@ public class Test {
     protected static final String USERNAME = "admin";
     protected static final String PASSWORD = "admin";
 	
-    protected static final String docId = "/alfresco/plutextwebdav/User Homes/jharrop/Sunday13A.docx";
+    protected static final String docId = "/alfresco/plutextwebdav/User Homes/jojada/Test1.docx";
 	
 	/**
 	 * @param args
@@ -22,6 +22,7 @@ public class Test {
 			AuthenticationUtils.startSession(USERNAME, PASSWORD);
 
 			PlutextService_ServiceLocator locator = new PlutextService_ServiceLocator( AuthenticationUtils.getEngineConfiguration() );
+//			PlutextWebService service  = locator.getPlutextService(new java.net.URL("http://192.168.23.129:8080"));
 			PlutextWebService service  = locator.getPlutextService();
 			System.out.println(
 					service.getSkeletonDocument(docId) );			

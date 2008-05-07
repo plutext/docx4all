@@ -22,7 +22,8 @@ public class PlutextService_ServiceLocator extends org.apache.axis.client.Servic
     }
 
     // Use to get a proxy class for PlutextService
-    private java.lang.String PlutextService_address = "http://localhost:8080/alfresco/api/PlutextService";
+    private java.lang.String PlutextService_address = "http://192.168.23.129:8080/alfresco/api/PlutextService";
+//    private java.lang.String PlutextService_address = "http://localhost:8080/alfresco/api/PlutextService";
 
     public java.lang.String getPlutextServiceAddress() {
         return PlutextService_address;

@@ -8,6 +8,10 @@ public class Controls {
 	// This class should define a list, since the
 	// controls are ordered.
 	
+	// Is this class used enough to justify its existence?
+	// It depends how often we actually need to loop 
+	// through all the Sdts in the document.
+	
 	ArrayList contentControls = new ArrayList<SdtBlock>();
 
 	

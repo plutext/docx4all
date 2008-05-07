@@ -52,6 +52,11 @@ import org.docx4j.wml.Id;
 //                    controlMap.Add(sdt);
 //                }
 
+                contentControlSnapshots = new HashMap<Id, ContentControlSnapshot>();
+                
+                // TODO - contentControlSnapshots.put a ContentControlSnapshot of each sdt
+
+            	
             } 
             catch (Exception ex)
             {
@@ -62,13 +67,9 @@ import org.docx4j.wml.Id;
             	= Integer.parseInt(Util.getCustomDocumentProperty(
             			wordMLPackage.getDocPropsCustomPart(), CustomProperties.DOCUMENT_TRANSFORM_SEQUENCENUMBER));
 
-            tSequenceNumberApplied     
-            	= Integer.parseInt(Util.getCustomDocumentProperty(
-            			wordMLPackage.getDocPropsCustomPart(), CustomProperties.DOCUMENT_TRANSFORM_SEQUENCENUMBER));
+            tSequenceNumberApplied = tSequenceNumberAtLoadTime;
 
-            tSequenceNumberHighestFetched 
-            	= Integer.parseInt(Util.getCustomDocumentProperty(
-            			wordMLPackage.getDocPropsCustomPart(), CustomProperties.DOCUMENT_TRANSFORM_SEQUENCENUMBER));
+            tSequenceNumberHighestFetched = tSequenceNumberAtLoadTime;
             
             org.docx4j.wml.Styles docxStyles = (org.docx4j.wml.Styles)wordMLPackage.getMainDocumentPart().getStyleDefinitionsPart().getJaxbElement();                        
             stylesSnapshot = new StylesSnapshot(docxStyles );
@@ -136,6 +137,22 @@ import org.docx4j.wml.Id;
 		}
 		public void setCurrentCC(SdtBlock currentCC) {
 			this.currentCC = currentCC;
+			
+			// Looks like this method is only called when
+			// entering a content control?
+			
+			// Therefore content control already exists in
+			// document, so you can assume it is already 
+			// listed in contentControlSnapshots
+			
+			// But could check, just to make sure?
+			
+			ContentControlSnapshot ccs = (ContentControlSnapshot)contentControlSnapshots.get(currentCC.getSdtPr().getId());
+			if (ccs==null) {
+				ccs = new ContentControlSnapshot(currentCC);
+				contentControlSnapshots.put(currentCC.getSdtPr().getId(), ccs);				
+			}
+			ccs.refresh();
 		}
 
 
@@ -157,7 +174,8 @@ import org.docx4j.wml.Id;
         /* Maintain a hashmap (dictionary) of ContentControlSnapshot wrapped Content Controls 
          * keyed by ID, so we can detect when one has been updated (even if not
          * entered)  */
-        HashMap<Id, ContentControlSnapshot> contentControlSnapshots = new HashMap<Id, ContentControlSnapshot>(); 
+        HashMap<Id, ContentControlSnapshot> contentControlSnapshots = null;
+         
 //		public void setControlMap(Controls controlMap) {
 //			this.controlMap = controlMap;
 //		}

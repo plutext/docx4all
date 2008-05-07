@@ -60,7 +60,8 @@ public class Util {
     private static String RIB_PREFIX = "sub";
     public static String getChunkId(Id id)
     {
-        return RIB_PREFIX + id.getVal();
+        //return RIB_PREFIX + id.getVal();
+    	return id.getVal().toString();
     }
 	
 }

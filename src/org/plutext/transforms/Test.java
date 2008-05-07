@@ -28,7 +28,7 @@ public class Test {
 	// To test properly, make sure logging is enabled:
 	//    -Dlog4j.configuration=conf/log4j.properties
 
-	public final static String filename="/home/dev/workspace/docx4all/src/org/plutext/transforms/transforms-sample.xml";
+	public final static String filename="C:\\Users\\jojada\\workspace\\Eclipse3.3\\Jason\\docx4all\\src\\org\\plutext\\transforms\\transforms-sample.xml";
 	
 	/**
 	 * @param args

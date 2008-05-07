@@ -135,7 +135,7 @@ public class WordMLEditor extends SingleFrameApplication {
 		_toolbarStates.setPasteEnabled(available);
     	
     	log.info("setting up WmlExitListener");
-    	addExitListener(new WmlExitListener());
+    	//addExitListener(new WmlExitListener());
 
     	log.info("setting up createMenuBar");    	
     	getMainFrame().setJMenuBar(createMenuBar());

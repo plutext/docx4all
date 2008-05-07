@@ -108,6 +108,7 @@ import org.plutext.client.wrappedTransforms.TransformAbstract;
         {
         	this.docxStyles = docxStyles;
 
+        	HashMap<String, Style> stylesLive = new HashMap<String, Style>(); 
             //System.Diagnostics.Debug.WriteLine("Hello!!");
             for (Style s : docxStyles.getStyle() )
             {

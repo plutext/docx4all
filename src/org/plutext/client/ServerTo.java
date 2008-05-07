@@ -55,7 +55,7 @@ import java.util.HashMap;
 
         public ServerTo(WordprocessingMLPackage wordMLPackage, String docID)
         {
-            log.debug("Mediator constructor fired"); 
+            log.debug("ServerTo constructor fired"); 
 
             stateDocx = new StateDocx(wordMLPackage);
             stateDocx.setDocID(docID);
@@ -147,8 +147,11 @@ import java.util.HashMap;
         }
 
 
-        void userEntersContentControl(SdtBlock cc)
+        public void userEntersContentControl(SdtBlock cc)
         {
+        	log.debug("Fetching updates..");
+        	//serverFrom.fetchUpdates();  // TODO - eventually put this in a background thread
+        	
 
             //log.debug("Entered '" + ContentControlSnapshot.getDebugRunSample(cc) + "'");
 
@@ -156,6 +159,7 @@ import java.util.HashMap;
 
             log.debug("invoking applyUpdates from _Enter handler");
             serverFrom.applyUpdates(null); // anywhere in the document, but nothing forced
+            
 
         }
 
@@ -164,7 +168,7 @@ import java.util.HashMap;
         {
             
             // We really are exiting this control 
-            stateDocx.setCurrentCC(null);
+            //stateDocx.setCurrentCC(null);
 
 //            String ccID = cc.ID;
 //            Word.Range tmpRange = cc.Range;
