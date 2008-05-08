@@ -17,12 +17,14 @@ public class Test {
 	public static void main(String[] args) {
 		
         try {
+			System.out.println("Using endpoint address: " + org.alfresco.webservice.util.WebServiceFactory.getEndpointAddress()  );
         	
 			// Start a new session
 			AuthenticationUtils.startSession(USERNAME, PASSWORD);
 
 			PlutextService_ServiceLocator locator = new PlutextService_ServiceLocator( AuthenticationUtils.getEngineConfiguration() );
 //			PlutextWebService service  = locator.getPlutextService(new java.net.URL("http://192.168.23.129:8080"));
+			locator.setPlutextServiceEndpointAddress(org.alfresco.webservice.util.WebServiceFactory.getEndpointAddress() + "/" + locator.getPlutextServiceWSDDServiceName() );			
 			PlutextWebService service  = locator.getPlutextService();
 			System.out.println(
 					service.getSkeletonDocument(docId) );			

@@ -172,6 +172,11 @@ import java.util.HashMap;
         	log.debug("Exit started  (" + cc.getSdtPr().getId().getVal());
 
             stateDocx.setCurrentCC(null);
+            
+            // TODO - if this is a content control just created in docx4all
+            // (ie the user was in an existing cc, and they hit return, and
+            //  we are chunking on each block), then call a new web service
+            // method (yet to be written), which inserts the CC.
         	
             try
             {
@@ -180,8 +185,9 @@ import java.util.HashMap;
 				// Start a new session
 				AuthenticationUtils.startSession(USERNAME, PASSWORD);
 				PlutextService_ServiceLocator locator = new PlutextService_ServiceLocator( AuthenticationUtils.getEngineConfiguration() );
+				locator.setPlutextServiceEndpointAddress(org.alfresco.webservice.util.WebServiceFactory.getEndpointAddress() + "/" + locator.getPlutextServiceWSDDServiceName() );
 				PlutextWebService ws  = locator.getPlutextService();
-
+				
                 // Are there newer changes already on the server
                 // which we need to handle?
                 String t = ws.getChunk(stateDocx.getDocID(), 
@@ -308,16 +314,14 @@ import java.util.HashMap;
                     */
                     log.debug("Checkin also returned result[1]: '" + result[1]);
 
-                    // Need to apply these transforms!
+                    // docx4all doesn't need to apply these transforms,
+                    // since it contains its own logic for splitting a multi para
+                    // cc (when we're chunking on each block) into new cc's.
+                    // So just set to applied.
+                    boolean applied = true;
                     HashMap<Integer, TransformAbstract> forceApplicationToSdtIds 
-                    	= serverFrom.registerTransforms(result[1], false);
+                    	= serverFrom.registerTransforms(result[1], applied);
                     log.debug("invoking applyUpdates from _Exit handler");
-                    // Apply transforms in that list, forcing them
-                    serverFrom.applyUpdates(forceApplicationToSdtIds, forceApplicationToSdtIds);
-
-                    // WARNING: Since we just deleted ContentControl cc (and
-                    // reinserted one with the same ID), don't reference
-                    // cc again in this method!
 
                 }
                 

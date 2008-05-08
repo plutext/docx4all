@@ -91,7 +91,7 @@ public abstract class TransformAbstract
 
         sdt = t.getSdt();
 
-        if (t.getIdref() != 0)
+        if (t.getIdref() != null)
         {
             // Case: Delete 
             
