@@ -19,12 +19,8 @@
 
 package org.plutext.client;
 
-import org.alfresco.webservice.util.AuthenticationUtils;
 import org.apache.log4j.Logger;
-import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.plutext.client.state.StateDocx;
-import org.plutext.client.webservice.PlutextService_ServiceLocator;
-import org.plutext.client.webservice.PlutextWebService;
 import org.plutext.client.wrappedTransforms.TransformAbstract;
 import org.docx4j.wml.SdtBlock;
 import org.plutext.client.Util;

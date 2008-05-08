@@ -84,6 +84,7 @@ import org.plutext.transforms.Transforms.T;
 						org.plutext.client.ServerTo.PASSWORD);
 				PlutextService_ServiceLocator locator = 
 					new PlutextService_ServiceLocator( AuthenticationUtils.getEngineConfiguration() );
+				locator.setPlutextServiceEndpointAddress(org.alfresco.webservice.util.WebServiceFactory.getEndpointAddress() + "/" + locator.getPlutextServiceWSDDServiceName() );				
 				PlutextWebService ws  = locator.getPlutextService();
 
 				String[] updates = null;

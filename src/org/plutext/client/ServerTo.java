@@ -90,6 +90,7 @@ import java.util.HashMap;
 				// Start a new session
 				AuthenticationUtils.startSession(USERNAME, PASSWORD);
 				PlutextService_ServiceLocator locator = new PlutextService_ServiceLocator( AuthenticationUtils.getEngineConfiguration() );
+				locator.setPlutextServiceEndpointAddress(org.alfresco.webservice.util.WebServiceFactory.getEndpointAddress() + "/" + locator.getPlutextServiceWSDDServiceName() );				
 				PlutextWebService ws  = locator.getPlutextService();
 
 				
