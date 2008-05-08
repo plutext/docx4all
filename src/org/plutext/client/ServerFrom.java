@@ -89,6 +89,12 @@ import org.plutext.transforms.Transforms.T;
 
 				String[] updates = null;
 				
+				log.debug("getTSequenceNumberHighestFetched so far: " 
+						+ stateDocx.getTSequenceNumberHighestFetched());
+				
+				log.debug("ws.getTransforms(" + stateDocx.getDocID() + ", " +
+			                            stateDocx.getTSequenceNumberHighestFetched() + ")");
+				
 			    updates = ws.getTransforms(stateDocx.getDocID(),
 			                            stateDocx.getTSequenceNumberHighestFetched());
 
@@ -98,8 +104,11 @@ import org.plutext.transforms.Transforms.T;
 				int tsnJustFetched = Integer.parseInt(updates[0]); 
 				if ( tsnJustFetched > stateDocx.getTSequenceNumberHighestFetched() )
 				{
+					log.debug(".. registering new transforms..");
 				    stateDocx.setTSequenceNumberHighestFetched(tsnJustFetched);
 				    registerTransforms(updates[1], false);
+				} else {
+					log.debug(".. no new transforms..");					
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -140,7 +149,9 @@ import org.plutext.transforms.Transforms.T;
                 try
                 {
                     stateDocx.getWrappedTransforms().put( new Integer(ta.getSequenceNumber()), ta);
-                    //stateDocx.TSequenceNumberHighestFetched = t.SequenceNumber;
+                    if ( ta.getSequenceNumber() > stateDocx.getTSequenceNumberHighestFetched() ) {
+                    	stateDocx.setTSequenceNumberHighestFetched(ta.getSequenceNumber());
+                    }
                     log.debug(".. done.");
                 }
                 catch (Exception e)
@@ -250,7 +261,7 @@ import org.plutext.transforms.Transforms.T;
 
             if (t.getApplied() ) {
                 log.debug(t.getSequenceNumber() + " has been applied previously.");
-                return 0;
+                return t.getSequenceNumber();
             }
             // TODO
             // else if there is a more recent transform
@@ -298,9 +309,8 @@ import org.plutext.transforms.Transforms.T;
                 log.debug(t.getSequenceNumber() + "  UNDER CONSTRUCTION (" + t.getClass().getName() + ")");
                 return result;
 
-            }
-            else
-            {
+            } else {
+            	
                 ContentControlSnapshot currentChunk = stateDocx.getContentControlSnapshots().get(t.getId());
 //                String currentXML = ContentControlSnapshot.getContentControlXMLNormalised(currentChunk.WrappedCC);
                 String currentXML = currentChunk.getContentControlXML();
@@ -315,6 +325,9 @@ import org.plutext.transforms.Transforms.T;
                     return result;
                 } else {
                     log.debug( " -- Updates to merge. " + t.getId().getVal() );
+                    log.debug("Current: " + currentXML);                    
+                    log.debug("Last known: " + currentChunk.getPointInTimeXml());
+                    
                     SdtBlock cc = currentChunk.getSdtBlock();
                     result = Merge.mergeUpdate(cc, t);
                     log.debug(result + " applied (merged)");

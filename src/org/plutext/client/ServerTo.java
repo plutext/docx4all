@@ -154,7 +154,7 @@ import java.util.HashMap;
         	log.debug("Enter started  (" + cc.getSdtPr().getId().getVal() );
         	
         	log.debug("Fetching updates..");
-        	//serverFrom.fetchUpdates();  // TODO - eventually put this in a background thread
+        	serverFrom.fetchUpdates();  // TODO - eventually put this in a background thread
         	
 
             stateDocx.setCurrentCC( cc );
@@ -198,16 +198,18 @@ import java.util.HashMap;
                 {
                     // Yes..so markup this cc with the newer
                     // changes from the server
-                    log.debug("Updates to merge.");
+                    log.debug("Updates to merge: " + t);
+                    log.warn("mergeUpdate WON'T BE IMPLEMENTED FOR A WEEK OR SO.");
                     int tsn = Merge.mergeUpdate(cc, t, serverFrom);
 
-                    if (stateDocx.getWrappedTransforms().get(
-                    		new Integer(tsn)).getClass().getName().equals("TransformDelete"))
-                    {
+                    Object o = stateDocx.getWrappedTransforms().get( new Integer(tsn) );
+                    log.debug("o: " + o.getClass().getName() );
+                    if (o== null) {
+                    	// Look into this
+                    	log.warn("Couldn't find object!");
+                    } else if ( o.getClass().getName().equals("TransformDelete")) {
                         // Continue - we're set up to reinstate this chunk
-                    }
-                    else
-                    {
+                    } else {
                         // For TransformUpdate, we want to let the use
                         // accept/reject changes before committing
                         return;
@@ -322,6 +324,13 @@ import java.util.HashMap;
                     boolean applied = true;
                     HashMap<Integer, TransformAbstract> forceApplicationToSdtIds 
                     	= serverFrom.registerTransforms(result[1], applied);
+                    
+                    // But, it does need to set the tag in the std pr (which we use 
+                    // to record the version) to the value in the std received from the 
+                    // server).  [Which may be about the same from docx4all's point
+                    // of view as actually applying the transform?]
+                    log.warn("TODO: high priority - update sdtPr/tag.");
+                    
                     log.debug("invoking applyUpdates from _Exit handler");
 
                 }
