@@ -34,7 +34,6 @@ import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
 import org.docx4all.xml.RunPropertiesML;
-import org.docx4all.xml.SdtBlockML;
 
 /**
  *	@author Jojada Tirtowidjojo - 17/04/2008
@@ -115,8 +114,7 @@ public class ElementSelector {
 		if (start <= elem.getStartOffset() && elem.getEndOffset() <= end) {
 			//elem is fully selected
 			ElementML ml = elem.getElementML();
-			if ((ml instanceof ParagraphML && ml.isImplied())
-				|| (ml instanceof SdtBlockML)) {
+			if (ml instanceof ParagraphML && ml.isImplied()) {
 				theElements = selectElementsFromChildren(elem, start, end);
 			} else {
 				theElements = new ArrayList<DocumentElement>(1);
@@ -186,17 +184,6 @@ public class ElementSelector {
 			} else {
 				;//Exclude all implied ElementML(s) except for implied ParagraphML
 			}
-		} else if (elemML instanceof SdtBlockML) {
-			int startIdx = _elem.getElementIndex(_startOffset);
-			int endIdx = _elem.getElementIndex(_endOffset - 1);
-			for (int i=startIdx; i <= endIdx; i++) {
-				DocumentElement child = 
-					(DocumentElement) _elem.getElement(i);
-				int x = Math.max(child.getStartOffset(), _startOffset);
-				int y = Math.min(child.getEndOffset(), _endOffset);
-				ElementSelector es = new ElementSelector(child, x, y);
-				theList.addAll(es.selectType(returnedType));
-			}				
 			
 		} else if (_startOffset == _elem.getStartOffset()
 					&& _elem.getEndOffset() == _endOffset) {
