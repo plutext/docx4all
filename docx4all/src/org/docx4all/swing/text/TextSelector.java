@@ -154,7 +154,10 @@ public class TextSelector {
 			DocumentElement root = 
 				(DocumentElement) doc.getDefaultRootElement();
 			List<String> path0 = DocUtil.getElementNamePath(root, p0);
-			List<String> path1 = DocUtil.getElementNamePath(root, p1);
+			List<String> path1 = 
+				DocUtil.getElementNamePath(
+					root, 
+					(p1 == lastLeaf.getEndOffset()) ? p1-1 : p1);
 
 			if (path0 != null && !path0.equals(path1)) {
 				throw new BadSelectionException("Bad Selection", p0, p1 - p0);
