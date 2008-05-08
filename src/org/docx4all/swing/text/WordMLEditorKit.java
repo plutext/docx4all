@@ -488,6 +488,8 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			
 				if (start == end) {
 					selectSdtBlock(editor, start);
+				} else {
+					resetLastSdtBlockPosition(editor);
 				}
 			} catch (BadSelectionException exc) {
 				UIManager.getLookAndFeel().provideErrorFeedback(editor);
@@ -557,7 +559,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				}
 			}
 			
-			if (currentSdt != null) {
+			if (currentSdt != null && !currentSdt.isBorderVisible()) {
 				currentSdt.setBorderVisible(true);
 				ui.damageRange(editor, currentSdt.getStartOffset(),
 						currentSdt.getEndOffset(), Position.Bias.Forward,
@@ -570,6 +572,26 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			}
 		}
 	    
+	    private void resetLastSdtBlockPosition(JEditorPane editor) {
+	    	if (lastSdtBlockPosition != null) {
+				BasicTextUI ui = (BasicTextUI) editor.getUI();
+				View root = ui.getRootView(editor).getView(0);
+
+				int idx = 
+					root.getViewIndex(
+						lastSdtBlockPosition.getOffset(), 
+						Position.Bias.Forward);
+				SdtBlockView sdt = (SdtBlockView) root.getView(idx);
+				sdt.setBorderVisible(false);
+				ui.damageRange(
+					editor, 
+					sdt.getStartOffset(), 
+					sdt.getEndOffset(), 
+					Position.Bias.Forward,
+					Position.Bias.Forward);
+				lastSdtBlockPosition = null;
+			}
+	    }
 	}// CaretListener inner class
 	
 	public abstract static class StyledTextAction extends javax.swing.text.StyledEditorKit.StyledTextAction {
