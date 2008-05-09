@@ -118,7 +118,7 @@ public abstract class TransformAbstract
 
     }
 
-    protected void apply(WordMLTextPane editor) {
+	protected void apply(WordMLTextPane editor, int offset) {
     	;//do nothing
     }
     
