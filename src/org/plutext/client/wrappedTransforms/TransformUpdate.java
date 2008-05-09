@@ -66,17 +66,23 @@ public class TransformUpdate extends TransformAbstract {
 	}
 
 	protected void apply(WordMLTextPane editor, int offset) {
+		WordMLDocument doc = (WordMLDocument) editor.getDocument();
 		ElementMLRecord[] recs = {new ElementMLRecord(new SdtBlockML(getSdt()), false)};
 		WordMLFragment frag = new WordMLFragment(recs);
 		
-		WordMLDocument doc = (WordMLDocument) editor.getDocument();
-		DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
-		int idx = elem.getElementIndex(offset);
-		elem = (DocumentElement) elem.getElement(idx);
+		try {
+			editor.beginContentControlEdit();
 		
-		editor.setCaretPosition(elem.getStartOffset());
-		editor.moveCaretPosition(elem.getEndOffset());
-		editor.replaceSelection(frag);
+			DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
+			int idx = elem.getElementIndex(offset);
+			elem = (DocumentElement) elem.getElement(idx);
+		
+			editor.setCaretPosition(elem.getStartOffset());
+			editor.moveCaretPosition(elem.getEndOffset());
+			editor.replaceSelection(frag);
+		} finally {
+			editor.endContentControlEdit();
+		}
 	}
 }
 
