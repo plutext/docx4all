@@ -194,8 +194,15 @@ public class ServerTo implements ContentControlListener {
 
 			// Are there newer changes already on the server
 			// which we need to handle?
+			
+			log.debug("ws.getChunk( .., " + Util.getChunkId(cc
+					.getSdtPr().getId()) + " , " + cc.getSdtPr().getTag().getVal() );
+			
 			String t = ws.getChunk(stateDocx.getDocID(), Util.getChunkId(cc
 					.getSdtPr().getId()), cc.getSdtPr().getTag().getVal());
+			
+			log.debug(".. returned '" + t + "'");
+			
 			if (!t.equals("")) {
 				// Yes..so markup this cc with the newer
 				// changes from the server
@@ -317,6 +324,7 @@ public class ServerTo implements ContentControlListener {
 				// server).  [Which may be about the same from docx4all's point
 				// of view as actually applying the transform?]
 				log.warn("TODO: high priority - update sdtPr/tag.");
+				serverFrom.applyUpdates(forceApplicationToSdtIds, forceApplicationToSdtIds);
 
 				log.debug("invoking applyUpdates from _Exit handler");
 
