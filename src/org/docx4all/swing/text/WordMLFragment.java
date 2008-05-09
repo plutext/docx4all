@@ -22,8 +22,12 @@ package org.docx4all.swing.text;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.text.DefaultStyledDocument.ElementSpec;
+
 import org.docx4all.ui.main.Constants;
+import org.docx4all.util.DocUtil;
 import org.docx4all.xml.ElementML;
+import org.docx4all.xml.ImpliedContainerML;
 import org.docx4all.xml.ObjectFactory;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.RunContentML;
@@ -73,6 +77,25 @@ public class WordMLFragment implements Cloneable {
 			this.records = new ElementMLRecord[list.size()];
 			list.toArray(this.records);
 		}
+	}
+	
+	public WordMLFragment(ElementMLRecord[] records) {
+		this.records = records;
+		
+		ElementML container = new ImpliedContainerML();
+		for (int i=0; i < records.length; i++) {
+			ElementML ml = records[i].getElementML();
+			container.addChild(ml, false);
+		}
+		//Prepare the ElementSpecs of all refreshed ElementML
+    	List<ElementSpec> specs = DocUtil.getElementSpecs(container);
+    	StringBuffer sb = new StringBuffer();
+    	for (ElementSpec es: specs) {
+    		if (es.getType() == ElementSpec.ContentType) {
+    			sb.append(es.getArray());
+    		}
+    	}
+    	this.text = sb.toString();
 	}
 	
 	public List<ElementMLRecord> getParagraphRecords() {
