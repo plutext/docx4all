@@ -311,26 +311,54 @@ public class ServerTo implements ContentControlListener {
 				 */
 				log.debug("Checkin also returned result[1]: '" + result[1]);
 
-				// docx4all doesn't need to apply these transforms,
-				// since it contains its own logic for splitting a multi para
-				// cc (when we're chunking on each block) into new cc's.
-				// So just set to applied.
+				/* We expect that the SDT in the document is the same as the
+				 * SDT on the server (and as returned in the transform), except 
+				 * that the version number of the server copy has been incremented.
+				 * (The version number is stored in sdtPr/@tag)
+				 * 
+				 * (They will be the same, since docx4all (will) contains its own 
+				 * logic for splitting a multi para cc (when we're chunking on 
+				 * each block) into new cc's.)
+				 * 
+				 * Anyway, the local sdt/sdtPr/@tag needs to be updated.
+				 * 
+				 * There are various ways to do this, which all amount to much
+				 * the same thing.
+				 * 
+				 * The first thought is to programmatically update @tag directly.
+				 * But if you are going to inspect the sdt received from the 
+				 * server to find its @tag, you may as well use TransformUpdate.
+				 * 
+				 * If you did this, you could set applied = true.
+				 * 
+				 * The alternative is to rely on serverFrom.applyUpdates.
+				 * 
+				 * If you do this, you need to ensure that the local changes
+				 * aren't mistaken for further changes which need to be merged.
+				 * 
+				 * There are 2 ways to ensure this:
+				 * 
+				 * (i) forceApplicationToSdtIds (which is what we do in the
+				 *     Word 2007 add in), or
+				 *     
+				 * (ii)update the snapshot of the content control 
+				 * 
+				 * We do (ii), since it doesn't require us to call 
+				 * serverFrom.applyUpdates(forceApplicationToSdtIds, forceApplicationToSdtIds);
+				 * here.
+				 * 
+				 * 
+				 */
+
 				boolean applied = false;
 				HashMap<Integer, TransformAbstract> forceApplicationToSdtIds = serverFrom
 						.registerTransforms(result[1], applied);
-
-				// But, it does need to set the tag in the std pr (which we use 
-				// to record the version) to the value in the std received from the 
-				// server).  [Which may be about the same from docx4all's point
-				// of view as actually applying the transform?]
-				log.warn("TODO: high priority - update sdtPr/tag.");
-				//serverFrom.applyUpdates(forceApplicationToSdtIds, forceApplicationToSdtIds);
 				
 				// Update the snapshot of this cc
 				stateDocx.setCurrentCC(cc);
 				stateDocx.setCurrentCC(null);
 
-				log.debug("invoking applyUpdates from _Exit handler");
+				// Note that exit handler does not invoke applyUpdates 
 
 			}
 
