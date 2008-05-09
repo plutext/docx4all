@@ -22,9 +22,11 @@ package org.docx4all.util;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Hashtable;
 import java.util.List;
 
 import javax.swing.JEditorPane;
@@ -54,6 +56,7 @@ import org.docx4all.xml.ParagraphPropertiesML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
 import org.docx4all.xml.RunPropertiesML;
+import org.docx4all.xml.SdtBlockML;
 import org.docx4j.XmlUtils;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 
@@ -126,6 +129,34 @@ public class DocUtil {
 		}
 		
 		return theDoc;
+	}
+	
+	public final static Hashtable<BigInteger, Position> createSdtBlockPositionMap(WordMLDocument doc) {
+		Hashtable<BigInteger, Position> theMap = new Hashtable<BigInteger, Position>();
+		
+		try {
+			doc.readLock();
+			DocumentElement root = (DocumentElement) doc
+					.getDefaultRootElement();
+			for (int i = 0; i < root.getElementCount() - 2; i++) {
+				DocumentElement elem = (DocumentElement) root.getElement(i);
+				ElementML ml = elem.getElementML();
+				if (ml instanceof SdtBlockML) {
+					try {
+						Position pos = doc.createPosition(elem.getStartOffset());
+						org.docx4j.wml.SdtBlock sdt = (org.docx4j.wml.SdtBlock) ml
+							.getDocxObject();
+						theMap.put(sdt.getSdtPr().getId().getVal(), pos);
+					} catch (BadLocationException exc) {
+						;//ignore
+					}
+				}
+			}
+		} finally {
+			doc.readUnlock();
+		}
+		
+		return theMap;
 	}
 	
 	/**
