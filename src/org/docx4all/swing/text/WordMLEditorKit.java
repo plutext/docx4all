@@ -109,6 +109,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	private Cursor defaultCursor = DefaultCursor;
 	private CaretListener caretListener;
 	private MouseListener mouseListener;
+	private ContentControlTracker contentControlTracker;
 	
     /**
      * This is the set of attributes used to store the
@@ -130,6 +131,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	public WordMLEditorKit() {
 		caretListener = new CaretListener();
 		mouseListener = new MouseListener();
+		contentControlTracker = new ContentControlTracker();
 		
         inputAttributes = new SimpleAttributeSet() {
             public AttributeSet getResolveParent() {
@@ -147,6 +149,18 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		if (getCaretElement() != null) {
 			DocUtil.saveTextContentToElementML(getCaretElement());
 		}
+	}
+	
+	public synchronized void beginContentControlEdit(WordMLTextPane editor) {
+		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+		doc.lockWrite();
+		editor.removeCaretListener(contentControlTracker);
+	}
+	
+	public synchronized void endContentControlEdit(WordMLTextPane editor) {
+		editor.addCaretListener(contentControlTracker);
+		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+		doc.unlockWrite();
 	}
 	
     public void addInputAttributeListener(InputAttributeListener listener) {
@@ -281,6 +295,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		super.install(c);
 
 		c.addCaretListener(caretListener);
+		c.addCaretListener(contentControlTracker);
 		c.addMouseListener(mouseListener);
 		c.addMouseMotionListener(mouseListener);
 		c.addPropertyChangeListener(caretListener);
@@ -299,6 +314,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	public void deinstall(JEditorPane c) {
 		super.deinstall(c);
 		c.removeCaretListener(caretListener);
+		c.removeCaretListener(contentControlTracker);
 		c.removeMouseListener(mouseListener);
 		c.removeMouseMotionListener(mouseListener);
 		c.removePropertyChangeListener(caretListener);
@@ -420,7 +436,14 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		caretListener.caretElement = null;
 		int start = editor.getSelectionStart();
 		int end = editor.getSelectionEnd();
-		caretListener.updateCaretElement(start, end, editor);
+		
+		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+		try {
+			doc.readLock();
+			caretListener.updateCaretElement(start, end, editor);
+		} finally {
+			doc.readUnlock();
+		}
 	}
 	
 	private void initKeyBindings(JEditorPane editor) {
@@ -520,66 +543,17 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	    
 	}// MouseListener inner class
 	
-	private class CaretListener implements javax.swing.event.CaretListener, PropertyChangeListener, Serializable {
-		private WordMLDocument.TextElement caretElement;
+	private class ContentControlTracker implements javax.swing.event.CaretListener, Serializable {
 		private Position lastSdtBlockPosition;
 		
 	    public void caretUpdate(CaretEvent evt) {			
 	    	WordMLTextPane editor = (WordMLTextPane) evt.getSource();
     		int start = Math.min(evt.getDot(), evt.getMark());
     		int end = Math.max(evt.getDot(), evt.getMark());
-    		
-	    	WordMLDocument doc = (WordMLDocument) editor.getDocument();
-	    	try {
-	    		doc.readLock();
-	    		
-				if (start != end) {
-		    		//Validate selected area if any
-					new TextSelector(doc, start, end - start);
-				}
-				updateCaretElement(start, end, editor);
-			
-				if (start == end) {
-					selectSdtBlock(editor, start);
-				} else {
-					resetLastSdtBlockPosition(editor);
-				}
-			} catch (BadSelectionException exc) {
-				UIManager.getLookAndFeel().provideErrorFeedback(editor);
-				editor.moveCaretPosition(start);
-	    	} finally {
-	    		doc.readUnlock();
-	    	}
-	    }
-	    
-        public void propertyChange(PropertyChangeEvent evt) {
-    	    Object newValue = evt.getNewValue();
-    	    Object source = evt.getSource();
-
-    	    if ((source instanceof WordMLTextPane)
-				 && (newValue instanceof WordMLDocument)) {
-				// New document will have changed selection to 0,0.
-    	    	updateCaretElement(0, 0, (WordMLTextPane) source);
-    	    	//selectSdtBlock((WordMLTextPane) editor, start);
-			}
-    	}
-
-	    void updateCaretElement(int start, int end, JEditorPane editor) {
-	    	WordMLDocument doc = (WordMLDocument) editor.getDocument();
-	    	Position.Bias bias = (start != end) ? Position.Bias.Forward : null;
-	    	WordMLDocument.TextElement elem = DocUtil.getInputAttributeElement(doc, start, bias);
-
-			if (caretElement != elem) {
-				DocUtil.saveTextContentToElementML(caretElement);
-				caretElement = elem;
-				
-				if (caretElement != null) {
-					WordMLEditorKit.this.currentRunE = 
-						(DocumentElement) caretElement.getParentElement();
-				} else {
-					WordMLEditorKit.this.currentRunE = null;
-				}
-				createInputAttributes(caretElement, getInputAttributesML(), editor);
+			if (start == end) {
+				selectSdtBlock(editor, start);
+			} else {
+				resetLastSdtBlockPosition(editor);
 			}
 	    }
 	    
@@ -662,6 +636,71 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				lastSdtBlockPosition = null;
 			}
 	    }
+	}// ContentControlTracker inner class
+	
+	private class CaretListener implements javax.swing.event.CaretListener, PropertyChangeListener, Serializable {
+		private WordMLDocument.TextElement caretElement;
+		
+	    public void caretUpdate(CaretEvent evt) {			
+	    	WordMLTextPane editor = (WordMLTextPane) evt.getSource();
+    		int start = Math.min(evt.getDot(), evt.getMark());
+    		int end = Math.max(evt.getDot(), evt.getMark());
+    		
+	    	WordMLDocument doc = (WordMLDocument) editor.getDocument();
+	    	try {
+	    		doc.readLock();
+	    		
+				if (start != end) {
+		    		//Validate selected area if any
+					new TextSelector(doc, start, end - start);
+				}
+				updateCaretElement(start, end, editor);
+			
+			} catch (BadSelectionException exc) {
+				UIManager.getLookAndFeel().provideErrorFeedback(editor);
+				editor.moveCaretPosition(start);
+	    	} finally {
+	    		doc.readUnlock();
+	    	}
+	    }
+	    
+        public void propertyChange(PropertyChangeEvent evt) {
+    	    Object newValue = evt.getNewValue();
+    	    Object source = evt.getSource();
+
+    	    if ((source instanceof WordMLTextPane)
+				 && (newValue instanceof WordMLDocument)) {
+				// New document will have changed selection to 0,0.
+    	    	WordMLDocument doc = (WordMLDocument) newValue;
+    	    	try {
+    	    		doc.readLock();
+    	    		
+    	    		updateCaretElement(0, 0, (WordMLTextPane) source);
+    	    	} finally {
+    	    		doc.readUnlock();
+    	    	}
+			}
+    	}
+
+	    void updateCaretElement(int start, int end, JEditorPane editor) {
+	    	WordMLDocument doc = (WordMLDocument) editor.getDocument();
+	    	Position.Bias bias = (start != end) ? Position.Bias.Forward : null;
+	    	WordMLDocument.TextElement elem = DocUtil.getInputAttributeElement(doc, start, bias);
+
+			if (caretElement != elem) {
+				DocUtil.saveTextContentToElementML(caretElement);
+				caretElement = elem;
+				
+				if (caretElement != null) {
+					WordMLEditorKit.this.currentRunE = 
+						(DocumentElement) caretElement.getParentElement();
+				} else {
+					WordMLEditorKit.this.currentRunE = null;
+				}
+				createInputAttributes(caretElement, getInputAttributesML(), editor);
+			}
+	    }
+	    
 	}// CaretListener inner class
 	
 	public abstract static class StyledTextAction extends javax.swing.text.StyledEditorKit.StyledTextAction {
