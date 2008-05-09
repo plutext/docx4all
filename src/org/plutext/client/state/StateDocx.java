@@ -137,6 +137,9 @@ import org.docx4j.wml.Id;
 			// Looks like this method is only called when
 			// entering a content control?
 			
+				// No, as at May 9, we're also calling it
+				// when exiting (at beginning and end of exit)
+			
 			// Therefore content control already exists in
 			// document, so you can assume it is already 
 			// listed in contentControlSnapshots
@@ -146,9 +149,11 @@ import org.docx4j.wml.Id;
 			ContentControlSnapshot ccs = (ContentControlSnapshot)contentControlSnapshots.get(
 												currentCC.getSdtPr().getId());
 			if (ccs==null) {
-				ccs = new ContentControlSnapshot(currentCC);
-				contentControlSnapshots.put(currentCC.getSdtPr().getId(), ccs);				
+				ccs = new ContentControlSnapshot(currentCC);								
+			} else {
+				ccs.refresh();
 			}
+			contentControlSnapshots.put(currentCC.getSdtPr().getId(), ccs);
 		}
 
 

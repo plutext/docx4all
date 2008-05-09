@@ -324,7 +324,11 @@ public class ServerTo implements ContentControlListener {
 				// server).  [Which may be about the same from docx4all's point
 				// of view as actually applying the transform?]
 				log.warn("TODO: high priority - update sdtPr/tag.");
-				serverFrom.applyUpdates(forceApplicationToSdtIds, forceApplicationToSdtIds);
+				//serverFrom.applyUpdates(forceApplicationToSdtIds, forceApplicationToSdtIds);
+				
+				// Update the snapshot of this cc
+				stateDocx.setCurrentCC(cc);
+				stateDocx.setCurrentCC(null);
 
 				log.debug("invoking applyUpdates from _Exit handler");
 
