@@ -63,6 +63,14 @@ public class WordMLDocument extends DefaultStyledDocument {
 		super();
 	}
 
+	public synchronized final void lockWrite() {
+		writeLock();
+	}
+	
+	public synchronized final void unlockWrite() {
+		writeUnlock();
+	}
+	
 	public StyleSheet getStyleSheet() {
 		DocumentElement root = (DocumentElement) getDefaultRootElement();
 		return root.getElementML().getStyleSheet();
