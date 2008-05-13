@@ -20,6 +20,7 @@
 package org.plutext.client;
 
 import java.util.HashMap;
+import java.util.Iterator;
 
 import javax.swing.plaf.basic.BasicTextUI;
 import javax.swing.text.Position;
@@ -355,9 +356,11 @@ public class ServerTo implements ContentControlListener {
 						.registerTransforms(result[1], applied);
 				
 				// Update the snapshot of this cc
+				Iterator<Integer> sequenceNumbers = forceApplicationToSdtIds.keySet().iterator();
+				stateDocx.setTSequenceNumberApplied(sequenceNumbers.next());
 				stateDocx.setCurrentCC(cc);
 				stateDocx.setCurrentCC(null);
-
+				
 				// Note that exit handler does not invoke applyUpdates 
 
 			}
