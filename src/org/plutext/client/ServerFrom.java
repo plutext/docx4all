@@ -25,15 +25,16 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 
-import javax.swing.text.Position;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 
 import org.alfresco.webservice.util.AuthenticationUtils;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
+import org.docx4all.swing.text.SdtBlockInfo;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.util.DocUtil;
+import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
 import org.plutext.client.state.ContentControlSnapshot;
 import org.plutext.client.state.StateDocx;
@@ -53,7 +54,7 @@ public class ServerFrom {
 
 	private StateDocx stateDocx;
 	private WordMLTextPane wmlTextPane;
-	Hashtable<BigInteger, Position> sdtBlockOffsetMap;
+	Hashtable<BigInteger, SdtBlockInfo> sdtBlockInfoMap;
 	
 	public ServerFrom(StateDocx stateDocx) //WordprocessingMLPackage wordMLPackage, String docID)
 	{
@@ -61,13 +62,13 @@ public class ServerFrom {
 
 		this.stateDocx = stateDocx;
 		this.wmlTextPane = null;
-		this.sdtBlockOffsetMap = null;
+		this.sdtBlockInfoMap = null;
 	}
 
 	void setWordMLTextPane(WordMLTextPane wmlTextPane) {
 		this.wmlTextPane = wmlTextPane;
-		this.sdtBlockOffsetMap = 
-			DocUtil.createSdtBlockPositionMap(
+		this.sdtBlockInfoMap = 
+			DocUtil.createSdtBlockInfoMap(
 				(WordMLDocument) wmlTextPane.getDocument());
 		
 	}
@@ -77,13 +78,23 @@ public class ServerFrom {
 	}
 	
 	public int getOffset(org.docx4j.wml.SdtBlock sdt) {
-		if (sdtBlockOffsetMap != null) {
-			Position pos = sdtBlockOffsetMap.get(sdt.getSdtPr().getId().getVal());
-			if (pos != null) {
-				return pos.getOffset();
+		if (sdtBlockInfoMap != null) {
+			SdtBlockInfo info = sdtBlockInfoMap.get(sdt.getSdtPr().getId().getVal());
+			if (info != null) {
+				return info.getPosition().getOffset();
 			}
 		}
 		return -1;
+	}
+	
+	public org.docx4j.wml.SdtBlock getSdtBlock(Id sdtId) {
+		if (sdtBlockInfoMap != null) {
+			SdtBlockInfo info = sdtBlockInfoMap.get(sdtId.getVal());
+			if (info != null) {
+				return info.getSdtBlock();
+			}
+		}
+		return null;
 	}
 	
 	public StateDocx getStateDocx() {
@@ -221,7 +232,6 @@ public class ServerFrom {
 				// be done in order.
 
 				try {
-
 					int result = applyUpdate(stateDocx.getWrappedTransforms()
 							.get(new Integer(x)), forceApplicationToSdtIds);
 					if (result > 0) {
