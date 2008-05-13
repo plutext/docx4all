@@ -550,31 +550,31 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	    	WordMLTextPane editor = (WordMLTextPane) evt.getSource();
     		int start = Math.min(evt.getDot(), evt.getMark());
     		int end = Math.max(evt.getDot(), evt.getMark());
+    		
 			if (start == end) {
 				selectSdtBlock(editor, start);
 			} else {
-				resetLastSdtBlockPosition(editor);
+	    		View startV = getBlockView(editor, start);
+	    		View endV = getBlockView(editor, end - 1);
+	    		if (startV == endV) {
+	    			selectSdtBlock(editor, start);
+	    		} else {
+	    			resetLastSdtBlockPosition(editor);
+	    		}
 			}
 	    }
 	    
 	    private void selectSdtBlock(WordMLTextPane editor, int pos) {
-			WordMLDocument doc = (WordMLDocument) editor.getDocument();
-			
-			BasicTextUI ui = (BasicTextUI) editor.getUI();
-			View root = ui.getRootView(editor).getView(0);
-
 			SdtBlockView currentSdt = null;
-			int idx = root.getViewIndex(pos, Position.Bias.Forward);
-			View v = root.getView(idx);
+			View v = getBlockView(editor, pos);
 			if (v instanceof SdtBlockView) {
 				currentSdt = (SdtBlockView) v;
 			}
-
+			
 			SdtBlockView lastSdt = null;
 			if (lastSdtBlockPosition != null) {
-				idx = root.getViewIndex(lastSdtBlockPosition.getOffset(),
-						Position.Bias.Forward);
-				lastSdt = (SdtBlockView) root.getView(idx);
+				int offset = lastSdtBlockPosition.getOffset();
+				lastSdt = (SdtBlockView) getBlockView(editor, offset);
 			}
 
 			if (currentSdt != lastSdt) {
@@ -582,7 +582,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 					boolean wereVisible = lastSdt.isBorderVisible();
 					
 					lastSdt.setBorderVisible(false);
-					ui.damageRange(editor, lastSdt.getStartOffset(), lastSdt
+					editor.getUI().damageRange(editor, lastSdt.getStartOffset(), lastSdt
 							.getEndOffset(), Position.Bias.Forward,
 							Position.Bias.Forward);
 					
@@ -599,12 +599,12 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				boolean wereNotVisible = !currentSdt.isBorderVisible();
 				
 				currentSdt.setBorderVisible(true);
-				ui.damageRange(editor, currentSdt.getStartOffset(),
+				editor.getUI().damageRange(editor, currentSdt.getStartOffset(),
 						currentSdt.getEndOffset(), Position.Bias.Forward,
 						Position.Bias.Forward);
 				
 				try {
-					lastSdtBlockPosition = doc.createPosition(pos);
+					lastSdtBlockPosition = editor.getDocument().createPosition(pos);
 					if (wereNotVisible) {
 						ContentControlEvent evt = new ContentControlEvent(
 								editor, lastSdtBlockPosition);
@@ -616,18 +616,13 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			}
 		}
 	    
-	    private void resetLastSdtBlockPosition(JEditorPane editor) {
+	    private void resetLastSdtBlockPosition(WordMLTextPane editor) {
 	    	if (lastSdtBlockPosition != null) {
-				BasicTextUI ui = (BasicTextUI) editor.getUI();
-				View root = ui.getRootView(editor).getView(0);
-
-				int idx = 
-					root.getViewIndex(
-						lastSdtBlockPosition.getOffset(), 
-						Position.Bias.Forward);
-				SdtBlockView sdt = (SdtBlockView) root.getView(idx);
+	    		int offset = lastSdtBlockPosition.getOffset();
+				SdtBlockView sdt = 
+					(SdtBlockView) getBlockView(editor, offset);
 				sdt.setBorderVisible(false);
-				ui.damageRange(
+				editor.getUI().damageRange(
 					editor, 
 					sdt.getStartOffset(), 
 					sdt.getEndOffset(), 
@@ -635,6 +630,14 @@ public class WordMLEditorKit extends DefaultEditorKit {
 					Position.Bias.Forward);
 				lastSdtBlockPosition = null;
 			}
+	    }
+	    
+	    private View getBlockView(WordMLTextPane editor, int offset) {
+			BasicTextUI ui = (BasicTextUI) editor.getUI();
+			View v = ui.getRootView(editor).getView(0); //root
+			int idx = v.getViewIndex(offset, Position.Bias.Forward);
+			v = v.getView(idx);
+			return v;
 	    }
 	}// ContentControlTracker inner class
 	
