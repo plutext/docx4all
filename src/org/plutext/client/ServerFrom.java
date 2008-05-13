@@ -96,6 +96,7 @@ public class ServerFrom {
 		}
 		return null;
 	}
+
 	
 	public StateDocx getStateDocx() {
 		return stateDocx;
@@ -207,7 +208,7 @@ public class ServerFrom {
 			// Key is SequenceNumber, not t.ID, since TransformStyle type doesn't have an 
 			// underlying SDT.  Besides, if 2 additions related to the same SDT, the
 			// keys would collide.
-			log.debug(ta.getSequenceNumber()
+			log.debug("SN " + ta.getSequenceNumber()
 					+ " registered in forceApplicationToSdtIds");
 		}
 		return additions;
@@ -346,6 +347,14 @@ public class ServerFrom {
 
 			ContentControlSnapshot currentChunk = stateDocx
 					.getContentControlSnapshots().get(t.getId());
+			if (currentChunk==null) {
+				// Means user hasn't touched this chunk before,
+				// so add it
+				SdtBlock block = getSdtBlock(t.getId());
+				currentChunk = new ContentControlSnapshot(block);
+				stateDocx.getContentControlSnapshots().put(currentChunk.getId(), currentChunk);				
+			}
+			
 			//                String currentXML = ContentControlSnapshot.getContentControlXMLNormalised(currentChunk.WrappedCC);
 			String currentXML = currentChunk.getContentControlXML();
 
