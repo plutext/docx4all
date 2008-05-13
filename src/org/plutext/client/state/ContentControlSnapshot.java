@@ -44,6 +44,9 @@ import org.docx4j.wml.Id;
     	private static Logger log = Logger.getLogger(ContentControlSnapshot.class);
     	
     	Id id;
+		public Id getId() {
+			return id;
+		}
     	
         public ContentControlSnapshot(SdtBlock cc)
         {
@@ -113,6 +116,7 @@ import org.docx4j.wml.Id;
             //return "<w:sdt xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">"
             //    + node.InnerXml + "</w:sdt>";
         }
+
 
         /* Strip the rsidRDefault attribute, which change between the time the document is 
          * opened and the time the content control is exited.
