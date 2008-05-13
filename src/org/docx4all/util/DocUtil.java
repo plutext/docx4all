@@ -44,6 +44,7 @@ import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.BadSelectionException;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.ElementMLIteratorCallback;
+import org.docx4all.swing.text.SdtBlockInfo;
 import org.docx4all.swing.text.TextSelector;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLStyleConstants;
@@ -131,8 +132,8 @@ public class DocUtil {
 		return theDoc;
 	}
 	
-	public final static Hashtable<BigInteger, Position> createSdtBlockPositionMap(WordMLDocument doc) {
-		Hashtable<BigInteger, Position> theMap = new Hashtable<BigInteger, Position>();
+	public final static Hashtable<BigInteger, SdtBlockInfo> createSdtBlockInfoMap(WordMLDocument doc) {
+		Hashtable<BigInteger, SdtBlockInfo> theMap = new Hashtable<BigInteger, SdtBlockInfo>();
 		
 		try {
 			doc.readLock();
@@ -146,7 +147,10 @@ public class DocUtil {
 						Position pos = doc.createPosition(elem.getStartOffset());
 						org.docx4j.wml.SdtBlock sdt = (org.docx4j.wml.SdtBlock) ml
 							.getDocxObject();
-						theMap.put(sdt.getSdtPr().getId().getVal(), pos);
+						SdtBlockInfo info = new SdtBlockInfo();
+						info.setPosition(pos);
+						info.setSdtBlock(sdt);
+						theMap.put(sdt.getSdtPr().getId().getVal(), info);
 					} catch (BadLocationException exc) {
 						;//ignore
 					}
