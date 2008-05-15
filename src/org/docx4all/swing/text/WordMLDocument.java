@@ -1031,10 +1031,42 @@ public class WordMLDocument extends DefaultStyledDocument {
 		writeLock();
 		try {
 			if (length > 0 && offset < getLength()) {
-				remove(offset, length);
-			}
+				Element elem = getDefaultRootElement();
+				elem = elem.getElement(elem.getElementCount() - 2);
+				if (offset == elem.getStartOffset()
+					&& elem.getEndOffset() == offset + length) {
+					//Replacing the last block element, which is the
+					//immediate older sibling of the last end paragraph,
+					//has to be done differently. Instead of removing
+					//selected area first, we insert the fragment
+					//first. If we do not do this then the application
+					//will be FROZEN for unknown reason.
+					//TODO: Investigate this further.
+					insertFragment(offset + length, frag, attrs);
+					remove(offset, length);
+					
+				} else {
+					remove(offset, length);
 
-			insertFragment(offset, frag, attrs);
+					// The removed text may have been simply part of
+					// a single TextElement's content. If that is the case
+					// then there has not been ElementML manipulation involved
+					// and hence, we need to save the remaining text content to
+					// its
+					// ElementML.
+					// Now, the issue is the 'offset' position may have become
+					// either at the start or end of the TextElement. Therefore,
+					// we save two TextElements in here.
+					elem = getCharacterElement(offset - 1);
+					DocUtil.saveTextContentToElementML((TextElement) elem);
+					elem = (TextElement) getCharacterElement(offset);
+					DocUtil.saveTextContentToElementML((TextElement) elem);
+					
+					insertFragment(offset, frag, attrs);
+				}
+			} else {
+				insertFragment(offset, frag, attrs);
+			}
 			
 		} finally {
 			writeUnlock();
