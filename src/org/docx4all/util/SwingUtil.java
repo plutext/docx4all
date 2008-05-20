@@ -35,11 +35,14 @@ import javax.swing.JInternalFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.plaf.basic.BasicTextUI;
+import javax.swing.text.Position;
 import javax.swing.text.View;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.ParagraphView;
+import org.docx4all.swing.text.SdtBlockView;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -158,7 +161,7 @@ public class SwingUtil {
     	return (s instanceof Rectangle) ? (Rectangle) s : s.getBounds();
     }
     
-    public final static List<View> getRowView(View v) {
+    public final static List<View> getParagraphRowViews(View v) {
     	List<View> theList = new ArrayList<View>();
     	
     	boolean isRow = (v instanceof ParagraphView);
@@ -167,13 +170,20 @@ public class SwingUtil {
     		if (isRow) {
     			theList.add(temp);
     		} else {
-    			theList.addAll(getRowView(temp));
+    			theList.addAll(getParagraphRowViews(temp));
     		}
     	}
     	
     	return theList;
     }
     
+    public final static SdtBlockView getSdtBlockView(WordMLTextPane editor, int offset) {
+		BasicTextUI ui = (BasicTextUI) editor.getUI();
+		View v = ui.getRootView(editor).getView(0); //root
+		int idx = v.getViewIndex(offset, Position.Bias.Forward);
+		v = v.getView(idx);
+		return (v instanceof SdtBlockView) ? (SdtBlockView) v : null;
+    }
 
 	private SwingUtil() {
 		;//uninstantiable
