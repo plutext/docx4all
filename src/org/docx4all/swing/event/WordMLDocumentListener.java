@@ -19,23 +19,21 @@
 
 package org.docx4all.swing.event;
 
-import java.math.BigInteger;
-import java.util.Map;
-
-import javax.swing.event.DocumentEvent;
-
-import org.docx4j.wml.SdtBlock;
+import javax.swing.event.DocumentListener;
 
 /**
- *	@author Jojada Tirtowidjojo - 06/05/2008
+ *	@author Jojada Tirtowidjojo - 15/05/2008
  */
-public interface WordMLDocumentEvent extends DocumentEvent {
-	public final static String SNAPSHOT_CHANGED_EVT_NAME = "snapshotChanged";
-	
-	public String getEventName();
-	public Map<BigInteger, SdtBlock> getInitialSnapshots();
-	
-}// WordMLDocumentEvent class
+public interface WordMLDocumentListener extends DocumentListener {
+    /**
+     * Gives notification that there was a snapshot change in the document.
+     * The range given by the WordMLDocumentEvent bounds the freshly changed region.
+     *
+     * @param e the document event
+     */
+    public void snapshotChangedUpdate(WordMLDocumentEvent e);
+
+}// WordMLDocumentListener interface
 
 
 

@@ -19,12 +19,8 @@
 
 package org.plutext.client;
 
-import org.alfresco.webservice.util.AuthenticationUtils;
 import org.apache.log4j.Logger;
-import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.plutext.client.state.StateDocx;
-import org.plutext.client.webservice.PlutextService_ServiceLocator;
-import org.plutext.client.webservice.PlutextWebService;
 import org.plutext.client.wrappedTransforms.TransformAbstract;
 import org.docx4j.wml.SdtBlock;
 import org.plutext.client.Util;
@@ -47,11 +43,12 @@ import org.plutext.client.ServerFrom;
         protected static int mergeUpdate(SdtBlock cc, String t, ServerFrom serverFrom)
         {
             log.debug("MergeUpdate DIFFERENCING against server update: " + t);
+            log.warn("mergeUpdate WON'T BE IMPLEMENTED FOR A WEEK OR SO.");
 
             // Register the transform, and 
             // also use this to get tr 
             HashMap<Integer, TransformAbstract> dict
-                = serverFrom.registerTransforms("<transforms>" + t + "</transforms>", false);
+                = serverFrom.registerTransforms("<pt:transforms xmlns:pt=\"http://www.plutext.org/transforms\">" + t + "</pt:transforms>", false);
             TransformAbstract tr = null;
             int sanityCounter = 0;
             

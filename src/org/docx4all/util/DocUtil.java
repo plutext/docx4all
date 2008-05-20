@@ -22,9 +22,11 @@ package org.docx4all.util;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.swing.JEditorPane;
@@ -42,6 +44,7 @@ import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.BadSelectionException;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.ElementMLIteratorCallback;
+import org.docx4all.swing.text.SdtBlockInfo;
 import org.docx4all.swing.text.TextSelector;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLStyleConstants;
@@ -54,6 +57,7 @@ import org.docx4all.xml.ParagraphPropertiesML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
 import org.docx4all.xml.RunPropertiesML;
+import org.docx4all.xml.SdtBlockML;
 import org.docx4j.XmlUtils;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 
@@ -128,6 +132,37 @@ public class DocUtil {
 		return theDoc;
 	}
 	
+	public final static HashMap<BigInteger, SdtBlockInfo> createSdtBlockInfoMap(WordMLDocument doc) {
+		HashMap<BigInteger, SdtBlockInfo> theMap = new HashMap<BigInteger, SdtBlockInfo>();
+		
+		try {
+			doc.readLock();
+			DocumentElement root = (DocumentElement) doc
+					.getDefaultRootElement();
+			for (int i = 0; i < root.getElementCount() - 1; i++) {
+				DocumentElement elem = (DocumentElement) root.getElement(i);
+				ElementML ml = elem.getElementML();
+				if (ml instanceof SdtBlockML) {
+					try {
+						Position pos = doc.createPosition(elem.getStartOffset());
+						org.docx4j.wml.SdtBlock sdt = (org.docx4j.wml.SdtBlock) ml
+							.getDocxObject();
+						SdtBlockInfo info = new SdtBlockInfo();
+						info.setPosition(pos);
+						info.setSdtBlock(sdt);
+						theMap.put(sdt.getSdtPr().getId().getVal(), info);
+					} catch (BadLocationException exc) {
+						;//ignore
+					}
+				}
+			}
+		} finally {
+			doc.readUnlock();
+		}
+		
+		return theMap;
+	}
+	
 	/**
 	 * When a text is inserted into a document its attributes are determined by
 	 * the text element at the insertion position. This text element is called
@@ -187,20 +222,34 @@ public class DocUtil {
 	}
 	
 	public final static void saveTextContentToElementML(WordMLDocument.TextElement elem) {
-		if (elem == null
-			|| elem.getStartOffset() == elem.getEndOffset()) {
+		if (elem == null) {
 			return;
 		}
 		
-		RunContentML rcml = (RunContentML) elem.getElementML();
-		if (!rcml.isDummy() && !rcml.isImplied()) {
-			try {
-				int count = elem.getEndOffset() - elem.getStartOffset();
-				String text = elem.getDocument().getText(elem.getStartOffset(), count);
-				rcml.setTextContent(text);
-			} catch (BadLocationException exc) {
-				;//ignore
+		WordMLDocument doc = (WordMLDocument) elem.getDocument();
+		try {
+			doc.readLock();
+
+			if (elem.getStartOffset() == elem.getEndOffset()) {
+				return;
 			}
+
+			RunContentML rcml = (RunContentML) elem.getElementML();
+			if (!rcml.isDummy() && !rcml.isImplied()) {
+				int count = elem.getEndOffset() - elem.getStartOffset();
+				String text = elem.getDocument().getText(elem.getStartOffset(),
+						count);
+				
+				log.debug("saveTextContentToElementML(): text content=" + text);
+				
+				rcml.setTextContent(text);
+			}
+
+		} catch (BadLocationException exc) {
+			;// ignore
+			
+		} finally {
+			doc.readUnlock();
 		}
 	}
 	
@@ -378,29 +427,6 @@ public class DocUtil {
 		ElementMLIteratorCallback result = new ElementMLIteratorCallback();
 		parser.cruise(result);
 		return result.getElementSpecs();
-	}
-
-	public final static void insertParagraphs(
-		WordMLDocument doc,
-		int offset, 
-		List<ElementSpec> paragraphSpecs) 
-		throws BadLocationException {
-
-		List<ElementSpec> specList = new ArrayList<ElementSpec>(
-				paragraphSpecs.size() + 3);
-		// Close RunML
-		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
-		// Close Implied ParagraphML
-		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
-		// Close ParagraphML
-		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
-		// New paragraphs
-		specList.addAll(paragraphSpecs);
-
-		ElementSpec[] specsArray = new ElementSpec[specList.size()];
-		specsArray = specList.toArray(specsArray);
-
-		doc.insertElementSpecs(offset, specsArray);
 	}
 
 	public final static List<String> getElementNamePath(DocumentElement elem, int pos) {

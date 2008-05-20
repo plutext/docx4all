@@ -98,7 +98,7 @@ public class SdtBlockView extends BoxView {
     	
     	Rectangle alloc = SwingUtil.getBounds(allocation);
     	
-    	List<View> rowsList = SwingUtil.getRowView(this);
+    	List<View> rowsList = SwingUtil.getParagraphRowViews(this);
     	
     	View row = rowsList.get(0);
 		Rectangle start = 

@@ -83,6 +83,14 @@ public class WordMLTextPane extends JEditorPane {
 		return _filterApplied;
 	}
 	
+	public void beginContentControlEdit() {
+		getWordMLEditorKit().beginContentControlEdit(this);
+	}
+	
+	public void endContentControlEdit() {
+		getWordMLEditorKit().endContentControlEdit(this);
+	}
+	
     public void setDocument(Document doc) {
         if (doc instanceof WordMLDocument) {
             super.setDocument(doc);

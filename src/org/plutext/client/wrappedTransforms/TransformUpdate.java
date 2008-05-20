@@ -19,55 +19,109 @@
 
 package org.plutext.client.wrappedTransforms;
 
-import org.apache.log4j.Logger;
-import org.plutext.client.ServerFrom;
-import org.plutext.client.state.Controls;
-import org.plutext.transforms.Transforms.T;
+import javax.swing.SwingUtilities;
 
+import org.apache.log4j.Logger;
+import org.docx4all.swing.WordMLTextPane;
+import org.docx4all.swing.text.DocumentElement;
+import org.docx4all.swing.text.SdtBlockInfo;
+import org.docx4all.swing.text.WordMLDocument;
+import org.docx4all.swing.text.WordMLFragment;
+import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
+import org.docx4all.xml.SdtBlockML;
+import org.plutext.client.ServerFrom;
+import org.plutext.transforms.Transforms.T;
 
 public class TransformUpdate extends TransformAbstract {
 
 	private static Logger log = Logger.getLogger(TransformUpdate.class);
-	
-        public TransformUpdate(T t)
-        {
-        	super(t);
-        }
+
+	public TransformUpdate(T t) {
+		super(t);
+	}
+
+	public int apply(ServerFrom serverFrom) {
+
+		log.debug("apply(ServerFrom): sdtBolck = " + getSdt() 
+			+ " - ID=" + getSdt().getSdtPr().getId().getVal()
+			+ " - TAG=" + getSdt().getSdtPr().getTag().getVal());
+
+		// First, find the Content Control we need to update
+		Boolean found = false;
+
+		if (!found) {
+			// TODO - this will happen to a client A which deleted a chunk
+			// or B which has the document open, if a client C reinstates
+			// a chunk.  It will happen because A and B simply get an
+			// update notice
+
+			// One way to address this is to treat it as an insert,
+			// asking for the skeleton doc in order to find out where
+			// exactly to insert it.
+
+			// throw ...
+
+		}
+
+		// TODO - do the actual replacement in a docx4all specific way.
+		SdtBlockInfo info = serverFrom.getSdtBlockInfo(getSdt().getSdtPr().getId());
+		if (info != null) {
+			apply(serverFrom.getWordMLTextPane(), info.getPosition().getOffset());
+		}
+
+		// Fourth, if we haven't thrown an exception, return the sequence number
+		return sequenceNumber;
+	}
+
+	protected void apply(final WordMLTextPane editor, final int offset) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				WordMLDocument doc = (WordMLDocument) editor.getDocument();
+				ElementMLRecord[] recs = {new ElementMLRecord(new SdtBlockML(getSdt()), false)};
+				WordMLFragment frag = new WordMLFragment(recs);
+				
+				int origPos = editor.getCaretPosition();
+				
+				try {
+					editor.beginContentControlEdit();
+				
+					DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
+					int idx = elem.getElementIndex(offset);
+					elem = (DocumentElement) elem.getElement(idx);
+				
+					editor.setCaretPosition(elem.getStartOffset());
+					editor.moveCaretPosition(elem.getEndOffset());
+					editor.replaceSelection(frag);
+					
+				} finally {
+					editor.endContentControlEdit();
+					editor.setCaretPosition(origPos);				
+				}
+			}
+		});
+	}
+}
 
 
-        public int apply(ServerFrom serverFrom)
-        {
-
-            log.debug(this.getClass().getName() );
-
-            // First, find the Content Control we need to update
-            Boolean found = false;
-
-            
-            
-            if (!found)
-            {
-                // TODO - this will happen to a client A which deleted a chunk
-                // or B which has the document open, if a client C reinstates
-                // a chunk.  It will happen because A and B simply get an
-                // update notice
-
-                // One way to address this is to treat it as an insert,
-                // asking for the skeleton doc in order to find out where
-                // exactly to insert it.
-            	
-            	// throw ...
-
-            }
 
 
-            // TODO - do the actual replacement in a docx4all specific way.
-            
-            
-            // Fourth, if we haven't thrown an exception, return the sequence number
-            return sequenceNumber;
-        }
 
 
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
