@@ -20,20 +20,10 @@
 package org.plutext.client;
 
 import java.util.HashMap;
-import java.util.Iterator;
-
-import javax.swing.plaf.basic.BasicTextUI;
-import javax.swing.text.Position;
-import javax.swing.text.View;
 
 import org.alfresco.webservice.util.AuthenticationUtils;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
-import org.docx4all.swing.event.ContentControlEvent;
-import org.docx4all.swing.event.ContentControlListener;
-import org.docx4all.swing.text.DocumentElement;
-import org.docx4all.swing.text.SdtBlockView;
-import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.SdtBlock;
 import org.plutext.client.state.ContentControlSnapshot;
 import org.plutext.client.state.StateDocx;
@@ -44,7 +34,7 @@ import org.plutext.client.wrappedTransforms.TransformAbstract;
 /** This class is the real workhorse.  It handles content control events,
  *  and initiates appropriate web service calls in response to those events.
  */
-public class ServerTo implements ContentControlListener {
+public class ServerTo {
 	private static Logger log = Logger.getLogger(ServerTo.class);
 
 	// TEMP values for testing purposes
@@ -54,38 +44,17 @@ public class ServerTo implements ContentControlListener {
 	protected static final String PASSWORD = "admin";
 	protected static final String docId = "/alfresco/plutextwebdav/User Homes/jharrop/Sunday13A.docx";
 
-	private StateDocx stateDocx;
+	private final StateDocx stateDocx;
 
-	private ServerFrom serverFrom;
+	private final ServerFrom serverFrom;
 
-	public ServerTo(WordprocessingMLPackage wordMLPackage, String docID) {
-		log.debug("ServerTo constructor fired");
-
-		stateDocx = new StateDocx(wordMLPackage);
-		stateDocx.setDocID(docID);
-
-		if (Util.getCustomDocumentProperty(
-				wordMLPackage.getDocPropsCustomPart(),
-				CustomProperties.PROMPT_FOR_CHECKIN_MESSAGE).equals("true")) {
-			stateDocx.setPromptForCheckinMessage(true);
-		} else if (Util.getCustomDocumentProperty(
-				wordMLPackage.getDocPropsCustomPart(),
-				CustomProperties.PROMPT_FOR_CHECKIN_MESSAGE).equals("false")) {
-			stateDocx.setPromptForCheckinMessage(false);
-		} else {
-			log.warn(CustomProperties.PROMPT_FOR_CHECKIN_MESSAGE + "unknown");
-			stateDocx.setPromptForCheckinMessage(false);
-		}
-		// Expected values: EachBlock, Heading1
-		stateDocx.setChunkingStrategy(Util.getCustomDocumentProperty(
-				wordMLPackage.getDocPropsCustomPart(),
-				CustomProperties.CHUNKING_STRATEGY));
-
-		serverFrom = new ServerFrom(stateDocx);
+	public ServerTo(WordMLTextPane textPane) {
+		this.stateDocx = new StateDocx(textPane);
+		this.serverFrom = new ServerFrom(textPane, stateDocx);
 	}
-
+	
 	/** When this docx4all user deletes a content control */
-	void userDeletesContentControl(SdtBlock cc) {
+	public void userDeletesContentControl(SdtBlock cc) {
 
 		try {
 			log.debug("In Delete event handler.");
@@ -153,8 +122,8 @@ public class ServerTo implements ContentControlListener {
 	}
 
 	public void userEntersContentControl(SdtBlock cc) {
-
-		log.debug("Enter started  (" + cc.getSdtPr().getId().getVal());
+		log.debug("ENTER started: Id=" + cc.getSdtPr().getId().getVal()
+			+ " - Tag=" + cc.getSdtPr().getTag().getVal());
 
 		log.debug("Fetching updates..");
 		serverFrom.fetchUpdates(); // TODO - eventually put this in a background thread
@@ -169,8 +138,8 @@ public class ServerTo implements ContentControlListener {
 	}
 
 	public void userExitsContentControl(SdtBlock cc) {
-
-		log.debug("Exit started  (" + cc.getSdtPr().getId().getVal());
+		log.debug("EXIT started: Id=" + cc.getSdtPr().getId().getVal()
+				+ " - Tag=" + cc.getSdtPr().getTag().getVal());
 
 		stateDocx.setCurrentCC(null);
 
@@ -356,8 +325,6 @@ public class ServerTo implements ContentControlListener {
 						.registerTransforms(result[1], applied);
 				
 				// Update the snapshot of this cc
-				Iterator<Integer> sequenceNumbers = forceApplicationToSdtIds.keySet().iterator();
-				stateDocx.setTSequenceNumberApplied(sequenceNumbers.next());
 				stateDocx.setCurrentCC(cc);
 				stateDocx.setCurrentCC(null);
 				
@@ -371,37 +338,6 @@ public class ServerTo implements ContentControlListener {
 		log.debug(".. finished Exit (" + cc.getSdtPr().getId().getVal());
 	}
 
-	//=====================================
-	//ContentControlListener Implementation
-	//=====================================
-    public void contentControlEntered(ContentControlEvent e) {
-    	log.debug("ENTERED - pos="+e.getPosition().getOffset());
-    	
-    	serverFrom.setWordMLTextPane(e.getWordMLEditorPane());
-    	SdtBlock sdt = getSdtBlock(e);
-    	userEntersContentControl(sdt);
-    	
-    }
-    
-    public void contentControlExited(ContentControlEvent e) {
-    	log.debug("Exited - pos="+e.getPosition().getOffset());
-    	
-    	serverFrom.setWordMLTextPane(e.getWordMLEditorPane());
-    	SdtBlock sdt = getSdtBlock(e);
-    	userExitsContentControl(sdt);
-    	
-    }
-
-    private SdtBlock getSdtBlock(ContentControlEvent e) {
-    	WordMLTextPane editor = e.getWordMLEditorPane();
-		BasicTextUI ui = (BasicTextUI) editor.getUI();
-		View view = ui.getRootView(editor).getView(0); //root
-
-		int idx = view.getViewIndex(e.getPosition().getOffset(), Position.Bias.Forward);
-		view = (SdtBlockView) view.getView(idx);
-    	DocumentElement elem = (DocumentElement) view.getElement();
-    	return (SdtBlock) elem.getElementML().getDocxObject();
-    }
 }
 
 
