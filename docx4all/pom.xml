@@ -72,8 +72,36 @@
   		<name>docx4all Maven 2 repository</name>
   		<url>http://dev.plutext.org/svn/docx4all/trunk/docx4all/m2</url>
   	</repository>
+		<repository>
+			<id>docx4j</id>
+			<name>docx4j Maven 2 repository</name>
+			<url>http://dev.plutext.org/svn/docx4j/trunk/docx4j/m2</url>
+		</repository>  	
+<repository>
+      <id>maven2-repository.dev.java.net</id>
+      <name>Java.net Repository for Maven</name>
+      <url>http://download.java.net/maven/2/</url>
+    </repository>  	
   </repositories>
   <dependencies>
+  
+  		<dependency> 
+  			<!--  in order to access com.sun.xml.internal.bind.marshaller.NamespacePrefixMapper  -->
+			<groupId>com.sun.xml.bind</groupId>
+			<artifactId>jaxb-impl</artifactId>
+			<version>2.0</version>
+			<scope>system</scope>
+			<systemPath>${env.JAVA_HOME}/jre/lib/rt.jar</systemPath>
+			<!--
+			broken (mvn 2.0.9) even though java.home is supposed to point to JRE_HOME: 
+			<systemPath>${java.home}/lib/rt.jar</systemPath>
+			
+			works:
+			<systemPath>/usr/lib/jvm/java-6-sun/jre/lib/rt.jar</systemPath>
+			 -->
+			
+		</dependency>
+  
   	<dependency>
   		<groupId>dom4j</groupId>
   		<artifactId>dom4j</artifactId>
@@ -182,6 +210,12 @@
 </dependency>
 
 <dependency>
+  <groupId>org.jdesktop.application</groupId>
+  <artifactId>appframework</artifactId>
+  <version>1.0.3</version>
+</dependency>
+
+<dependency>
 <groupId>alfresco.community</groupId>
   <artifactId>alfresco-web-service-client-patched</artifactId>
   <version>2.9.1</version>
@@ -214,6 +248,37 @@
 </dependency>
 
 <!-- end svn:http://dev.plutext.org/svn/docx4all/trunk/docx4all/m2 -->
+
+
+		<!-- svn:http://dev.plutext.org/svn/docx4j/trunk/docx4j/m2 
+			
+			(stuff not available in public repositories) 
+			
+			mvn deploy:deploy-file -f wagon-svn-pom.xml -Dfile=lib/xalan-2.7.0-patched-6396599-stripped.jar -DgroupId=xalan -DartifactId=xalan-patched -Dversion=2.7.0 -Dpackaging=jar -DrepositoryId=docx4j -Durl=svn:http://dev.plutext.org/svn/docx4j/trunk/docx4j/m2
+			
+			
+		-->
+
+		<dependency>
+			<groupId>org.jvnet.jaxb2_commons.ppp</groupId>
+			<artifactId>parent-pointer-plugin</artifactId>
+			<version>1.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-vfs-patched</artifactId>
+			<version>1.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>pdf-renderer</groupId>
+			<artifactId>pdf-renderer</artifactId>
+			<version>0.2007</version>
+		</dependency>
+
+
+		<!-- end of svn:http://dev.plutext.org/svn/docx4j/trunk/docx4j/m2 -->
 
   </dependencies>
    <distributionManagement>
