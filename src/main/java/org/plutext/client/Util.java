@@ -55,12 +55,9 @@ public class Util {
 		return null;
 	}
 
-    /* As of 2008 01 23, the ID's the server understands
-     * have "sub" prefixed to them. */
-    private static String RIB_PREFIX = "sub";
     public static String getChunkId(Id id)
     {
-        return RIB_PREFIX + id.getVal();
+    	return id.getVal().toString();
     }
 	
 }
