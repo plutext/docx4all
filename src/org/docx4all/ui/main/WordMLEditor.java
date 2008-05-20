@@ -76,7 +76,6 @@ import org.docx4all.datatransfer.TransferHandler;
 import org.docx4all.datatransfer.WordMLTransferable;
 import org.docx4all.script.FxScriptUIHelper;
 import org.docx4all.swing.WordMLTextPane;
-import org.docx4all.swing.event.ContentControlListener;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.FontManager;
 import org.docx4all.swing.text.WordMLDocument;
@@ -440,7 +439,7 @@ public class WordMLEditor extends SingleFrameApplication {
     private JEditorPane createEditorView(FileObject f) {
     	String fileUri = f.getName().getURI();
     	
-    	JEditorPane editorView = new WordMLTextPane();
+    	WordMLTextPane editorView = new WordMLTextPane();
     	editorView.addFocusListener(_toolbarStates);
     	editorView.addCaretListener(_toolbarStates);
     	editorView.setTransferHandler(new TransferHandler());
@@ -477,14 +476,12 @@ public class WordMLEditor extends SingleFrameApplication {
     	editorView.setDocument(doc);
     	editorView.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
     	
-    	//TODO:Change This temporary resolution.
-    	int idx = fileUri.indexOf("/alfresco/");
+    	int idx = fileUri.indexOf("/alfresco/"); 
     	if (idx > 0) {
-    		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
-    		DocumentML ml = (DocumentML) root.getElementML();
-    		ContentControlListener ccl = 
-    			new ServerTo(ml.getWordprocessingMLPackage(), fileUri.substring(idx));
-    		editorKit.addContentControlListener(ccl);
+    		//temporary checking
+    		//TODO: Has to check whether fileUri's protocol is webdav
+    		//and its context is correct.
+    		editorKit.schedulePlutextClientWork(editorView, 10000, 10000);
     	}
     	
     	return editorView;
