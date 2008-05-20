@@ -21,7 +21,6 @@ package org.plutext.client;
 
 import java.math.BigInteger;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -52,51 +51,33 @@ import org.plutext.transforms.Transforms.T;
 public class ServerFrom {
 	private static Logger log = Logger.getLogger(ServerFrom.class);
 
-	private StateDocx stateDocx;
+	private final StateDocx stateDocx;
 	private WordMLTextPane wmlTextPane;
-	Hashtable<BigInteger, SdtBlockInfo> sdtBlockInfoMap;
 	
 	public ServerFrom(StateDocx stateDocx) //WordprocessingMLPackage wordMLPackage, String docID)
 	{
-		log.debug("Updates constructor fired");
-
-		this.stateDocx = stateDocx;
-		this.wmlTextPane = null;
-		this.sdtBlockInfoMap = null;
-	}
-
-	void setWordMLTextPane(WordMLTextPane wmlTextPane) {
-		this.wmlTextPane = wmlTextPane;
-		this.sdtBlockInfoMap = 
-			DocUtil.createSdtBlockInfoMap(
-				(WordMLDocument) wmlTextPane.getDocument());
-		
+		this(null, stateDocx);
 	}
 	
+	public ServerFrom(WordMLTextPane wmlTextPane, StateDocx stateDocx) {
+		this.stateDocx = stateDocx;
+		this.wmlTextPane = wmlTextPane;
+	}
+
 	public WordMLTextPane getWordMLTextPane() {
 		return this.wmlTextPane;
 	}
 	
-	public int getOffset(org.docx4j.wml.SdtBlock sdt) {
-		if (sdtBlockInfoMap != null) {
-			SdtBlockInfo info = sdtBlockInfoMap.get(sdt.getSdtPr().getId().getVal());
-			if (info != null) {
-				return info.getPosition().getOffset();
-			}
+	public SdtBlockInfo getSdtBlockInfo(Id sdtId) {
+		SdtBlockInfo theInfo = null;
+		if (this.wmlTextPane != null) {
+			WordMLDocument doc = (WordMLDocument) wmlTextPane.getDocument();
+			HashMap<BigInteger, SdtBlockInfo> map = 
+				DocUtil.createSdtBlockInfoMap(doc);
+			theInfo = map.get(sdtId.getVal());
 		}
-		return -1;
+		return theInfo;
 	}
-	
-	public org.docx4j.wml.SdtBlock getSdtBlock(Id sdtId) {
-		if (sdtBlockInfoMap != null) {
-			SdtBlockInfo info = sdtBlockInfoMap.get(sdtId.getVal());
-			if (info != null) {
-				return info.getSdtBlock();
-			}
-		}
-		return null;
-	}
-
 	
 	public StateDocx getStateDocx() {
 		return stateDocx;
@@ -350,9 +331,12 @@ public class ServerFrom {
 			if (currentChunk==null) {
 				// Means user hasn't touched this chunk before,
 				// so add it
-				SdtBlock block = getSdtBlock(t.getId());
-				currentChunk = new ContentControlSnapshot(block);
-				stateDocx.getContentControlSnapshots().put(currentChunk.getId(), currentChunk);				
+				SdtBlockInfo info = getSdtBlockInfo(t.getId());
+				if (info == null) {
+					return 0;
+				}
+				currentChunk = new ContentControlSnapshot(info.getSdtBlock());
+				stateDocx.getContentControlSnapshots().put(currentChunk.getId(), currentChunk);
 			}
 			
 			//                String currentXML = ContentControlSnapshot.getContentControlXMLNormalised(currentChunk.WrappedCC);
