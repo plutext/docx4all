@@ -19,9 +19,12 @@
 
 package org.plutext.client.wrappedTransforms;
 
+import javax.swing.SwingUtilities;
+
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
+import org.docx4all.swing.text.SdtBlockInfo;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLFragment;
 import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
@@ -39,7 +42,9 @@ public class TransformUpdate extends TransformAbstract {
 
 	public int apply(ServerFrom serverFrom) {
 
-		log.debug(this.getClass().getName());
+		log.debug("apply(ServerFrom): sdtBolck = " + getSdt() 
+			+ " - ID=" + getSdt().getSdtPr().getId().getVal()
+			+ " - TAG=" + getSdt().getSdtPr().getTag().getVal());
 
 		// First, find the Content Control we need to update
 		Boolean found = false;
@@ -59,30 +64,41 @@ public class TransformUpdate extends TransformAbstract {
 		}
 
 		// TODO - do the actual replacement in a docx4all specific way.
-		apply(serverFrom.getWordMLTextPane(), serverFrom.getOffset(getSdt()));
+		SdtBlockInfo info = serverFrom.getSdtBlockInfo(getSdt().getSdtPr().getId());
+		if (info != null) {
+			apply(serverFrom.getWordMLTextPane(), info.getPosition().getOffset());
+		}
 
 		// Fourth, if we haven't thrown an exception, return the sequence number
 		return sequenceNumber;
 	}
 
-	protected void apply(WordMLTextPane editor, int offset) {
-		WordMLDocument doc = (WordMLDocument) editor.getDocument();
-		ElementMLRecord[] recs = {new ElementMLRecord(new SdtBlockML(getSdt()), false)};
-		WordMLFragment frag = new WordMLFragment(recs);
-		
-		try {
-			editor.beginContentControlEdit();
-		
-			DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
-			int idx = elem.getElementIndex(offset);
-			elem = (DocumentElement) elem.getElement(idx);
-		
-			editor.setCaretPosition(elem.getStartOffset());
-			editor.moveCaretPosition(elem.getEndOffset());
-			editor.replaceSelection(frag);
-		} finally {
-			editor.endContentControlEdit();
-		}
+	protected void apply(final WordMLTextPane editor, final int offset) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				WordMLDocument doc = (WordMLDocument) editor.getDocument();
+				ElementMLRecord[] recs = {new ElementMLRecord(new SdtBlockML(getSdt()), false)};
+				WordMLFragment frag = new WordMLFragment(recs);
+				
+				int origPos = editor.getCaretPosition();
+				
+				try {
+					editor.beginContentControlEdit();
+				
+					DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
+					int idx = elem.getElementIndex(offset);
+					elem = (DocumentElement) elem.getElement(idx);
+				
+					editor.setCaretPosition(elem.getStartOffset());
+					editor.moveCaretPosition(elem.getEndOffset());
+					editor.replaceSelection(frag);
+					
+				} finally {
+					editor.endContentControlEdit();
+					editor.setCaretPosition(origPos);				
+				}
+			}
+		});
 	}
 }
 
