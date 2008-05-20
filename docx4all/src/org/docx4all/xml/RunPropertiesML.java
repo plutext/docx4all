@@ -116,7 +116,10 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 		}
 		
 		//FONT FAMILY Attribute
-		String strValue = StyleConstants.getFontFamily(this.attrs);
+		String strValue =
+			this.attrs.isDefined(StyleConstants.FontFamily)
+				? StyleConstants.getFontFamily(this.attrs)
+				: null;
 		RFonts rfonts = rPr.getRFonts();
 		if (rfonts != null) {
 			//Just set the asscii value.
@@ -129,7 +132,10 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 		}
 		
 		//FONT SIZE Attribute
-		Integer intValue = (Integer) this.attrs.getAttribute(StyleConstants.FontSize);
+		Integer intValue = 
+			this.attrs.isDefined(StyleConstants.FontSize)
+				? (Integer) this.attrs.getAttribute(StyleConstants.FontSize)
+				: null;
 		HpsMeasure sz = rPr.getSz();
 		if (sz != null) {
 			if (intValue == null) {

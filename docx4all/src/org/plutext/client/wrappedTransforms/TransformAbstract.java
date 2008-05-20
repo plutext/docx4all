@@ -19,17 +19,14 @@
 
 package org.plutext.client.wrappedTransforms;
 
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
+import java.math.BigInteger;
 
-import org.plutext.client.state.Controls;
-import org.plutext.client.ServerFrom;
-import org.plutext.transforms.Context;
-import org.plutext.transforms.Transforms.T;
+import org.docx4all.swing.WordMLTextPane;
+import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
 import org.docx4j.wml.Tag;
-import java.math.BigInteger;
-import org.docx4j.wml.Id;
+import org.plutext.client.ServerFrom;
+import org.plutext.transforms.Transforms.T;
 
 public abstract class TransformAbstract
 {
@@ -91,7 +88,7 @@ public abstract class TransformAbstract
 
         sdt = t.getSdt();
 
-        if (t.getIdref() != 0)
+        if (t.getIdref() != null)
         {
             // Case: Delete 
             
@@ -121,7 +118,10 @@ public abstract class TransformAbstract
 
     }
 
-
+	protected void apply(WordMLTextPane editor, int offset) {
+    	;//do nothing
+    }
+    
     /* Code to apply the transform */
     	// TODO - think through method signature
     public abstract int apply(ServerFrom serverFrom);

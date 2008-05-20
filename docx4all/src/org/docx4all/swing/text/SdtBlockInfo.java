@@ -17,25 +17,38 @@
     
  */
 
-package org.docx4all.swing.event;
+package org.docx4all.swing.text;
 
-import java.math.BigInteger;
-import java.util.Map;
-
-import javax.swing.event.DocumentEvent;
-
-import org.docx4j.wml.SdtBlock;
+import javax.swing.text.Position;
 
 /**
- *	@author Jojada Tirtowidjojo - 06/05/2008
+ *	@author Jojada Tirtowidjojo - 13/05/2008
  */
-public interface WordMLDocumentEvent extends DocumentEvent {
-	public final static String SNAPSHOT_CHANGED_EVT_NAME = "snapshotChanged";
+public class SdtBlockInfo {
+	org.docx4j.wml.SdtBlock sdtBlock;
+	Position position;
 	
-	public String getEventName();
-	public Map<BigInteger, SdtBlock> getInitialSnapshots();
+	public SdtBlockInfo() {
+		;
+	}
 	
-}// WordMLDocumentEvent class
+	public org.docx4j.wml.SdtBlock getSdtBlock() {
+		return sdtBlock;
+	}
+	
+	public void setSdtBlock(org.docx4j.wml.SdtBlock sdt) {
+		sdtBlock = sdt;
+	}
+	
+	public Position getPosition() {
+		return position;
+	}
+	
+	public void setPosition(Position pos) {
+		position = pos;
+	}
+	
+}// SdtBlockInfo class
 
 
 

@@ -1,0 +1,403 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions targetNamespace="http://server.plutext.org/" xmlns:apachesoap="http://xml.apache.org/xml-soap" xmlns:impl="http://server.plutext.org/" xmlns:intf="http://server.plutext.org/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<!--WSDL created by Apache Axis version: 1.4
+Built on Apr 22, 2006 (06:55:48 PDT)-->
+ <wsdl:types>
+  <schema elementFormDefault="qualified" targetNamespace="http://server.plutext.org/" xmlns="http://www.w3.org/2001/XMLSchema">
+   <element name="getTransforms">
+    <complexType>
+     <sequence>
+      <element name="docID" type="xsd:string"/>
+      <element name="firstSequenceNumber" type="xsd:long"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getTransformsResponse">
+    <complexType>
+     <sequence>
+      <element maxOccurs="unbounded" name="getTransformsReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getSkeletonDocument">
+    <complexType>
+     <sequence>
+      <element name="docID" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getSkeletonDocumentResponse">
+    <complexType>
+     <sequence>
+      <element name="getSkeletonDocumentReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="checkinWithComment">
+    <complexType>
+     <sequence>
+      <element name="docID" type="xsd:string"/>
+      <element name="chunkID" type="xsd:string"/>
+      <element name="xml" type="xsd:string"/>
+      <element name="message" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="checkinWithCommentResponse">
+    <complexType>
+     <sequence>
+      <element maxOccurs="unbounded" name="checkinWithCommentReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="deleteChunk">
+    <complexType>
+     <sequence>
+      <element name="docID" type="xsd:string"/>
+      <element name="chunkID" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="deleteChunkResponse">
+    <complexType>
+     <sequence>
+      <element maxOccurs="unbounded" name="deleteChunkReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getVersionHistory">
+    <complexType>
+     <sequence>
+      <element name="docID" type="xsd:string"/>
+      <element name="chunkID" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getVersionHistoryResponse">
+    <complexType>
+     <sequence>
+      <element name="getVersionHistoryReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="style">
+    <complexType>
+     <sequence>
+      <element name="docID" type="xsd:string"/>
+      <element name="styleDefinitions" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="styleResponse">
+    <complexType>
+     <sequence>
+      <element maxOccurs="unbounded" name="styleReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getChunk">
+    <complexType>
+     <sequence>
+      <element name="docID" type="xsd:string"/>
+      <element name="chunkID" type="xsd:string"/>
+      <element name="currentClientVersion" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getChunkResponse">
+    <complexType>
+     <sequence>
+      <element name="getChunkReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+  </schema>
+ </wsdl:types>
+
+   <wsdl:message name="deleteChunkRequest">
+
+      <wsdl:part element="impl:deleteChunk" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="getVersionHistoryRequest">
+
+      <wsdl:part element="impl:getVersionHistory" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="getChunkResponse">
+
+      <wsdl:part element="impl:getChunkResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="getVersionHistoryResponse">
+
+      <wsdl:part element="impl:getVersionHistoryResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="checkinWithCommentResponse">
+
+      <wsdl:part element="impl:checkinWithCommentResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="styleRequest">
+
+      <wsdl:part element="impl:style" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="getChunkRequest">
+
+      <wsdl:part element="impl:getChunk" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="deleteChunkResponse">
+
+      <wsdl:part element="impl:deleteChunkResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="styleResponse">
+
+      <wsdl:part element="impl:styleResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="getSkeletonDocumentResponse">
+
+      <wsdl:part element="impl:getSkeletonDocumentResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="getSkeletonDocumentRequest">
+
+      <wsdl:part element="impl:getSkeletonDocument" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="checkinWithCommentRequest">
+
+      <wsdl:part element="impl:checkinWithComment" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="getTransformsRequest">
+
+      <wsdl:part element="impl:getTransforms" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="getTransformsResponse">
+
+      <wsdl:part element="impl:getTransformsResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:portType name="PlutextWebService">
+
+      <wsdl:operation name="getTransforms">
+
+         <wsdl:input message="impl:getTransformsRequest" name="getTransformsRequest"/>
+
+         <wsdl:output message="impl:getTransformsResponse" name="getTransformsResponse"/>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="getSkeletonDocument">
+
+         <wsdl:input message="impl:getSkeletonDocumentRequest" name="getSkeletonDocumentRequest"/>
+
+         <wsdl:output message="impl:getSkeletonDocumentResponse" name="getSkeletonDocumentResponse"/>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="checkinWithComment">
+
+         <wsdl:input message="impl:checkinWithCommentRequest" name="checkinWithCommentRequest"/>
+
+         <wsdl:output message="impl:checkinWithCommentResponse" name="checkinWithCommentResponse"/>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="deleteChunk">
+
+         <wsdl:input message="impl:deleteChunkRequest" name="deleteChunkRequest"/>
+
+         <wsdl:output message="impl:deleteChunkResponse" name="deleteChunkResponse"/>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="getVersionHistory">
+
+         <wsdl:input message="impl:getVersionHistoryRequest" name="getVersionHistoryRequest"/>
+
+         <wsdl:output message="impl:getVersionHistoryResponse" name="getVersionHistoryResponse"/>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="style">
+
+         <wsdl:input message="impl:styleRequest" name="styleRequest"/>
+
+         <wsdl:output message="impl:styleResponse" name="styleResponse"/>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="getChunk">
+
+         <wsdl:input message="impl:getChunkRequest" name="getChunkRequest"/>
+
+         <wsdl:output message="impl:getChunkResponse" name="getChunkResponse"/>
+
+      </wsdl:operation>
+
+   </wsdl:portType>
+
+   <wsdl:binding name="PlutextServiceSoapBinding" type="impl:PlutextWebService">
+
+      <wsdlsoap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+      <wsdl:operation name="getTransforms">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="getTransformsRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="getTransformsResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="getSkeletonDocument">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="getSkeletonDocumentRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="getSkeletonDocumentResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="checkinWithComment">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="checkinWithCommentRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="checkinWithCommentResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="deleteChunk">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="deleteChunkRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="deleteChunkResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="getVersionHistory">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="getVersionHistoryRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="getVersionHistoryResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="style">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="styleRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="styleResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="getChunk">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="getChunkRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="getChunkResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+   </wsdl:binding>
+
+   <wsdl:service name="PlutextService">
+
+      <wsdl:port binding="impl:PlutextServiceSoapBinding" name="PlutextService">
+
+         <wsdlsoap:address location="http://plutext.org/alfresco/api/PlutextService"/>
+
+      </wsdl:port>
+
+   </wsdl:service>
+
+</wsdl:definitions>

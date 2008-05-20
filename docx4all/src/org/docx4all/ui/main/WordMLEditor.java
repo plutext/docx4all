@@ -94,6 +94,7 @@ import org.docx4all.xml.ElementML;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.jdesktop.application.ResourceMap;
 import org.jdesktop.application.SingleFrameApplication;
+import org.plutext.client.ServerTo;
 
 /**
  *	@author Jojada Tirtowidjojo - 13/11/2007
@@ -436,7 +437,9 @@ public class WordMLEditor extends SingleFrameApplication {
     }
     
     private JEditorPane createEditorView(FileObject f) {
-    	JEditorPane editorView = new WordMLTextPane();
+    	String fileUri = f.getName().getURI();
+    	
+    	WordMLTextPane editorView = new WordMLTextPane();
     	editorView.addFocusListener(_toolbarStates);
     	editorView.addCaretListener(_toolbarStates);
     	editorView.setTransferHandler(new TransferHandler());
@@ -458,7 +461,7 @@ public class WordMLEditor extends SingleFrameApplication {
 			StringBuffer msg = new StringBuffer();
 			msg.append(rm.getString(Constants.INIT_EDITOR_VIEW_IO_ERROR_MESSAGE));
 			msg.append(Constants.NEWLINE);
-			msg.append(VFSUtils.getFriendlyName(f.getName().getURI()));
+			msg.append(VFSUtils.getFriendlyName(fileUri));
 			showMessageDialog(title, msg.toString(), JOptionPane.ERROR_MESSAGE);
 			doc = null;
 		}
@@ -467,11 +470,19 @@ public class WordMLEditor extends SingleFrameApplication {
     		doc = (AbstractDocument) editorKit.createDefaultDocument();
     	}
     	
-		doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, f.getName().getURI());
+		doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, fileUri);
     	doc.addDocumentListener(_toolbarStates);
     	doc.setDocumentFilter(new WordMLDocumentFilter());
     	editorView.setDocument(doc);
     	editorView.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
+    	
+    	int idx = fileUri.indexOf("/alfresco/"); 
+    	if (idx > 0) {
+    		//temporary checking
+    		//TODO: Has to check whether fileUri's protocol is webdav
+    		//and its context is correct.
+    		editorKit.schedulePlutextClientWork(editorView, 10000, 10000);
+    	}
     	
     	return editorView;
     }
