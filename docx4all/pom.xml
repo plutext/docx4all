@@ -91,13 +91,17 @@
 			<artifactId>jaxb-impl</artifactId>
 			<version>2.0</version>
 			<scope>system</scope>
-			<systemPath>${env.JAVA_HOME}/jre/lib/rt.jar</systemPath>
-			<!--
-			broken (mvn 2.0.9) even though java.home is supposed to point to JRE_HOME: 
-			<systemPath>${java.home}/lib/rt.jar</systemPath>
-			
-			works:
 			<systemPath>/usr/lib/jvm/java-6-sun/jre/lib/rt.jar</systemPath>
+			<!--
+			
+			<systemPath>${env.JAVA_HOME}/jre/lib/rt.jar</systemPath>
+			
+			works on the command line, but not in m2eclipse. 
+			See http://jira.codehaus.org/browse/MNGECLIPSE-581
+			
+			<systemPath>${java.home}/lib/rt.jar</systemPath>
+			broken (mvn 2.0.9) even though java.home is supposed to point to JRE_HOME: 
+			
 			 -->
 			
 		</dependency>
