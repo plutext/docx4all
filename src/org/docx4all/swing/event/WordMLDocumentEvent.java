@@ -19,15 +19,22 @@
 
 package org.docx4all.swing.event;
 
+import java.math.BigInteger;
+import java.util.Map;
+
 import javax.swing.event.DocumentEvent;
+
+import org.docx4j.wml.SdtBlock;
 
 /**
  *	@author Jojada Tirtowidjojo - 06/05/2008
  */
 public interface WordMLDocumentEvent extends DocumentEvent {
-	public final static String BORDER_VISIBILITY_CHANGE_EVT_NAME = "borderVisibilityChange";
+	public final static String SNAPSHOT_CHANGED_EVT_NAME = "snapshotChanged";
 	
 	public String getEventName();
+	public Map<BigInteger, SdtBlock> getInitialSnapshots();
+	
 }// WordMLDocumentEvent class
 
 
