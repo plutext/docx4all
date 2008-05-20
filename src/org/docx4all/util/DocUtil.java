@@ -26,7 +26,7 @@ import java.math.BigInteger;
 import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.swing.JEditorPane;
@@ -132,14 +132,14 @@ public class DocUtil {
 		return theDoc;
 	}
 	
-	public final static Hashtable<BigInteger, SdtBlockInfo> createSdtBlockInfoMap(WordMLDocument doc) {
-		Hashtable<BigInteger, SdtBlockInfo> theMap = new Hashtable<BigInteger, SdtBlockInfo>();
+	public final static HashMap<BigInteger, SdtBlockInfo> createSdtBlockInfoMap(WordMLDocument doc) {
+		HashMap<BigInteger, SdtBlockInfo> theMap = new HashMap<BigInteger, SdtBlockInfo>();
 		
 		try {
 			doc.readLock();
 			DocumentElement root = (DocumentElement) doc
 					.getDefaultRootElement();
-			for (int i = 0; i < root.getElementCount() - 2; i++) {
+			for (int i = 0; i < root.getElementCount() - 1; i++) {
 				DocumentElement elem = (DocumentElement) root.getElement(i);
 				ElementML ml = elem.getElementML();
 				if (ml instanceof SdtBlockML) {
@@ -222,20 +222,34 @@ public class DocUtil {
 	}
 	
 	public final static void saveTextContentToElementML(WordMLDocument.TextElement elem) {
-		if (elem == null
-			|| elem.getStartOffset() == elem.getEndOffset()) {
+		if (elem == null) {
 			return;
 		}
 		
-		RunContentML rcml = (RunContentML) elem.getElementML();
-		if (!rcml.isDummy() && !rcml.isImplied()) {
-			try {
-				int count = elem.getEndOffset() - elem.getStartOffset();
-				String text = elem.getDocument().getText(elem.getStartOffset(), count);
-				rcml.setTextContent(text);
-			} catch (BadLocationException exc) {
-				;//ignore
+		WordMLDocument doc = (WordMLDocument) elem.getDocument();
+		try {
+			doc.readLock();
+
+			if (elem.getStartOffset() == elem.getEndOffset()) {
+				return;
 			}
+
+			RunContentML rcml = (RunContentML) elem.getElementML();
+			if (!rcml.isDummy() && !rcml.isImplied()) {
+				int count = elem.getEndOffset() - elem.getStartOffset();
+				String text = elem.getDocument().getText(elem.getStartOffset(),
+						count);
+				
+				log.debug("saveTextContentToElementML(): text content=" + text);
+				
+				rcml.setTextContent(text);
+			}
+
+		} catch (BadLocationException exc) {
+			;// ignore
+			
+		} finally {
+			doc.readUnlock();
 		}
 	}
 	
@@ -413,29 +427,6 @@ public class DocUtil {
 		ElementMLIteratorCallback result = new ElementMLIteratorCallback();
 		parser.cruise(result);
 		return result.getElementSpecs();
-	}
-
-	public final static void insertParagraphs(
-		WordMLDocument doc,
-		int offset, 
-		List<ElementSpec> paragraphSpecs) 
-		throws BadLocationException {
-
-		List<ElementSpec> specList = new ArrayList<ElementSpec>(
-				paragraphSpecs.size() + 3);
-		// Close RunML
-		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
-		// Close Implied ParagraphML
-		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
-		// Close ParagraphML
-		specList.add(new ElementSpec(null, ElementSpec.EndTagType));
-		// New paragraphs
-		specList.addAll(paragraphSpecs);
-
-		ElementSpec[] specsArray = new ElementSpec[specList.size()];
-		specsArray = specList.toArray(specsArray);
-
-		doc.insertElementSpecs(offset, specsArray);
 	}
 
 	public final static List<String> getElementNamePath(DocumentElement elem, int pos) {
