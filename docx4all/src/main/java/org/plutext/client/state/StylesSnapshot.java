@@ -97,7 +97,7 @@ import org.plutext.client.wrappedTransforms.TransformAbstract;
         HashMap<String, String> stylesSnapshot = new HashMap<String, String>();
         
         // Live styles - regenerated as necessary
-        HashMap<String, Style> stylesLive = null;
+        HashMap<String, Style> stylesLive = new HashMap<String, Style>();
 
         // When marshalling, suppress XML declaration
     	boolean suppressDeclaration = true;
