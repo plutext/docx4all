@@ -41,7 +41,6 @@ import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JEditorPane;
 import javax.swing.KeyStroke;
-import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.EventListenerList;
@@ -67,15 +66,15 @@ import net.sf.vfsjfilechooser.utils.VFSUtils;
 import org.apache.commons.vfs.FileObject;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
-import org.docx4all.swing.event.ContentControlEvent;
-import org.docx4all.swing.event.ContentControlListener;
 import org.docx4all.swing.event.InputAttributeEvent;
 import org.docx4all.swing.event.InputAttributeListener;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.util.DocUtil;
+import org.docx4all.util.SwingUtil;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.SdtBlockML;
+import org.plutext.client.ServerTo;
 
 public class WordMLEditorKit extends DefaultEditorKit {
 	private static Logger log = Logger.getLogger(WordMLEditorKit.class);
@@ -110,6 +109,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	private CaretListener caretListener;
 	private MouseListener mouseListener;
 	private ContentControlTracker contentControlTracker;
+	private PlutextClientScheduler plutextClientScheduler;
 	
     /**
      * This is the set of attributes used to store the
@@ -146,20 +146,23 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	}
 
 	public void saveCaretText() {
+		log.debug("saveCaretText(): getCaretElement()=" + getCaretElement());
 		if (getCaretElement() != null) {
 			DocUtil.saveTextContentToElementML(getCaretElement());
 		}
 	}
 	
-	public synchronized void beginContentControlEdit(WordMLTextPane editor) {
+	public final synchronized void beginContentControlEdit(WordMLTextPane editor) {
 		WordMLDocument doc = (WordMLDocument) editor.getDocument();
 		doc.lockWrite();
+		doc.setSnapshotFireBan(true);
 		editor.removeCaretListener(contentControlTracker);
 	}
 	
-	public synchronized void endContentControlEdit(WordMLTextPane editor) {
+	public final synchronized void endContentControlEdit(WordMLTextPane editor) {
 		editor.addCaretListener(contentControlTracker);
 		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+		doc.setSnapshotFireBan(false);
 		doc.unlockWrite();
 	}
 	
@@ -169,14 +172,6 @@ public class WordMLEditorKit extends DefaultEditorKit {
 
     public void removeInputAttributeListener(InputAttributeListener listener) {
     	listenerList.remove(InputAttributeListener.class, listener);
-    }
-
-    public void addContentControlListener(ContentControlListener listener) {
-    	listenerList.add(ContentControlListener.class, listener);
-    }
-
-    public void removeContentControlListener(ContentControlListener listener) {
-    	listenerList.remove(ContentControlListener.class, listener);
     }
 
 	/**
@@ -318,8 +313,35 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		c.removeMouseListener(mouseListener);
 		c.removeMouseMotionListener(mouseListener);
 		c.removePropertyChangeListener(caretListener);
+		
+		//deinstall PlutextClientScheduler.
+		//This PlutextClientScheduler is not installed in install() method
+		//but in scheduletPlutextClientWork().
+		if (plutextClientScheduler != null) {
+			c.removeCaretListener(plutextClientScheduler);
+			c.getDocument().removeDocumentListener(plutextClientScheduler);
+			plutextClientScheduler = null;
+		}
 	}
 
+	public void schedulePlutextClientWork(
+		WordMLTextPane editor, long delay, long period) {
+		
+		if (this.plutextClientScheduler == null) {
+			//lazily initialised and once only.
+			ServerTo client = new ServerTo(editor);
+			this.plutextClientScheduler = 
+				new PlutextClientScheduler(client);
+			
+			WordMLDocument doc = 
+				(WordMLDocument) editor.getDocument();
+			doc.addDocumentListener(this.plutextClientScheduler);
+			editor.addCaretListener(this.plutextClientScheduler);
+			
+			this.plutextClientScheduler.schedule(delay, period);
+		}
+	}
+	
 	/**
 	 * Fetches the command list for the editor. This is the list of commands
 	 * supported by the superclass augmented by the collection of commands
@@ -339,7 +361,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	public Cursor getDefaultCursor() {
 		return defaultCursor;
 	}
-
+	
     /**
      * Gets the input attributes for the pane.  When
      * the caret moves and there is no selection, the
@@ -382,48 +404,6 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				// if (e == null)
 				// e = new ListSelectionEvent(this, firstIndex, lastIndex);
 				((InputAttributeListener) listeners[i + 1]).inputAttributeChanged(e);
-			}
-		}
-	}
-
-    protected void fireContentControlEntered(final ContentControlEvent e) {
-		// Guaranteed to return a non-null array
-		Object[] listeners = listenerList.getListenerList();
-		// Process the listeners last to first, notifying
-		// those that are interested in this event
-		for (int i = listeners.length - 2; i >= 0; i -= 2) {
-			if (listeners[i] == ContentControlListener.class) {
-				// Lazily create the event:
-				// if (e == null)
-				// e = new ListSelectionEvent(this, firstIndex, lastIndex);
-				final ContentControlListener ccl =
-					(ContentControlListener) listeners[i + 1];
-				SwingUtilities.invokeLater(new Runnable() {
-					public void run() {
-						ccl.contentControlEntered(e);						
-					}
-				});
-			}
-		}
-	}
-
-    protected void fireContentControlExited(final ContentControlEvent e) {
-		// Guaranteed to return a non-null array
-		Object[] listeners = listenerList.getListenerList();
-		// Process the listeners last to first, notifying
-		// those that are interested in this event
-		for (int i = listeners.length - 2; i >= 0; i -= 2) {
-			if (listeners[i] == ContentControlListener.class) {
-				// Lazily create the event:
-				// if (e == null)
-				// e = new ListSelectionEvent(this, firstIndex, lastIndex);
-				final ContentControlListener ccl =
-					(ContentControlListener) listeners[i + 1];
-				SwingUtilities.invokeLater(new Runnable() {
-					public void run() {
-						ccl.contentControlExited(e);						
-					}
-				});
 			}
 		}
 	}
@@ -554,9 +534,9 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			if (start == end) {
 				selectSdtBlock(editor, start);
 			} else {
-	    		View startV = getBlockView(editor, start);
-	    		View endV = getBlockView(editor, end - 1);
-	    		if (startV == endV) {
+	    		View startV = SwingUtil.getSdtBlockView(editor, start);
+	    		View endV = SwingUtil.getSdtBlockView(editor, end - 1);
+	    		if (startV == endV && startV != null) {
 	    			selectSdtBlock(editor, start);
 	    		} else {
 	    			resetLastSdtBlockPosition(editor);
@@ -565,39 +545,25 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	    }
 	    
 	    private void selectSdtBlock(WordMLTextPane editor, int pos) {
-			SdtBlockView currentSdt = null;
-			View v = getBlockView(editor, pos);
-			if (v instanceof SdtBlockView) {
-				currentSdt = (SdtBlockView) v;
-			}
+			SdtBlockView currentSdt = SwingUtil.getSdtBlockView(editor, pos);
 			
 			SdtBlockView lastSdt = null;
 			if (lastSdtBlockPosition != null) {
 				int offset = lastSdtBlockPosition.getOffset();
-				lastSdt = (SdtBlockView) getBlockView(editor, offset);
+				lastSdt = SwingUtil.getSdtBlockView(editor, offset);
 			}
 
 			if (currentSdt != lastSdt) {
 				if (lastSdt != null) {
-					boolean wereVisible = lastSdt.isBorderVisible();
-					
 					lastSdt.setBorderVisible(false);
 					editor.getUI().damageRange(editor, lastSdt.getStartOffset(), lastSdt
 							.getEndOffset(), Position.Bias.Forward,
 							Position.Bias.Forward);
-					
-					if (wereVisible) {
-						ContentControlEvent evt = new ContentControlEvent(
-								editor, lastSdtBlockPosition);
-						fireContentControlExited(evt);
-					}
 					lastSdtBlockPosition = null;
 				}
 			}
 			
 			if (currentSdt != null) {
-				boolean wereNotVisible = !currentSdt.isBorderVisible();
-				
 				currentSdt.setBorderVisible(true);
 				editor.getUI().damageRange(editor, currentSdt.getStartOffset(),
 						currentSdt.getEndOffset(), Position.Bias.Forward,
@@ -605,40 +571,28 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				
 				try {
 					lastSdtBlockPosition = editor.getDocument().createPosition(pos);
-					if (wereNotVisible) {
-						ContentControlEvent evt = new ContentControlEvent(
-								editor, lastSdtBlockPosition);
-						fireContentControlEntered(evt);
-					}
 				} catch (BadLocationException exc) {
 					lastSdtBlockPosition = null;// should not happen
 				}
-			}
+			}			
 		}
 	    
 	    private void resetLastSdtBlockPosition(WordMLTextPane editor) {
 	    	if (lastSdtBlockPosition != null) {
 	    		int offset = lastSdtBlockPosition.getOffset();
-				SdtBlockView sdt = 
-					(SdtBlockView) getBlockView(editor, offset);
-				sdt.setBorderVisible(false);
-				editor.getUI().damageRange(
-					editor, 
-					sdt.getStartOffset(), 
-					sdt.getEndOffset(), 
-					Position.Bias.Forward,
-					Position.Bias.Forward);
+				SdtBlockView sdt = SwingUtil.getSdtBlockView(editor, offset);
+				if (sdt != null) {
+					sdt.setBorderVisible(false);
+					editor.getUI().damageRange(
+						editor, 
+						sdt.getStartOffset(), 
+						sdt.getEndOffset(), 
+						Position.Bias.Forward,
+						Position.Bias.Forward);
+				}
 				lastSdtBlockPosition = null;
 			}
-	    }
-	    
-	    private View getBlockView(WordMLTextPane editor, int offset) {
-			BasicTextUI ui = (BasicTextUI) editor.getUI();
-			View v = ui.getRootView(editor).getView(0); //root
-			int idx = v.getViewIndex(offset, Position.Bias.Forward);
-			v = v.getView(idx);
-			return v;
-	    }
+	    }	    
 	}// ContentControlTracker inner class
 	
 	private class CaretListener implements javax.swing.event.CaretListener, PropertyChangeListener, Serializable {
@@ -776,10 +730,14 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			int p1 = editor.getSelectionEnd();
 			
 			WordMLDocument doc = (WordMLDocument) editor.getDocument();
-			doc.setParagraphMLAttributes(p0, (p1 - p0), attr, replace);
+			try {
+				doc.setParagraphMLAttributes(p0, (p1 - p0), attr, replace);
 			
-			editor.setCaretPosition(mark);
-			editor.moveCaretPosition(dot);
+				editor.setCaretPosition(mark);
+				editor.moveCaretPosition(dot);
+			} catch (BadLocationException exc) {
+				exc.printStackTrace();//ignore
+			}
 			
 			if (log.isDebugEnabled()) {
 				DocUtil.displayStructure(doc);
@@ -1216,7 +1174,6 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		}//actionPerformed()
 		
 	}//DeletePrevCharAction()
-
 
 }// WordMLEditorKit class
 
