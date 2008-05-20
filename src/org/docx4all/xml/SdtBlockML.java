@@ -142,6 +142,16 @@ public class SdtBlockML extends ElementML {
 		this.parent = parent;
 	}
 
+	public String toString() {
+		StringBuffer sb = new StringBuffer(super.toString());
+		sb.append(" - Id=");
+		sb.append(getSdtProperties().getIdValue());
+		sb.append(" - Tag=");
+		sb.append(getSdtProperties().getTagValue());
+		
+		return sb.toString();
+	}
+	
 	protected List<Object> getDocxChildren() {
 		List<Object> theChildren = null;
 
