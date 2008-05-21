@@ -230,8 +230,8 @@
 
 <dependency>
   <groupId>net.sf.vfsjfilechooser</groupId>
-  <artifactId>vfsjfilechooser-patched</artifactId>
-  <version>0.0.1</version>
+  <artifactId>vfsjfilechooser</artifactId>
+  <version>0.0.2</version>
 </dependency>
 
 <dependency>
