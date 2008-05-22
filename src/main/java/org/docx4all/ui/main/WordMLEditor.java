@@ -57,7 +57,6 @@ import javax.swing.event.ChangeListener;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
 import javax.swing.plaf.basic.BasicInternalFrameUI;
-import javax.swing.text.AbstractDocument;
 import javax.swing.text.Document;
 import javax.swing.text.EditorKit;
 import javax.swing.text.MutableAttributeSet;
@@ -94,7 +93,6 @@ import org.docx4all.xml.ElementML;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.jdesktop.application.ResourceMap;
 import org.jdesktop.application.SingleFrameApplication;
-import org.plutext.client.ServerTo;
 
 /**
  *	@author Jojada Tirtowidjojo - 13/11/2007
@@ -447,7 +445,7 @@ public class WordMLEditor extends SingleFrameApplication {
 		WordMLEditorKit editorKit = (WordMLEditorKit) editorView.getEditorKit();
 		editorKit.addInputAttributeListener(_toolbarStates);
 		
-    	AbstractDocument doc = null;
+    	WordMLDocument doc = null;
     	
     	try {
     		if (f.exists()) {
@@ -467,7 +465,7 @@ public class WordMLEditor extends SingleFrameApplication {
 		}
 		
     	if (doc == null) {
-    		doc = (AbstractDocument) editorKit.createDefaultDocument();
+    		doc = (WordMLDocument) editorKit.createDefaultDocument();
     	}
     	
 		doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, fileUri);
@@ -476,11 +474,7 @@ public class WordMLEditor extends SingleFrameApplication {
     	editorView.setDocument(doc);
     	editorView.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
     	
-    	int idx = fileUri.indexOf("/alfresco/"); 
-    	if (idx > 0) {
-    		//temporary checking
-    		//TODO: Has to check whether fileUri's protocol is webdav
-    		//and its context is correct.
+    	if (DocUtil.isSharedDocument(doc)) {
     		editorKit.schedulePlutextClientWork(editorView, 10000, 10000);
     	}
     	
