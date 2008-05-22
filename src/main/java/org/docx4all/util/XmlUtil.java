@@ -207,7 +207,7 @@ public class XmlUtil {
 	
 	/** 
 	 * 
-	 * Filters out certain features of WordprocessingML which docx4all can’t yet handle, 
+	 * Filters out certain features of WordprocessingML which docx4all cannot yet handle, 
 	 * into something it can. Examples include proofErr, hyperlink, and lastRenderedPageBreak.
 	 * 
 	 * @param wmlPackage
