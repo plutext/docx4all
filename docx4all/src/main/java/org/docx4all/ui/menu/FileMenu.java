@@ -20,6 +20,7 @@
 package org.docx4all.ui.menu;
 
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
@@ -48,6 +49,7 @@ import org.docx4all.swing.NewShareDialog;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
+import org.docx4all.swing.text.WordMLDocumentFilter;
 import org.docx4all.swing.text.WordMLEditorKit;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.ui.main.ToolBarStates;
@@ -212,9 +214,14 @@ public class FileMenu extends UIMenu {
     		toolbarStates.addPropertyChangeListener(
     				ToolBarStates.ANY_DOC_DIRTY_PROPERTY_NAME, 
     				new EnableOnEqual(theItem, Boolean.TRUE));
-    	
-    	} else if (SAVE_AS_SHARED_DOC_ACTION_NAME.equals(actionName)
-    		|| PRINT_PREVIEW_ACTION_NAME.equals(actionName)
+    		
+    	} else if (SAVE_AS_SHARED_DOC_ACTION_NAME.equals(actionName)) {
+    		theItem.setEnabled(false);
+    		toolbarStates.addPropertyChangeListener(
+    				ToolBarStates.SHARE_ENABLED_PROPERTY_NAME, 
+    				new EnableOnEqual(theItem, Boolean.TRUE));
+   	
+    	} else if (PRINT_PREVIEW_ACTION_NAME.equals(actionName)
     		|| CLOSE_FILE_ACTION_NAME.equals(actionName)
     		|| CLOSE_ALL_FILES_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
@@ -269,12 +276,13 @@ public class FileMenu extends UIMenu {
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         JEditorPane view = editor.getCurrentEditor();
         if (view instanceof WordMLTextPane) {
+        	WordMLTextPane wmlTextPane = (WordMLTextPane) view;
 			NewShareDialog d = new NewShareDialog(editor.getMainFrame());
 			d.pack();
 			d.setLocationRelativeTo(editor.getMainFrame());
 			d.setVisible(true);
 			if (d.getValue() == NewShareDialog.NEXT_BUTTON_TEXT) {
-	        	WordMLDocument doc = (WordMLDocument) view.getDocument();
+	        	WordMLDocument doc = (WordMLDocument) wmlTextPane.getDocument();
 	        	DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
 	        	DocumentML docML = (DocumentML) root.getElementML();
 	        	WordprocessingMLPackage wmlPackage = docML.getWordprocessingMLPackage();
@@ -284,6 +292,40 @@ public class FileMenu extends UIMenu {
 	        	if (val != JFileChooser.APPROVE_OPTION) {
 	        		//Cancelled or Error
 	        		XmlUtil.removeSharedDocumentProperties(wmlPackage);
+	        		
+	        	} else if (!DocUtil.isSharedDocument(doc)) {
+	        		//Because user has saved to places other than predefined server.
+	        		XmlUtil.removeSharedDocumentProperties(wmlPackage);
+	        		//TODO: Display a message saying a shared document can only
+	        		//be created in predefined server and ask user to try again.
+	        	} else {
+	        		Cursor origCursor = wmlTextPane.getCursor();
+	        		wmlTextPane.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+	        		
+	        		String filepath = 
+	        			(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
+	        		try {
+	        			FileObject fo = VFS.getManager().resolveFile(filepath);
+            			doc = wmlTextPane.getWordMLEditorKit().read(fo);
+            			
+            			doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, filepath);
+            	    	doc.addDocumentListener(editor.getToolbarStates());
+            	    	doc.setDocumentFilter(new WordMLDocumentFilter());
+            	    	
+            	    	wmlTextPane.setDocument(doc);
+            	    	wmlTextPane.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
+
+            	    	if (DocUtil.isSharedDocument(doc)) {
+            	    		wmlTextPane.getWordMLEditorKit().
+            	    			schedulePlutextClientWork(wmlTextPane, 10000, 10000);
+            	    	}
+	        		} catch (IOException exc) {
+	        			exc.printStackTrace();
+	        			//TODO:Display an IO error message and ask user to close the document
+	        			//and try to reopen it.
+	        		}
+	        		
+	        		wmlTextPane.setCursor(origCursor);
 	        	}
 			}
 			d.dispose();
