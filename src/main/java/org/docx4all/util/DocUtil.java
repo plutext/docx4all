@@ -49,6 +49,7 @@ import org.docx4all.swing.text.TextSelector;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLStyleConstants;
 import org.docx4all.ui.main.Constants;
+import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.ElementMLIterator;
@@ -68,6 +69,37 @@ public class DocUtil {
 	private static Logger log = Logger.getLogger(DocUtil.class);
 
 	private final static String TAB = "    ";
+	
+	public final static boolean isSharedDocument(WordMLDocument doc) {
+		boolean isShared = false;
+		
+		String uri = 
+			(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
+		if (uri != null) {
+	    	int idx = uri.indexOf("/alfresco/"); 
+	    	if (idx > 0) {
+	    		//temporary checking
+	    		//TODO: Has to check whether fileUri's protocol is webdav
+	    		//and its context is correct.
+	    		DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
+	    		DocumentML docML = (DocumentML) elem.getElementML();
+				WordprocessingMLPackage wmlPackage = docML.getWordprocessingMLPackage();
+				if (wmlPackage != null) {
+					org.docx4j.docProps.custom.Properties.Property groupingProp =
+						XmlUtil.getCustomProperty(
+								wmlPackage, 
+								Constants.PLUTEXT_GROUPING_PROPERTY_NAME);
+					org.docx4j.docProps.custom.Properties.Property checkinProp =
+						XmlUtil.getCustomProperty(
+								wmlPackage, 
+								Constants.PLUTEXT_CHECKIN_MESSAGE_ENABLED_PROPERTY_NAME);
+					isShared = (groupingProp != null && checkinProp != null);
+				}
+	    	}
+		}
+		
+		return isShared;
+	}
 	
 	/**
 	 * Makes the xml content of document become the main document part
