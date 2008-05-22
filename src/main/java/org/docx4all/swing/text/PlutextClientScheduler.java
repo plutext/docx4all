@@ -235,7 +235,9 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
 			if (this.lastSdtBlockAtCaret != this.sdtBlockAtCaret) {
 				log.debug("caretUpdate(): New sdtBlockAtCaret != Last sdtBlockAtCaret");
 				log.debug("New sdtBlockAtCaret.xml=" 
-						+ ContentControlSnapshot.getContentControlXML(this.sdtBlockAtCaret));
+						+ ((this.sdtBlockAtCaret == null) 
+							? "NULL" 
+							: ContentControlSnapshot.getContentControlXML(this.sdtBlockAtCaret)));
 				
 				//There has been a change of 'sdtBlockAtCaret'.
 				//Note that when a user inserted a string of text (not a WordMLFragment) 
@@ -354,13 +356,23 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
 		public void run() {
 			PlutextClientWorker worker = createPlutextClientWorker();	
 			if (worker.hasWorkToDo()) {
-				log.debug("PlutextClientWorkerTask.run(): "
-					+ "worker.getSdtBlockAtWork()="
-					+ worker.getSdtBlockAtWork()
-					+ " - Id="
-					+ worker.getSdtBlockAtWork().getSdtPr().getId().getVal()
-					+ " - Tag="
-					+ worker.getSdtBlockAtWork().getSdtPr().getTag().getVal());
+				SdtBlock sdt = worker.getSdtBlockAtWork();
+				
+				if (log.isDebugEnabled()) {
+					if (sdt == null) {
+						log.debug(
+							"PlutextClientWorkerTask.run(): worker.getSdtBlockAtWork() == NULL");					
+					} else {
+						log.debug("PlutextClientWorkerTask.run(): "
+								+ "worker.getSdtBlockAtWork()="
+								+ sdt
+								+ " - Id="
+								+ sdt.getSdtPr().getId().getVal()
+								+ " - Tag="
+								+ sdt.getSdtPr().getTag().getVal());
+					}
+				}
+				
 				worker.execute();
 	    	}
 		}
