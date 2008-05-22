@@ -54,6 +54,7 @@ import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.StyleSheet;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLStyleConstants;
+import org.docx4all.util.DocUtil;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -71,6 +72,8 @@ public class ToolBarStates extends InternalFrameAdapter
 	
 	public final static String DOC_DIRTY_PROPERTY_NAME = "documentDirty";
 	public final static String ANY_DOC_DIRTY_PROPERTY_NAME = "anyDocumentDirty";
+	
+	public final static String SHARE_ENABLED_PROPERTY_NAME = "shareEnabled";
 	
 	public final static String CURRENT_EDITOR_PROPERTY_NAME = "currentEditor";
 	
@@ -100,6 +103,7 @@ public class ToolBarStates extends InternalFrameAdapter
 	private volatile boolean _fontBold, _fontItalic, _fontUnderlined;
 	private volatile boolean _isCutEnabled, _isCopyEnabled, _isPasteEnabled;
 	private volatile boolean _filterApplied;
+	private volatile boolean _isShareEnabled;
 	
 	private volatile int _iframeNumbers;
 	
@@ -119,6 +123,7 @@ public class ToolBarStates extends InternalFrameAdapter
 		_isCopyEnabled = false;
 		_isPasteEnabled = false;
 		_filterApplied = true;
+		_isShareEnabled = false;
 		_iframeNumbers = 0;
 		_alignment = -1;
 	}
@@ -205,6 +210,28 @@ public class ToolBarStates extends InternalFrameAdapter
 			return;
 		}
 		firePropertyChange(ANY_DOC_DIRTY_PROPERTY_NAME, oldAllDirty, newDirty);
+	}
+	
+	public boolean isShareEnabled() {
+		return _isShareEnabled;
+	}
+	
+	public void setShareEnabled(boolean enabled) {
+		if (log.isDebugEnabled()) {
+			log.debug("setShareEnabled(): _isShareEnabled = " + _isShareEnabled + " enabled param = " + enabled);
+		}
+	
+		if (_isShareEnabled == enabled) {
+			return;
+		}
+		
+		boolean oldValue = _isShareEnabled;
+		_isShareEnabled = enabled;
+		
+		firePropertyChange(
+			SHARE_ENABLED_PROPERTY_NAME, 
+			Boolean.valueOf(oldValue), 
+			Boolean.valueOf(enabled));
 	}
 	
 	public String getSelectedStyle() {
@@ -478,12 +505,16 @@ public class ToolBarStates extends InternalFrameAdapter
     	setCopyEnabled(b);
     	setCutEnabled(b);
     	
+    	boolean isSharedEnabled = false;
     	if (editor instanceof WordMLTextPane) {
     		b = ((WordMLTextPane) editor).isFilterApplied();
+    		isSharedEnabled = !DocUtil.isSharedDocument((WordMLDocument) editor.getDocument());
     	} else {
     		b = false;
     	}
     	setFilterApplied(b);
+    	
+    	setShareEnabled(isSharedEnabled);
 	}	
 	
     /**
