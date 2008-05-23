@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?><metadata>
+  <groupId>bouncycastle</groupId>
+  <artifactId>bcprov-jdk16-unsigned</artifactId>
+  <version>136</version>
+  <versioning>
+    <versions>
+      <version>136</version>
+    </versions>
+    <lastUpdated>20080522233319</lastUpdated>
+  </versioning>
+</metadata>
