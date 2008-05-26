@@ -40,14 +40,14 @@ import org.plutext.client.ServerFrom;
     	
         /* Merge the change in the transformation t with the contents
          * of the content control, marking up the difference. */
-        protected static int mergeUpdate(SdtBlock cc, String t, ServerFrom serverFrom)
+        protected static long mergeUpdate(SdtBlock cc, String t, ServerFrom serverFrom)
         {
             log.debug("MergeUpdate DIFFERENCING against server update: " + t);
             log.warn("mergeUpdate WON'T BE IMPLEMENTED FOR A WEEK OR SO.");
 
             // Register the transform, and 
             // also use this to get tr 
-            HashMap<Integer, TransformAbstract> dict
+            HashMap<Long, TransformAbstract> dict
                 = serverFrom.registerTransforms("<pt:transforms xmlns:pt=\"http://www.plutext.org/transforms\">" + t + "</pt:transforms>", false);
             TransformAbstract tr = null;
             int sanityCounter = 0;

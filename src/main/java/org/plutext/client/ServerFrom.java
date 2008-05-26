@@ -141,11 +141,11 @@ public class ServerFrom {
 	/* Put transforms received from server into the transforms collection.
 	 * If these transforms are the result of updates by this client, we
 	 * don't need to apply them, so set applied to true. */
-	HashMap<Integer, TransformAbstract> registerTransforms(String transforms,
+	HashMap<Long, TransformAbstract> registerTransforms(String transforms,
 			Boolean setApplied) {
 
 		// A list keyed by wrapped sdtPr/id, of transforms we may forcibly apply
-		HashMap<Integer, TransformAbstract> additions = new HashMap<Integer, TransformAbstract>();
+		HashMap<Long, TransformAbstract> additions = new HashMap<Long, TransformAbstract>();
 
 		// Parse the XML document, and put each transform into the transforms collection
 		org.plutext.transforms.Transforms transformsObj = null;
@@ -170,7 +170,7 @@ public class ServerFrom {
 							+ ta.getSequenceNumber());
 			try {
 				stateDocx.getWrappedTransforms().put(
-						new Integer(ta.getSequenceNumber()), ta);
+						new Long(ta.getSequenceNumber()), ta);
 				if (ta.getSequenceNumber() > stateDocx
 						.getTSequenceNumberHighestFetched()) {
 					stateDocx.setTSequenceNumberHighestFetched(ta
@@ -185,7 +185,7 @@ public class ServerFrom {
 			}
 
 			// Still want it here
-			additions.put(new Integer(ta.getSequenceNumber()), ta);
+			additions.put(new Long(ta.getSequenceNumber()), ta);
 			// Key is SequenceNumber, not t.ID, since TransformStyle type doesn't have an 
 			// underlying SDT.  Besides, if 2 additions related to the same SDT, the
 			// keys would collide.
@@ -197,7 +197,7 @@ public class ServerFrom {
 
 	/* Apply registered transforms in the known tSequence number range. */
 	void applyUpdates(
-			HashMap<Integer, TransformAbstract> forceApplicationToSdtIds) {
+			HashMap<Long, TransformAbstract> forceApplicationToSdtIds) {
 		log.debug("applyUpdates invoked.");
 
 		if (stateDocx.getUptodate()) {
@@ -207,15 +207,15 @@ public class ServerFrom {
 			log.debug(".. applying " + stateDocx.getTSequenceNumberApplied()
 					+ " - " + stateDocx.getTSequenceNumberHighestFetched());
 
-			for (int x = (stateDocx.getTSequenceNumberApplied() + 1); x <= stateDocx
+			for (long x = (stateDocx.getTSequenceNumberApplied() + 1); x <= stateDocx
 					.getTSequenceNumberHighestFetched(); x++) {
 				// OPTIMISATION: could do the most recent only for each cc
 				// (ie reverse order), except for MOVES and INSERTS, which need to 
 				// be done in order.
 
 				try {
-					int result = applyUpdate(stateDocx.getWrappedTransforms()
-							.get(new Integer(x)), forceApplicationToSdtIds);
+					long result = applyUpdate(stateDocx.getWrappedTransforms()
+							.get(new Long(x)), forceApplicationToSdtIds);
 					if (result > 0) {
 						stateDocx.setTSequenceNumberApplied(result);
 					} else {
@@ -249,8 +249,8 @@ public class ServerFrom {
 	}
 
 	/* Apply registered transforms in the known tSequence number range. */
-	void applyUpdates(HashMap<Integer, TransformAbstract> transforms,
-			HashMap<Integer, TransformAbstract> forceApplicationToSdtIds) {
+	void applyUpdates(HashMap<Long, TransformAbstract> transforms,
+			HashMap<Long, TransformAbstract> forceApplicationToSdtIds) {
 		log.debug("applyUpdates(to collection) invoked.");
 		// In this variant, DO NOT update stateDocx.TSequenceNumberApplied 
 
@@ -260,7 +260,7 @@ public class ServerFrom {
 			Map.Entry pairs = (Map.Entry) transformsIterator.next();
 
 			TransformAbstract tr = (TransformAbstract) pairs.getValue();
-			int result = applyUpdate(tr, forceApplicationToSdtIds);
+			long result = applyUpdate(tr, forceApplicationToSdtIds);
 			if (result > 0) {
 				log.debug("transformation applied" + tr.getSequenceNumber());
 			} else {
@@ -271,9 +271,9 @@ public class ServerFrom {
 	}
 
 	/* On success, returns the transformation's tSequenceNumber; otherwise, 0 */
-	private int applyUpdate(TransformAbstract t,
-			HashMap<Integer, TransformAbstract> forceApplicationToSdtIds) {
-		int result;
+	private long applyUpdate(TransformAbstract t,
+			HashMap<Long, TransformAbstract> forceApplicationToSdtIds) {
+		long result;
 
 		if (t.getApplied()) {
 			log.debug(t.getSequenceNumber() + " has been applied previously.");
@@ -296,7 +296,7 @@ public class ServerFrom {
 			try {
 				//TransformAbstract throwaway = forceApplicationToSdtIds[t.ID];
 				TransformAbstract throwaway = forceApplicationToSdtIds
-						.get(new Integer(t.getSequenceNumber()));
+						.get(new Long(t.getSequenceNumber()));
 				// if that succeeds, this ID is in the force list
 				// so
 				forceForThisID = true;

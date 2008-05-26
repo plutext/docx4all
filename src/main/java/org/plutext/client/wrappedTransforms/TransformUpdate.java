@@ -39,7 +39,7 @@ public class TransformUpdate extends TransformAbstract {
 		super(t);
 	}
 
-	public int apply(ServerFrom serverFrom) {
+	public long apply(ServerFrom serverFrom) {
 
 		log.debug("apply(ServerFrom): sdtBolck = " + getSdt() 
 			+ " - ID=" + getSdt().getSdtPr().getId().getVal()

@@ -67,8 +67,8 @@ public abstract class TransformAbstract
 
 
     // The ID of the transformation.
-    protected int sequenceNumber = 0;
-	public int getSequenceNumber() {
+    protected long sequenceNumber = 0;
+	public long getSequenceNumber() {
 		return sequenceNumber;
 	}
 
@@ -152,6 +152,6 @@ public abstract class TransformAbstract
 	
     /* Code to apply the transform */
     	// TODO - think through method signature
-    public abstract int apply(ServerFrom serverFrom);
+    public abstract long apply(ServerFrom serverFrom);
 
 }
