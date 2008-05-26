@@ -71,22 +71,31 @@ public class PlutextClientWorker extends SwingWorker<Void, Void> {
     @Override public Void doInBackground() {
     	log.debug("Background process START...@" + hashCode());
     	if (plutextClient != null) {
-    		if (deletedSdtBlocks != null) {
-				for (SdtBlock sdt:deletedSdtBlocks) {
-					plutextClient.userDeletesContentControl(sdt);
-				}
-    		}
-			if (dirtySdtBlocks != null) {
-				for (SdtBlock sdt:dirtySdtBlocks) {
-					if (sdtBlockAtWork == null
-						|| !sdtBlockAtWork.getSdtPr().getId().equals(sdt.getSdtPr().getId())) {
-						plutextClient.userExitsContentControl(sdt);
+    		try {
+				plutextClient.startSession();
+
+				if (deletedSdtBlocks != null) {
+					for (SdtBlock sdt : deletedSdtBlocks) {
+						plutextClient.userDeletesContentControl(sdt);
 					}
 				}
+				if (dirtySdtBlocks != null) {
+					for (SdtBlock sdt : dirtySdtBlocks) {
+						if (sdtBlockAtWork == null
+								|| !sdtBlockAtWork.getSdtPr().getId().equals(
+										sdt.getSdtPr().getId())) {
+							plutextClient.userExitsContentControl(sdt);
+						}
+					}
+				}
+				if (sdtBlockAtWork != null) {
+					plutextClient.userEntersContentControl(sdtBlockAtWork);
+				}
+				
+			} finally {
+				plutextClient.endSession();
 			}
-			if (sdtBlockAtWork != null) {
-				plutextClient.userEntersContentControl(sdtBlockAtWork);
-			}
+    		
 		}
     	return null;
     }
