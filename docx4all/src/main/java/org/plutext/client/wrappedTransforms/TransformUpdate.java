@@ -24,11 +24,10 @@ import javax.swing.SwingUtilities;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
-import org.docx4all.swing.text.SdtBlockInfo;
-import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLFragment;
 import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
 import org.docx4all.xml.SdtBlockML;
+import org.docx4j.wml.SdtBlock;
 import org.plutext.client.ServerFrom;
 import org.plutext.transforms.Transforms.T;
 
@@ -64,35 +63,38 @@ public class TransformUpdate extends TransformAbstract {
 		}
 
 		// TODO - do the actual replacement in a docx4all specific way.
-		SdtBlockInfo info = serverFrom.getSdtBlockInfo(getSdt().getSdtPr().getId());
-		if (info != null) {
-			apply(serverFrom.getWordMLTextPane(), info.getPosition().getOffset());
-		}
+		apply(serverFrom.getWordMLTextPane(), getSdt());
 
 		// Fourth, if we haven't thrown an exception, return the sequence number
 		return sequenceNumber;
 	}
 
-	protected void apply(final WordMLTextPane editor, final int offset) {
+	protected void apply(final WordMLTextPane editor, final SdtBlock sdt) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				WordMLDocument doc = (WordMLDocument) editor.getDocument();
-				ElementMLRecord[] recs = {new ElementMLRecord(new SdtBlockML(getSdt()), false)};
-				WordMLFragment frag = new WordMLFragment(recs);
+				log.debug("apply(WordMLTextPane, SdtBlock): Updating SDT Id=" 
+						+ sdt.getSdtPr().getId() + " in Editor.");
 				
 				int origPos = editor.getCaretPosition();
 				
 				try {
 					editor.beginContentControlEdit();
 				
-					DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
-					int idx = elem.getElementIndex(offset);
-					elem = (DocumentElement) elem.getElement(idx);
-				
-					editor.setCaretPosition(elem.getStartOffset());
-					editor.moveCaretPosition(elem.getEndOffset());
-					editor.replaceSelection(frag);
-					
+					DocumentElement elem = getDocumentElement(editor, sdt);
+					if (elem != null) {
+						ElementMLRecord[] recs = 
+							{new ElementMLRecord(new SdtBlockML(sdt), false)};
+						WordMLFragment frag = new WordMLFragment(recs);
+						
+						editor.setCaretPosition(elem.getStartOffset());
+						editor.moveCaretPosition(elem.getEndOffset());
+						editor.replaceSelection(frag);						
+					} else {
+						//silently ignore
+						log.warn("apply(WordMLTextPane, SdtBlock): SDT Id=" 
+							+ sdt.getSdtPr().getId() 
+							+ " NOT FOUND in editor.");
+					}
 				} finally {
 					editor.endContentControlEdit();
 					editor.setCaretPosition(origPos);				
@@ -100,7 +102,8 @@ public class TransformUpdate extends TransformAbstract {
 			}
 		});
 	}
-}
+	
+} //TransformUpdate class
 
 
 
