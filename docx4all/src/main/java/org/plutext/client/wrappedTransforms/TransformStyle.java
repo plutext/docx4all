@@ -34,7 +34,7 @@ public class TransformStyle extends TransformAbstract {
         	super(t);
         }
 
-        public int apply(ServerFrom serverFrom)
+        public long apply(ServerFrom serverFrom)
         {
             log.warn("TransformStyle not fully implemented!");
 

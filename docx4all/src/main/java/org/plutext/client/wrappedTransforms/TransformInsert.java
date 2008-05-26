@@ -48,7 +48,7 @@ public class TransformInsert extends TransformAbstract {
         }
 
 
-        public int apply(ServerFrom serverFrom)
+        public long apply(ServerFrom serverFrom)
         {
 
         	// TODO - implement this - docx4all specific

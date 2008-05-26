@@ -28,7 +28,7 @@ import org.plutext.client.state.StateDocx;
 import org.plutext.client.webservice.PlutextService_ServiceLocator;
 import org.plutext.client.webservice.PlutextWebService;
 
-/** This class is the real workhorse.  It handles content control events,
+/** This class handles content control events,
  *  and initiates appropriate web service calls in response to those events.
  */
 public class ServerTo {
@@ -39,7 +39,6 @@ public class ServerTo {
 	// for the Webdav connection.
 	protected static final String USERNAME = "admin";
 	protected static final String PASSWORD = "admin";
-	protected static final String docId = "/alfresco/plutextwebdav/User Homes/jharrop/Sunday13A.docx";
 
 	private final StateDocx stateDocx;
 
@@ -183,10 +182,10 @@ public class ServerTo {
 				// changes from the server
 				log.debug("Updates to merge: " + t);
 				log.warn("mergeUpdate WON'T BE IMPLEMENTED FOR A WEEK OR SO.");
-				int tsn = Merge.mergeUpdate(cc, t, serverFrom);
+				long tsn = Merge.mergeUpdate(cc, t, serverFrom);
 
 				Object o = stateDocx.getWrappedTransforms().get(
-						new Integer(tsn));
+						new Long(tsn));
 				log.debug("o: " + o.getClass().getName());
 				if (o == null) {
 					// Look into this
@@ -322,14 +321,13 @@ public class ServerTo {
 				 * serverFrom.applyUpdates(forceApplicationToSdtIds, forceApplicationToSdtIds);
 				 * here.
 				 * 
-				 * 
 				 */
 
 				boolean applied = false;
 				serverFrom.registerTransforms(result[1], applied);
 				
 				// Update the snapshot of this cc
-				stateDocx.setCurrentCC(cc);
+				stateDocx.setCurrentCC(cc);  // TODO (when we implement merge) - this isn't actually setting the cc to what came back from the server!
 				stateDocx.setCurrentCC(null);
 				
 				// Note that exit handler does not invoke applyUpdates 

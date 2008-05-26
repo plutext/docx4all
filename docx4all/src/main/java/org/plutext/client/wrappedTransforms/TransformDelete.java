@@ -44,7 +44,7 @@ public class TransformDelete extends TransformAbstract {
     }
 
     /* delete the SDT given its ID. */
-    public int apply(ServerFrom serverFrom)
+    public long apply(ServerFrom serverFrom)
     {
         // Remove the ContentControlSnapshot representing the content control
     	

@@ -18,7 +18,6 @@
  */
 package org.plutext.transforms;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.Unmarshaller;
@@ -53,10 +52,10 @@ import org.jvnet.jaxb2_commons.ppp.Child;
  *                   &lt;element ref="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}style"/>
  *                   &lt;element ref="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}sdt"/>
  *                 &lt;/choice>
- *                 &lt;attribute name="tstamp" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedLong" />
- *                 &lt;attribute name="snum" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedByte" />
+ *                 &lt;attribute name="tstamp" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
+ *                 &lt;attribute name="snum" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
  *                 &lt;attribute name="op" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
- *                 &lt;attribute name="idref" type="{http://www.w3.org/2001/XMLSchema}unsignedByte" />
+ *                 &lt;attribute name="idref" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
  *                 &lt;attribute name="after" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
  *               &lt;/restriction>
  *             &lt;/complexContent>
@@ -153,10 +152,10 @@ public class Transforms
      *         &lt;element ref="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}style"/>
      *         &lt;element ref="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}sdt"/>
      *       &lt;/choice>
-     *       &lt;attribute name="tstamp" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedLong" />
-     *       &lt;attribute name="snum" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedByte" />
+     *       &lt;attribute name="tstamp" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
+     *       &lt;attribute name="snum" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
      *       &lt;attribute name="op" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
-     *       &lt;attribute name="idref" type="{http://www.w3.org/2001/XMLSchema}unsignedByte" />
+     *       &lt;attribute name="idref" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
      *       &lt;attribute name="after" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
      *     &lt;/restriction>
      *   &lt;/complexContent>
@@ -179,16 +178,16 @@ public class Transforms
         @XmlElement(namespace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main")
         protected SdtBlock sdt;
         @XmlAttribute(namespace = "http://www.plutext.org/transforms", required = true)
-        @XmlSchemaType(name = "unsignedLong")
-        protected BigInteger tstamp;
+        @XmlSchemaType(name = "unsignedInt")
+        protected long tstamp;
         @XmlAttribute(namespace = "http://www.plutext.org/transforms", required = true)
-        @XmlSchemaType(name = "unsignedByte")
-        protected short snum;
+        @XmlSchemaType(name = "unsignedInt")
+        protected long snum;
         @XmlAttribute(namespace = "http://www.plutext.org/transforms", required = true)
         protected String op;
         @XmlAttribute(namespace = "http://www.plutext.org/transforms")
-        @XmlSchemaType(name = "unsignedByte")
-        protected Short idref;
+        @XmlSchemaType(name = "unsignedInt")
+        protected Long idref;
         @XmlAttribute(namespace = "http://www.plutext.org/transforms")
         @XmlSchemaType(name = "unsignedInt")
         protected Long after;
@@ -246,24 +245,16 @@ public class Transforms
         /**
          * Gets the value of the tstamp property.
          * 
-         * @return
-         *     possible object is
-         *     {@link BigInteger }
-         *     
          */
-        public BigInteger getTstamp() {
+        public long getTstamp() {
             return tstamp;
         }
 
         /**
          * Sets the value of the tstamp property.
          * 
-         * @param value
-         *     allowed object is
-         *     {@link BigInteger }
-         *     
          */
-        public void setTstamp(BigInteger value) {
+        public void setTstamp(long value) {
             this.tstamp = value;
         }
 
@@ -271,7 +262,7 @@ public class Transforms
          * Gets the value of the snum property.
          * 
          */
-        public short getSnum() {
+        public long getSnum() {
             return snum;
         }
 
@@ -279,7 +270,7 @@ public class Transforms
          * Sets the value of the snum property.
          * 
          */
-        public void setSnum(short value) {
+        public void setSnum(long value) {
             this.snum = value;
         }
 
@@ -312,10 +303,10 @@ public class Transforms
          * 
          * @return
          *     possible object is
-         *     {@link Short }
+         *     {@link Long }
          *     
          */
-        public Short getIdref() {
+        public Long getIdref() {
             return idref;
         }
 
@@ -324,10 +315,10 @@ public class Transforms
          * 
          * @param value
          *     allowed object is
-         *     {@link Short }
+         *     {@link Long }
          *     
          */
-        public void setIdref(Short value) {
+        public void setIdref(Long value) {
             this.idref = value;
         }
 

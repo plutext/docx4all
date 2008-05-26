@@ -128,26 +128,26 @@ public class StateDocx {
 		}
 	}
 	
-	private int tSequenceNumberAtLoadTime;
+	private long tSequenceNumberAtLoadTime;
 
-	private int tSequenceNumberApplied;
+	private long tSequenceNumberApplied;
 
-	public int getTSequenceNumberApplied() {
+	public long getTSequenceNumberApplied() {
 		return tSequenceNumberApplied;
 	}
 
-	public void setTSequenceNumberApplied(int sequenceNumberApplied) {
+	public void setTSequenceNumberApplied(long sequenceNumberApplied) {
 		tSequenceNumberApplied = sequenceNumberApplied;
 	}
 
-	private int tSequenceNumberHighestFetched;
+	private long tSequenceNumberHighestFetched;
 	
-	public int getTSequenceNumberHighestFetched() {
+	public long getTSequenceNumberHighestFetched() {
 		return tSequenceNumberHighestFetched;
 	}
 
 	public void setTSequenceNumberHighestFetched(
-			int sequenceNumberHighestFetched) {
+			long sequenceNumberHighestFetched) {
 		tSequenceNumberHighestFetched = sequenceNumberHighestFetched;
 	}
 
@@ -249,9 +249,9 @@ public class StateDocx {
 	/* Maintain a collection of Transforms keyed by tSequenceNumber, so we 
 	 * can keep track of which ones have been applied.  */
 	// TODO - rename to wrappedTransforms
-	HashMap<Integer, TransformAbstract> wrappedTransforms = new HashMap<Integer, TransformAbstract>();
+	HashMap<Long, TransformAbstract> wrappedTransforms = new HashMap<Long, TransformAbstract>();
 
-	public HashMap<Integer, TransformAbstract> getWrappedTransforms() {
+	public HashMap<Long, TransformAbstract> getWrappedTransforms() {
 		return wrappedTransforms;
 	}
 
