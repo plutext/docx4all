@@ -289,6 +289,10 @@ public class FileMenu extends UIMenu {
 	        	XmlUtil.setSharedDocumentProperties(wmlPackage, d);
 	        	int val = 
 	        		saveAsFile(SAVE_AS_SHARED_DOC_ACTION_NAME, actionEvent, Constants.DOCX_STRING);
+	        	
+        		Cursor origCursor = wmlTextPane.getCursor();
+        		wmlTextPane.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        		
 	        	if (val != JFileChooser.APPROVE_OPTION) {
 	        		//Cancelled or Error
 	        		XmlUtil.removeSharedDocumentProperties(wmlPackage);
@@ -299,8 +303,6 @@ public class FileMenu extends UIMenu {
 	        		//TODO: Display a message saying a shared document can only
 	        		//be created in predefined server and ask user to try again.
 	        	} else {
-	        		Cursor origCursor = wmlTextPane.getCursor();
-	        		wmlTextPane.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 	        		
 	        		String filepath = 
 	        			(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
@@ -325,8 +327,9 @@ public class FileMenu extends UIMenu {
 	        			//and try to reopen it.
 	        		}
 	        		
-	        		wmlTextPane.setCursor(origCursor);
 	        	}
+	        	
+        		wmlTextPane.setCursor(origCursor);
 			}
 			d.dispose();
 		}
