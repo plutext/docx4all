@@ -517,14 +517,17 @@ public class WordMLDocument extends DefaultStyledDocument {
 	public void insertFragment(int offset, WordMLFragment fragment, AttributeSet attrs) 
 		throws BadLocationException {
 		
-		List<ElementMLRecord> paraContentRecords = 
-			fragment.getParagraphContentRecords();
-		List<ElementMLRecord> paragraphRecords = 
-			fragment.getParagraphRecords();
+		List<ElementMLRecord> paraContentRecords = null;
+		List<ElementMLRecord> paragraphRecords = null;
+		if (fragment != null) {
+			paraContentRecords = fragment.getParagraphContentRecords();
+			paragraphRecords = fragment.getParagraphRecords();
+		}		
+						
 		if (paraContentRecords == null && paragraphRecords == null) {
 			if (log.isDebugEnabled()) {
 				log.debug("insertFragment(): offset=" + offset
-					+ " fragment's record = NULL");
+					+ " fragment's records = NULL");
 			}
 			return;
 		}
@@ -1161,7 +1164,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 		log.debug("replace(): offset = " + offset + " length = " + length
 				+ " fragment = " + frag);
 
-		if (length == 0 && frag == null) {
+		if (length == 0) {
 			return;
 		}
 
