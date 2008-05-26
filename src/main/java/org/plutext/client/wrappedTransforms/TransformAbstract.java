@@ -22,6 +22,10 @@ package org.plutext.client.wrappedTransforms;
 import java.math.BigInteger;
 
 import org.docx4all.swing.WordMLTextPane;
+import org.docx4all.swing.text.DocumentElement;
+import org.docx4all.swing.text.WordMLDocument;
+import org.docx4all.xml.ElementML;
+import org.docx4all.xml.SdtBlockML;
 import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
 import org.docx4j.wml.Tag;
@@ -122,10 +126,32 @@ public abstract class TransformAbstract
     	;//do nothing
     }
     
+	protected DocumentElement getDocumentElement(WordMLTextPane editor, SdtBlock sdt) {
+		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+		
+		DocumentElement elem = null;
+		for (int i = 0; i < root.getElementCount() - 1 && elem == null; i++) {
+			elem = (DocumentElement) root.getElement(i);
+			ElementML ml = elem.getElementML();
+			if (ml instanceof SdtBlockML) {
+				SdtBlockML sdtBlockML = (SdtBlockML) ml;
+				if (sdt.getSdtPr().getId().getVal().equals(
+						sdtBlockML.getSdtProperties().getIdValue())) {
+					;//got it
+				} else {
+					elem = null;
+				}
+			} else {
+				elem = null;
+			}
+		}
+		
+		return elem;
+	}
+	
     /* Code to apply the transform */
     	// TODO - think through method signature
     public abstract int apply(ServerFrom serverFrom);
-
-
 
 }
