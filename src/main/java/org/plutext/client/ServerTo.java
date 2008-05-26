@@ -19,8 +19,6 @@
 
 package org.plutext.client;
 
-import java.util.HashMap;
-
 import org.alfresco.webservice.util.AuthenticationUtils;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
@@ -29,7 +27,6 @@ import org.plutext.client.state.ContentControlSnapshot;
 import org.plutext.client.state.StateDocx;
 import org.plutext.client.webservice.PlutextService_ServiceLocator;
 import org.plutext.client.webservice.PlutextWebService;
-import org.plutext.client.wrappedTransforms.TransformAbstract;
 
 /** This class is the real workhorse.  It handles content control events,
  *  and initiates appropriate web service calls in response to those events.
@@ -53,13 +50,22 @@ public class ServerTo {
 		this.serverFrom = new ServerFrom(textPane, stateDocx);
 	}
 	
+	public void startSession() {
+		log.debug("startSession(): Session STARTS...");
+		log.debug("startSession(): Fetching updates...");
+		serverFrom.fetchUpdates(); // TODO - eventually put this in a background thread		
+	}
+	
+	public void endSession() {
+		log.debug("endSession(): Session ENDS....");
+	}
+	
 	/** When this docx4all user deletes a content control */
 	public void userDeletesContentControl(SdtBlock cc) {
 
 		try {
-			log.debug("In Delete event handler.");
-
-			log.debug("DELETING " + cc.getSdtPr().getId().getVal());
+			log.debug("DELETE started: Id=" + cc.getSdtPr().getId().getVal()
+					+ " - Tag=" + cc.getSdtPr().getTag().getVal());
 
 			// Start a new session
 			AuthenticationUtils.startSession(USERNAME, PASSWORD);
@@ -102,6 +108,8 @@ public class ServerTo {
 				ex.printStackTrace();
 			}
 
+			log.debug("Checkin Deletion also returned result[1]: '" + result[1]);
+			
 			// Put this in the list of transforms (and set its status
 			// to applied).  Currently we
 			// only really care to know that this tsn has been applied,
@@ -124,9 +132,6 @@ public class ServerTo {
 	public void userEntersContentControl(SdtBlock cc) {
 		log.debug("ENTER started: Id=" + cc.getSdtPr().getId().getVal()
 			+ " - Tag=" + cc.getSdtPr().getTag().getVal());
-
-		log.debug("Fetching updates..");
-		serverFrom.fetchUpdates(); // TODO - eventually put this in a background thread
 
 		stateDocx.setCurrentCC(cc);
 
@@ -321,8 +326,7 @@ public class ServerTo {
 				 */
 
 				boolean applied = false;
-				HashMap<Integer, TransformAbstract> forceApplicationToSdtIds = serverFrom
-						.registerTransforms(result[1], applied);
+				serverFrom.registerTransforms(result[1], applied);
 				
 				// Update the snapshot of this cc
 				stateDocx.setCurrentCC(cc);
@@ -338,7 +342,7 @@ public class ServerTo {
 		log.debug(".. finished Exit (" + cc.getSdtPr().getId().getVal());
 	}
 
-}
+} //ServerTo class
 
 
 
