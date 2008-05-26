@@ -284,7 +284,7 @@ public class ServerFrom {
 		// which applies to this chunk
 		// ignore this transform
 
-		log.debug("Class: " + t.getClass().getName());
+		log.debug("Class: " + t.getClass().getName() + " id=" + t.getId());
 
 		// Generally, we don't want to overwrite local changes
 		// But when local changes are committed using the web
