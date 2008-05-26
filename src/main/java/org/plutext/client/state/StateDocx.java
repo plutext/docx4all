@@ -27,6 +27,7 @@ import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
+import org.docx4all.util.DocUtil;
 import org.docx4all.xml.DocumentML;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.Id;
@@ -45,11 +46,11 @@ public class StateDocx {
 
 	public StateDocx(WordMLTextPane textPane) {
 		WordMLDocument doc = (WordMLDocument) textPane.getDocument();
-		String fileUri = (String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
-		if (fileUri == null) {
-			throw new IllegalArgumentException("Missing WordMLDocument.FILE_PATH_PROPERTY");
+		if (!DocUtil.isSharedDocument(doc)) {
+			throw new IllegalArgumentException("Invalid WordMLDocument");
 		}
-
+		
+		String fileUri = (String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
     	int idx = fileUri.indexOf("/alfresco/");
     	if (idx <= 0) {
     		//temporary checking
