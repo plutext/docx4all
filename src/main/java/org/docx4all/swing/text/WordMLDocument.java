@@ -1240,25 +1240,31 @@ public class WordMLDocument extends DefaultStyledDocument {
 		Map<BigInteger, SdtBlock> theSnapshots = 
 			new HashMap<BigInteger, SdtBlock>();
 		
-		DocumentElement rootE = (DocumentElement) getDefaultRootElement();
-		int topIdx = rootE.getElementIndex(offset) - 1;
-		int bottomIdx = 
-			Math.min(
-				rootE.getElementIndex(offset + length - 1) + 1,
-				rootE.getElementCount() - 1);
-		for (int i=topIdx+1; i < bottomIdx; i++) {
-			DocumentElement elem = (DocumentElement) rootE.getElement(i);
-			ElementML elemML = elem.getElementML();
-			if (elemML instanceof SdtBlockML) {
-				SdtBlockML elemSdt = (SdtBlockML) elemML;
-				
-				Object cloneObj = XmlUtils.deepCopy(elemSdt.getDocxObject());
-				org.docx4j.wml.SdtBlock snapshot = 
-					(org.docx4j.wml.SdtBlock) JAXBIntrospector.getValue(cloneObj);
-				theSnapshots.put(
-						snapshot.getSdtPr().getId().getVal(),
-						snapshot);
+		try {
+			readLock();
+			
+			DocumentElement rootE = (DocumentElement) getDefaultRootElement();
+			int topIdx = rootE.getElementIndex(offset) - 1;
+			int bottomIdx = Math.min(
+					rootE.getElementIndex(offset + length - 1) + 1, rootE
+							.getElementCount() - 1);
+			for (int i = topIdx + 1; i < bottomIdx; i++) {
+				DocumentElement elem = (DocumentElement) rootE.getElement(i);
+				ElementML elemML = elem.getElementML();
+				if (elemML instanceof SdtBlockML) {
+					SdtBlockML elemSdt = (SdtBlockML) elemML;
+
+					Object cloneObj = XmlUtils
+							.deepCopy(elemSdt.getDocxObject());
+					org.docx4j.wml.SdtBlock snapshot = (org.docx4j.wml.SdtBlock) JAXBIntrospector
+							.getValue(cloneObj);
+					theSnapshots.put(snapshot.getSdtPr().getId().getVal(),
+							snapshot);
+				}
 			}
+			
+		} finally {
+			readUnlock();
 		}
 		
 		if (theSnapshots.isEmpty()) {
