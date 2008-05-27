@@ -318,6 +318,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		//This PlutextClientScheduler is not installed in install() method
 		//but in scheduletPlutextClientWork().
 		if (plutextClientScheduler != null) {
+			plutextClientScheduler.cancel();
 			c.removeCaretListener(plutextClientScheduler);
 			c.getDocument().removeDocumentListener(plutextClientScheduler);
 			plutextClientScheduler = null;
