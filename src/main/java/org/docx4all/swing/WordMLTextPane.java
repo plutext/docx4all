@@ -179,7 +179,7 @@ public class WordMLTextPane extends JEditorPane {
         }
         
         WordMLDocument doc = (WordMLDocument) getDocument();
-        if (doc != null && fragment != null) {
+        if (doc != null) {
         	int start = getSelectionStart();
         	int end = getSelectionEnd();    
         	
@@ -202,7 +202,7 @@ public class WordMLTextPane extends JEditorPane {
 	            	DocUtil.displayStructure(doc);
 	            }
 	            
-				end = start + fragment.getText().length();
+				end = start + ((fragment != null) ? fragment.getText().length() : 0);
 				setCaretPosition(end);
 				
 			} catch (BadLocationException e) {
@@ -227,7 +227,7 @@ public class WordMLTextPane extends JEditorPane {
 	            }
 			}
 			
-        } //if (doc != null && fragment != null)
+        } //if (doc != null)
     } //replaceSelection(WordMLFragment)
     
     /**
