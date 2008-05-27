@@ -195,6 +195,18 @@ public class WordMLEditor extends SingleFrameApplication {
 		}
 		
 		if (canClose) {
+	    	WordMLTextPane editor = SwingUtil.getWordMLTextPane(iframe);
+	    	if (editor != null) {
+	    		editor.removeCaretListener(getToolbarStates());
+	    		editor.removeFocusListener(getToolbarStates());
+	    		editor.setTransferHandler(null);
+	    		
+	    		editor.getDocument().removeDocumentListener(getToolbarStates());
+	    		
+	    		WordMLEditorKit editorKit = (WordMLEditorKit) editor.getEditorKit();
+	    		editorKit.removeInputAttributeListener(getToolbarStates());
+	        	editor.getWordMLEditorKit().deinstall(editor);
+	    	}
 			iframe.dispose();
 		}
     }
@@ -627,12 +639,27 @@ public class WordMLEditor extends SingleFrameApplication {
 
         public void internalFrameClosing(InternalFrameEvent e) {
 			JInternalFrame iframe = (JInternalFrame) e.getSource();
+			
+			boolean canClose = true;
+			
 			if (getToolbarStates().isDocumentDirty(iframe)) {
 				int answer = showConfirmClosingInternalFrame(iframe, "internalframe.close");
-				if (answer != JOptionPane.CANCEL_OPTION) {
-					iframe.dispose();
-				}
-			} else {
+				canClose = (answer != JOptionPane.CANCEL_OPTION);
+			}
+			
+			if (canClose) {
+		    	WordMLTextPane editor = SwingUtil.getWordMLTextPane(iframe);
+		    	if (editor != null) {
+		    		editor.removeCaretListener(getToolbarStates());
+		    		editor.removeFocusListener(getToolbarStates());
+		    		editor.setTransferHandler(null);
+		    		
+		    		editor.getDocument().removeDocumentListener(getToolbarStates());
+		    		
+		    		WordMLEditorKit editorKit = (WordMLEditorKit) editor.getEditorKit();
+		    		editorKit.removeInputAttributeListener(getToolbarStates());
+		        	editor.getWordMLEditorKit().deinstall(editor);
+		    	}
 				iframe.dispose();
 			}
         }
