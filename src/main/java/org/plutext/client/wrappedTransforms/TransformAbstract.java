@@ -122,11 +122,7 @@ public abstract class TransformAbstract
 
     }
 
-	protected void apply(WordMLTextPane editor, int offset) {
-    	;//do nothing
-    }
-    
-	protected DocumentElement getDocumentElement(WordMLTextPane editor, SdtBlock sdt) {
+	protected DocumentElement getDocumentElement(WordMLTextPane editor, BigInteger sdtBlockId) {
 		WordMLDocument doc = (WordMLDocument) editor.getDocument();
 		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
 		
@@ -136,8 +132,7 @@ public abstract class TransformAbstract
 			ElementML ml = elem.getElementML();
 			if (ml instanceof SdtBlockML) {
 				SdtBlockML sdtBlockML = (SdtBlockML) ml;
-				if (sdt.getSdtPr().getId().getVal().equals(
-						sdtBlockML.getSdtProperties().getIdValue())) {
+				if (sdtBlockId.equals(sdtBlockML.getSdtProperties().getIdValue())) {
 					;//got it
 				} else {
 					elem = null;
@@ -153,5 +148,31 @@ public abstract class TransformAbstract
     /* Code to apply the transform */
     	// TODO - think through method signature
     public abstract long apply(ServerFrom serverFrom);
+    
+	/* do the actual replacement in docx4all specific way */
+	protected void apply(WordMLTextPane editor) {
+		;//do nothing
+	}
+	    
+} //TransformAbstract class
 
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
