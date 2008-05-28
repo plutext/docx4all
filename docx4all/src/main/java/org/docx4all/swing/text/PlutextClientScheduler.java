@@ -84,15 +84,6 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
 	//The last recorded 'sdtBlockAtCaret'
 	private SdtBlock lastSdtBlockAtCaret = null;
 	
-	//Plutext client (ServerTo instance) has a method
-	//which is called userEntersContentControl(). 
-	//This method accepts an SdtBlock which will be
-	//set as the plutext client's current SdtBlock
-	//being worked on.
-	//This 'lastSdtBlockAtWork' holds the last 
-	//SdtBlock which was passed to ServerTo.userEntersContentControl().
-	private SdtBlock lastSdtBlockAtWork = null;
-	
 	public PlutextClientScheduler(ServerTo plutextClient) {
 		super();
 		this.plutextClient = plutextClient;
@@ -149,21 +140,7 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
 			
 			worker.setDeletedSdtBlocks(deletedList);
 			worker.setDirtySdtBlocks(dirtyList);
-
-			if (this.lastSdtBlockAtWork != this.sdtBlockAtCaret) {
-				//Tell PlutextClientWorker that there has been
-				//a new SdtBlock on focus. In addition to registering
-				//dirty and deleted SdtBlocks, if any, to the server
-				//PlutextClientWorker will also apply updates from the server.
-				worker.setSdtBlockAtWork(this.sdtBlockAtCaret);
-				this.lastSdtBlockAtWork = this.sdtBlockAtCaret;
-			} else {
-				//Tell PlutextClientWorker not to apply updates 
-				//from plutext server yet.
-				//Dirty and deleted SdtBlocks, if any, may still be
-				//registered to the server.
-				worker.setSdtBlockAtWork(null);				
-			}
+			worker.setSdtBlockAtWork(this.sdtBlockAtCaret);
 			
 			//Both 'dirtySdtBlocks' and 'deletedSdtBlocks' have been
 			//passed on to PlutextClientWorker. It is time to prepare
@@ -251,18 +228,25 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
 				//at this time of 'sdtBlockAtCaret' change. Especially after
 				//editor.saveCaretText() has just been called.
 				//Therefore, refresh the snapshot of 'lastSdtBlockAtCaret'.
-				if (this.lastSdtBlockAtCaret != null) {
+				if (this.lastSdtBlockAtCaret != null
+					&& isInDocument(editor, this.lastSdtBlockAtCaret)) {
+					
 					//A snapshot is a clone. See:WordMLDocument.getSnapshots().
 					Object cloneObj = XmlUtils.deepCopy(this.lastSdtBlockAtCaret);
 					org.docx4j.wml.SdtBlock refreshedLastSdtBlock = 
 						(org.docx4j.wml.SdtBlock) JAXBIntrospector.getValue(cloneObj);
 					BigInteger id = 
 						refreshedLastSdtBlock.getSdtPr().getId().getVal();
-					if (this.dirtySdtBlocks.get(id) != null) {
-						this.dirtySdtBlocks.put(id, refreshedLastSdtBlock);
-					}
 					if (this.deletedSdtBlocks.get(id) != null) {
 						this.deletedSdtBlocks.put(id, refreshedLastSdtBlock);
+						//this.lastSdtBlockAtCaret should not be in 'dirtySdtBlocks'
+						//but just in case
+						this.dirtySdtBlocks.remove(id); 
+					} else {
+						//if 'dirtySdtBlocks' has no record of this.lastSdtBlockAtCaret
+						//then it needs to have now so that Plutext client may register
+						//this.lastSdtBlockAtCaret as an SdtBlock that has been exited.
+						this.dirtySdtBlocks.put(id, refreshedLastSdtBlock);						
 					}
 					log.debug("Refreshed LAST sdtBlockAtCaret.xml="
 						+ ContentControlSnapshot.getContentControlXML(refreshedLastSdtBlock));
@@ -274,6 +258,18 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
 				log.debug("caretUpdate(): New sdtBlockAtCaret == Last sdtBlockAtCaret");
 			}
 		}
+    }
+    
+    private boolean isInDocument(WordMLTextPane editor, SdtBlock sdt) {
+    	boolean isInDocument = false;
+    	
+		DocumentElement root = (DocumentElement) editor.getDocument().getDefaultRootElement();
+		for (int i = 0; i < root.getElementCount() - 1 && !isInDocument; i++) {
+			DocumentElement elem = (DocumentElement) root.getElement(i);
+			isInDocument = (sdt == elem.getElementML().getDocxObject());
+		}
+		
+		return isInDocument;
     }
     
 	// =====================================
