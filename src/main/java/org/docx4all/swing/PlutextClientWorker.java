@@ -62,10 +62,7 @@ public class PlutextClientWorker extends SwingWorker<Void, Void> {
 	}
 	
 	public boolean hasWorkToDo() {
-		return plutextClient != null 
-				&& ((dirtySdtBlocks != null && !dirtySdtBlocks.isEmpty())
-					|| (deletedSdtBlocks != null && !deletedSdtBlocks.isEmpty())
-					|| sdtBlockAtWork != null);
+		return plutextClient != null; 
 	}
 	
     @Override public Void doInBackground() {
@@ -88,9 +85,7 @@ public class PlutextClientWorker extends SwingWorker<Void, Void> {
 						}
 					}
 				}
-				if (sdtBlockAtWork != null) {
-					plutextClient.userEntersContentControl(sdtBlockAtWork);
-				}
+				plutextClient.userEntersContentControl(sdtBlockAtWork);
 				
 			} finally {
 				plutextClient.endSession();
