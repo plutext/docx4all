@@ -129,16 +129,24 @@ public class ServerTo {
 	}
 
 	public void userEntersContentControl(SdtBlock cc) {
-		log.debug("ENTER started: Id=" + cc.getSdtPr().getId().getVal()
-			+ " - Tag=" + cc.getSdtPr().getTag().getVal());
+		String debugMessage = null;
+		if (cc != null) {
+			debugMessage = 
+				"SdtBlock Id=" 
+				+ cc.getSdtPr().getId().getVal()
+				+ " - Tag=" + cc.getSdtPr().getTag().getVal();
+		} else {
+			debugMessage = "SdtBlock == NULL";
+		}
+		
+		log.debug("ENTER started... " + debugMessage);
 
 		stateDocx.setCurrentCC(cc);
 
 		log.debug("invoking applyUpdates from _Enter handler");
 		serverFrom.applyUpdates(null); // anywhere in the document, but nothing forced
 
-		log.debug(".. finished Enter (" + cc.getSdtPr().getId().getVal());
-
+		log.debug("... finished ENTER (" + debugMessage	+ ")");
 	}
 
 	public void userExitsContentControl(SdtBlock cc) {
@@ -177,6 +185,8 @@ public class ServerTo {
 			
 			log.debug(".. returned '" + t + "'");
 			
+			boolean reinstateChunk = false;
+			
 			if (!t.equals("")) {
 				// Yes..so markup this cc with the newer
 				// changes from the server
@@ -192,6 +202,7 @@ public class ServerTo {
 					log.warn("Couldn't find object!");
 				} else if (o.getClass().getName().equals("TransformDelete")) {
 					// Continue - we're set up to reinstate this chunk
+					reinstateChunk = true;
 				} else {
 					// For TransformUpdate, we want to let the use
 					// accept/reject changes before committing
@@ -242,7 +253,7 @@ public class ServerTo {
 				lastKnownState.setDirty(true);
 			}
 
-			if (lastKnownState.getDirty()) {
+			if (lastKnownState.getDirty() || reinstateChunk) {
 				/*                int numParas = cc.Range.Paragraphs.Count;
 				 * 
 				 *                  // TODO: If there is just a single paragraph, we can do the checkin
