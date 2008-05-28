@@ -19,16 +19,18 @@
 
 package org.plutext.client.wrappedTransforms;
 
+import java.math.BigInteger;
 import java.util.Map;
 
 import javax.swing.SwingUtilities;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Position;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLFragment;
 import org.docx4j.wml.Id;
-import org.docx4j.wml.SdtBlock;
 import org.plutext.client.ServerFrom;
 import org.plutext.client.state.ContentControlSnapshot;
 import org.plutext.transforms.Transforms.T;
@@ -48,48 +50,72 @@ public class TransformDelete extends TransformAbstract {
     {
         // Remove the ContentControlSnapshot representing the content control
     	
-       	log.debug("apply(): Deleting SDT Id=" + getId());
-       	
+		log.debug("apply(ServerFrom): Deleting SdtBlock = " + getSdt() 
+				+ " - ID=" + getId().getVal());
+
     	Map<Id, ContentControlSnapshot> snapshots = 
     		serverFrom.getStateDocx().getContentControlSnapshots();
     	if (snapshots.remove(getId()) == null) {
-    		log.debug("apply(): Could not find SDT Id=" + getId() + " snapshot.");
+    		log.debug("apply(): Could not find SDT Id=" + getId().getVal() + " snapshot.");
 	        // couldn't find!
 	        // TODO - throw error
     		return -1;
     	}
     	
-		apply(serverFrom.getWordMLTextPane(), getSdt());
+		apply(serverFrom.getWordMLTextPane());
 		
 		return sequenceNumber;
     }
 
-	protected void apply(final WordMLTextPane editor, final SdtBlock sdt) {
+	protected void apply(final WordMLTextPane editor) {
+		final BigInteger id = getId().getVal();
+		
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				
-				log.debug("apply(WordMLTextPane, SdtBlock): Deleting SDT Id=" 
-						+ sdt.getSdtPr().getId() + " from Editor.");
+				log.debug("apply(WordMLTextPane): Deleting SdtBlock ID=" 
+						+ id + " from Editor.");
 				
-				int origPos = editor.getCaretPosition();
+				Position origPos = null;
 				
 				try {
 					editor.beginContentControlEdit();
+					
+					origPos = editor.getDocument().createPosition(editor.getCaretPosition());
 				
-					DocumentElement elem = getDocumentElement(editor, sdt);
+					DocumentElement elem = getDocumentElement(editor, id);
+					
+					log.debug("apply(WordMLTextPane): SdtBlock Element=" + elem);
+					log.debug("apply(WordMLTextPane): Current caret position="
+						+ origPos.getOffset());
+					
 					if (elem != null) {
-						editor.setCaretPosition(elem.getStartOffset());
-						editor.moveCaretPosition(elem.getEndOffset());
-						editor.replaceSelection((WordMLFragment) null);						
+						if (elem.getStartOffset() <= origPos.getOffset()
+								&& origPos.getOffset() < elem.getEndOffset()) {
+							// elem is still hosting caret.
+							// User may have not finished editing yet.
+							// Do not apply this TransformUpdate now
+							// but wait until user has finished.
+							log.debug("apply(WordMLTextPane): SKIP...StdBlock element is hosting caret.");
+						} else {
+							log.debug("apply(WordMLTextPane): Deleting SdtBlock Element...");
+							editor.setCaretPosition(elem.getStartOffset());
+							editor.moveCaretPosition(elem.getEndOffset());
+							editor.replaceSelection((WordMLFragment) null);
+						}
 					} else {
 						//silently ignore
-						log.warn("apply(WordMLTextPane, SdtBlock): SDT Id=" 
-							+ sdt.getSdtPr().getId() 
+						log.warn("apply(WordMLTextPane): SdtBlock Id=" 
+							+ id
 							+ " NOT FOUND in editor.");
 					}
+				} catch (BadLocationException exc) {
+					;//should not happen
 				} finally {
 					editor.endContentControlEdit();
-					editor.setCaretPosition(origPos);				
+					if (origPos != null) {
+						editor.setCaretPosition(origPos.getOffset());
+					}
 				}
 			}
 		});
