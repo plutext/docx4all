@@ -19,7 +19,11 @@
 
 package org.plutext.client.wrappedTransforms;
 
+import java.math.BigInteger;
+
 import javax.swing.SwingUtilities;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Position;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
@@ -63,41 +67,67 @@ public class TransformUpdate extends TransformAbstract {
 		}
 
 		// TODO - do the actual replacement in a docx4all specific way.
-		apply(serverFrom.getWordMLTextPane(), getSdt());
+		apply(serverFrom.getWordMLTextPane());
 
 		// Fourth, if we haven't thrown an exception, return the sequence number
 		return sequenceNumber;
 	}
 
-	protected void apply(final WordMLTextPane editor, final SdtBlock sdt) {
+	protected void apply(final WordMLTextPane editor) {
+		final SdtBlock sdt = getSdt();
+		
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				log.debug("apply(WordMLTextPane, SdtBlock): Updating SDT Id=" 
-						+ sdt.getSdtPr().getId() + " in Editor.");
+				BigInteger id = sdt.getSdtPr().getId().getVal();
 				
-				int origPos = editor.getCaretPosition();
+				log.debug("apply(WordMLTextPane): Updating SdtBlock Id=" 
+						+ id + " in Editor.");
+				
+				Position origPos = null;
 				
 				try {
 					editor.beginContentControlEdit();
-				
-					DocumentElement elem = getDocumentElement(editor, sdt);
+					
+					origPos = editor.getDocument().createPosition(editor.getCaretPosition());
+								
+					DocumentElement elem = getDocumentElement(editor, id);
+					
+					log.debug("apply(WordMLTextPane): SdtBlock Element=" + elem);
+					log.debug("apply(WordMLTextPane): Current caret position="
+						+ origPos.getOffset());
+					
 					if (elem != null) {
-						ElementMLRecord[] recs = 
-							{new ElementMLRecord(new SdtBlockML(sdt), false)};
-						WordMLFragment frag = new WordMLFragment(recs);
-						
-						editor.setCaretPosition(elem.getStartOffset());
-						editor.moveCaretPosition(elem.getEndOffset());
-						editor.replaceSelection(frag);						
+						if (elem.getStartOffset() <= origPos.getOffset()
+							&& origPos.getOffset() < elem.getEndOffset()) {
+							//elem is still hosting caret.
+							//User may have not finished editing yet.
+							//Do not apply this TransformUpdate now 
+							//but wait until user has finished.
+							log.debug("apply(WordMLTextPane): SKIP...StdBlock element is hosting caret.");
+						} else {
+							log.debug("apply(WordMLTextPane): Updating SdtBlock Element...");
+							
+							ElementMLRecord[] recs = { new ElementMLRecord(
+									new SdtBlockML(sdt), false) };
+							WordMLFragment frag = new WordMLFragment(recs);
+
+							editor.setCaretPosition(elem.getStartOffset());
+							editor.moveCaretPosition(elem.getEndOffset());
+							editor.replaceSelection(frag);
+						}
 					} else {
 						//silently ignore
-						log.warn("apply(WordMLTextPane, SdtBlock): SDT Id=" 
-							+ sdt.getSdtPr().getId() 
+						log.warn("apply(WordMLTextPane): SdtBlock Id=" 
+							+ id
 							+ " NOT FOUND in editor.");
 					}
+				} catch (BadLocationException exc) {
+					;//should not happen
 				} finally {
 					editor.endContentControlEdit();
-					editor.setCaretPosition(origPos);				
+					if (origPos != null) {
+						editor.setCaretPosition(origPos.getOffset());
+					}
 				}
 			}
 		});
