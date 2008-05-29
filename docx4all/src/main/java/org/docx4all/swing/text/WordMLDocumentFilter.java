@@ -81,7 +81,10 @@ public class WordMLDocumentFilter extends DocumentFilter {
 			elem = (DocumentElement) rootE.getElement(rootE.getElementIndex(offset + length - 1));
 			blockEnd = doc.createPosition(elem.getEndOffset());
 			
-			snapshots = doc.getSnapshots(offset, length);
+			snapshots = 
+				doc.getSnapshots(
+					blockStart.getOffset(), 
+					blockEnd.getOffset() - blockStart.getOffset());
 		}
 		
 		try {
@@ -136,7 +139,10 @@ public class WordMLDocumentFilter extends DocumentFilter {
 			elem = (DocumentElement) rootE.getElement(rootE.getElementIndex(offset + length - 1));
 			blockEnd = doc.createPosition(elem.getEndOffset());
 			
-			snapshots = doc.getSnapshots(offset, length);
+			snapshots = 
+				doc.getSnapshots(
+					blockStart.getOffset(), 
+					blockEnd.getOffset() - blockStart.getOffset());
 		}
 		
 		TextReplacer tr = new TextReplacer(fb, offset, length, text, attrs);
@@ -173,6 +179,7 @@ public class WordMLDocumentFilter extends DocumentFilter {
 		
 		Map<BigInteger, SdtBlock> snapshots = null;
 		Position blockStart = null;
+		Position blockEnd = null;
 		
 		if (!doc.isSnapshotFireBan()) {
 			DocumentElement rootE = (DocumentElement) doc.getDefaultRootElement();
@@ -180,7 +187,12 @@ public class WordMLDocumentFilter extends DocumentFilter {
 			DocumentElement elem = (DocumentElement)
 				rootE.getElement(rootE.getElementIndex(offset));
 			blockStart = doc.createPosition(elem.getStartOffset());
-			snapshots = doc.getSnapshots(offset, 1);
+			blockEnd = doc.createPosition(elem.getEndOffset());
+			
+			snapshots = 
+				doc.getSnapshots(
+					blockStart.getOffset(), 
+					blockEnd.getOffset() - blockStart.getOffset());
 		}
 		
 		TextInserter tr = new TextInserter(fb, offset, text, attrs);
@@ -190,7 +202,7 @@ public class WordMLDocumentFilter extends DocumentFilter {
 			WordMLDocument.WordMLDefaultDocumentEvent evt = 
 				doc.new WordMLDefaultDocumentEvent(
 						blockStart.getOffset(),
-						text.length(),
+						blockEnd.getOffset() - blockStart.getOffset(),
 						null,
 						WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
 			evt.setInitialSnapshots(snapshots);
