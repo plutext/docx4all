@@ -52,7 +52,8 @@ public class WordMLDocumentFilter extends DocumentFilter {
     	WordMLDocument doc = (WordMLDocument) fb.getDocument();
     	
 		if (log.isDebugEnabled()) {
-			log.debug("remove(): offset=" + offset 
+			log.debug("remove(): isEnabled()=" + isEnabled()
+				+ " offset=" + offset 
 				+ " length=" + length
 				+ " doc.getLength()=" + doc.getLength());
 		}
@@ -91,19 +92,22 @@ public class WordMLDocumentFilter extends DocumentFilter {
 			TextRemover tr = new TextRemover(fb, offset, length);
 			tr.doAction();
 		} catch (BadSelectionException exc) {
+			//Don't need to fire snapshot change event.
+			blockStart = null;
+			blockEnd = null;
 			throw new BadLocationException("Unselectable range: offset="
 				+ offset + " length=" + length, offset);
-		}
-
-		if (snapshots != null) {
-			WordMLDocument.WordMLDefaultDocumentEvent evt = 
-				doc.new WordMLDefaultDocumentEvent(
+		} finally {
+			if (!doc.isSnapshotFireBan() && blockStart != null && blockEnd != null) {
+				WordMLDocument.WordMLDefaultDocumentEvent evt = 
+					doc.new WordMLDefaultDocumentEvent(
 						blockStart.getOffset(),
 						blockEnd.getOffset() - blockStart.getOffset(),
 						null,
 						WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
-			evt.setInitialSnapshots(snapshots);
-			doc.fireSnapshotChanged(evt);
+				evt.setInitialSnapshots(snapshots);
+				doc.fireSnapshotChanged(evt);
+			}
 		}
 	}
     
@@ -120,6 +124,13 @@ public class WordMLDocumentFilter extends DocumentFilter {
 				+ " doc.getLength()=" + doc.getLength());
 		}
 
+		if (offset < 0 
+				|| offset > doc.getLength() 
+				|| length < 0 
+				|| offset + length > doc.getLength()) {
+			throw new BadLocationException("Invalid replace", offset);
+		}
+			
 		if (!isEnabled()) {
 			super.replace(fb, offset, length, text, attrs);
 			return;
@@ -132,12 +143,35 @@ public class WordMLDocumentFilter extends DocumentFilter {
 		if (!doc.isSnapshotFireBan()) {
 			DocumentElement rootE = (DocumentElement) doc.getDefaultRootElement();
 			
-			DocumentElement elem = (DocumentElement)
-				rootE.getElement(rootE.getElementIndex(offset));
+			int idx = rootE.getElementIndex(offset);
+			if (idx == rootE.getElementCount() - 1) {
+				//if 'offset' points to the last element,
+				//include the snapshot of the last element's 
+				//immediate older sibling.
+				idx = Math.max(0, idx-1);
+			}
+			
+			DocumentElement elem = (DocumentElement) rootE.getElement(idx);
 			blockStart = doc.createPosition(elem.getStartOffset());
 			
-			elem = (DocumentElement) rootE.getElement(rootE.getElementIndex(offset + length - 1));
+			//Remember that (offset <= doc.getLength() - length) or otherwise
+			//BadLocationException must have been thrown. 
+			//length == 0 indicates no text deletion/replacement.
+			idx = (length == 0) ? idx : rootE.getElementIndex(offset + length - 1);
+			
+			elem = (DocumentElement) rootE.getElement(idx);
 			blockEnd = doc.createPosition(elem.getEndOffset());
+			
+			if (blockStart.getOffset() == offset
+				&& blockEnd.getOffset() == offset + length) {
+				//Deleting text within [offset, offset+length]
+				//will cause blockStart to be equal to blockEnd,
+				//hence result in wrong final snapshot.
+				//We extend blockEnd to the end of next element 
+				//to avoid this.
+				elem = (DocumentElement) rootE.getElement(idx + 1);
+				blockEnd = doc.createPosition(elem.getEndOffset());
+			}
 			
 			snapshots = 
 				doc.getSnapshots(
@@ -145,19 +179,29 @@ public class WordMLDocumentFilter extends DocumentFilter {
 					blockEnd.getOffset() - blockStart.getOffset());
 		}
 		
-		TextReplacer tr = new TextReplacer(fb, offset, length, text, attrs);
-		tr.doAction();
-		
-		if (snapshots != null) {
-			WordMLDocument.WordMLDefaultDocumentEvent evt = 
-				doc.new WordMLDefaultDocumentEvent(
+		try {
+			TextReplacer tr = new TextReplacer(fb, offset, length, text, attrs);
+			tr.doAction();
+			
+		} catch (BadSelectionException exc) {
+			//Don't need to fire snapshot change event.
+			blockStart = null;
+			blockEnd = null;
+			throw new BadLocationException("Unselectable range: offset="
+				+ offset + " length=" + length, offset);
+			
+		} finally {
+			if (!doc.isSnapshotFireBan() && blockStart != null && blockEnd != null) {
+				WordMLDocument.WordMLDefaultDocumentEvent evt = 
+					doc.new WordMLDefaultDocumentEvent(
 						blockStart.getOffset(),
 						blockEnd.getOffset() - blockStart.getOffset(),
 						null,
 						WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
-			evt.setInitialSnapshots(snapshots);
-			doc.fireSnapshotChanged(evt);
-		}		
+				evt.setInitialSnapshots(snapshots);
+				doc.fireSnapshotChanged(evt);
+			}
+		}
     }
 
     public void insertString(FilterBypass fb, int offset, String text,
@@ -195,19 +239,21 @@ public class WordMLDocumentFilter extends DocumentFilter {
 					blockEnd.getOffset() - blockStart.getOffset());
 		}
 		
-		TextInserter tr = new TextInserter(fb, offset, text, attrs);
-		tr.doAction();
-		
-		if (snapshots != null) {
-			WordMLDocument.WordMLDefaultDocumentEvent evt = 
-				doc.new WordMLDefaultDocumentEvent(
+		try {
+			TextInserter tr = new TextInserter(fb, offset, text, attrs);
+			tr.doAction();
+		} finally {
+			if (!doc.isSnapshotFireBan() && blockStart != null && blockEnd != null) {
+				WordMLDocument.WordMLDefaultDocumentEvent evt = 
+					doc.new WordMLDefaultDocumentEvent(
 						blockStart.getOffset(),
 						blockEnd.getOffset() - blockStart.getOffset(),
 						null,
 						WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
-			evt.setInitialSnapshots(snapshots);
-			doc.fireSnapshotChanged(evt);
-		}		
+				evt.setInitialSnapshots(snapshots);
+				doc.fireSnapshotChanged(evt);
+			}
+		}
     } //insertString()
     
 }// DocumentFilter class
