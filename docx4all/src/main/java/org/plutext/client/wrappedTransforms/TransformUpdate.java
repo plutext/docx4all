@@ -22,8 +22,6 @@ package org.plutext.client.wrappedTransforms;
 import java.math.BigInteger;
 
 import javax.swing.SwingUtilities;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Position;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
@@ -83,22 +81,20 @@ public class TransformUpdate extends TransformAbstract {
 				log.debug("apply(WordMLTextPane): Updating SdtBlock Id=" 
 						+ id + " in Editor.");
 				
-				Position origPos = null;
+				int origPos = editor.getCaretPosition();
+				boolean forward = true;
 				
 				try {
 					editor.beginContentControlEdit();
 					
-					origPos = editor.getDocument().createPosition(editor.getCaretPosition());
-								
 					DocumentElement elem = getDocumentElement(editor, id);
 					
 					log.debug("apply(WordMLTextPane): SdtBlock Element=" + elem);
-					log.debug("apply(WordMLTextPane): Current caret position="
-						+ origPos.getOffset());
+					log.debug("apply(WordMLTextPane): Current caret position=" + origPos);
 					
 					if (elem != null) {
-						if (elem.getStartOffset() <= origPos.getOffset()
-							&& origPos.getOffset() < elem.getEndOffset()) {
+						if (elem.getStartOffset() <= origPos
+							&& origPos < elem.getEndOffset()) {
 							//elem is still hosting caret.
 							//User may have not finished editing yet.
 							//Do not apply this TransformUpdate now 
@@ -106,6 +102,11 @@ public class TransformUpdate extends TransformAbstract {
 							log.debug("apply(WordMLTextPane): SKIP...StdBlock element is hosting caret.");
 						} else {
 							log.debug("apply(WordMLTextPane): Updating SdtBlock Element...");
+							
+							if (elem.getEndOffset() <= origPos) {
+								origPos = editor.getDocument().getLength() - origPos;
+								forward = false;
+							}
 							
 							ElementMLRecord[] recs = { new ElementMLRecord(
 									new SdtBlockML(sdt), false) };
@@ -121,13 +122,13 @@ public class TransformUpdate extends TransformAbstract {
 							+ id
 							+ " NOT FOUND in editor.");
 					}
-				} catch (BadLocationException exc) {
-					;//should not happen
 				} finally {
-					editor.endContentControlEdit();
-					if (origPos != null) {
-						editor.setCaretPosition(origPos.getOffset());
+					if (!forward) {
+						origPos = editor.getDocument().getLength() - origPos;
 					}
+					log.debug("apply(WordMLTextPane): Set caret position to " + origPos);
+					editor.setCaretPosition(origPos);
+					editor.endContentControlEdit();
 				}
 			}
 		});
