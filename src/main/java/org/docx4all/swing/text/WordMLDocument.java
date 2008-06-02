@@ -83,11 +83,11 @@ public class WordMLDocument extends DefaultStyledDocument {
 		writeUnlock();
 	}
 	
-	public boolean isSnapshotFireBan() {
+	public synchronized boolean isSnapshotFireBan() {
 		return snapshotFireBan;
 	}
 	
-	public void setSnapshotFireBan(boolean b) {
+	public synchronized void setSnapshotFireBan(boolean b) {
 		snapshotFireBan = b;
 	}
 	
@@ -132,13 +132,13 @@ public class WordMLDocument extends DefaultStyledDocument {
     	
     	length = Math.min(getLength() - offset, length);
     	
+		Map<BigInteger, SdtBlock> snapshots = null;
+		Position blockStart = null;
+		Position blockEnd = null;
+		
 		try {
 			writeLock();
 
-			Map<BigInteger, SdtBlock> snapshots = null;
-			Position blockStart = null;
-			Position blockEnd = null;
-			
 			if (!isSnapshotFireBan()) {
 				DocumentElement rootE = (DocumentElement) getDefaultRootElement();
 				
@@ -149,7 +149,10 @@ public class WordMLDocument extends DefaultStyledDocument {
 				elem = (DocumentElement) rootE.getElement(rootE.getElementIndex(offset + length - 1));
 				blockEnd = createPosition(elem.getEndOffset());
 				
-				snapshots = getSnapshots(offset, length);
+				snapshots = 
+					getSnapshots(
+						blockStart.getOffset(), 
+						blockEnd.getOffset() - blockStart.getOffset());
 			}
 			
 			int lastEnd = Integer.MAX_VALUE;
@@ -216,7 +219,8 @@ public class WordMLDocument extends DefaultStyledDocument {
 
 			refreshParagraphs(offset, length);
 			
-			if (snapshots != null) {
+		} finally {
+			if (!isSnapshotFireBan() && blockStart != null && blockEnd != null) {
 				WordMLDocument.WordMLDefaultDocumentEvent evt = 
 					new WordMLDefaultDocumentEvent(
 							blockStart.getOffset(),
@@ -227,7 +231,6 @@ public class WordMLDocument extends DefaultStyledDocument {
 				fireSnapshotChanged(evt);
 			}
 
-		} finally {
 			writeUnlock();
 		}
 	}
@@ -246,24 +249,28 @@ public class WordMLDocument extends DefaultStyledDocument {
 
 		length = Math.min(getLength() - offset, length);
 
+		Map<BigInteger, SdtBlock> snapshots = null;
+		Position blockStart = null;
+		Position blockEnd = null;
+		
 		try {
 			writeLock();
-			
-			Map<BigInteger, SdtBlock> snapshots = null;
-			Position blockStart = null;
-			Position blockEnd = null;
 			
 			if (!isSnapshotFireBan()) {
 				DocumentElement rootE = (DocumentElement) getDefaultRootElement();
 				
-				DocumentElement elem = (DocumentElement)
-					rootE.getElement(rootE.getElementIndex(offset));
+				int idx = rootE.getElementIndex(offset);
+				DocumentElement elem = (DocumentElement) rootE.getElement(idx);
 				blockStart = createPosition(elem.getStartOffset());
 				
-				elem = (DocumentElement) rootE.getElement(rootE.getElementIndex(offset + length - 1));
+				idx = (length == 0) ? idx : rootE.getElementIndex(offset + length - 1);
+				elem = (DocumentElement) rootE.getElement(idx);
 				blockEnd = createPosition(elem.getEndOffset());
 				
-				snapshots = getSnapshots(offset, length);
+				snapshots = 
+					getSnapshots(
+						blockStart.getOffset(), 
+						blockEnd.getOffset() - blockStart.getOffset());
 			}
 			
 			DefaultDocumentEvent changes = 
@@ -293,7 +300,8 @@ public class WordMLDocument extends DefaultStyledDocument {
 			fireChangedUpdate(changes);
 			//fireUndoableEditUpdate(new UndoableEditEvent(this, changes));
 
-			if (snapshots != null) {
+		} finally {
+			if (!isSnapshotFireBan() && blockStart != null && blockEnd != null) {
 				WordMLDocument.WordMLDefaultDocumentEvent evt = 
 					new WordMLDefaultDocumentEvent(
 							blockStart.getOffset(),
@@ -304,7 +312,6 @@ public class WordMLDocument extends DefaultStyledDocument {
 				fireSnapshotChanged(evt);
 			}
 
-		} finally {
 			writeUnlock();
 		}
 	}
@@ -316,29 +323,35 @@ public class WordMLDocument extends DefaultStyledDocument {
 
 		length = Math.min(getLength() - offset, length);
 
+		Map<BigInteger, SdtBlock> snapshots = null;
+		Position blockStart = null;
+		Position blockEnd = null;
+		
 		try {
 			writeLock();
+			
 			Style style = getStyleSheet().getReferredStyle(styleId);
 			String type = 
 				(style == null) 
 					? null 
 					: (String) style.getAttribute(WordMLStyleConstants.StyleTypeAttribute);
+			
 			if (StyleSheet.PARAGRAPH_ATTR_VALUE.equals(type)) {
-				Map<BigInteger, SdtBlock> snapshots = null;
-				Position blockStart = null;
-				Position blockEnd = null;
-				
 				if (!isSnapshotFireBan()) {
 					DocumentElement rootE = (DocumentElement) getDefaultRootElement();
 					
-					DocumentElement elem = (DocumentElement)
-						rootE.getElement(rootE.getElementIndex(offset));
+					int idx = rootE.getElementIndex(offset);
+					DocumentElement elem = (DocumentElement) rootE.getElement(idx);
 					blockStart = createPosition(elem.getStartOffset());
 					
-					elem = (DocumentElement) rootE.getElement(rootE.getElementIndex(offset + length - 1));
+					idx = (length == 0) ? idx : rootE.getElementIndex(offset + length - 1);
+					elem = (DocumentElement) rootE.getElement(idx);
 					blockEnd = createPosition(elem.getEndOffset());
 					
-					snapshots = getSnapshots(offset, length);
+					snapshots = 
+						getSnapshots(
+							blockStart.getOffset(), 
+							blockEnd.getOffset() - blockStart.getOffset());
 				}
 				
 				MutableAttributeSet newAttrs = new SimpleAttributeSet();
@@ -373,22 +386,23 @@ public class WordMLDocument extends DefaultStyledDocument {
 				refreshParagraphs(start, end - start);
 				// fireUndoableEditUpdate(new UndoableEditEvent(this, changes));
 				
-				if (snapshots != null) {
-					WordMLDocument.WordMLDefaultDocumentEvent evt = 
-						new WordMLDefaultDocumentEvent(
-								blockStart.getOffset(),
-								blockEnd.getOffset() - blockStart.getOffset(),
-								null,
-								WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
-					evt.setInitialSnapshots(snapshots);
-					fireSnapshotChanged(evt);
-				}
-
 			} //if (StyleSheet.PARAGRAPH_ATTR_VALUE.equals(type))
 			
 		} catch (BadLocationException exc) {
 			exc.printStackTrace();//ignore
+			
 		} finally {
+			if (!isSnapshotFireBan() && blockStart != null && blockEnd != null) {
+				WordMLDocument.WordMLDefaultDocumentEvent evt = 
+					new WordMLDefaultDocumentEvent(
+							blockStart.getOffset(),
+							blockEnd.getOffset() - blockStart.getOffset(),
+							null,
+							WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
+				evt.setInitialSnapshots(snapshots);
+				fireSnapshotChanged(evt);
+			}
+
 			writeUnlock();
 		}
     }
@@ -401,6 +415,10 @@ public class WordMLDocument extends DefaultStyledDocument {
 
 		length = Math.min(getLength() - offset, length);
 
+		Map<BigInteger, SdtBlock> snapshots = null;
+		Position blockStart = null;
+		Position blockEnd = null;
+		
 		try {
 			writeLock();
 
@@ -408,21 +426,22 @@ public class WordMLDocument extends DefaultStyledDocument {
 			String type = (style == null) ? null : (String) style
 					.getAttribute(WordMLStyleConstants.StyleTypeAttribute);
 			if (StyleSheet.CHARACTER_ATTR_VALUE.equals(type)) {
-				Map<BigInteger, SdtBlock> snapshots = null;
-				Position blockStart = null;
-				Position blockEnd = null;
 				
 				if (!isSnapshotFireBan()) {
 					DocumentElement rootE = (DocumentElement) getDefaultRootElement();
 					
-					DocumentElement elem = (DocumentElement)
-						rootE.getElement(rootE.getElementIndex(offset));
+					int idx = rootE.getElementIndex(offset);
+					DocumentElement elem = (DocumentElement) rootE.getElement(idx);
 					blockStart = createPosition(elem.getStartOffset());
 					
-					elem = (DocumentElement) rootE.getElement(rootE.getElementIndex(offset + length - 1));
+					idx = (length == 0) ? idx : rootE.getElementIndex(offset + length - 1);
+					elem = (DocumentElement) rootE.getElement(idx);
 					blockEnd = createPosition(elem.getEndOffset());
 					
-					snapshots = getSnapshots(offset, length);
+					snapshots = 
+						getSnapshots(
+							blockStart.getOffset(), 
+							blockEnd.getOffset() - blockStart.getOffset());
 				}
 				
 				MutableAttributeSet newAttrs = new SimpleAttributeSet();
@@ -495,21 +514,22 @@ public class WordMLDocument extends DefaultStyledDocument {
 
 				refreshParagraphs(offset, length);
 				
-				if (snapshots != null) {
-					WordMLDocument.WordMLDefaultDocumentEvent evt = 
-						new WordMLDefaultDocumentEvent(
-								blockStart.getOffset(),
-								blockEnd.getOffset() - blockStart.getOffset(),
-								null,
-								WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
-					evt.setInitialSnapshots(snapshots);
-					fireSnapshotChanged(evt);
-				}
-
 			} // if (StyleSheet.CHARACTER_ATTR_VALUE.equals(type))
 		} catch (BadLocationException exc) {
 			exc.printStackTrace();//ignore
+			
 		} finally {
+			if (!isSnapshotFireBan() && blockStart != null && blockEnd != null) {
+				WordMLDocument.WordMLDefaultDocumentEvent evt = 
+					new WordMLDefaultDocumentEvent(
+							blockStart.getOffset(),
+							blockEnd.getOffset() - blockStart.getOffset(),
+							null,
+							WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
+				evt.setInitialSnapshots(snapshots);
+				fireSnapshotChanged(evt);
+			}
+
 			writeUnlock();
 		}
 	}
@@ -562,10 +582,17 @@ public class WordMLDocument extends DefaultStyledDocument {
 			return;
 		}
 		
-		writeLock();
+		//Preparing initial snapshots
+		Map<BigInteger, SdtBlock> snapshots = null;
+		Position blockStart = null;
+		Position blockEnd = null;
+		
 		try {
+			writeLock();
+			
 			DocumentElement rootE = 
 				(DocumentElement) getDefaultRootElement();
+			
 			DocumentElement textE = 
 				(DocumentElement) getCharacterElement(Math.max(offset - 1, 0));
 			if (0 < offset
@@ -574,7 +601,25 @@ public class WordMLDocument extends DefaultStyledDocument {
 						|| (paraContentRecords == null && paragraphRecords != null))) {
 				throw new BadLocationException("Cannot insert here", offset);
 			}
-
+			
+			if (!isSnapshotFireBan()) {
+				int idx = rootE.getElementIndex(offset);
+				if (idx == rootE.getElementCount() - 1) {
+					//if 'offset' points to the last element,
+					//include the snapshot of the last element's 
+					//immediate older sibling.
+					idx = Math.max(0, idx-1);
+				}
+				DocumentElement elem = (DocumentElement) rootE.getElement(idx);
+				blockStart = createPosition(elem.getStartOffset());
+				blockEnd = createPosition(elem.getEndOffset());
+				
+				snapshots = 
+					getSnapshots(
+						blockStart.getOffset(), 
+						(blockEnd.getOffset() - blockStart.getOffset()));
+			}
+			
 			DocumentElement targetE = (DocumentElement) getParagraphMLElement(offset, false);
 			if (targetE.getEndOffset() == rootE.getEndOffset()) {
 				insertAtLastParagraph(paraContentRecords, paragraphRecords);
@@ -748,6 +793,16 @@ public class WordMLDocument extends DefaultStyledDocument {
 			refreshParagraphs(targetE.getStartOffset(), 0);
 			
 		} finally {
+			if (!isSnapshotFireBan() && blockStart != null && blockEnd != null) {
+				WordMLDocument.WordMLDefaultDocumentEvent evt = 
+					new WordMLDefaultDocumentEvent(
+							blockStart.getOffset(),
+							blockEnd.getOffset() - blockStart.getOffset(),
+							null,
+							WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
+				evt.setInitialSnapshots(snapshots);
+				fireSnapshotChanged(evt);
+			}		
 			writeUnlock();
 		}
 	} //insertFragment
@@ -1164,51 +1219,114 @@ public class WordMLDocument extends DefaultStyledDocument {
 		log.debug("replace(): offset = " + offset + " length = " + length
 				+ " fragment = " + frag);
 
+		if (offset < 0 
+			|| offset > getLength() 
+			|| length < 0 
+			|| offset + length > getLength()) {
+			throw new BadLocationException("Invalid replace", offset);
+		}
+		
 		if (length == 0) {
+			//No text deletion/replacement.
+			insertFragment(offset, frag, attrs);
 			return;
 		}
-
-		writeLock();
+		
+		boolean origFireBanState = isSnapshotFireBan();
+		
+		Map<BigInteger, SdtBlock> snapshots = null;
+		Position blockStart = null;
+		Position blockEnd = null;
+		
 		try {
-			if (length > 0 && offset < getLength()) {
-				Element elem = getDefaultRootElement();
-				elem = elem.getElement(elem.getElementCount() - 2);
-				if (offset == elem.getStartOffset()
-					&& elem.getEndOffset() == offset + length) {
-					//Replacing the last block element, which is the
-					//immediate older sibling of the last end paragraph,
-					//has to be done differently. Instead of removing
-					//selected area first, we insert the fragment
-					//first. If we do not do this then the application
-					//will be FROZEN for unknown reason.
-					//TODO: Investigate this further.
-					insertFragment(offset + length, frag, attrs);
-					remove(offset, length);
-					
-				} else {
-					remove(offset, length);
+			writeLock();
+			
+			if (!isSnapshotFireBan()) {
+				DocumentElement rootE = (DocumentElement) getDefaultRootElement();
+				
+				int idx = rootE.getElementIndex(offset);
+				DocumentElement elem = (DocumentElement) rootE.getElement(idx);
+				blockStart = createPosition(elem.getStartOffset());
+				
+				//Remember that (offset <= doc.getLength() - length) or otherwise
+				//BadLocationException must have been thrown. 
+				idx = rootE.getElementIndex(offset + length - 1);
+				elem = (DocumentElement) rootE.getElement(idx);
+				blockEnd = createPosition(elem.getEndOffset());
 
-					// The removed text may have been simply part of
-					// a single TextElement's content. If that is the case
-					// then there has not been ElementML manipulation involved
-					// and hence, we need to save the remaining text content to
-					// its
-					// ElementML.
-					// Now, the issue is the 'offset' position may have become
-					// either at the start or end of the TextElement. Therefore,
-					// we save two TextElements in here.
-					elem = getCharacterElement(offset - 1);
-					DocUtil.saveTextContentToElementML((TextElement) elem);
-					elem = (TextElement) getCharacterElement(offset);
-					DocUtil.saveTextContentToElementML((TextElement) elem);
-					
-					insertFragment(offset, frag, attrs);
+				if (blockStart.getOffset() == offset
+					&& blockEnd.getOffset() == offset + length) {
+					//Deleting text within [offset, offset+length]
+					//will cause blockStart to be equal to blockEnd,
+					//hence result in wrong final snapshot.
+					//We extend blockEnd to the end of next element 
+					//to avoid this.
+					elem = (DocumentElement) rootE.getElement(idx + 1);
+					blockEnd = createPosition(elem.getEndOffset());
 				}
+				snapshots = 
+					getSnapshots(
+						blockStart.getOffset(), 
+						blockEnd.getOffset() - blockStart.getOffset());
+			}
+			
+			//We want to fire snapshot change event just once and
+			//fire the one that belongs to this replace() method only.
+			//Therefore we stop insertFragment() and remove() methods
+			//called shortly from firing snapshot change event.
+			//We have kept the current state of snapshot fire ban in
+			//'origFireBanState' variable and will restore it later. 
+			setSnapshotFireBan(true);
+			
+			Element elem = getDefaultRootElement();
+			elem = elem.getElement(elem.getElementCount() - 2);
+			if (offset == elem.getStartOffset()
+				&& elem.getEndOffset() == offset + length) {
+				//Replacing the last block element, which is the
+				//immediate older sibling of the last end paragraph,
+				//has to be done differently. Instead of removing
+				//selected area first, we insert the fragment
+				//first. If we do not do this then the application
+				//will be FROZEN for unknown reason.
+				//TODO: Investigate this further.
+				insertFragment(offset + length, frag, attrs);
+				remove(offset, length);
+					
 			} else {
+				remove(offset, length);
+
+				// The removed text may have been simply part of
+				// a single TextElement's content. If that is the case
+				// then there has not been ElementML manipulation involved
+				// and hence, we need to save the remaining text content to
+				// its
+				// ElementML.
+				// Now, the issue is the 'offset' position may have become
+				// either at the start or end of the TextElement. Therefore,
+				// we save two TextElements in here.
+				elem = getCharacterElement(offset - 1);
+				DocUtil.saveTextContentToElementML((TextElement) elem);
+				elem = (TextElement) getCharacterElement(offset);
+				DocUtil.saveTextContentToElementML((TextElement) elem);
+				
 				insertFragment(offset, frag, attrs);
 			}
 			
 		} finally {
+			//Restore the original fire ban state
+			setSnapshotFireBan(origFireBanState);
+			
+			if (!isSnapshotFireBan() && blockStart != null && blockEnd != null) {
+				WordMLDocument.WordMLDefaultDocumentEvent evt = 
+					new WordMLDefaultDocumentEvent(
+							blockStart.getOffset(),
+							blockEnd.getOffset() - blockStart.getOffset(),
+							null,
+							WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
+				evt.setInitialSnapshots(snapshots);
+				fireSnapshotChanged(evt);
+			}
+			
 			writeUnlock();
 		}
 
