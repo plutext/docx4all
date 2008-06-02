@@ -34,29 +34,29 @@ public class TextReplacer implements TextProcessor {
 
 	private final FilterBypass filterBypass;
 	private final int offset;
-	private final int length;
 	private final String text;
 	private final AttributeSet attrs;
 	
-	public TextReplacer(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) {
+	private final TextRemover textRemover;
+	
+	public TextReplacer(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) 
+		throws BadSelectionException {
+		
+		if (length > 0 && offset < fb.getDocument().getLength()) {
+			this.textRemover = new TextRemover(fb, offset, length);
+		} else {
+			this.textRemover = null;
+		}
+		
 		this.filterBypass = fb;
 		this.offset = offset;
-		this.length = length;
 		this.text = text;
 		this.attrs = (attrs == null) ? SimpleAttributeSet.EMPTY : attrs;
 	}
 
 	public void doAction() throws BadLocationException {
-		final WordMLDocument doc = (WordMLDocument) filterBypass.getDocument();
-		
-		if (length > 0 && offset < doc.getLength()) {
-			try {
-				TextRemover tr = new TextRemover(filterBypass, offset, length);
-				tr.doAction();
-			} catch (BadSelectionException exc) {
-				throw new BadLocationException("Unselectable range: offset="
-						+ offset + " length=" + length, offset);
-			}
+		if (textRemover != null) {
+			textRemover.doAction();
 		}
 
 		if (text != null && text.length() > 0) {
