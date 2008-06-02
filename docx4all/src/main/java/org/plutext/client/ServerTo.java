@@ -19,6 +19,8 @@
 
 package org.plutext.client;
 
+import java.rmi.RemoteException;
+
 import org.alfresco.webservice.util.AuthenticationUtils;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
@@ -37,8 +39,8 @@ public class ServerTo {
 	// TEMP values for testing purposes
 	// Ultimately, username and password will be the same as used
 	// for the Webdav connection.
-	protected static final String USERNAME = "admin";
-	protected static final String PASSWORD = "admin";
+	public static final String USERNAME = "admin";
+	public static final String PASSWORD = "admin";
 
 	private final StateDocx stateDocx;
 
@@ -235,114 +237,38 @@ public class ServerTo {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
+			
+			if (reinstateChunk) {
+				reinstateChunk(ws, cc);
+			} else {
+				// Has the content control changed?
+				// String currentXML = ContentControlSnapshot.getContentControlXMLNormalised(cc);
+				String currentXML = ContentControlSnapshot.getContentControlXML(cc);
 
-			// Has the content control changed?
-			//                String currentXML = ContentControlSnapshot.getContentControlXMLNormalised(cc);
-			String currentXML = ContentControlSnapshot.getContentControlXML(cc);
+				log.debug("Current: " + currentXML);
 
-			log.debug("Current: " + currentXML);
+				log.debug("Last known: " + lastKnownState.getPointInTimeXml());
 
-			log.debug("Last known: " + lastKnownState.getPointInTimeXml());
-
-			if (!currentXML.equals(lastKnownState.getPointInTimeXml())) {
-				log.debug("CC OpenXML changed!");
-				log.debug("FROM " + lastKnownState.getPointInTimeXml());
-				log.debug("");
-				log.debug("TO   " + currentXML);
-				log.debug("");
-				lastKnownState.setDirty(true);
-			}
-
-			if (lastKnownState.getDirty() || reinstateChunk) {
-				/*                int numParas = cc.Range.Paragraphs.Count;
-				 * 
-				 *                  // TODO: If there is just a single paragraph, we can do the checkin
-				 *                  // in a separate thread.
-				 * 
-				 * 
-				                diagnostics("New contents detected (" + numParas + ") : " + stateChunkOnExit.RangeText);
-
-				                if (chunkingStrategy.Equals("EachBlock") && numParas > 1 )
-				 */
-				// Just check in the whole SDT
-				// First, get the XML for the SDT
-				String chunkXml = ContentControlSnapshot
-						.getContentControlXML(cc);
-
-				String[] result = { "", "" };
-				if (stateDocx.getPromptForCheckinMessage()) {
-
-					// TODO - checkin form in docx4all
-
-					//                        formCheckin form = new formCheckin();
-					//                        form.Text = "Changes to '" + plutextTabbedControl.TextBoxChunkDisplayName.Text + "'";
-					//                        using (form)
-					//                        {
-					//                            if (form.ShowDialog(plutextTabbedControl) == DialogResult.OK)
-					//                            {
-					//                                //log.warn(form.textBoxChange.Text);
-					//                                result = ws.checkinWithComment(stateDocx.DocID, getChunkId(cc.ID), chunkXml, form.textBoxChange.Text);
-					//                            }
-					//                        }
-				} else {
-					result = ws.checkinWithComment(stateDocx.getDocID(), Util
-							.getChunkId(cc.getSdtPr().getId()), chunkXml,
-							"edited"); // Comment is simply "edited"
+				if (!currentXML.equals(lastKnownState.getPointInTimeXml())) {
+					log.debug("CC OpenXML changed!");
+					log.debug("FROM " + lastKnownState.getPointInTimeXml());
+					log.debug("");
+					log.debug("TO   " + currentXML);
+					log.debug("");
+					lastKnownState.setDirty(true);
 				}
 
-				/*                diagnostics("Count: " + cc.Range.Paragraphs.Count);
-				                if (cc.Range.Paragraphs.Count > 1 && stateDocx.ChunkingStrategy.Equals("EachBlock")) // TODO:  AND Chunk on Each Para
-				                {
-				 */
-				log.debug("Checkin also returned result[1]: '" + result[1]);
-
-				/* We expect that the SDT in the document is the same as the
-				 * SDT on the server (and as returned in the transform), except 
-				 * that the version number of the server copy has been incremented.
-				 * (The version number is stored in sdtPr/@tag)
-				 * 
-				 * (They will be the same, since docx4all (will) contains its own 
-				 * logic for splitting a multi para cc (when we're chunking on 
-				 * each block) into new cc's.)
-				 * 
-				 * Anyway, the local sdt/sdtPr/@tag needs to be updated.
-				 * 
-				 * There are various ways to do this, which all amount to much
-				 * the same thing.
-				 * 
-				 * The first thought is to programmatically update @tag directly.
-				 * But if you are going to inspect the sdt received from the 
-				 * server to find its @tag, you may as well use TransformUpdate.
-				 * 
-				 * If you did this, you could set applied = true.
-				 * 
-				 * The alternative is to rely on serverFrom.applyUpdates.
-				 * 
-				 * If you do this, you need to ensure that the local changes
-				 * aren't mistaken for further changes which need to be merged.
-				 * 
-				 * There are 2 ways to ensure this:
-				 * 
-				 * (i) forceApplicationToSdtIds (which is what we do in the
-				 *     Word 2007 add in), or
-				 *     
-				 * (ii)update the snapshot of the content control 
-				 * 
-				 * We do (ii), since it doesn't require us to call 
-				 * serverFrom.applyUpdates(forceApplicationToSdtIds, forceApplicationToSdtIds);
-				 * here.
-				 * 
-				 */
-
-				boolean applied = false;
-				serverFrom.registerTransforms(result[1], applied);
-				
-				// Update the snapshot of this cc
-				stateDocx.setCurrentCC(cc);  // TODO (when we implement merge) - this isn't actually setting the cc to what came back from the server!
-				stateDocx.setCurrentCC(null);
-				
-				// Note that exit handler does not invoke applyUpdates 
-
+				if (lastKnownState.getDirty()) {
+					checkInUpdatedChunk(ws, cc);
+					
+					// Update the snapshot of this cc
+					// TODO (when we implement merge) - this isn't actually setting the cc 
+					// to what came back from the server!
+					stateDocx.setCurrentCC(cc); 
+					stateDocx.setCurrentCC(null);
+					
+					// Note that exit handler does not invoke applyUpdates 
+				}
 			}
 
 		} catch (Exception e) {
@@ -351,6 +277,100 @@ public class ServerTo {
 		log.debug(".. finished Exit (" + cc.getSdtPr().getId().getVal());
 	}
 
+	private void reinstateChunk(PlutextWebService ws, SdtBlock cc) {
+		String currentXML = ContentControlSnapshot.getContentControlXML(cc);
+		log.debug("Reinstates chunk: " + currentXML);
+		log.warn("REINSTATING CHUNK IS UNDER CONSTRUCTION.");
+	}
+	
+	private void checkInUpdatedChunk(PlutextWebService ws, SdtBlock cc) 
+		throws RemoteException {
+		
+		/*
+		 * int numParas = cc.Range.Paragraphs.Count;
+		 *  // TODO: If there is just a single paragraph, we can do the
+		 * checkin // in a separate thread.
+		 * 
+		 * 
+		 * diagnostics("New contents detected (" + numParas + ") : " +
+		 * stateChunkOnExit.RangeText);
+		 * 
+		 * if (chunkingStrategy.Equals("EachBlock") && numParas > 1 )
+		 */
+		// Just check in the whole SDT
+		// First, get the XML for the SDT
+		String chunkXml = ContentControlSnapshot.getContentControlXML(cc);
+
+		String[] result = { "", "" };
+		if (stateDocx.getPromptForCheckinMessage()) {
+			// TODO - checkin form in docx4all
+
+			// formCheckin form = new formCheckin();
+			// form.Text = "Changes to '" + plutextTabbedControl.TextBoxChunkDisplayName.Text + "'";
+			// using (form)
+			// {
+			//    if (form.ShowDialog(plutextTabbedControl) == DialogResult.OK)
+			//    {
+			//        //log.warn(form.textBoxChange.Text);
+			//        result = ws.checkinWithComment(stateDocx.DocID, getChunkId(cc.ID), chunkXml, form.textBoxChange.Text);
+			//    }
+			// }
+		} else {
+			result = 
+				ws.checkinWithComment(
+					stateDocx.getDocID(), 
+					Util.getChunkId(cc.getSdtPr().getId()), 
+					chunkXml, "edited"); // Comment is simply "edited"
+		}
+
+		/*                diagnostics("Count: " + cc.Range.Paragraphs.Count);
+		                if (cc.Range.Paragraphs.Count > 1 && stateDocx.ChunkingStrategy.Equals("EachBlock")) // TODO:  AND Chunk on Each Para
+		                {
+		 */
+		log.debug("Checkin also returned result[1]: '" + result[1]);
+
+		/* We expect that the SDT in the document is the same as the
+		 * SDT on the server (and as returned in the transform), except 
+		 * that the version number of the server copy has been incremented.
+		 * (The version number is stored in sdtPr/@tag)
+		 * 
+		 * (They will be the same, since docx4all (will) contains its own 
+		 * logic for splitting a multi para cc (when we're chunking on 
+		 * each block) into new cc's.)
+		 * 
+		 * Anyway, the local sdt/sdtPr/@tag needs to be updated.
+		 * 
+		 * There are various ways to do this, which all amount to much
+		 * the same thing.
+		 * 
+		 * The first thought is to programmatically update @tag directly.
+		 * But if you are going to inspect the sdt received from the 
+		 * server to find its @tag, you may as well use TransformUpdate.
+		 * 
+		 * If you did this, you could set applied = true.
+		 * 
+		 * The alternative is to rely on serverFrom.applyUpdates.
+		 * 
+		 * If you do this, you need to ensure that the local changes
+		 * aren't mistaken for further changes which need to be merged.
+		 * 
+		 * There are 2 ways to ensure this:
+		 * 
+		 * (i) forceApplicationToSdtIds (which is what we do in the
+		 *     Word 2007 add in), or
+		 *     
+		 * (ii)update the snapshot of the content control 
+		 * 
+		 * We do (ii), since it doesn't require us to call 
+		 * serverFrom.applyUpdates(forceApplicationToSdtIds, forceApplicationToSdtIds);
+		 * here.
+		 * 
+		 */
+
+		boolean applied = false;
+		serverFrom.registerTransforms(result[1], applied);
+
+	}
 } //ServerTo class
 
 
