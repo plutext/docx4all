@@ -84,6 +84,15 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
 	//The last recorded 'sdtBlockAtCaret'
 	private SdtBlock lastSdtBlockAtCaret = null;
 	
+	//Plutext client (ServerTo instance) has a method
+	//which is called userEntersContentControl(). 
+	//This method accepts an SdtBlock which will be
+	//recorded as the plutext client's current SdtBlock
+	//being worked on.
+	//This 'lastSdtBlockAtWork' holds the last 
+	//SdtBlock which was passed to ServerTo.userEntersContentControl().
+	private SdtBlock lastSdtBlockAtWork = null;
+	
 	public PlutextClientScheduler(ServerTo plutextClient) {
 		super();
 		this.plutextClient = plutextClient;
@@ -140,7 +149,30 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
 			
 			worker.setDeletedSdtBlocks(deletedList);
 			worker.setDirtySdtBlocks(dirtyList);
-			worker.setSdtBlockAtWork(this.sdtBlockAtCaret);
+			
+			if (this.lastSdtBlockAtWork != this.sdtBlockAtCaret) {
+				//Plutext client will:
+				//1. Fetch updates from the server.
+				//2. Register deleted and dirty SdtBlocks to the server.
+				//3. Set StateDocx.currentCC to this.sdtBlockAtCaret.
+				//   This causes StateDocx to refresh its snapshot on this.sdtBlockAtCaret.
+				//4. Apply all registered updates.
+				Object cloneObj = XmlUtils.deepCopy(this.sdtBlockAtCaret);
+				org.docx4j.wml.SdtBlock sdt = 
+					(org.docx4j.wml.SdtBlock) JAXBIntrospector.getValue(cloneObj);
+				worker.setSdtBlockAtWork(sdt);
+				this.lastSdtBlockAtWork = this.sdtBlockAtCaret;
+			} else {
+				//Plutext client will:
+				//1. Fetch updates from the server.
+				//2. Register deleted and dirty SdtBlocks to the server.
+				//3. Set StateDocx.currentCC to NULL.
+				//   This causes StateDocx NOT TO REFRESH its snapshot on this.sdtBlockAtCaret.
+				//   We do not want StateDocx to refresh because user may not have finished
+				//   editing this.sdtBlockAtCaret.
+				//4. Apply all registered updates.
+				worker.setSdtBlockAtWork(null);				
+			}
 			
 			//Both 'dirtySdtBlocks' and 'deletedSdtBlocks' have been
 			//passed on to PlutextClientWorker. It is time to prepare
@@ -174,6 +206,7 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
      */
     public void caretUpdate(CaretEvent evt) {			
     	WordMLTextPane editor = (WordMLTextPane) evt.getSource();
+    	
 		int pos = evt.getDot();
 		SdtBlockView v = SwingUtil.getSdtBlockView(editor, pos);
 		
