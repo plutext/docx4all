@@ -119,6 +119,8 @@ public class WordMLEditorKit extends DefaultEditorKit {
 
     private DocumentElement currentRunE;
     
+    private boolean inContentControlEdit;
+    
     /**
      * The event listener list for this WordMLEditorKit.
      */
@@ -132,6 +134,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		caretListener = new CaretListener();
 		mouseListener = new MouseListener();
 		contentControlTracker = new ContentControlTracker();
+		inContentControlEdit = false;
 		
         inputAttributes = new SimpleAttributeSet() {
             public AttributeSet getResolveParent() {
@@ -156,14 +159,29 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		WordMLDocument doc = (WordMLDocument) editor.getDocument();
 		doc.lockWrite();
 		doc.setSnapshotFireBan(true);
-		editor.removeCaretListener(contentControlTracker);
+		
+		doc.removeDocumentListener(this.plutextClientScheduler);
+		editor.removeCaretListener(this.plutextClientScheduler);
+		//editor.removeCaretListener(contentControlTracker);
+		
+		inContentControlEdit = true;
 	}
 	
 	public final synchronized void endContentControlEdit(WordMLTextPane editor) {
-		editor.addCaretListener(contentControlTracker);
 		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+		
+		inContentControlEdit = false;
+		
+		//editor.addCaretListener(contentControlTracker);
+		editor.addCaretListener(this.plutextClientScheduler);
+		doc.addDocumentListener(this.plutextClientScheduler);
+		
 		doc.setSnapshotFireBan(false);
 		doc.unlockWrite();
+	}
+	
+	public final synchronized boolean isInContentControlEdit() {
+		return inContentControlEdit;
 	}
 	
     public void addInputAttributeListener(InputAttributeListener listener) {
