@@ -91,6 +91,10 @@ public class WordMLTextPane extends JEditorPane {
 		getWordMLEditorKit().endContentControlEdit(this);
 	}
 	
+	public boolean isInContentControlEdit() {
+		return getWordMLEditorKit().isInContentControlEdit();
+	}
+	
     public void setDocument(Document doc) {
         if (doc instanceof WordMLDocument) {
             super.setDocument(doc);
