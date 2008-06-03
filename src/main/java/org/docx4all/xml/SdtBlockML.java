@@ -35,21 +35,11 @@ public class SdtBlockML extends ElementML {
 	private static Logger log = Logger.getLogger(SdtBlockML.class);
 
 	private SdtPrML sdtPr;
-	private boolean isBorderVisible;
 	
 	public SdtBlockML(Object docxObject) {
 		this(docxObject, false);
-		isBorderVisible = false;
 	}
 	
-	public boolean isBorderVisible() {
-		return isBorderVisible;
-	}
-	
-	public void setBorderVisible(boolean b) {
-		isBorderVisible = b;
-	}
-
 	public SdtBlockML(Object docxObject, boolean isDummy) {
 		super(docxObject, isDummy);
 	}
