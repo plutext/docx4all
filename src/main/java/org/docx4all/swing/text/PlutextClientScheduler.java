@@ -144,6 +144,10 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
 			
 			//Pass on 'dirtySdtBlocks' and 'deletedSdtBlocks' 
 			//to PlutextClientWorker as lists.
+			for (BigInteger deletedId:this.deletedSdtBlocks.keySet()) {
+				//A deleted SdtBlock must not be dirty.
+				this.dirtySdtBlocks.remove(deletedId);
+			}
 			dirtyList = new ArrayList<SdtBlock>(this.dirtySdtBlocks.values());
 			deletedList = new ArrayList<SdtBlock>(this.deletedSdtBlocks.values());
 			
