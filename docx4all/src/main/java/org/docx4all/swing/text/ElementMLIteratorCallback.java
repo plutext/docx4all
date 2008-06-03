@@ -53,8 +53,12 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		} else if (elem instanceof ParagraphML) {
 			openElementSpec((ParagraphML) elem);
 		
-		} else if (elem instanceof SdtBlockML) {
-			openElementSpec((SdtBlockML) elem);
+		//Uncomment this when SdtBlockML needs
+		//to be handled specifically.
+		//If you do this you may need to visit 
+		//handleEndElement().
+		//} else if (elem instanceof SdtBlockML) {
+		//	openElementSpec((SdtBlockML) elem);
 			
 		} else if (elem instanceof BodyML) {
 			;//bypass
@@ -76,9 +80,13 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 			
 		} else if (elem instanceof ParagraphML) {
 			closeElementSpec((ParagraphML) elem);
-			
-		} else if (elem instanceof SdtBlockML) {
-			closeElementSpec((SdtBlockML) elem);
+		
+		//Uncomment this when SdtBlockML needs
+		//to be handled specifically.
+		//If you do this you may need to visit 
+		//handleStartElement().
+		//} else if (elem instanceof SdtBlockML) {
+		//	closeElementSpec((SdtBlockML) elem);
 			
 		} else if (elem instanceof BodyML) {
 			;//bypass
@@ -274,9 +282,6 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	private void openElementSpec(SdtBlockML sdtBlockML) {
 		SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
 		WordMLStyleConstants.setElementML(elemAttrs, sdtBlockML);
-		if (sdtBlockML.isBorderVisible()) {
-			WordMLStyleConstants.setBorderVisible(elemAttrs, true);
-		}
 		openElementSpec(elemAttrs);
 	}
 	
