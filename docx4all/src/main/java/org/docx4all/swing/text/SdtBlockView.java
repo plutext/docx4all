@@ -20,14 +20,12 @@
 package org.docx4all.swing.text;
 
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.Shape;
 import java.util.List;
 
-import javax.swing.event.DocumentEvent;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.BoxView;
 import javax.swing.text.Element;
@@ -51,6 +49,7 @@ public class SdtBlockView extends BoxView {
 	public SdtBlockView(Element elem) {
 		super(elem, View.Y_AXIS);
 		setInsets(INSET_TOP, INSET_LEFT, INSET_BOTTOM, INSET_RIGHT);
+		isBorderVisible = false;
 	}
 	
 	public void setBorderVisible(boolean b) {
