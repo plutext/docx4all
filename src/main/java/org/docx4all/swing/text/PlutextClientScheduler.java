@@ -135,7 +135,7 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
 				//As sdtBlockAtCaret is a SdtBlock which is currently being worked on
 				//it should not be a dirty SdtBlock YET; ie: in this round of execution.
 				//Once it has released the caret, it will be entitled to. This may
-				//happen in future round of execution.
+				//happen in next round of execution.
 				BigInteger id = this.sdtBlockAtCaret.getSdtPr().getId().getVal();
 				if (this.dirtySdtBlocks.get(id) != null) {
 					this.dirtySdtBlocks.remove(id);
@@ -155,7 +155,8 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
 			worker.setDeletedSdtBlocks(deletedList);
 			worker.setDirtySdtBlocks(dirtyList);
 			
-			if (this.lastSdtBlockAtWork != this.sdtBlockAtCaret) {
+			if (this.lastSdtBlockAtWork != this.sdtBlockAtCaret
+				&& !isDirtyAndRemoved) {
 				//Plutext client will:
 				//1. Fetch updates from the server.
 				//2. Register deleted and dirty SdtBlocks to the server.
