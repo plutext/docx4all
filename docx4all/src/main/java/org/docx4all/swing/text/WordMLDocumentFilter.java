@@ -25,7 +25,6 @@ import java.util.Map;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
-import javax.swing.text.Position;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.event.WordMLDocumentEvent;
@@ -69,23 +68,25 @@ public class WordMLDocumentFilter extends DocumentFilter {
 		}
 		
 		Map<BigInteger, SdtBlock> snapshots = null;
-		Position blockStart = null;
-		Position blockEnd = null;
+		int blockStart = -1;
+		int blockEnd = -1;
 		
 		if (!doc.isSnapshotFireBan()) {
 			DocumentElement rootE = (DocumentElement) doc.getDefaultRootElement();
 			
-			DocumentElement elem = (DocumentElement)
-				rootE.getElement(rootE.getElementIndex(offset));
-			blockStart = doc.createPosition(elem.getStartOffset());
+			int idx = rootE.getElementIndex(offset);
+			DocumentElement elem = (DocumentElement) rootE.getElement(idx);
+			//blockStart keeps the distance of elem's start position 
+			//from the first character in document (offset == 0)
+			blockStart = elem.getStartOffset();
 			
-			elem = (DocumentElement) rootE.getElement(rootE.getElementIndex(offset + length - 1));
-			blockEnd = doc.createPosition(elem.getEndOffset());
-			
-			snapshots = 
-				doc.getSnapshots(
-					blockStart.getOffset(), 
-					blockEnd.getOffset() - blockStart.getOffset());
+			idx = rootE.getElementIndex(offset + length - 1);
+			elem = (DocumentElement) rootE.getElement(idx);
+			//blockEnd keeps the distance of elem's end position
+			//from the last character in document (offset == getLength())
+			blockEnd = Math.max(0, doc.getLength() - elem.getEndOffset());
+
+			snapshots = doc.getSnapshots(blockStart, (doc.getLength() - blockEnd) - blockStart);
 		}
 		
 		try {
@@ -93,16 +94,16 @@ public class WordMLDocumentFilter extends DocumentFilter {
 			tr.doAction();
 		} catch (BadSelectionException exc) {
 			//Don't need to fire snapshot change event.
-			blockStart = null;
-			blockEnd = null;
+			blockStart = -1;
+			blockEnd = -1;
 			throw new BadLocationException("Unselectable range: offset="
 				+ offset + " length=" + length, offset);
 		} finally {
-			if (!doc.isSnapshotFireBan() && blockStart != null && blockEnd != null) {
+			if (!doc.isSnapshotFireBan() && blockStart >= 0 && blockEnd >= 0) {
 				WordMLDocument.WordMLDefaultDocumentEvent evt = 
 					doc.new WordMLDefaultDocumentEvent(
-						blockStart.getOffset(),
-						blockEnd.getOffset() - blockStart.getOffset(),
+						blockStart,
+						(doc.getLength() - blockEnd) - blockStart,
 						null,
 						WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
 				evt.setInitialSnapshots(snapshots);
@@ -137,46 +138,27 @@ public class WordMLDocumentFilter extends DocumentFilter {
 		}
 		
 		Map<BigInteger, SdtBlock> snapshots = null;
-		Position blockStart = null;
-		Position blockEnd = null;
+		int blockStart = -1;
+		int blockEnd = -1;
 		
 		if (!doc.isSnapshotFireBan()) {
 			DocumentElement rootE = (DocumentElement) doc.getDefaultRootElement();
 			
 			int idx = rootE.getElementIndex(offset);
-			if (idx == rootE.getElementCount() - 1) {
-				//if 'offset' points to the last element,
-				//include the snapshot of the last element's 
-				//immediate older sibling.
-				idx = Math.max(0, idx-1);
-			}
-			
 			DocumentElement elem = (DocumentElement) rootE.getElement(idx);
-			blockStart = doc.createPosition(elem.getStartOffset());
+			//blockStart keeps the distance of elem's start position 
+			//from the first character in document (offset == 0)
+			blockStart = elem.getStartOffset();
 			
 			//Remember that (offset <= doc.getLength() - length) or otherwise
 			//BadLocationException must have been thrown. 
-			//length == 0 indicates no text deletion/replacement.
 			idx = (length == 0) ? idx : rootE.getElementIndex(offset + length - 1);
-			
 			elem = (DocumentElement) rootE.getElement(idx);
-			blockEnd = doc.createPosition(elem.getEndOffset());
-			
-			if (blockStart.getOffset() == offset
-				&& blockEnd.getOffset() == offset + length) {
-				//Deleting text within [offset, offset+length]
-				//will cause blockStart to be equal to blockEnd,
-				//hence result in wrong final snapshot.
-				//We extend blockEnd to the end of next element 
-				//to avoid this.
-				elem = (DocumentElement) rootE.getElement(idx + 1);
-				blockEnd = doc.createPosition(elem.getEndOffset());
-			}
-			
-			snapshots = 
-				doc.getSnapshots(
-					blockStart.getOffset(), 
-					blockEnd.getOffset() - blockStart.getOffset());
+			//blockEnd keeps the distance of elem's end position
+			//from the last character in document (offset == getLength())
+			blockEnd = Math.max(0, doc.getLength() - elem.getEndOffset());
+
+			snapshots = doc.getSnapshots(blockStart, (doc.getLength() - blockEnd) - blockStart);
 		}
 		
 		try {
@@ -185,17 +167,17 @@ public class WordMLDocumentFilter extends DocumentFilter {
 			
 		} catch (BadSelectionException exc) {
 			//Don't need to fire snapshot change event.
-			blockStart = null;
-			blockEnd = null;
+			blockStart = -1;
+			blockEnd = -1;
 			throw new BadLocationException("Unselectable range: offset="
 				+ offset + " length=" + length, offset);
 			
 		} finally {
-			if (!doc.isSnapshotFireBan() && blockStart != null && blockEnd != null) {
+			if (!doc.isSnapshotFireBan() && blockStart >= 0 && blockEnd >= 0) {
 				WordMLDocument.WordMLDefaultDocumentEvent evt = 
 					doc.new WordMLDefaultDocumentEvent(
-						blockStart.getOffset(),
-						blockEnd.getOffset() - blockStart.getOffset(),
+						blockStart,
+						(doc.getLength() - blockEnd) - blockStart,
 						null,
 						WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
 				evt.setInitialSnapshots(snapshots);
@@ -222,32 +204,33 @@ public class WordMLDocumentFilter extends DocumentFilter {
 		}
 		
 		Map<BigInteger, SdtBlock> snapshots = null;
-		Position blockStart = null;
-		Position blockEnd = null;
+		int blockStart = -1;
+		int blockEnd = -1;
 		
 		if (!doc.isSnapshotFireBan()) {
 			DocumentElement rootE = (DocumentElement) doc.getDefaultRootElement();
 			
-			DocumentElement elem = (DocumentElement)
-				rootE.getElement(rootE.getElementIndex(offset));
-			blockStart = doc.createPosition(elem.getStartOffset());
-			blockEnd = doc.createPosition(elem.getEndOffset());
-			
-			snapshots = 
-				doc.getSnapshots(
-					blockStart.getOffset(), 
-					blockEnd.getOffset() - blockStart.getOffset());
+			int idx = rootE.getElementIndex(offset);
+			DocumentElement elem = (DocumentElement) rootE.getElement(idx);
+			//blockStart keeps the distance of elem's start position 
+			//from the first character in document (offset == 0)
+			blockStart = elem.getStartOffset();
+			//blockEnd keeps the distance of elem's end position
+			//from the last character in document (offset == getLength())
+			blockEnd = Math.max(0, doc.getLength() - elem.getEndOffset());
+
+			snapshots = doc.getSnapshots(blockStart, (doc.getLength() - blockEnd) - blockStart);
 		}
 		
 		try {
 			TextInserter tr = new TextInserter(fb, offset, text, attrs);
 			tr.doAction();
 		} finally {
-			if (!doc.isSnapshotFireBan() && blockStart != null && blockEnd != null) {
+			if (!doc.isSnapshotFireBan() && blockStart >= 0 && blockEnd >= 0) {
 				WordMLDocument.WordMLDefaultDocumentEvent evt = 
 					doc.new WordMLDefaultDocumentEvent(
-						blockStart.getOffset(),
-						blockEnd.getOffset() - blockStart.getOffset(),
+						blockStart,
+						(doc.getLength() - blockEnd) - blockStart,
 						null,
 						WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
 				evt.setInitialSnapshots(snapshots);
