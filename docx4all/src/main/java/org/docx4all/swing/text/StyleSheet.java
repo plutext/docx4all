@@ -36,14 +36,13 @@ import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.BooleanDefaultTrue;
 import org.docx4j.wml.HpsMeasure;
 import org.docx4j.wml.Jc;
-import org.docx4j.wml.PPr;
-import org.docx4j.wml.RPr;
-import org.docx4j.wml.Jc;
 import org.docx4j.wml.JcEnumeration;
+import org.docx4j.wml.PPr;
+import org.docx4j.wml.RFonts;
+import org.docx4j.wml.RPr;
+import org.docx4j.wml.RStyle;
 import org.docx4j.wml.U;
 import org.docx4j.wml.PPrBase.PStyle;
-import org.docx4j.wml.RStyle;
-import org.docx4j.wml.RFonts;
 import org.docx4j.wml.Styles.LatentStyles.LsdException;
 
 /**
@@ -105,14 +104,14 @@ public class StyleSheet extends StyleContext {
 	public final static void addAttributes(MutableAttributeSet attrs, RPr rPr) {
 		//BOLD Attribute
 		BooleanDefaultTrue bdt = rPr.getB();
-		if (bdt != null && bdt.isVal()) {
-			StyleConstants.setBold(attrs, Boolean.TRUE);
+		if (bdt != null) {
+			StyleConstants.setBold(attrs, Boolean.valueOf(bdt.isVal()));
 		}
 
 		//ITALIC Attribute
 		bdt = rPr.getI();
-		if (bdt != null && bdt.isVal()) {
-			StyleConstants.setItalic(attrs, Boolean.TRUE);
+		if (bdt != null) {
+			StyleConstants.setItalic(attrs, Boolean.valueOf(bdt.isVal()));
 		}
 		
 		//UNDERLINE Attribute
