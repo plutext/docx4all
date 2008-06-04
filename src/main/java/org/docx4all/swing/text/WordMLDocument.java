@@ -33,7 +33,6 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.Element;
 import javax.swing.text.MutableAttributeSet;
-import javax.swing.text.Position;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
@@ -133,8 +132,8 @@ public class WordMLDocument extends DefaultStyledDocument {
     	length = Math.min(getLength() - offset, length);
     	
 		Map<BigInteger, SdtBlock> snapshots = null;
-		Position blockStart = null;
-		Position blockEnd = null;
+		int blockStart = -1;
+		int blockEnd = -1;
 		
 		try {
 			writeLock();
@@ -142,17 +141,19 @@ public class WordMLDocument extends DefaultStyledDocument {
 			if (!isSnapshotFireBan()) {
 				DocumentElement rootE = (DocumentElement) getDefaultRootElement();
 				
-				DocumentElement elem = (DocumentElement)
-					rootE.getElement(rootE.getElementIndex(offset));
-				blockStart = createPosition(elem.getStartOffset());
+				int idx = rootE.getElementIndex(offset);
+				DocumentElement elem = (DocumentElement) rootE.getElement(idx);
+				//blockStart keeps the distance of elem's start position 
+				//from the first character in document (offset == 0)
+				blockStart = elem.getStartOffset();
 				
-				elem = (DocumentElement) rootE.getElement(rootE.getElementIndex(offset + length - 1));
-				blockEnd = createPosition(elem.getEndOffset());
-				
-				snapshots = 
-					getSnapshots(
-						blockStart.getOffset(), 
-						blockEnd.getOffset() - blockStart.getOffset());
+				idx = (length == 0) ? idx : rootE.getElementIndex(offset + length - 1);
+				elem = (DocumentElement) rootE.getElement(idx);
+				//blockEnd keeps the distance of elem's end position
+				//from the last character in document (offset == getLength())
+				blockEnd = Math.max(0, getLength() - elem.getEndOffset());
+
+				snapshots = getSnapshots(blockStart, (getLength() - blockEnd) - blockStart);				
 			}
 			
 			int lastEnd = Integer.MAX_VALUE;
@@ -220,11 +221,11 @@ public class WordMLDocument extends DefaultStyledDocument {
 			refreshParagraphs(offset, length);
 			
 		} finally {
-			if (!isSnapshotFireBan() && blockStart != null && blockEnd != null) {
+			if (!isSnapshotFireBan() && blockStart >= 0 && blockEnd >= 0) {
 				WordMLDocument.WordMLDefaultDocumentEvent evt = 
 					new WordMLDefaultDocumentEvent(
-							blockStart.getOffset(),
-							blockEnd.getOffset() - blockStart.getOffset(),
+							blockStart,
+							(getLength() - blockEnd) - blockStart,
 							null,
 							WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
 				evt.setInitialSnapshots(snapshots);
@@ -250,8 +251,8 @@ public class WordMLDocument extends DefaultStyledDocument {
 		length = Math.min(getLength() - offset, length);
 
 		Map<BigInteger, SdtBlock> snapshots = null;
-		Position blockStart = null;
-		Position blockEnd = null;
+		int blockStart = -1;
+		int blockEnd = -1;
 		
 		try {
 			writeLock();
@@ -261,16 +262,17 @@ public class WordMLDocument extends DefaultStyledDocument {
 				
 				int idx = rootE.getElementIndex(offset);
 				DocumentElement elem = (DocumentElement) rootE.getElement(idx);
-				blockStart = createPosition(elem.getStartOffset());
+				//blockStart keeps the distance of elem's start position 
+				//from the first character in document (offset == 0)
+				blockStart = elem.getStartOffset();
 				
 				idx = (length == 0) ? idx : rootE.getElementIndex(offset + length - 1);
 				elem = (DocumentElement) rootE.getElement(idx);
-				blockEnd = createPosition(elem.getEndOffset());
-				
-				snapshots = 
-					getSnapshots(
-						blockStart.getOffset(), 
-						blockEnd.getOffset() - blockStart.getOffset());
+				//blockEnd keeps the distance of elem's end position
+				//from the last character in document (offset == getLength())
+				blockEnd = Math.max(0, getLength() - elem.getEndOffset());
+
+				snapshots = getSnapshots(blockStart, (getLength() - blockEnd) - blockStart);				
 			}
 			
 			DefaultDocumentEvent changes = 
@@ -301,11 +303,11 @@ public class WordMLDocument extends DefaultStyledDocument {
 			//fireUndoableEditUpdate(new UndoableEditEvent(this, changes));
 
 		} finally {
-			if (!isSnapshotFireBan() && blockStart != null && blockEnd != null) {
+			if (!isSnapshotFireBan() && blockStart >= 0 && blockEnd >=0) {
 				WordMLDocument.WordMLDefaultDocumentEvent evt = 
 					new WordMLDefaultDocumentEvent(
-							blockStart.getOffset(),
-							blockEnd.getOffset() - blockStart.getOffset(),
+							blockStart,
+							(getLength() - blockEnd) - blockStart,
 							null,
 							WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
 				evt.setInitialSnapshots(snapshots);
@@ -324,8 +326,8 @@ public class WordMLDocument extends DefaultStyledDocument {
 		length = Math.min(getLength() - offset, length);
 
 		Map<BigInteger, SdtBlock> snapshots = null;
-		Position blockStart = null;
-		Position blockEnd = null;
+		int blockStart = -1;
+		int blockEnd = -1;
 		
 		try {
 			writeLock();
@@ -342,16 +344,17 @@ public class WordMLDocument extends DefaultStyledDocument {
 					
 					int idx = rootE.getElementIndex(offset);
 					DocumentElement elem = (DocumentElement) rootE.getElement(idx);
-					blockStart = createPosition(elem.getStartOffset());
+					//blockStart keeps the distance of elem's start position 
+					//from the first character in document (offset == 0)
+					blockStart = elem.getStartOffset();
 					
 					idx = (length == 0) ? idx : rootE.getElementIndex(offset + length - 1);
 					elem = (DocumentElement) rootE.getElement(idx);
-					blockEnd = createPosition(elem.getEndOffset());
-					
-					snapshots = 
-						getSnapshots(
-							blockStart.getOffset(), 
-							blockEnd.getOffset() - blockStart.getOffset());
+					//blockEnd keeps the distance of elem's end position
+					//from the last character in document (offset == getLength())
+					blockEnd = Math.max(0, getLength() - elem.getEndOffset());
+
+					snapshots = getSnapshots(blockStart, (getLength() - blockEnd) - blockStart);				
 				}
 				
 				MutableAttributeSet newAttrs = new SimpleAttributeSet();
@@ -392,11 +395,11 @@ public class WordMLDocument extends DefaultStyledDocument {
 			exc.printStackTrace();//ignore
 			
 		} finally {
-			if (!isSnapshotFireBan() && blockStart != null && blockEnd != null) {
+			if (!isSnapshotFireBan() && blockStart >= 0 && blockEnd >= 0) {
 				WordMLDocument.WordMLDefaultDocumentEvent evt = 
 					new WordMLDefaultDocumentEvent(
-							blockStart.getOffset(),
-							blockEnd.getOffset() - blockStart.getOffset(),
+							blockStart,
+							(getLength() - blockEnd) - blockStart,
 							null,
 							WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
 				evt.setInitialSnapshots(snapshots);
@@ -416,8 +419,8 @@ public class WordMLDocument extends DefaultStyledDocument {
 		length = Math.min(getLength() - offset, length);
 
 		Map<BigInteger, SdtBlock> snapshots = null;
-		Position blockStart = null;
-		Position blockEnd = null;
+		int blockStart = -1;
+		int blockEnd = -1;
 		
 		try {
 			writeLock();
@@ -432,16 +435,17 @@ public class WordMLDocument extends DefaultStyledDocument {
 					
 					int idx = rootE.getElementIndex(offset);
 					DocumentElement elem = (DocumentElement) rootE.getElement(idx);
-					blockStart = createPosition(elem.getStartOffset());
+					//blockStart keeps the distance of elem's start position 
+					//from the first character in document (offset == 0)
+					blockStart = elem.getStartOffset();
 					
 					idx = (length == 0) ? idx : rootE.getElementIndex(offset + length - 1);
 					elem = (DocumentElement) rootE.getElement(idx);
-					blockEnd = createPosition(elem.getEndOffset());
-					
-					snapshots = 
-						getSnapshots(
-							blockStart.getOffset(), 
-							blockEnd.getOffset() - blockStart.getOffset());
+					//blockEnd keeps the distance of elem's end position
+					//from the last character in document (offset == getLength())
+					blockEnd = Math.max(0, getLength() - elem.getEndOffset());
+
+					snapshots = getSnapshots(blockStart, (getLength() - blockEnd) - blockStart);				
 				}
 				
 				MutableAttributeSet newAttrs = new SimpleAttributeSet();
@@ -515,15 +519,12 @@ public class WordMLDocument extends DefaultStyledDocument {
 				refreshParagraphs(offset, length);
 				
 			} // if (StyleSheet.CHARACTER_ATTR_VALUE.equals(type))
-		} catch (BadLocationException exc) {
-			exc.printStackTrace();//ignore
-			
 		} finally {
-			if (!isSnapshotFireBan() && blockStart != null && blockEnd != null) {
+			if (!isSnapshotFireBan() && blockStart >= 0 && blockEnd >= 0) {
 				WordMLDocument.WordMLDefaultDocumentEvent evt = 
 					new WordMLDefaultDocumentEvent(
-							blockStart.getOffset(),
-							blockEnd.getOffset() - blockStart.getOffset(),
+							blockStart,
+							(getLength() - blockEnd) - blockStart,
 							null,
 							WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
 				evt.setInitialSnapshots(snapshots);
@@ -584,8 +585,8 @@ public class WordMLDocument extends DefaultStyledDocument {
 		
 		//Preparing initial snapshots
 		Map<BigInteger, SdtBlock> snapshots = null;
-		Position blockStart = null;
-		Position blockEnd = null;
+		int blockStart = -1;
+		int blockEnd = -1;
 		
 		try {
 			writeLock();
@@ -604,20 +605,15 @@ public class WordMLDocument extends DefaultStyledDocument {
 			
 			if (!isSnapshotFireBan()) {
 				int idx = rootE.getElementIndex(offset);
-				if (idx == rootE.getElementCount() - 1) {
-					//if 'offset' points to the last element,
-					//include the snapshot of the last element's 
-					//immediate older sibling.
-					idx = Math.max(0, idx-1);
-				}
 				DocumentElement elem = (DocumentElement) rootE.getElement(idx);
-				blockStart = createPosition(elem.getStartOffset());
-				blockEnd = createPosition(elem.getEndOffset());
-				
-				snapshots = 
-					getSnapshots(
-						blockStart.getOffset(), 
-						(blockEnd.getOffset() - blockStart.getOffset()));
+				//blockStart keeps the distance of elem's start position 
+				//from the first character in document (offset == 0)
+				blockStart = elem.getStartOffset();
+				//blockEnd keeps the distance of elem's end position
+				//from the last character in document (offset == getLength())
+				blockEnd = Math.max(0, getLength() - elem.getEndOffset());
+
+				snapshots = getSnapshots(blockStart, (getLength() - blockEnd) - blockStart);				
 			}
 			
 			DocumentElement targetE = (DocumentElement) getParagraphMLElement(offset, false);
@@ -793,11 +789,11 @@ public class WordMLDocument extends DefaultStyledDocument {
 			refreshParagraphs(targetE.getStartOffset(), 0);
 			
 		} finally {
-			if (!isSnapshotFireBan() && blockStart != null && blockEnd != null) {
+			if (!isSnapshotFireBan() && blockStart >= 0 && blockEnd >= 0) {
 				WordMLDocument.WordMLDefaultDocumentEvent evt = 
 					new WordMLDefaultDocumentEvent(
-							blockStart.getOffset(),
-							blockEnd.getOffset() - blockStart.getOffset(),
+							blockStart,
+							(getLength() - blockEnd) - blockStart,
 							null,
 							WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
 				evt.setInitialSnapshots(snapshots);
@@ -1235,8 +1231,8 @@ public class WordMLDocument extends DefaultStyledDocument {
 		boolean origFireBanState = isSnapshotFireBan();
 		
 		Map<BigInteger, SdtBlock> snapshots = null;
-		Position blockStart = null;
-		Position blockEnd = null;
+		int blockStart = -1;
+		int blockEnd = -1;
 		
 		try {
 			writeLock();
@@ -1246,28 +1242,19 @@ public class WordMLDocument extends DefaultStyledDocument {
 				
 				int idx = rootE.getElementIndex(offset);
 				DocumentElement elem = (DocumentElement) rootE.getElement(idx);
-				blockStart = createPosition(elem.getStartOffset());
+				//blockStart keeps the distance of elem's start position 
+				//from the first character in document (offset == 0)
+				blockStart = elem.getStartOffset();
 				
 				//Remember that (offset <= doc.getLength() - length) or otherwise
 				//BadLocationException must have been thrown. 
-				idx = rootE.getElementIndex(offset + length - 1);
+				idx = (length == 0) ? idx : rootE.getElementIndex(offset + length - 1);
 				elem = (DocumentElement) rootE.getElement(idx);
-				blockEnd = createPosition(elem.getEndOffset());
+				//blockEnd keeps the distance of elem's end position
+				//from the last character in document (offset == getLength())
+				blockEnd = Math.max(0, getLength() - elem.getEndOffset());
 
-				if (blockStart.getOffset() == offset
-					&& blockEnd.getOffset() == offset + length) {
-					//Deleting text within [offset, offset+length]
-					//will cause blockStart to be equal to blockEnd,
-					//hence result in wrong final snapshot.
-					//We extend blockEnd to the end of next element 
-					//to avoid this.
-					elem = (DocumentElement) rootE.getElement(idx + 1);
-					blockEnd = createPosition(elem.getEndOffset());
-				}
-				snapshots = 
-					getSnapshots(
-						blockStart.getOffset(), 
-						blockEnd.getOffset() - blockStart.getOffset());
+				snapshots = getSnapshots(blockStart, (getLength() - blockEnd) - blockStart);
 			}
 			
 			//We want to fire snapshot change event just once and
@@ -1316,11 +1303,11 @@ public class WordMLDocument extends DefaultStyledDocument {
 			//Restore the original fire ban state
 			setSnapshotFireBan(origFireBanState);
 			
-			if (!isSnapshotFireBan() && blockStart != null && blockEnd != null) {
+			if (!isSnapshotFireBan() && blockStart >= 0 && blockEnd >= 0) {
 				WordMLDocument.WordMLDefaultDocumentEvent evt = 
 					new WordMLDefaultDocumentEvent(
-							blockStart.getOffset(),
-							blockEnd.getOffset() - blockStart.getOffset(),
+							blockStart,
+							(getLength() - blockEnd) - blockStart,
 							null,
 							WordMLDocumentEvent.SNAPSHOT_CHANGED_EVT_NAME);
 				evt.setInitialSnapshots(snapshots);
