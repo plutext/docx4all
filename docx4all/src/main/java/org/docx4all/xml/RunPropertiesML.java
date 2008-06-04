@@ -75,29 +75,27 @@ public class RunPropertiesML extends ElementML implements PropertiesContainerML 
 		
 		RPr rPr = (RPr) this.docxObject;
 		
-		BooleanDefaultTrue bdt = null;
-		
 		//BOLD Attribute
-		Boolean bvalue = (Boolean) this.attrs.getAttribute(StyleConstants.Bold);
-		if (bvalue != null) {
-			bdt = ObjectFactory.createBooleanDefaultTrue(bvalue);
-			rPr.setB(bdt);
+		if (this.attrs.isDefined(StyleConstants.Bold)) {
+			Boolean bvalue = (Boolean) this.attrs.getAttribute(StyleConstants.Bold);
+			BooleanDefaultTrue bdt = ObjectFactory.createBooleanDefaultTrue(bvalue);
+			rPr.setB(bdt);			
 		} else {
 			rPr.setB(null);
 		}
 		
 		//ITALIC Attribute
-		bvalue = (Boolean) this.attrs.getAttribute(StyleConstants.Italic);
-		if (bvalue != null) {
-			bdt = ObjectFactory.createBooleanDefaultTrue(bvalue);
+		if (this.attrs.isDefined(StyleConstants.Italic)) {
+			Boolean bvalue = (Boolean) this.attrs.getAttribute(StyleConstants.Italic);
+			BooleanDefaultTrue bdt = ObjectFactory.createBooleanDefaultTrue(bvalue);
 			rPr.setI(bdt);
 		} else {
 			rPr.setI(null);
 		}
 		
 		//UNDERLINE Attribute
-		bvalue = (Boolean) this.attrs.getAttribute(StyleConstants.Underline);
-		if (bvalue != null) {
+		if (this.attrs.isDefined(StyleConstants.Underline)) {
+			Boolean bvalue = (Boolean) this.attrs.getAttribute(StyleConstants.Underline);
 			if (bvalue.booleanValue()) {
 				if (StyleSheet.hasUnderlineSet(rPr)) {
 					//As we do not support underline style
