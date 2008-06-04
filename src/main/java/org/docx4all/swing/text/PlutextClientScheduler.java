@@ -37,6 +37,7 @@ import org.docx4all.swing.PlutextClientWorker;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.event.WordMLDocumentEvent;
 import org.docx4all.swing.event.WordMLDocumentListener;
+import org.docx4all.util.DocUtil;
 import org.docx4all.util.SwingUtil;
 import org.docx4j.XmlUtils;
 import org.docx4j.wml.SdtBlock;
@@ -247,11 +248,13 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
 			}
 			
 			if (this.lastSdtBlockAtCaret != this.sdtBlockAtCaret) {
-				log.debug("caretUpdate(): New sdtBlockAtCaret != Last sdtBlockAtCaret");
-				log.debug("New sdtBlockAtCaret.xml=" 
+				if (log.isDebugEnabled()) {
+					log.debug("caretUpdate(): New sdtBlockAtCaret != Last sdtBlockAtCaret");
+					log.debug("New sdtBlockAtCaret.xml=" 
 						+ ((this.sdtBlockAtCaret == null) 
 							? "NULL" 
 							: ContentControlSnapshot.getContentControlXML(this.sdtBlockAtCaret)));
+				}
 				
 				//There has been a change of 'sdtBlockAtCaret'.
 				//Note that when a user inserted a string of text (not a WordMLFragment) 
@@ -285,14 +288,19 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
 						//this.lastSdtBlockAtCaret as an SdtBlock that has been exited.
 						this.dirtySdtBlocks.put(id, refreshedLastSdtBlock);						
 					}
-					log.debug("Refreshed LAST sdtBlockAtCaret.xml="
-						+ ContentControlSnapshot.getContentControlXML(refreshedLastSdtBlock));
+					
+					if (log.isDebugEnabled()) {
+						log.debug("Refreshed LAST sdtBlockAtCaret.xml="
+								+ ContentControlSnapshot.getContentControlXML(refreshedLastSdtBlock));
+					}
 				}
 				
 				this.lastSdtBlockAtCaret = this.sdtBlockAtCaret;
 				
 			} else {
-				log.debug("caretUpdate(): New sdtBlockAtCaret == Last sdtBlockAtCaret");
+				if (log.isDebugEnabled()) {
+					log.debug("caretUpdate(): New sdtBlockAtCaret == Last sdtBlockAtCaret");
+				}
 			}
 		}
     }
@@ -319,6 +327,13 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
     public void snapshotChangedUpdate(WordMLDocumentEvent e) {
     	WordMLDocument doc = (WordMLDocument) e.getDocument();
     	
+    	if (log.isDebugEnabled()) {
+    		log.debug("snapshotChangedUpdate(): e.getOffset()=" + e.getOffset()
+    			+ " e.getLength()=" + e.getLength());
+    		log.debug("snapshotChangedUpdate(): Current Document structure...");
+    		DocUtil.displayStructure(doc);
+    	}
+    	
     	Map<BigInteger, SdtBlock> initialSnapshots = 
     		e.getInitialSnapshots();
     	Map<BigInteger, SdtBlock> currentSnapshots = 
@@ -333,14 +348,16 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
 	    			BigInteger id = sdt.getSdtPr().getId().getVal();
     				this.dirtySdtBlocks.put(id, sdt);
     				
-    				log.debug("snapshotChangedUpdate(): CurrentSnapshots[" + (i++) + "]="
+    				if (log.isDebugEnabled()) {
+    					log.debug("snapshotChangedUpdate(): CurrentSnapshots[" + i + "]="
     						+ sdt
     						+ " - Id="
     						+ id
     						+ " - Tag="
     						+ sdt.getSdtPr().getTag().getVal());
-    				log.debug("snapshotChangedUpdate(): CurrentSnapshots[" + (i++) + "].xml=" 
+    					log.debug("snapshotChangedUpdate(): CurrentSnapshots[" + (i++) + "].xml=" 
     						+ ContentControlSnapshot.getContentControlXML(sdt));
+    				}
 	    		}		    		
     		}
     		
@@ -358,21 +375,23 @@ public class PlutextClientScheduler extends Timer implements WordMLDocumentListe
 	    				this.deletedSdtBlocks.put(id, sdt);
 	    			}
 	    			
-    				log.debug("snapshotChangedUpdate(): InitialSnapshots[" + (i++) + "]="
+	    			if (log.isDebugEnabled()) {
+	    				log.debug("snapshotChangedUpdate(): InitialSnapshots[" + i + "]="
     						+ sdt
     						+ " - Id="
     						+ id
     						+ " - Tag="
     						+ sdt.getSdtPr().getTag().getVal());
-    				log.debug("snapshotChangedUpdate(): InitialSnapshots[" + (i++) + "].xml=" 
+	    				log.debug("snapshotChangedUpdate(): InitialSnapshots[" + (i++) + "].xml=" 
     						+ ContentControlSnapshot.getContentControlXML(sdt));
+	    			}
 	    		}
     		}
     		
     		if (log.isDebugEnabled() && this.deletedSdtBlocks != null) {
     			int i=0;
     			for (SdtBlock sdt:this.deletedSdtBlocks.values()) {
-    				log.debug("snapshotChangedUpdate(): Deleted SdtBlock[" + (i++) + "]="
+    				log.debug("snapshotChangedUpdate(): Deleted SdtBlock[" + i + "]="
     						+ sdt
     						+ " - Id="
     						+ sdt.getSdtPr().getId().getVal()
