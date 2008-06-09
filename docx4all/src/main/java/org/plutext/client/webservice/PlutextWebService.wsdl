@@ -33,6 +33,22 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
      </sequence>
     </complexType>
    </element>
+   <element name="putMainDocumentPart">
+    <complexType>
+     <sequence>
+      <element name="docID" type="xsd:string"/>
+      <element name="xml" type="xsd:string"/>
+      <element name="message" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="putMainDocumentPartResponse">
+    <complexType>
+     <sequence>
+      <element maxOccurs="unbounded" name="putMainDocumentPartReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
    <element name="checkinWithComment">
     <complexType>
      <sequence>
@@ -77,6 +93,22 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
     <complexType>
      <sequence>
       <element name="getVersionHistoryReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="transform">
+    <complexType>
+     <sequence>
+      <element name="docID" type="xsd:string"/>
+      <element name="xml" type="xsd:string"/>
+      <element name="message" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="transformResponse">
+    <complexType>
+     <sequence>
+      <element maxOccurs="unbounded" name="transformReturn" type="xsd:string"/>
      </sequence>
     </complexType>
    </element>
@@ -126,6 +158,18 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
 
    </wsdl:message>
 
+   <wsdl:message name="transformResponse">
+
+      <wsdl:part element="impl:transformResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="putMainDocumentPartResponse">
+
+      <wsdl:part element="impl:putMainDocumentPartResponse" name="parameters"/>
+
+   </wsdl:message>
+
    <wsdl:message name="getChunkResponse">
 
       <wsdl:part element="impl:getChunkResponse" name="parameters"/>
@@ -135,6 +179,18 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
    <wsdl:message name="getVersionHistoryResponse">
 
       <wsdl:part element="impl:getVersionHistoryResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="transformRequest">
+
+      <wsdl:part element="impl:transform" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="putMainDocumentPartRequest">
+
+      <wsdl:part element="impl:putMainDocumentPart" name="parameters"/>
 
    </wsdl:message>
 
@@ -216,6 +272,14 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
 
       </wsdl:operation>
 
+      <wsdl:operation name="putMainDocumentPart">
+
+         <wsdl:input message="impl:putMainDocumentPartRequest" name="putMainDocumentPartRequest"/>
+
+         <wsdl:output message="impl:putMainDocumentPartResponse" name="putMainDocumentPartResponse"/>
+
+      </wsdl:operation>
+
       <wsdl:operation name="checkinWithComment">
 
          <wsdl:input message="impl:checkinWithCommentRequest" name="checkinWithCommentRequest"/>
@@ -237,6 +301,14 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
          <wsdl:input message="impl:getVersionHistoryRequest" name="getVersionHistoryRequest"/>
 
          <wsdl:output message="impl:getVersionHistoryResponse" name="getVersionHistoryResponse"/>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="transform">
+
+         <wsdl:input message="impl:transformRequest" name="transformRequest"/>
+
+         <wsdl:output message="impl:transformResponse" name="transformResponse"/>
 
       </wsdl:operation>
 
@@ -298,6 +370,24 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
 
       </wsdl:operation>
 
+      <wsdl:operation name="putMainDocumentPart">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="putMainDocumentPartRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="putMainDocumentPartResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
       <wsdl:operation name="checkinWithComment">
 
          <wsdlsoap:operation soapAction=""/>
@@ -345,6 +435,24 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
          </wsdl:input>
 
          <wsdl:output name="getVersionHistoryResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="transform">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="transformRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="transformResponse">
 
             <wsdlsoap:body use="literal"/>
 
