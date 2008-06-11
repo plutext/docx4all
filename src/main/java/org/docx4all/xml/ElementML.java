@@ -252,7 +252,9 @@ public abstract class ElementML implements Cloneable {
 			//delete from Docx structure
 			if (getDocxObject() != null && child.getDocxObject() != null) {
 				List<Object> list = getDocxChildren();
-				list.remove(child.getDocxObject());
+				if (list != null) {
+					list.remove(child.getDocxObject());
+				}
 				child.setDocxParent(null);
 			}
 		} else {
@@ -263,7 +265,9 @@ public abstract class ElementML implements Cloneable {
 			//delete from Docx structure
 			if (getDocxObject() != null && child.getDocxObject() != null) {
 				List<Object> list = getDocxChildren();
-				list.remove(child.getDocxObject());
+				if (list != null) {
+					list.remove(child.getDocxObject());
+				}
 				child.setDocxParent(null);
 			}
 		}
