@@ -56,7 +56,7 @@ import org.jvnet.jaxb2_commons.ppp.Child;
  *                 &lt;attribute name="snum" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
  *                 &lt;attribute name="op" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
  *                 &lt;attribute name="idref" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
- *                 &lt;attribute name="after" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
+ *                 &lt;attribute name="position" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
  *               &lt;/restriction>
  *             &lt;/complexContent>
  *           &lt;/complexType>
@@ -156,7 +156,7 @@ public class Transforms
      *       &lt;attribute name="snum" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
      *       &lt;attribute name="op" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
      *       &lt;attribute name="idref" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
-     *       &lt;attribute name="after" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
+     *       &lt;attribute name="position" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
      *     &lt;/restriction>
      *   &lt;/complexContent>
      * &lt;/complexType>
@@ -190,7 +190,7 @@ public class Transforms
         protected Long idref;
         @XmlAttribute(namespace = "http://www.plutext.org/transforms")
         @XmlSchemaType(name = "unsignedInt")
-        protected Long after;
+        protected Long position;
         @XmlTransient
         private Object parent;
 
@@ -323,27 +323,27 @@ public class Transforms
         }
 
         /**
-         * Gets the value of the after property.
+         * Gets the value of the position property.
          * 
          * @return
          *     possible object is
          *     {@link Long }
          *     
          */
-        public Long getAfter() {
-            return after;
+        public Long getPosition() {
+            return position;
         }
 
         /**
-         * Sets the value of the after property.
+         * Sets the value of the position property.
          * 
          * @param value
          *     allowed object is
          *     {@link Long }
          *     
          */
-        public void setAfter(Long value) {
-            this.after = value;
+        public void setPosition(Long value) {
+            this.position = value;
         }
 
         /**
