@@ -128,8 +128,8 @@ public class BodyML extends ElementML {
 				
 				if (value instanceof org.docx4j.wml.SdtBlock) {
 					ml = new SdtBlockML(obj);
-				//} else if (obj instanceof org.docx4j.wml.Tbl) {
-					//unsupported yet
+				} else if (value instanceof org.docx4j.wml.Tbl) {
+					ml = new TableML(obj);
 				} else {
 					ml = new ParagraphML(obj);
 				}
