@@ -76,9 +76,9 @@ public class ParagraphML extends ElementML {
     }
 
 	/**
-	 * Gets the paragraph property element of this paragraph.
+	 * Gets paragraph properties of this paragraph.
 	 * 
-	 * @return a ParagraphPropertiesML, if any
+	 * @return a PropertiesContainerML, if any
 	 *         null, otherwise 
 	 */
 	public PropertiesContainerML getParagraphProperties() {
@@ -102,7 +102,7 @@ public class ParagraphML extends ElementML {
 			((org.docx4j.wml.P)this.docxObject).setPPr(newDocxPPr);
 			
 			if (newDocxPPr != null) {
-				newDocxPPr.setParent(docxObject);
+				newDocxPPr.setParent(this.docxObject);
 			}			
 		}
 	}
@@ -141,7 +141,8 @@ public class ParagraphML extends ElementML {
 	public void setParent(ElementML parent) {
 		if (parent != null 
 			&& !(parent instanceof BodyML)
-			&& !(parent instanceof SdtBlockML)) {
+			&& !(parent instanceof SdtBlockML)
+			&& !(parent instanceof TableCellML)) {
 			throw new IllegalArgumentException("Parent type = " + parent.getClass().getSimpleName());
 		}
 		this.parent = parent;
