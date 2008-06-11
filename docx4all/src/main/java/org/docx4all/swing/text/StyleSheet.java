@@ -41,6 +41,9 @@ import org.docx4j.wml.PPr;
 import org.docx4j.wml.RFonts;
 import org.docx4j.wml.RPr;
 import org.docx4j.wml.RStyle;
+import org.docx4j.wml.TblPr;
+import org.docx4j.wml.TcPr;
+import org.docx4j.wml.TrPr;
 import org.docx4j.wml.U;
 import org.docx4j.wml.PPrBase.PStyle;
 import org.docx4j.wml.Styles.LatentStyles.LsdException;
@@ -72,6 +75,18 @@ public class StyleSheet extends StyleContext {
         return defaultStyleSheet;
     }
 
+	public final static void addAttributes(MutableAttributeSet attrs, TblPr pPr) {
+		//TODO: Put Table properties into 'attrs'
+	}
+	
+	public final static void addAttributes(MutableAttributeSet attrs, TrPr pPr) {
+		//TODO: Put Table Row properties into 'attrs'
+	}
+	
+	public final static void addAttributes(MutableAttributeSet attrs, TcPr pPr) {
+		//TODO: Put Table Cell properties into 'attrs'
+	}
+	
 	public final static void addAttributes(MutableAttributeSet attrs, PPr pPr) {
 		//ALIGNMENT attribute
 		Jc jc = pPr.getJc();
