@@ -211,13 +211,17 @@ public class ObjectFactory {
 	
 	public final static org.docx4j.wml.SdtBlock createSdtBlock() {
 		org.docx4j.wml.SdtBlock sdtBlock = _jaxbFactory.createSdtBlock();
-		org.docx4j.wml.SdtPr sdtPr = _jaxbFactory.createSdtPr();
-		org.docx4j.wml.SdtContentBlock content = _jaxbFactory.createSdtContentBlock();
-		
-		sdtPr.setId();
-		sdtBlock.setSdtPr(sdtPr);
-		sdtBlock.setSdtContent(content);
 		return sdtBlock;
+	}
+	
+	public final static org.docx4j.wml.SdtPr createSdtPr() {
+		org.docx4j.wml.SdtPr sdtPr = _jaxbFactory.createSdtPr();
+		return sdtPr;
+	}
+	
+	public final static org.docx4j.wml.SdtContentBlock createSdtContentBlock() {
+		org.docx4j.wml.SdtContentBlock sdtContentBlock = _jaxbFactory.createSdtContentBlock();
+		return sdtContentBlock;
 	}
 	
 	private ObjectFactory() {
