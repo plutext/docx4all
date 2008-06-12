@@ -155,7 +155,15 @@ public class ElementMLFactory {
 	}
 	
 	public final static SdtBlockML createSdtBlockML() {
-		SdtBlockML theBlock = new SdtBlockML(ObjectFactory.createSdtBlock());
+		org.docx4j.wml.SdtBlock sdtBlock = ObjectFactory.createSdtBlock();
+		org.docx4j.wml.SdtPr sdtPr = ObjectFactory.createSdtPr();
+		org.docx4j.wml.SdtContentBlock content = ObjectFactory.createSdtContentBlock();
+		
+		sdtPr.setId();
+		sdtBlock.setSdtPr(sdtPr);
+		sdtBlock.setSdtContent(content);
+
+		SdtBlockML theBlock = new SdtBlockML(sdtBlock);
 		return theBlock;
 	}
 	
