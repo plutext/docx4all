@@ -73,7 +73,7 @@ public class PlutextServiceSoapBindingStub extends org.apache.axis.client.Stub i
         param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://server.plutext.org/", "message"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
         oper.addParameter(param);
         oper.setReturnType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
-        oper.setReturnClass(java.lang.String[].class);
+        oper.setReturnClass(java.lang.String.class);
         oper.setReturnQName(new javax.xml.namespace.QName("http://server.plutext.org/", "checkinWithCommentReturn"));
         oper.setStyle(org.apache.axis.constants.Style.WRAPPED);
         oper.setUse(org.apache.axis.constants.Use.LITERAL);
@@ -86,7 +86,7 @@ public class PlutextServiceSoapBindingStub extends org.apache.axis.client.Stub i
         param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://server.plutext.org/", "chunkID"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
         oper.addParameter(param);
         oper.setReturnType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
-        oper.setReturnClass(java.lang.String[].class);
+        oper.setReturnClass(java.lang.String.class);
         oper.setReturnQName(new javax.xml.namespace.QName("http://server.plutext.org/", "deleteChunkReturn"));
         oper.setStyle(org.apache.axis.constants.Style.WRAPPED);
         oper.setUse(org.apache.axis.constants.Use.LITERAL);
@@ -106,6 +106,23 @@ public class PlutextServiceSoapBindingStub extends org.apache.axis.client.Stub i
         _operations[5] = oper;
 
         oper = new org.apache.axis.description.OperationDesc();
+        oper.setName("compareVersions");
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://server.plutext.org/", "docID"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
+        oper.addParameter(param);
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://server.plutext.org/", "chunkID"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
+        oper.addParameter(param);
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://server.plutext.org/", "left"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
+        oper.addParameter(param);
+        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://server.plutext.org/", "right"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
+        oper.addParameter(param);
+        oper.setReturnType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
+        oper.setReturnClass(java.lang.String.class);
+        oper.setReturnQName(new javax.xml.namespace.QName("http://server.plutext.org/", "compareVersionsReturn"));
+        oper.setStyle(org.apache.axis.constants.Style.WRAPPED);
+        oper.setUse(org.apache.axis.constants.Use.LITERAL);
+        _operations[6] = oper;
+
+        oper = new org.apache.axis.description.OperationDesc();
         oper.setName("transform");
         param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://server.plutext.org/", "docID"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
         oper.addParameter(param);
@@ -116,19 +133,6 @@ public class PlutextServiceSoapBindingStub extends org.apache.axis.client.Stub i
         oper.setReturnType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
         oper.setReturnClass(java.lang.String[].class);
         oper.setReturnQName(new javax.xml.namespace.QName("http://server.plutext.org/", "transformReturn"));
-        oper.setStyle(org.apache.axis.constants.Style.WRAPPED);
-        oper.setUse(org.apache.axis.constants.Use.LITERAL);
-        _operations[6] = oper;
-
-        oper = new org.apache.axis.description.OperationDesc();
-        oper.setName("style");
-        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://server.plutext.org/", "docID"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
-        oper.addParameter(param);
-        param = new org.apache.axis.description.ParameterDesc(new javax.xml.namespace.QName("http://server.plutext.org/", "styleDefinitions"), org.apache.axis.description.ParameterDesc.IN, new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"), java.lang.String.class, false, false);
-        oper.addParameter(param);
-        oper.setReturnType(new javax.xml.namespace.QName("http://www.w3.org/2001/XMLSchema", "string"));
-        oper.setReturnClass(java.lang.String[].class);
-        oper.setReturnQName(new javax.xml.namespace.QName("http://server.plutext.org/", "styleReturn"));
         oper.setStyle(org.apache.axis.constants.Style.WRAPPED);
         oper.setUse(org.apache.axis.constants.Use.LITERAL);
         _operations[7] = oper;
@@ -303,7 +307,7 @@ public class PlutextServiceSoapBindingStub extends org.apache.axis.client.Stub i
 }
     }
 
-    public java.lang.String[] checkinWithComment(java.lang.String docID, java.lang.String chunkID, java.lang.String xml, java.lang.String message) throws java.rmi.RemoteException {
+    public java.lang.String checkinWithComment(java.lang.String docID, java.lang.String chunkID, java.lang.String xml, java.lang.String message) throws java.rmi.RemoteException {
         if (super.cachedEndpoint == null) {
             throw new org.apache.axis.NoEndPointException();
         }
@@ -327,9 +331,9 @@ public class PlutextServiceSoapBindingStub extends org.apache.axis.client.Stub i
         else {
             extractAttachments(_call);
             try {
-                return (java.lang.String[]) _resp;
+                return (java.lang.String) _resp;
             } catch (java.lang.Exception _exception) {
-                return (java.lang.String[]) org.apache.axis.utils.JavaUtils.convert(_resp, java.lang.String[].class);
+                return (java.lang.String) org.apache.axis.utils.JavaUtils.convert(_resp, java.lang.String.class);
             }
         }
   } catch (org.apache.axis.AxisFault axisFaultException) {
@@ -337,7 +341,7 @@ public class PlutextServiceSoapBindingStub extends org.apache.axis.client.Stub i
 }
     }
 
-    public java.lang.String[] deleteChunk(java.lang.String docID, java.lang.String chunkID) throws java.rmi.RemoteException {
+    public java.lang.String deleteChunk(java.lang.String docID, java.lang.String chunkID) throws java.rmi.RemoteException {
         if (super.cachedEndpoint == null) {
             throw new org.apache.axis.NoEndPointException();
         }
@@ -361,9 +365,9 @@ public class PlutextServiceSoapBindingStub extends org.apache.axis.client.Stub i
         else {
             extractAttachments(_call);
             try {
-                return (java.lang.String[]) _resp;
+                return (java.lang.String) _resp;
             } catch (java.lang.Exception _exception) {
-                return (java.lang.String[]) org.apache.axis.utils.JavaUtils.convert(_resp, java.lang.String[].class);
+                return (java.lang.String) org.apache.axis.utils.JavaUtils.convert(_resp, java.lang.String.class);
             }
         }
   } catch (org.apache.axis.AxisFault axisFaultException) {
@@ -405,7 +409,7 @@ public class PlutextServiceSoapBindingStub extends org.apache.axis.client.Stub i
 }
     }
 
-    public java.lang.String[] transform(java.lang.String docID, java.lang.String xml, java.lang.String message) throws java.rmi.RemoteException {
+    public java.lang.String compareVersions(java.lang.String docID, java.lang.String chunkID, java.lang.String left, java.lang.String right) throws java.rmi.RemoteException {
         if (super.cachedEndpoint == null) {
             throw new org.apache.axis.NoEndPointException();
         }
@@ -417,11 +421,11 @@ public class PlutextServiceSoapBindingStub extends org.apache.axis.client.Stub i
         _call.setProperty(org.apache.axis.client.Call.SEND_TYPE_ATTR, Boolean.FALSE);
         _call.setProperty(org.apache.axis.AxisEngine.PROP_DOMULTIREFS, Boolean.FALSE);
         _call.setSOAPVersion(org.apache.axis.soap.SOAPConstants.SOAP11_CONSTANTS);
-        _call.setOperationName(new javax.xml.namespace.QName("http://server.plutext.org/", "transform"));
+        _call.setOperationName(new javax.xml.namespace.QName("http://server.plutext.org/", "compareVersions"));
 
         setRequestHeaders(_call);
         setAttachments(_call);
- try {        java.lang.Object _resp = _call.invoke(new java.lang.Object[] {docID, xml, message});
+ try {        java.lang.Object _resp = _call.invoke(new java.lang.Object[] {docID, chunkID, left, right});
 
         if (_resp instanceof java.rmi.RemoteException) {
             throw (java.rmi.RemoteException)_resp;
@@ -429,9 +433,9 @@ public class PlutextServiceSoapBindingStub extends org.apache.axis.client.Stub i
         else {
             extractAttachments(_call);
             try {
-                return (java.lang.String[]) _resp;
+                return (java.lang.String) _resp;
             } catch (java.lang.Exception _exception) {
-                return (java.lang.String[]) org.apache.axis.utils.JavaUtils.convert(_resp, java.lang.String[].class);
+                return (java.lang.String) org.apache.axis.utils.JavaUtils.convert(_resp, java.lang.String.class);
             }
         }
   } catch (org.apache.axis.AxisFault axisFaultException) {
@@ -439,7 +443,7 @@ public class PlutextServiceSoapBindingStub extends org.apache.axis.client.Stub i
 }
     }
 
-    public java.lang.String[] style(java.lang.String docID, java.lang.String styleDefinitions) throws java.rmi.RemoteException {
+    public java.lang.String[] transform(java.lang.String docID, java.lang.String xml, java.lang.String message) throws java.rmi.RemoteException {
         if (super.cachedEndpoint == null) {
             throw new org.apache.axis.NoEndPointException();
         }
@@ -451,11 +455,11 @@ public class PlutextServiceSoapBindingStub extends org.apache.axis.client.Stub i
         _call.setProperty(org.apache.axis.client.Call.SEND_TYPE_ATTR, Boolean.FALSE);
         _call.setProperty(org.apache.axis.AxisEngine.PROP_DOMULTIREFS, Boolean.FALSE);
         _call.setSOAPVersion(org.apache.axis.soap.SOAPConstants.SOAP11_CONSTANTS);
-        _call.setOperationName(new javax.xml.namespace.QName("http://server.plutext.org/", "style"));
+        _call.setOperationName(new javax.xml.namespace.QName("http://server.plutext.org/", "transform"));
 
         setRequestHeaders(_call);
         setAttachments(_call);
- try {        java.lang.Object _resp = _call.invoke(new java.lang.Object[] {docID, styleDefinitions});
+ try {        java.lang.Object _resp = _call.invoke(new java.lang.Object[] {docID, xml, message});
 
         if (_resp instanceof java.rmi.RemoteException) {
             throw (java.rmi.RemoteException)_resp;
