@@ -60,6 +60,9 @@ public class RunContentML extends ElementML {
 			if (value instanceof org.docx4j.wml.Text) {
 				org.docx4j.wml.Text t = (org.docx4j.wml.Text) value;
 				t.setValue(textContent);
+			} else if (value instanceof org.docx4j.wml.DelText) {
+				org.docx4j.wml.DelText dt = (org.docx4j.wml.DelText) value;
+				dt.setValue(textContent);
 			}
 		}
 	}
@@ -108,7 +111,13 @@ public class RunContentML extends ElementML {
 				} else {
 					this.textContent = Constants.TEXT_ELEMENT_EMPTY_VALUE;
 				}
-
+			} else if (value instanceof org.docx4j.wml.DelText) {
+				String s = ((org.docx4j.wml.DelText) value).getValue();
+				if (s != null && s.length() > 0) {
+					this.textContent = s;
+				} else {
+					this.textContent = Constants.TEXT_ELEMENT_EMPTY_VALUE;
+				}
 			} else if (value instanceof org.docx4j.wml.Br) {
 				// TODO: Full support of BR element
 				this.textContent = Constants.NEWLINE;
