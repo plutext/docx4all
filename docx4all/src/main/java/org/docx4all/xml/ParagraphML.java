@@ -119,7 +119,9 @@ public class ParagraphML extends ElementML {
 	public boolean canAddChild(int idx, ElementML child) {
 		boolean canAdd = true;
 		
-		if (!(child instanceof RunML)) {
+		if (!(child instanceof RunML)
+			&& !(child instanceof RunInsML)
+			&& !(child instanceof RunDelML)) {
 			canAdd = false;
 		} else {
 			canAdd = super.canAddChild(idx, child);
@@ -230,10 +232,21 @@ public class ParagraphML extends ElementML {
 		List<Object> pKids = para.getParagraphContent();
 		if (!pKids.isEmpty()) {
 			this.children = new ArrayList<ElementML>(pKids.size());
+
+			ElementML ml = null;
 			for (Object o : pKids) {
-				RunML run = new RunML(o, this.isDummy);
-				run.setParent(ParagraphML.this);
-				this.children.add(run);				
+				Object value = JAXBIntrospector.getValue(o);
+								
+				if (value instanceof org.docx4j.wml.RunIns) {
+					ml = new RunInsML(value, this.isDummy);
+				} else if (value instanceof org.docx4j.wml.RunDel) {
+					ml = new RunDelML(value, this.isDummy);
+				} else {
+					ml = new RunML(o, this.isDummy);
+				}
+				
+				ml.setParent(ParagraphML.this);
+				this.children.add(ml);
 			}
 		}
 	}// initChildren()
