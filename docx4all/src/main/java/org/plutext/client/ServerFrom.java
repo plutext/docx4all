@@ -357,7 +357,7 @@ public class ServerFrom {
 				log.debug("Last known: " + currentChunk.getPointInTimeXml());
 
 				SdtBlock cc = currentChunk.getSdtBlock();
-				result = Merge.mergeUpdate(cc, t);
+				result = Merge.mergeUpdate(cc, t, this);
 				log.debug(result + " applied (merged)");
 				return result;
 			}
