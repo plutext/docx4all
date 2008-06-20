@@ -35,6 +35,8 @@ import org.docx4all.xml.ElementMLIterator;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.PropertiesContainerML;
 import org.docx4all.xml.RunContentML;
+import org.docx4all.xml.RunDelML;
+import org.docx4all.xml.RunInsML;
 import org.docx4all.xml.RunML;
 import org.docx4all.xml.SdtBlockML;
 
@@ -60,7 +62,9 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		//} else if (elem instanceof SdtBlockML) {
 		//	openElementSpec((SdtBlockML) elem);
 			
-		} else if (elem instanceof BodyML) {
+		} else if (elem instanceof BodyML 
+					|| elem instanceof RunInsML
+					|| elem instanceof RunDelML) {
 			;//bypass
 		
 		} else {
@@ -88,7 +92,9 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		//} else if (elem instanceof SdtBlockML) {
 		//	closeElementSpec((SdtBlockML) elem);
 			
-		} else if (elem instanceof BodyML) {
+		} else if (elem instanceof BodyML 
+				|| elem instanceof RunInsML
+				|| elem instanceof RunDelML) {
 			;//bypass
 			
 		} else {
