@@ -74,6 +74,17 @@ public class TransformInsert extends TransformAbstract {
 	}
 	
 	protected void apply(WordMLTextPane editor) {
+		BigInteger id = getSdt().getSdtPr().getId().getVal();
+		if (getDocumentElement(editor, id) != null) {
+			log.debug("apply(WordMLTextPane): SdtBlock Id=" 
+					+ id 
+					+ " already exists in editor");
+			//See ServerFrom.applyUpdate(t, forceApplicationToSdtIds)
+			//where TransformInsert.apply(ServerFrom) is called.
+			//In here, we do not want to reinsert the same SdtBlock.
+			return;
+		}
+		
 		Runnable runnable = null;
 		
 		if (this.insertAtIndex != null) {
