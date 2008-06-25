@@ -123,23 +123,32 @@ public abstract class TransformAbstract
     }
 
 	protected DocumentElement getDocumentElement(WordMLTextPane editor, BigInteger sdtBlockId) {
-		WordMLDocument doc = (WordMLDocument) editor.getDocument();
-		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
-		
 		DocumentElement elem = null;
-		for (int i = 0; i < root.getElementCount() - 1 && elem == null; i++) {
-			elem = (DocumentElement) root.getElement(i);
-			ElementML ml = elem.getElementML();
-			if (ml instanceof SdtBlockML) {
-				SdtBlockML sdtBlockML = (SdtBlockML) ml;
-				if (sdtBlockId.equals(sdtBlockML.getSdtProperties().getIdValue())) {
-					;//got it
+		
+		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+		
+		try {
+			doc.readLock();
+			
+			DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+
+			for (int i = 0; i < root.getElementCount() - 1 && elem == null; i++) {
+				elem = (DocumentElement) root.getElement(i);
+				ElementML ml = elem.getElementML();
+				if (ml instanceof SdtBlockML) {
+					SdtBlockML sdtBlockML = (SdtBlockML) ml;
+					if (sdtBlockId.equals(sdtBlockML.getSdtProperties()
+							.getIdValue())) {
+						;// got it
+					} else {
+						elem = null;
+					}
 				} else {
 					elem = null;
 				}
-			} else {
-				elem = null;
 			}
+		} finally {
+			doc.readUnlock();
 		}
 		
 		return elem;
