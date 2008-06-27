@@ -30,9 +30,13 @@ import org.docx4all.xml.ElementML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
 import org.docx4all.xml.SdtBlockML;
+import org.docx4all.xml.TableML;
+import org.docx4all.xml.TableRowML;
 
 public class ViewFactory implements javax.swing.text.ViewFactory {
 	private static Logger log = Logger.getLogger(ViewFactory.class);
+	
+	private TableView tableView;
 	
     /**
      * Creates a view from the given structural element of a
@@ -57,6 +61,11 @@ public class ViewFactory implements javax.swing.text.ViewFactory {
 			theView = new LabelView(elem);
 		} else if (elementML instanceof SdtBlockML) {
 			theView = new SdtBlockView(elem);
+		} else if (elementML instanceof TableML) {
+			tableView = new TableView(elem);
+			theView = tableView;
+		} else if (elementML instanceof TableRowML) {
+			theView = tableView.new TableRow(elem);
 		} else {
 			theView = new BoxView(elem, View.Y_AXIS);
 		}
