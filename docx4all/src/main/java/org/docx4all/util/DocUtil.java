@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import javax.swing.JEditorPane;
+import javax.swing.SwingConstants;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
@@ -56,6 +57,8 @@ import org.docx4all.xml.ElementMLIterator;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.ParagraphPropertiesML;
 import org.docx4all.xml.RunContentML;
+import org.docx4all.xml.RunDelML;
+import org.docx4all.xml.RunInsML;
 import org.docx4all.xml.RunML;
 import org.docx4all.xml.RunPropertiesML;
 import org.docx4all.xml.SdtBlockML;
@@ -285,6 +288,140 @@ public class DocUtil {
 		}
 	}
 	
+    public static final int getRevisionStart(WordMLDocument doc, int offs, int direction) {
+		if (offs < 0 || offs >= doc.getLength()) {
+			throw new IllegalArgumentException(
+				"Document length=" + doc.getLength() + ". offs=" + offs);
+		}
+		
+		if (direction != SwingConstants.NEXT && direction != SwingConstants.PREVIOUS) {
+			throw new IllegalArgumentException(
+				"direction=" 
+				+ direction 
+				+ ". Either SwingConstants.NEXT or SwingConstants.PREVIOUS is expected.");
+		}
+
+		int result = -1;
+		
+		try {
+			doc.readLock();
+
+			DocumentElement run = getRunMLElement(doc, offs, direction);
+			if (run == null) {
+				;//return -1
+			} else {
+				ElementML ml = run.getElementML().getParent();
+				boolean isRevisionStart =
+					(ml instanceof RunDelML || ml instanceof RunInsML)
+						&& ml.getChild(0) == run.getElementML();
+				if (isRevisionStart) {
+					result = run.getStartOffset();
+				
+				} else if (direction == SwingConstants.NEXT
+							&& run.getEndOffset() < doc.getLength() - 1) {
+					result = getRevisionStart(doc, run.getEndOffset(), direction);
+				
+				} else if (direction == SwingConstants.PREVIOUS
+							&& run.getStartOffset() > 0) {
+					result = getRevisionStart(doc, run.getStartOffset(), direction);
+				}
+			}
+		} finally {
+			doc.readUnlock();
+		}
+		
+		return result;
+	}
+
+    public static final int getRevisionEnd(WordMLDocument doc, int offs, int direction) {
+		if (offs < 0 || offs >= doc.getLength()) {
+			throw new IllegalArgumentException(
+				"Document length=" + doc.getLength() + ". offs=" + offs);
+		}
+		
+		if (direction != SwingConstants.NEXT && direction != SwingConstants.PREVIOUS) {
+			throw new IllegalArgumentException(
+				"direction=" 
+				+ direction 
+				+ ". Either SwingConstants.NEXT or SwingConstants.PREVIOUS is expected.");
+		}
+
+		int result = -1;
+		
+		try {
+			doc.readLock();
+		
+			DocumentElement run = getRunMLElement(doc, offs, direction);
+			if (run == null) {
+				;//return -1
+			} else {
+				ElementML ml = run.getElementML().getParent();
+				boolean isRevisionEnd =
+					(ml instanceof RunDelML || ml instanceof RunInsML)
+						&& ml.getChild(ml.getChildrenCount()-1) == run.getElementML();
+				if (isRevisionEnd) {
+					result = run.getEndOffset();
+				
+				} else if (direction == SwingConstants.NEXT
+						&& run.getEndOffset() < doc.getLength() - 1) {
+					result = getRevisionEnd(doc, run.getEndOffset(), direction);
+				
+				} else if (direction == SwingConstants.PREVIOUS
+						&& run.getStartOffset() > 0) {
+					result = getRevisionEnd(doc, run.getStartOffset(), direction);
+				}
+			}
+		} finally {
+			doc.readUnlock();
+		}
+		
+		return result;
+	}
+    
+    public static final DocumentElement getRunMLElement(WordMLDocument doc, int offs, int direction) {
+		if (offs < 0 || offs > doc.getLength()) {
+			throw new IllegalArgumentException(
+				"Document length=" + doc.getLength() + ". offs=" + offs);
+		}
+    	
+		if (direction != SwingConstants.NEXT && direction != SwingConstants.PREVIOUS) {
+			throw new IllegalArgumentException(
+					"direction=" 
+					+ direction 
+					+ ". Either SwingConstants.NEXT or SwingConstants.PREVIOUS is expected.");
+		}
+    	
+		DocumentElement run = null;
+    	
+		try {
+			doc.readLock();
+			
+			if (direction == SwingConstants.NEXT) {
+				run = (DocumentElement) doc.getRunMLElement(offs);
+				if (run.getStartOffset() == offs) {
+					;//return run
+				} else if (run.getEndOffset() == doc.getLength()) {
+					run = null;
+				} else {
+					run = (DocumentElement) doc.getRunMLElement(run.getEndOffset());
+				}
+			} else {
+				run = (DocumentElement) doc.getRunMLElement(offs - 1);
+				if (run.getEndOffset() == offs) {
+					;//return run
+				} else if (run.getStartOffset() == 0){
+					run = null;
+				} else {
+					run = (DocumentElement) doc.getRunMLElement(run.getStartOffset() - 1);
+				}
+			}
+		} finally {
+			doc.readUnlock();
+		}
+		
+    	return run;
+    }
+
     public static final int getWordStart(WordMLTextPane editor, int offs)
 			throws BadLocationException {
 		WordMLDocument doc = (WordMLDocument) editor.getDocument();
