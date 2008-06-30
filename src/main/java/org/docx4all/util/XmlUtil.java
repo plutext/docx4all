@@ -441,6 +441,30 @@ public class XmlUtil {
 		}
 	}
 	
+	public final static void applyRemoteRevisions(
+			javax.xml.transform.Source src, javax.xml.transform.Result result) {
+
+		try {
+			java.io.InputStream xslt = org.docx4j.utils.ResourceUtils
+					.getResource("org/docx4all/util/ApplyRemoteChanges.xslt");
+			org.docx4j.XmlUtils.transform(src, xslt, null, result);
+		} catch (Exception exc) {
+			exc.printStackTrace();
+		}
+	}
+
+	public final static void discardRemoteRevisions(
+			javax.xml.transform.Source src, javax.xml.transform.Result result) {
+
+		try {
+			java.io.InputStream xslt = org.docx4j.utils.ResourceUtils
+					.getResource("org/docx4all/util/DiscardRemoteChanges.xslt");
+			org.docx4j.XmlUtils.transform(src, xslt, null, result);
+		} catch (Exception exc) {
+			exc.printStackTrace();
+		}
+	}
+	
 	private XmlUtil() {
 		;//uninstantiable
 	}
