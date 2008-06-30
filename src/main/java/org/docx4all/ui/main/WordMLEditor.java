@@ -84,6 +84,7 @@ import org.docx4all.ui.menu.EditMenu;
 import org.docx4all.ui.menu.FileMenu;
 import org.docx4all.ui.menu.FormatMenu;
 import org.docx4all.ui.menu.HelpMenu;
+import org.docx4all.ui.menu.ReviewMenu;
 import org.docx4all.ui.menu.ViewMenu;
 import org.docx4all.ui.menu.WindowMenu;
 import org.docx4all.util.DocUtil;
@@ -556,6 +557,7 @@ public class WordMLEditor extends SingleFrameApplication {
     	JMenu fileMenu = FileMenu.getInstance().createJMenu();
     	JMenu editMenu = EditMenu.getInstance().createJMenu();
     	JMenu formatMenu = FormatMenu.getInstance().createJMenu();
+    	JMenu reviewMenu = ReviewMenu.getInstance().createJMenu();
     	JMenu viewMenu = ViewMenu.getInstance().createJMenu();
     	JMenu windowMenu = WindowMenu.getInstance().createJMenu();
     	JMenu helpMenu = HelpMenu.getInstance().createJMenu();
@@ -565,6 +567,8 @@ public class WordMLEditor extends SingleFrameApplication {
     	menubar.add(editMenu);
     	menubar.add(Box.createRigidArea(new Dimension(10, 0)));
     	menubar.add(formatMenu);
+    	menubar.add(Box.createRigidArea(new Dimension(10, 0)));
+    	menubar.add(reviewMenu);
     	menubar.add(Box.createRigidArea(new Dimension(10, 0)));
     	menubar.add(viewMenu);
     	menubar.add(Box.createRigidArea(new Dimension(10, 0)));
