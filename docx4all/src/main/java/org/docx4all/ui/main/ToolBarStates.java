@@ -30,6 +30,7 @@ import java.util.Hashtable;
 
 import javax.swing.JEditorPane;
 import javax.swing.JInternalFrame;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
@@ -96,6 +97,10 @@ public class ToolBarStates extends InternalFrameAdapter
 	public final static String STYLE_SHEET_PROPERTY_NAME = "styleSheet";
 	public final static String SELECTED_STYLE_PROPERTY_NAME = "selectedStyle";
 	
+	public final static String REVISION_SELECTED_PROPERTY_NAME = "revisionSelected";
+	public final static String REMOTE_REVISION_IN_PARA_PROPERTY_NAME = "remoteRevisionInPara";
+	public final static String REMOTE_REVISION_IN_DOC_PROPERTY_NAME = "remoteRevisionInDoc";
+	
 	private final Hashtable<JInternalFrame, Boolean> _dirtyTable;
 	private volatile JEditorPane _currentEditor;
 	private volatile String _fontFamily;
@@ -104,6 +109,9 @@ public class ToolBarStates extends InternalFrameAdapter
 	private volatile boolean _isCutEnabled, _isCopyEnabled, _isPasteEnabled;
 	private volatile boolean _filterApplied;
 	private volatile boolean _isShareEnabled;
+	private volatile boolean _isRevisionSelected;
+	private volatile boolean _isRemoteRevisionInPara;
+	private volatile boolean _isRemoteRevisionInDoc;
 	
 	private volatile int _iframeNumbers;
 	
@@ -124,6 +132,9 @@ public class ToolBarStates extends InternalFrameAdapter
 		_isPasteEnabled = false;
 		_filterApplied = true;
 		_isShareEnabled = false;
+		_isRevisionSelected = false;
+		_isRemoteRevisionInPara = false;
+		_isRemoteRevisionInDoc = false;
 		_iframeNumbers = 0;
 		_alignment = -1;
 	}
@@ -325,7 +336,8 @@ public class ToolBarStates extends InternalFrameAdapter
 	
 	public void setPasteEnabled(boolean enabled) {
 		if (log.isDebugEnabled()) {
-			log.debug("setPasteEnabled(): _isPasteEnabled = " + _isPasteEnabled + " enabled param = " + enabled);
+			log.debug("setPasteEnabled(): _isPasteEnabled = " 
+				+ _isPasteEnabled + " enabled param = " + enabled);
 		}
 	
 		if (_isPasteEnabled == enabled) {
@@ -339,6 +351,75 @@ public class ToolBarStates extends InternalFrameAdapter
 			PASTE_ENABLED_PROPERTY_NAME, 
 			Boolean.valueOf(oldValue), 
 			Boolean.valueOf(enabled));
+	}
+	
+	public boolean isRevisionSelected() {
+		return _isRevisionSelected;
+	}
+	
+	public void setRevisionSelected(boolean selected) {
+		if (log.isDebugEnabled()) {
+			log.debug("setRevisionSelected(): _isRevisionSelected = " 
+				+ _isRevisionSelected + " selected param = " + selected);
+		}
+	
+		if (_isRevisionSelected == selected) {
+			return;
+		}
+		
+		boolean oldValue = _isRevisionSelected;
+		_isRevisionSelected = selected;
+		
+		firePropertyChange(
+			REVISION_SELECTED_PROPERTY_NAME, 
+			Boolean.valueOf(oldValue), 
+			Boolean.valueOf(selected));
+	}
+	
+	public boolean isRemoteRevisionInPara() {
+		return _isRemoteRevisionInPara;
+	}
+	
+	public void setRemoteRevisionInPara(boolean b) {
+		if (log.isDebugEnabled()) {
+			log.debug("setRemoteRevisionInPara(): _isRemoteRevisionInPara = " 
+				+ _isRemoteRevisionInPara + " param = " + b);
+		}
+	
+		if (_isRemoteRevisionInPara == b) {
+			return;
+		}
+		
+		boolean oldValue = _isRemoteRevisionInPara;
+		_isRemoteRevisionInPara = b;
+		
+		firePropertyChange(
+			REMOTE_REVISION_IN_PARA_PROPERTY_NAME, 
+			Boolean.valueOf(oldValue), 
+			Boolean.valueOf(b));
+	}
+	
+	public boolean isRemoteRevisionInDoc() {
+		return _isRemoteRevisionInDoc;
+	}
+	
+	public void setRemoteRevisionInDoc(boolean b) {
+		if (log.isDebugEnabled()) {
+			log.debug("setRemoteRevisionInDoc(): _isRemoteRevisionInDoc = " 
+				+ _isRemoteRevisionInDoc + " param = " + b);
+		}
+	
+		if (_isRemoteRevisionInDoc == b) {
+			return;
+		}
+		
+		boolean oldValue = _isRemoteRevisionInDoc;
+		_isRemoteRevisionInDoc = b;
+		
+		firePropertyChange(
+			REMOTE_REVISION_IN_DOC_PROPERTY_NAME, 
+			Boolean.valueOf(oldValue), 
+			Boolean.valueOf(b));
 	}
 	
 	public int getAlignment() {
@@ -509,6 +590,7 @@ public class ToolBarStates extends InternalFrameAdapter
     	if (editor instanceof WordMLTextPane) {
     		b = ((WordMLTextPane) editor).isFilterApplied();
     		isSharedEnabled = !DocUtil.isSharedDocument((WordMLDocument) editor.getDocument());
+        	setRemoteRevision((WordMLTextPane) editor);
     	} else {
     		b = false;
     	}
@@ -734,6 +816,31 @@ public class ToolBarStates extends InternalFrameAdapter
 				JInternalFrame.class, editor);
 	}
     
+    private void setRemoteRevision(WordMLTextPane editor) {
+    	WordMLDocument doc = (WordMLDocument) editor.getDocument();
+    	DocumentElement elem = 
+    		(DocumentElement) 
+    			doc.getParagraphMLElement(
+    				editor.getCaretPosition(), 
+    				false);
+		String temp = 
+			org.docx4j.XmlUtils.marshaltoString(
+				elem.getElementML().getDocxObject(), 
+				false);
+		boolean hasRemoteRevision = (temp.indexOf("</w:del>") != -1);
+	    setRemoteRevisionInPara(hasRemoteRevision);
+
+	    if (!hasRemoteRevision) {
+    		elem = (DocumentElement) doc.getDefaultRootElement();
+			temp = 
+				org.docx4j.XmlUtils.marshaltoString(
+					elem.getElementML().getDocxObject(), 
+					false);
+			hasRemoteRevision = (temp.indexOf("</w:del>") != -1);
+	    }
+	    setRemoteRevisionInDoc(hasRemoteRevision);
+    }
+    
 	// ============================
 	// FocusListener Implementation
 	// ============================
@@ -877,10 +984,25 @@ public class ToolBarStates extends InternalFrameAdapter
 	//=====================================
 	public void caretUpdate(CaretEvent e) {
     	if (_currentEditor == e.getSource()) {
-        	boolean hasSelection = 
-        		(_currentEditor.getSelectionStart() < _currentEditor.getSelectionEnd());
-        	setCopyEnabled(hasSelection);
+    		int start = _currentEditor.getSelectionStart();
+    		int end = _currentEditor.getSelectionEnd();
+        	boolean hasSelection = (start != end);
+         	setCopyEnabled(hasSelection);
         	setCutEnabled(hasSelection);
+        	
+        	if (_currentEditor instanceof WordMLTextPane) {
+        		WordMLDocument doc = (WordMLDocument) _currentEditor.getDocument();
+        		hasSelection = 
+        			hasSelection
+        				&& start == DocUtil.getRevisionStart(doc, start, SwingConstants.NEXT)
+        				&& end == DocUtil.getRevisionEnd(doc, start, SwingConstants.NEXT);
+            	setRevisionSelected(hasSelection);
+            	
+            	setRemoteRevision((WordMLTextPane) _currentEditor);
+        	} else {
+            	setRevisionSelected(Boolean.FALSE);	    
+        	}
+        	
     	}
 	}
 
