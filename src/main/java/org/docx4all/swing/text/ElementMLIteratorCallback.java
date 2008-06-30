@@ -44,6 +44,10 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	private List<ElementSpec> _elementSpecs = new ArrayList<ElementSpec>();
 	private MutableAttributeSet _paragraphAttrs, _runAttrs;
 	
+	//Those transparent nodes such as RunInsML and RunDelML
+	//that do not have any child will be deleted.
+	private List<ElementML> _transparentNodesToDelete = null;
+	
 	public void handleStartElement(ElementML elem) {
 		//TODO: Find a better handler
 		if (elem instanceof RunContentML) {
@@ -62,11 +66,13 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		//} else if (elem instanceof SdtBlockML) {
 		//	openElementSpec((SdtBlockML) elem);
 			
-		} else if (elem instanceof BodyML 
-					|| elem instanceof RunInsML
+		} else if (elem instanceof BodyML) {
+			;//bypass
+			
+		} else if (elem instanceof RunInsML
 					|| elem instanceof RunDelML) {
 			;//bypass
-		
+			
 		} else {
 			SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
 			WordMLStyleConstants.setElementML(elemAttrs, elem);
@@ -85,6 +91,17 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		} else if (elem instanceof ParagraphML) {
 			closeElementSpec((ParagraphML) elem);
 		
+			//Currently transparent nodes being supported are
+			//RunInsML and RunDelML which are paragraph contents.
+			//In order not to corrupt the ongoing iteration process
+			//deleting these transparent nodes is done here.
+			if (_transparentNodesToDelete != null) {
+				for (ElementML ml:_transparentNodesToDelete) {
+					ml.delete();
+				}
+				_transparentNodesToDelete = null;
+			}
+			
 		//Uncomment this when SdtBlockML needs
 		//to be handled specifically.
 		//If you do this you may need to visit 
@@ -92,10 +109,17 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		//} else if (elem instanceof SdtBlockML) {
 		//	closeElementSpec((SdtBlockML) elem);
 			
-		} else if (elem instanceof BodyML 
-				|| elem instanceof RunInsML
-				|| elem instanceof RunDelML) {
+		} else if (elem instanceof BodyML) {
 			;//bypass
+			
+		} else if (elem instanceof RunInsML
+					|| elem instanceof RunDelML) {
+			if (elem.getChildrenCount() == 0) {
+				if (_transparentNodesToDelete == null) {
+					_transparentNodesToDelete = new ArrayList<ElementML>();
+				}
+				_transparentNodesToDelete.add(elem);
+			}
 			
 		} else {
 			closeElementSpec((AttributeSet) null);
