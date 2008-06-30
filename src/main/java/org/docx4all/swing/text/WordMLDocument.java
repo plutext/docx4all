@@ -1155,7 +1155,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 				if (log.isDebugEnabled()) {
 					log.debug("refreshParagraphs(): offset=" + offset
 							+ " length=" + length
-							+ " After inserting new specs ...");
+							+ " After inserting new specs...");
 					DocUtil.displayStructure(this);
 				}
 				
@@ -1185,8 +1185,13 @@ public class WordMLDocument extends DefaultStyledDocument {
 				if (log.isDebugEnabled()) {
 					log.debug("refreshParagraphs(): offset=" + offset
 							+ " length=" + length
-							+ " After inserting new specs ...");
+							+ " After inserting new specs...");
+					
 					DocUtil.displayStructure(this);
+					
+					log.debug("refreshParagraphs(): offset=" + offset
+							+ " length=" + length
+							+ " About to remove old paragraph...");
 				}
 				
 				//Remove all old paragraphs selected in this refresh action
