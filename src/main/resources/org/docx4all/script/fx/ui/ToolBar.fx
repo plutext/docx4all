@@ -38,6 +38,7 @@ var toolBarStates = toolBarStates:<<org.docx4all.ui.main.ToolBarStates>>;
 var fileMenu = fileMenu:<<org.docx4all.ui.menu.FileMenu>>;
 var editMenu = editMenu:<<org.docx4all.ui.menu.EditMenu>>;
 var formatMenu = formatMenu:<<org.docx4all.ui.menu.FormatMenu>>;
+var reviewMenu = reviewMenu:<<org.docx4all.ui.menu.ReviewMenu>>;
 
 //Global variables
 var alignLeftButton = ToggleButton {
@@ -170,6 +171,38 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
         swingAction: formatMenu.getAction(formatMenu.UNDERLINE_ACTION_NAME)
     }
     
+    var applyRemoteRevisionsInParaButton = Button {
+        enabledPropertyName: toolBarStates.REMOTE_REVISION_IN_PARA_PROPERTY_NAME
+        swingAction: reviewMenu.getAction(reviewMenu.APPLY_REMOTE_REVISIONS_IN_CURRENT_PARA_ACTION_NAME)
+        enabled: toolBarStates.isRemoteRevisionInPara()
+    }
+    
+    var discardRemoteRevisionsInParaButton = Button {
+        enabledPropertyName: toolBarStates.REMOTE_REVISION_IN_PARA_PROPERTY_NAME
+        swingAction: reviewMenu.getAction(reviewMenu.DISCARD_REMOTE_REVISIONS_IN_CURRENT_PARA_ACTION_NAME)
+        enabled: toolBarStates.isRemoteRevisionInPara()
+    }
+    
+    var acceptRevisionMoveNextButton = Button {
+        enabledPropertyName: toolBarStates.REVISION_SELECTED_PROPERTY_NAME
+        swingAction: reviewMenu.getAction(reviewMenu.ACCEPT_REVISION_MOVE_NEXT_ACTION_NAME)
+        enabled: toolBarStates.isRevisionSelected()
+    }
+    
+    var rejectRevisionMoveNextButton = Button {
+        enabledPropertyName: toolBarStates.REVISION_SELECTED_PROPERTY_NAME
+        swingAction: reviewMenu.getAction(reviewMenu.REJECT_REVISION_MOVE_NEXT_ACTION_NAME)
+        enabled: toolBarStates.isRevisionSelected()
+    }
+    
+    var gotoNextRevisionButton = Button {
+        swingAction: reviewMenu.getAction(reviewMenu.GOTO_NEXT_REVISION_ACTION_NAME)
+    }
+    
+    var gotoPrevRevisionButton = Button {
+        swingAction: reviewMenu.getAction(reviewMenu.GOTO_PREV_REVISION_ACTION_NAME)
+    }
+    
     borderPainted: true
     buttons: [
         newFileButton,
@@ -200,7 +233,16 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
         RigidArea { width: 10 },
         boldButton,
         italicButton,
-        underlineButton        
+        underlineButton,
+        RigidArea { width: 10 },
+        Separator { orientation: VERTICAL:Orientation },
+        RigidArea { width: 10 },
+        applyRemoteRevisionsInParaButton,
+        discardRemoteRevisionsInParaButton,
+        acceptRevisionMoveNextButton,
+        rejectRevisionMoveNextButton,
+        gotoPrevRevisionButton,
+        gotoNextRevisionButton
     ]
 };
 
