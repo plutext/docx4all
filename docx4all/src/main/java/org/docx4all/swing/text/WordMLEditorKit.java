@@ -29,9 +29,11 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Serializable;
+import java.io.StringReader;
 import java.io.Writer;
 import java.util.List;
 
@@ -41,6 +43,7 @@ import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JEditorPane;
 import javax.swing.KeyStroke;
+import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.EventListenerList;
@@ -60,6 +63,8 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.TextAction;
 import javax.swing.text.View;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
 
 import net.sf.vfsjfilechooser.utils.VFSUtils;
 
@@ -71,8 +76,12 @@ import org.docx4all.swing.event.InputAttributeListener;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.util.DocUtil;
 import org.docx4all.util.SwingUtil;
+import org.docx4all.util.XmlUtil;
+import org.docx4all.xml.BodyML;
 import org.docx4all.xml.DocumentML;
+import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
+import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.SdtBlockML;
 import org.plutext.client.ServerTo;
 
@@ -95,6 +104,22 @@ public class WordMLEditorKit extends DefaultEditorKit {
     
     public static final String fontUnderlineAction = "font-underline";
 
+    public static final String acceptRevisionAction = "accept-revision";
+    
+    public static final String rejectRevisionAction = "reject-revision";
+    
+    public static final String applyRemoteRevisionsInParaAction = "apply-remote-revisions-in-para";
+    
+    public static final String applyAllRemoteRevisionsAction = "apply-all-remote-revisions";
+    
+    public static final String discardRemoteRevisionsInParaAction = "discard-remote-revisions-in-para";
+    
+    public static final String discardAllRemoteRevisionsAction = "discard-all-remote-revisions";
+    
+    public static final String selectNextRevisionAction = "select-next-revision";
+    
+    public static final String selectPrevRevision = "select-prev-revision";
+    
 	private static final Cursor MoveCursor = Cursor
 			.getPredefinedCursor(Cursor.HAND_CURSOR);
 	private static final Cursor DefaultCursor = Cursor
@@ -751,6 +776,416 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	    
 	}// CaretListener inner class
 	
+    public static class AcceptRevisionAction extends TextAction {
+    	private boolean success;
+    	
+    	public AcceptRevisionAction() {
+            super(acceptRevisionAction);
+            success = Boolean.FALSE;
+        }
+
+        /** The operation to perform when this action is triggered. */
+        public void actionPerformed(ActionEvent e) {
+        	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
+            if (editor != null) {
+            	WordMLDocument doc = (WordMLDocument) editor.getDocument();
+            	try {
+            		doc.lockWrite();
+            		
+            		editor.saveCaretText();
+            	
+            		int start = editor.getSelectionStart();
+            		int end = editor.getSelectionEnd();
+            		if (start < end 
+            			&& start == DocUtil.getRevisionStart(doc, start, SwingConstants.NEXT)
+            			&& end == DocUtil.getRevisionEnd(doc, start, SwingConstants.NEXT)) {
+
+            			DocumentElement elem = (DocumentElement) doc.getRunMLElement(start);
+        				ElementML insOrDel = elem.getElementML().getParent();
+        				for (ElementML run: insOrDel.getChildren()) {
+        					ElementML copy = (ElementML) run.clone();
+        					insOrDel.addSibling(copy, false);
+        				}
+        				insOrDel.delete();
+        				
+        				doc.refreshParagraphs(start, 0);
+        				editor.setCaretPosition(end);
+        				success = Boolean.TRUE;
+            		}
+    			} finally {
+    				doc.unlockWrite();
+    			}
+            }
+        }
+        
+        public boolean success() {
+        	return success;
+        }
+        
+    }// AcceptRevisionAction inner class
+    
+    public static class RejectRevisionAction extends TextAction {
+    	private boolean success;
+    	
+    	public RejectRevisionAction() {
+            super(rejectRevisionAction);
+            success = Boolean.FALSE;
+        }
+
+        /** The operation to perform when this action is triggered. */
+        public void actionPerformed(ActionEvent e) {
+        	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
+            if (editor != null) {
+            	WordMLDocument doc = (WordMLDocument) editor.getDocument();
+    			try {
+    				doc.lockWrite();
+            	
+                	editor.saveCaretText();
+                	
+                	int start = editor.getSelectionStart();
+                	int end = editor.getSelectionEnd();
+                	if (start < end 
+                		&& start == DocUtil.getRevisionStart(doc, start, SwingConstants.NEXT)
+                		&& end == DocUtil.getRevisionEnd(doc, start, SwingConstants.NEXT)) {
+
+        				DocumentElement elem = (DocumentElement) doc.getRunMLElement(start);
+        				ElementML insOrDel = elem.getElementML().getParent();
+        				insOrDel.delete();
+        				
+        				doc.refreshParagraphs(start, 0);
+        				editor.setCaretPosition(start);
+        				success = Boolean.TRUE;
+                	}
+    			} finally {
+    				doc.unlockWrite();
+    			}
+            }
+        }
+        
+        public boolean success() {
+        	return success;
+        }
+        
+    }// RejectRevisionAction inner class
+    
+    public static class ApplyRemoteRevisionsInParaAction extends TextAction {
+    	private boolean success;
+    	
+    	public ApplyRemoteRevisionsInParaAction() {
+            super(applyRemoteRevisionsInParaAction);
+            success = Boolean.FALSE;
+        }
+
+        /** The operation to perform when this action is triggered. */
+        public void actionPerformed(ActionEvent e) {
+        	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
+            if (editor != null) {
+            	WordMLDocument doc = (WordMLDocument) editor.getDocument();
+            	try {
+            		doc.lockWrite();
+            		
+            		editor.saveCaretText();
+            	
+            		int pos = editor.getCaretPosition();
+            		DocumentElement elem =
+            			(DocumentElement) doc.getParagraphMLElement(pos, false);
+            		
+            		int start = editor.getSelectionStart();
+            		int end = editor.getSelectionEnd();
+            		if (elem.getStartOffset() <= start
+            			&& end <= elem.getEndOffset()) {
+            			ElementML oldPara = elem.getElementML();
+            			String temp = 
+            				org.docx4j.XmlUtils.marshaltoString(
+            					elem.getElementML().getDocxObject(), 
+            					false);
+
+            			StreamSource src = new StreamSource(new StringReader(temp));
+
+            			StreamResult result = new StreamResult(new ByteArrayOutputStream());
+            			XmlUtil.applyRemoteRevisions(src, result);
+            			
+            			temp = result.getOutputStream().toString();
+            			
+            			ElementML parent = oldPara.getParent();
+            			int idx = parent.getChildIndex(oldPara);
+            			oldPara.delete();
+            			ElementML newPara = 
+            				new ParagraphML(org.docx4j.XmlUtils.unmarshalString(temp));
+            			parent.addChild(idx, newPara);
+            			
+            			end = doc.getLength() - elem.getEndOffset();
+            			doc.refreshParagraphs(pos, 0);
+            			editor.setCaretPosition(doc.getLength() - end);
+        				success = Boolean.TRUE;
+            		}
+    			} finally {
+    				doc.unlockWrite();
+    			}
+            }
+        }
+        
+        public boolean success() {
+        	return success;
+        }
+        
+    }// ApplyRemoteRevisionsInParaAction inner class
+    
+    public static class ApplyAllRemoteRevisionsAction extends TextAction {
+    	private boolean success;
+    	
+    	public ApplyAllRemoteRevisionsAction() {
+            super(applyRemoteRevisionsInParaAction);
+            success = Boolean.FALSE;
+        }
+
+        /** The operation to perform when this action is triggered. */
+        public void actionPerformed(ActionEvent e) {
+        	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
+            if (editor != null) {
+            	WordMLDocument doc = (WordMLDocument) editor.getDocument();
+            	try {
+            		doc.lockWrite();
+            		
+            		editor.saveCaretText();
+            	
+            		DocumentElement root = 
+            			(DocumentElement) doc.getDefaultRootElement();
+            		ElementML docML = root.getElementML();
+            		ElementML bodyML = root.getElementML().getChild(0);
+
+        			String temp = 
+        				org.docx4j.XmlUtils.marshaltoString(
+        					bodyML.getDocxObject(), 
+        					false);
+
+        			if (temp.indexOf("</w:del>") != -1) {
+						StreamSource src = new StreamSource(new StringReader(
+								temp));
+
+						StreamResult result = new StreamResult(
+								new ByteArrayOutputStream());
+						XmlUtil.applyRemoteRevisions(src, result);
+
+						temp = result.getOutputStream().toString();
+						ElementML newBodyML = new BodyML(org.docx4j.XmlUtils
+								.unmarshalString(temp));
+
+						doc.remove(0, doc.getLength());
+
+						bodyML.delete();
+						docML.addChild(newBodyML);
+
+						doc.refreshParagraphs(0, 0);
+						editor.setCaretPosition(doc.getLength());
+					}
+        			
+    				success = Boolean.TRUE;
+            	} catch (BadLocationException exc) {
+            		;//should not happen
+    			} finally {
+    				doc.unlockWrite();
+    			}
+            }
+        }
+        
+        public boolean success() {
+        	return success;
+        }
+        
+    }// ApplyAllRemoteRevisionsAction inner class
+    
+    public static class DiscardRemoteRevisionsInParaAction extends TextAction {
+    	private boolean success;
+    	
+    	public DiscardRemoteRevisionsInParaAction() {
+            super(discardRemoteRevisionsInParaAction);
+            success = Boolean.FALSE;
+        }
+
+        /** The operation to perform when this action is triggered. */
+        public void actionPerformed(ActionEvent e) {
+        	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
+            if (editor != null) {
+            	WordMLDocument doc = (WordMLDocument) editor.getDocument();
+            	try {
+            		doc.lockWrite();
+            		
+            		editor.saveCaretText();
+            	
+            		int pos = editor.getCaretPosition();
+            		DocumentElement elem =
+            			(DocumentElement) doc.getParagraphMLElement(pos, false);
+            		
+            		int start = editor.getSelectionStart();
+            		int end = editor.getSelectionEnd();
+            		if (elem.getStartOffset() <= start
+            			&& end <= elem.getEndOffset()) {
+            			ElementML oldPara = elem.getElementML();
+            			String temp = 
+            				org.docx4j.XmlUtils.marshaltoString(
+            					elem.getElementML().getDocxObject(), 
+            					false);
+
+            			StreamSource src = new StreamSource(new StringReader(temp));
+
+            			StreamResult result = new StreamResult(new ByteArrayOutputStream());
+            			XmlUtil.discardRemoteRevisions(src, result);
+            			
+            			temp = result.getOutputStream().toString();
+            			
+            			ElementML parent = oldPara.getParent();
+            			int idx = parent.getChildIndex(oldPara);
+            			oldPara.delete();
+            			ElementML newPara = 
+            				new ParagraphML(org.docx4j.XmlUtils.unmarshalString(temp));
+            			parent.addChild(idx, newPara);
+            			
+            			end = doc.getLength() - elem.getEndOffset();
+            			doc.refreshParagraphs(pos, 0);
+            			editor.setCaretPosition(doc.getLength() - end);
+        				success = Boolean.TRUE;
+            		}
+    			} finally {
+    				doc.unlockWrite();
+    			}
+            }
+        }
+        
+        public boolean success() {
+        	return success;
+        }
+        
+    }// DiscardRemoteRevisionsInParaAction inner class
+    
+    public static class DiscardAllRemoteRevisionsAction extends TextAction {
+    	private boolean success;
+    	
+    	public DiscardAllRemoteRevisionsAction() {
+            super(discardAllRemoteRevisionsAction);
+            success = Boolean.FALSE;
+        }
+
+        /** The operation to perform when this action is triggered. */
+        public void actionPerformed(ActionEvent e) {
+        	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
+            if (editor != null) {
+            	WordMLDocument doc = (WordMLDocument) editor.getDocument();
+            	try {
+            		doc.lockWrite();
+            		
+            		editor.saveCaretText();
+            	
+            		DocumentElement root = 
+            			(DocumentElement) doc.getDefaultRootElement();
+            		ElementML docML = root.getElementML();
+            		ElementML bodyML = root.getElementML().getChild(0);
+
+        			String temp = 
+        				org.docx4j.XmlUtils.marshaltoString(
+        					bodyML.getDocxObject(), 
+        					false);
+
+        			if (temp.indexOf("</w:del>") != -1) {
+						StreamSource src = new StreamSource(new StringReader(
+								temp));
+
+						StreamResult result = new StreamResult(
+								new ByteArrayOutputStream());
+						XmlUtil.discardRemoteRevisions(src, result);
+
+						temp = result.getOutputStream().toString();
+						ElementML newBodyML = new BodyML(org.docx4j.XmlUtils
+								.unmarshalString(temp));
+
+						doc.remove(0, doc.getLength());
+
+						bodyML.delete();
+						docML.addChild(newBodyML);
+
+						doc.refreshParagraphs(0, 0);
+						editor.setCaretPosition(doc.getLength());
+					}
+        			
+    				success = Boolean.TRUE;
+            	} catch (BadLocationException exc) {
+            		;//should not happen
+    			} finally {
+    				doc.unlockWrite();
+    			}
+            }
+        }
+        
+        public boolean success() {
+        	return success;
+        }
+        
+    }// DiscardAllRemoteRevisionsAction inner class
+    
+    public static class SelectNextRevisionAction extends TextAction {
+    	public SelectNextRevisionAction() {
+            super(selectNextRevisionAction);
+        }
+
+        /** The operation to perform when this action is triggered. */
+        public void actionPerformed(ActionEvent e) {
+        	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
+            if (editor != null) {
+            	WordMLDocument doc = (WordMLDocument) editor.getDocument();
+            	try {
+            		doc.readLock();
+            		
+            		int pos = editor.getCaretPosition();
+            		editor.setCaretPosition(pos); //clear up selection
+                
+            		if (pos < doc.getLength()) {
+            			int start = DocUtil.getRevisionStart(doc, pos, SwingConstants.NEXT);
+            			if (start > -1) {
+            				int end = DocUtil.getRevisionEnd(doc, start, SwingConstants.NEXT);
+            				if (end > -1) {
+            					editor.setCaretPosition(start);
+            					editor.moveCaretPosition(end);
+            				}
+            			}
+            		}
+        		} finally {
+        			doc.readUnlock();
+        		}
+            }
+        }
+    }// SelectNextRevisionAction inner class
+    
+    public static class SelectPrevRevisionAction extends TextAction {
+    	public SelectPrevRevisionAction() {
+            super(selectPrevRevision);
+        }
+
+        /** The operation to perform when this action is triggered. */
+        public void actionPerformed(ActionEvent e) {
+        	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
+            if (editor != null) {
+            	WordMLDocument doc = (WordMLDocument) editor.getDocument();
+            	try {
+            		doc.readLock();
+            	
+            		int pos = editor.getSelectionStart();
+            		editor.setCaretPosition(pos); //clear up selection
+                
+            		int start = DocUtil.getRevisionStart(doc, pos, SwingConstants.PREVIOUS);
+            		if (start > -1) {
+            			int end = DocUtil.getRevisionEnd(doc, start, SwingConstants.NEXT);
+            			if (end > -1) {
+            				editor.setCaretPosition(start);
+            				editor.moveCaretPosition(end);
+            			}
+            		}
+        		} finally {
+        			doc.readUnlock();
+        		}
+            }
+        }
+    }// SelectPrevRevisionAction inner class
+    
 	public abstract static class StyledTextAction extends javax.swing.text.StyledEditorKit.StyledTextAction {
         public StyledTextAction(String nm) {
     	    super(nm);
