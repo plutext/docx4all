@@ -126,14 +126,14 @@ public class WordMLTextPane extends JEditorPane {
             return;
         }
         
+    	int start = getSelectionStart();
+    	int end = getSelectionEnd();  
+    	
         WordMLDocument doc = (WordMLDocument) getDocument();
-        if (doc != null && content != null && content.length() > 0) {
-        	int start = getSelectionStart();
-        	int end = getSelectionEnd();           	
+        if (doc != null 
+        	&& (start < end || (content != null && content.length() > 0))) {
         	
             try {
-            	int newCaretPos = start + content.length();
-            	
             	AttributeSet inputAttrs = getInputAttributesML();
             	MutableAttributeSet attrs = 
             		(MutableAttributeSet) inputAttrs.copyAttributes();
@@ -150,7 +150,8 @@ public class WordMLTextPane extends JEditorPane {
                 	DocUtil.displayStructure(doc);
                 }
                 
-                setCaretPosition(newCaretPos);
+				end = start + ((content != null) ? content.length() : 0);
+                setCaretPosition(end);
                 
             } catch (BadLocationException e) {
             	UIManager.getLookAndFeel().provideErrorFeedback(WordMLTextPane.this);
@@ -181,12 +182,13 @@ public class WordMLTextPane extends JEditorPane {
         	UIManager.getLookAndFeel().provideErrorFeedback(WordMLTextPane.this);
             return;
         }
-        
+    	
+    	int start = getSelectionStart();
+    	int end = getSelectionEnd();
+    	
         WordMLDocument doc = (WordMLDocument) getDocument();
-        if (doc != null) {
-        	int start = getSelectionStart();
-        	int end = getSelectionEnd();    
-        	
+        
+        if (doc != null && (start < end || fragment != null)) {
 			try {
 				saveCaretText();
 				
@@ -202,7 +204,8 @@ public class WordMLTextPane extends JEditorPane {
 	            if (log.isDebugEnabled()) {
 	            	log.debug("replaceSelection(WordMLFragment): selection start=" + start
 	            		+ " end=" + end
-	            		+ " fragment=" + fragment);
+	            		+ " fragment=" + fragment
+	            		+ " Resulting structure...");
 	            	DocUtil.displayStructure(doc);
 	            }
 	            
