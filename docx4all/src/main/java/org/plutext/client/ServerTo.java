@@ -20,6 +20,7 @@
 package org.plutext.client;
 
 import java.rmi.RemoteException;
+import java.util.HashMap;
 
 import org.alfresco.webservice.util.AuthenticationUtils;
 import org.apache.log4j.Logger;
@@ -29,6 +30,9 @@ import org.plutext.client.state.ContentControlSnapshot;
 import org.plutext.client.state.StateDocx;
 import org.plutext.client.webservice.PlutextService_ServiceLocator;
 import org.plutext.client.webservice.PlutextWebService;
+import org.plutext.client.wrappedTransforms.TransformAbstract;
+import org.plutext.transforms.ObjectFactory;
+import org.plutext.transforms.Transforms.T;
 
 /** This class handles content control events,
  *  and initiates appropriate web service calls in response to those events.
@@ -101,7 +105,7 @@ public class ServerTo {
 				log.debug("No Updates to merge - delete proceeding..");
 			}
 
-			String[] result = { "", "" };
+			String result = null;
 			try {
 				result = ws.deleteChunk(stateDocx.getDocID(), Util
 						.getChunkId(cc.getSdtPr().getId()));
@@ -109,7 +113,7 @@ public class ServerTo {
 				ex.printStackTrace();
 			}
 
-			log.debug("Checkin Deletion also returned result[1]: '" + result[1]);
+			log.debug("Checkin Deletion also returned result[1]: '" + result);
 			
 			// Put this in the list of transforms (and set its status
 			// to applied).  Currently we
@@ -117,7 +121,22 @@ public class ServerTo {
 			// but we put a copy of the actual transformation into the
 			// collection for ease of debugging, and because later, 
 			// that'll help set us up for Undo.
-			serverFrom.registerTransforms(result[1], true);
+			
+			// Server returns a sequence number, not a transform, 
+			// so create an appropriate transform to register.
+			ObjectFactory factory = new ObjectFactory();
+			T transformsT = factory.createTransformsT();
+			transformsT.setIdref( cc.getSdtPr().getId().getVal().longValue()  );
+			transformsT.setOp("delete");
+			transformsT.setSnum( Long.parseLong(result));
+			org.plutext.client.wrappedTransforms.TransformDelete td = new org.plutext.client.wrappedTransforms.TransformDelete(transformsT);
+			
+			serverFrom.registerTransform(new HashMap<Long, TransformAbstract>(), td, true);
+			// NB - we're not currently adding the resulting additions 
+			// to our transforms collection, so this transform would later
+			// fetched from the server (and this client would try to apply it),
+			// but for the fact that registerTransforms is updating highest 
+			// TSN fetched								
 
 			stateDocx.getControlMap().remove(cc.getSdtPr().getId());
 		} catch (Exception e) {
@@ -223,8 +242,7 @@ public class ServerTo {
 				if (!newStyles.equals("")) {
 					log.debug("Committing new/updated styles" + newStyles);
 					//stateDocx.TSequenceNumberHighestSeen = Int32.Parse(ws.style(stateDocx.DocID, newStyles));                    
-					String[] result = { "", "" };
-					result = ws.style(stateDocx.getDocID(), newStyles);
+//					String result = ws.style(stateDocx.getDocID(), newStyles);
 
 					// Put this in the list of transforms (and set its status
 					// to applied).  Currently we
@@ -232,7 +250,7 @@ public class ServerTo {
 					// but we put a copy of the actual transformation into the
 					// collection for ease of debugging, and because later, 
 					// that'll help set us up for Undo.
-					serverFrom.registerTransforms(result[1], true);
+//					serverFrom.registerTransforms(result, true);
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -301,7 +319,7 @@ public class ServerTo {
 		// First, get the XML for the SDT
 		String chunkXml = ContentControlSnapshot.getContentControlXML(cc);
 
-		String[] result = { "", "" };
+		String result = null;
 		if (stateDocx.getPromptForCheckinMessage()) {
 			// TODO - checkin form in docx4all
 
@@ -327,7 +345,7 @@ public class ServerTo {
 		                if (cc.Range.Paragraphs.Count > 1 && stateDocx.ChunkingStrategy.Equals("EachBlock")) // TODO:  AND Chunk on Each Para
 		                {
 		 */
-		log.debug("Checkin also returned result[1]: '" + result[1]);
+		log.debug("Checkin also returned result[1]: '" + result);
 
 		/* We expect that the SDT in the document is the same as the
 		 * SDT on the server (and as returned in the transform), except 
@@ -368,7 +386,19 @@ public class ServerTo {
 		 */
 
 		boolean applied = false;
-		serverFrom.registerTransforms(result[1], applied);
+		
+		
+		result = "<p:transforms xmlns:p='http://www.plutext.org/transforms'>" 
+					+ result
+					+ "</p:transforms>";
+		
+		serverFrom.registerTransforms(result, applied);
+		// NB - we're not currently adding the resulting additions 
+		// to our transforms collection, so this transform would later
+		// fetched from the server (and this client would try to apply it),
+		// but for the fact that registerTransforms is updating highest 
+		// TSN fetched								
+		
 
 	}
 } //ServerTo class
