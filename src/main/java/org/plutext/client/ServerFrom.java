@@ -161,39 +161,52 @@ public class ServerFrom {
 
 		for (T t : transformsObj.getT()) {
 			TransformAbstract ta = TransformHelper.construct(t);
-			if (setApplied) {
-				ta.setApplied(true);
-			}
-
-			log
-					.debug("Instance " + " -- Registering "
-							+ ta.getSequenceNumber());
-			try {
-				stateDocx.getWrappedTransforms().put(
-						new Long(ta.getSequenceNumber()), ta);
-				if (ta.getSequenceNumber() > stateDocx
-						.getTSequenceNumberHighestFetched()) {
-					stateDocx.setTSequenceNumberHighestFetched(ta
-							.getSequenceNumber());
-				}
-				log.debug(".. done.");
-			} catch (Exception e) {
-				log.debug(".. not done: " + e.getMessage());
-				// Ignore - An item with the same key has already been added.
-				// log.debug(e.Message);
-				// log.debug(t.SequenceNumber + " ... " + t.GetType().Name);
-			}
-
-			// Still want it here
-			additions.put(new Long(ta.getSequenceNumber()), ta);
-			// Key is SequenceNumber, not t.ID, since TransformStyle type doesn't have an 
-			// underlying SDT.  Besides, if 2 additions related to the same SDT, the
-			// keys would collide.
-			log.debug("SN " + ta.getSequenceNumber()
-					+ " registered in forceApplicationToSdtIds");
+			registerTransform(additions, ta, setApplied);
 		}
 		return additions;
 	}
+
+	/**
+	 * @param additions
+	 * @param ta
+	 * @param setApplied
+	 */
+	protected void registerTransform(HashMap<Long, TransformAbstract> additions,
+			TransformAbstract ta, Boolean setApplied) {
+		if (setApplied) {
+			ta.setApplied(true);
+		}
+
+		log
+				.debug("Instance " + " -- Registering "
+						+ ta.getSequenceNumber());
+		try {
+			stateDocx.getWrappedTransforms().put(
+					new Long(ta.getSequenceNumber()), ta);
+			if (ta.getSequenceNumber() > stateDocx
+					.getTSequenceNumberHighestFetched()) {
+				stateDocx.setTSequenceNumberHighestFetched(ta
+						.getSequenceNumber());
+			}
+			log.debug(".. done.");
+		} catch (Exception e) {
+			log.debug(".. not done: " + e.getMessage());
+			// Ignore - An item with the same key has already been added.
+			// log.debug(e.Message);
+			// log.debug(t.SequenceNumber + " ... " + t.GetType().Name);
+		}
+
+		// Still want it here
+		additions.put(new Long(ta.getSequenceNumber()), ta);
+		// Key is SequenceNumber, not t.ID, since TransformStyle type doesn't have an 
+		// underlying SDT.  Besides, if 2 additions related to the same SDT, the
+		// keys would collide.
+		log.debug("SN " + ta.getSequenceNumber()
+				+ " registered in forceApplicationToSdtIds");
+	}
+	
+	
+	
 
 	/* Apply registered transforms in the known tSequence number range. */
 	void applyUpdates(
