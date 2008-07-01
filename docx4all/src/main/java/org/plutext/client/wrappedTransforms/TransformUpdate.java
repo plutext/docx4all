@@ -33,6 +33,10 @@ import org.docx4j.wml.SdtBlock;
 import org.plutext.client.ServerFrom;
 import org.plutext.transforms.Transforms.T;
 
+import org.plutext.client.Mediator;
+import org.plutext.client.Pkg;
+
+
 public class TransformUpdate extends TransformAbstract {
 
 	private static Logger log = Logger.getLogger(TransformUpdate.class);
@@ -41,14 +45,8 @@ public class TransformUpdate extends TransformAbstract {
 		super(t);
 	}
 
-        public TransformUpdate(XmlNode n)
-            : base(n)
-        {
-
-        }
 
         public TransformUpdate()
-            : base()
         {
         }
 
@@ -86,7 +84,7 @@ public class TransformUpdate extends TransformAbstract {
         }
 
 
-        public override Int32 apply(Mediator mediator, Pkg pkg)
+        public long apply(Mediator mediator, Pkg pkg)
         {
 
             log.Debug(this.GetType().Name);
@@ -126,29 +124,6 @@ public class TransformUpdate extends TransformAbstract {
 
         }
 
-        String sdtXmlString = null;
-
-        public void attachSdt(String xml)
-        {
-            sdtXmlString = xml;
-        }
-
-        public override XmlDocument marshal()
-        {
-            XmlDocument tf = createDocument();
-            XmlElement t = tf.CreateElement("t", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE);
-            tf.AppendChild(t);
-
-            t.SetAttribute("op", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE, "update");
-
-            // Now attach the sdt
-            XmlNode sdtNode = tf.ReadNode(new XmlTextReader(new System.IO.StringReader(sdtXmlString)));
-            t.AppendChild(sdtNode);
-
-            log.Debug(tf.OuterXml);
-
-            return tf;
-        }
 
 	public long apply(ServerFrom serverFrom) {
 

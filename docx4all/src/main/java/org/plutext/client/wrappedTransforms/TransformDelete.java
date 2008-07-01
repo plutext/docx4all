@@ -29,8 +29,8 @@ import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLFragment;
 import org.docx4j.wml.Id;
-import org.plutext.client.ServerFrom;
-import org.plutext.client.state.ContentControlSnapshot;
+import org.plutext.client.Mediator;
+import org.plutext.client.Pkg;
 import org.plutext.transforms.Transforms.T;
 
 
@@ -49,11 +49,12 @@ public class TransformDelete extends TransformAbstract {
             this.id = idref;
         }
 
+
         /* delete the SDT given its ID. */
-        public override Int32 apply(Mediator mediator, Pkg pkg)
+        public override long apply(Mediator mediator, Pkg pkg)
         {
 
-            // Find the sdt in the XmlDocument
+            // Find the sdt in the Pkg
             XmlNamespaceManager nsmgr = new XmlNamespaceManager(pkg.PkgXmlDocument.NameTable);
             nsmgr.AddNamespace("w", Namespaces.WORDML_NAMESPACE);
 
@@ -77,22 +78,10 @@ public class TransformDelete extends TransformAbstract {
                 return sequenceNumber;
             }
         }
-
-        public override XmlDocument marshal()
-        {
-            XmlDocument tf = createDocument();
-            XmlElement t = tf.CreateElement("t", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE);
-            tf.AppendChild(t);
-
-            t.SetAttribute("op", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE, "delete");
-            t.SetAttribute("idref", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE, id);
-
-            return tf;
-        }
-
-    /* delete the SDT given its ID. */
-    public long apply(ServerFrom serverFrom)
-    {
+        
+        // =================================================================
+        
+        
         // Remove the ContentControlSnapshot representing the content control
     	
 		log.debug("apply(ServerFrom): Deleting SdtBlock = " + getSdt() 
@@ -107,7 +96,7 @@ public class TransformDelete extends TransformAbstract {
     		return -1;
     	}
     	
-		apply(serverFrom.getWordMLTextPane());
+		apply(mediator.getWordMLTextPane());
 		
 		return sequenceNumber;
     }

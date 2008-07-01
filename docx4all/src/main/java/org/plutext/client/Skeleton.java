@@ -19,35 +19,22 @@
 
 package org.plutext.client;
 
+import java.util.HashMap;
+import java.util.ArrayList;
+
+import javax.xml.bind.Unmarshaller;
+
 import org.apache.log4j.Logger;
+import org.plutext.Context;
+import org.plutext.server.transitions.Transitions;
 
 
-public class TextLine implements IComparable
-{
-    public string Line;
-    public int _hash;
-
-    public TextLine(string str)
-    {
-        Line = str.Replace("\t", "    ");
-        _hash = str.GetHashCode();
-    }
-    #region IComparable Members
-
-    public int CompareTo(object obj)
-    {
-        return _hash.CompareTo(((TextLine)obj)._hash);
-    }
-
-    #endregion
-}
 
 public class Skeleton implements IDiffList
 {
-    private static readonly ILog log = LogManager.GetLogger(typeof(Skeleton));
-
-    // Constructor - make object from string
-    public Skeleton(String doc)
+	private static Logger log = Logger.getLogger(Skeleton.class);
+	
+    public Skeleton(Transitions t)
     {
         /*
          * <dst:transitions>
@@ -59,105 +46,62 @@ public class Skeleton implements IDiffList
          * 
          * */
 
-        try {
-
-            XmlDocument xmlDoc = new XmlDocument();
-            xmlDoc.Load(new StringReader(doc));
-
-            init(xmlDoc);
-
-        }
-        catch (Exception ex)
-        {
-            log.Debug(ex.ToString());
-        }
+    	for ( Transitions.Ribs.Rib r : t.getRibs().getRib() ) {
+    		
+    		ribs.add( new TextLine( Long.toString(r.getId() ) ) );
+    		
+    	}
 
     }
 
-    public Skeleton(XmlDocument xmlDoc)
-    {
-        init(xmlDoc);
+    
+    public Skeleton() {
+    	
     }
-
-    private void init(XmlDocument xmlDoc)
-    {
-        try
-        {
-            log.Debug(xmlDoc.OuterXml);
-
-            XmlNamespaceManager nsmgr = new XmlNamespaceManager(xmlDoc.NameTable);
-            nsmgr.AddNamespace(Namespaces.PLUTEXT_TRANSITIONS_NS_PREFIX, 
-                               Namespaces.PLUTEXT_TRANSITIONS_NS);
-
-            XmlNode ribsNode = xmlDoc.SelectSingleNode("/dst:transitions/dst:ribs", nsmgr);
-
-            foreach (XmlNode nodex in ribsNode.ChildNodes)
-            {
-                String id = nodex.Attributes.GetNamedItem("id", Namespaces.PLUTEXT_TRANSITIONS_NS).Value;
-                if (id == null)
-                {
-                    log.Debug("Encountered unexpected: " + nodex.OuterXml);
-
-                    /* eg
-                     * 
-                     * <w:sectPr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:pgSz w:w="12240" w:h="15840"></w:pgSz><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"></w:pgMar><w:cols w:space="708"></w:cols><w:docGrid w:linePitch="360"></w:docGrid></w:sectPr>
-                     * 
-                     */
-                    continue;
-                }
-
-                if (nodex.Attributes.GetNamedItem("deleted", Namespaces.PLUTEXT_TRANSITIONS_NS) !=null
-                      && nodex.Attributes.GetNamedItem("deleted", Namespaces.PLUTEXT_TRANSITIONS_NS).Value.Equals("true"))
-                {
-                    log.Debug("Rib " + id + " deleted, so ignoring.");
-                }
-                else
-                {
-                    ribs.Add(new TextLine(id));
-                    log.Debug(id);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            log.Debug(ex.ToString());
-        }
-    }
+    
 
     // Version number
     int version;
 
     // Ordered list of ribs
-    System.Collections.IList ribs = new System.Collections.ArrayList();
-
-    public System.Collections.IList Ribs
-    {
-        get { return ribs; }
-        set { ribs = value; }
-    }
+    ArrayList ribs = new ArrayList();
+    public ArrayList getRibs() {
+		return ribs;
+	}
+	public void setRibs(ArrayList ribs) {
+		this.ribs = ribs;
+	}
+    
 
     public static void difftest()
     {
 
-        string BASE_DIR = @"C:\Documents and Settings\Jason Harrop\My Documents\plutext-word2007\plutext-word2007-solution\plutext-client-word2007\tests\diff-transitions\";
-        string[] tests = { "base", "deleted", "inserted", "moved", "complex", "unrelated", "random" };
+        String BASE_DIR = "/home/dev/workspace/plutext-client-word2007/tests/diff-transitions/";
+        String[] tests = { "base", "deleted", "inserted", "moved", "complex", "unrelated", "random" };
 
 
-        for (int h = 0; h < tests.Length; h++)
+        for (int h = 0; h < tests.length; h++)
         {
+        	
+            String filename = BASE_DIR + tests[h] + ".xml";
 
-            XmlDocument left = new XmlDocument();
-            left.Load(BASE_DIR + tests[h] + ".xml");
+            Unmarshaller u = Context.jcTransitions.createUnmarshaller();
+    		u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());					
+    		org.plutext.server.transitions.Transitions left = 
+    			(org.plutext.server.transitions.Transitions)u.unmarshal( 
+    					new java.io.File(filename) );
+            Skeleton inferredSkeleton = new Skeleton(left);
+        	
 
-            for (int j = 0; j < tests.Length; j++)
+            for (int j = 0; j < tests.length; j++)
             {
 
-                log.Debug("\n\r \n\r Testing " + tests[h] + " against " + tests[j]);
+                log.debug("\n\r \n\r Testing " + tests[h] + " against " + tests[j]);
 
-                XmlDocument right = new XmlDocument();
-                right.Load(BASE_DIR + tests[j] + ".xml");
-
-                Skeleton inferredSkeleton = new Skeleton(left);
+        		org.plutext.server.transitions.Transitions right = 
+        			(org.plutext.server.transitions.Transitions)u.unmarshal( 
+        					new java.io.File(BASE_DIR + tests[j] + ".xml") );
+                
                 Skeleton serverSkeleton = new Skeleton(right);
 
                 DiffEngine de = new DiffEngine();
@@ -172,13 +116,13 @@ public class Skeleton implements IDiffList
                  * insert (and vice versa).
                  * 
                  * These Dictionary objects facilitate this. */
-                Dictionary<String, int> notHereInDest   = new Dictionary<String, int>();
-                Dictionary<String, int> notHereInSource = new Dictionary<String, int>();
+                HashMap<String, Integer> notHereInDest = new HashMap<String, Integer>();
+                HashMap<String, Integer> notHereInSource = new HashMap<String, Integer>();
                 //Populate the dictionaries
                 int insertPos = -1;
                 int i;
-                log.Debug("\n\r");
-                foreach (DiffResultSpan drs in diffLines)
+                log.debug("\n\r");
+                for (DiffResultSpan drs : diffLines)
                 {
                     switch (drs.Status)
                     {
@@ -187,10 +131,10 @@ public class Skeleton implements IDiffList
                             {
                                 insertPos++;
                                 // Must be a new local insertion
-                                log.Debug(insertPos + ": " + ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).Line
+                                log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine()
                                     + " not at this location in dest");
-                                String insertionId = ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).Line;
-                                notHereInDest.Add(insertionId, insertPos);
+                                String insertionId = ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine();
+                                notHereInDest.put(insertionId, insertPos);
                             }
 
                             break;
@@ -198,8 +142,8 @@ public class Skeleton implements IDiffList
                             for (i = 0; i < drs.Length; i++)
                             {
                                 insertPos++;
-                                log.Debug(insertPos + ": " + ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).Line
-                                    + "\t" + ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).Line + " (no change)");
+                                log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine()
+                                    + "\t" + ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine() + " (no change)");
 
                                 // Nothing to do
                             }
@@ -209,10 +153,10 @@ public class Skeleton implements IDiffList
                             for (i = 0; i < drs.Length; i++)
                             {
                                 //insertPos++; // Not for a delete
-                                log.Debug(insertPos + ": " + ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).Line
+                                log.debug(insertPos + ": " + ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine()
                                     + " not at this location in source");
-                                String deletionId = ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).Line;
-                                notHereInSource.Add(deletionId, insertPos);
+                                String deletionId = ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine();
+                                notHereInSource.put(deletionId, insertPos);
 
                             }
 
@@ -223,27 +167,39 @@ public class Skeleton implements IDiffList
 
                 Divergences divergences = new Divergences(de);
 
-                log.Debug("\n\r");
+                log.debug("\n\r");
 
 
                 // How to make the dest (right) like the source (left)
 
-                foreach (DiffResultSpan drs in diffLines)
+                for (DiffResultSpan drs : diffLines)
                 {
                     switch (drs.Status)
                     {
                         case DiffResultSpanStatus.DeleteSource:  // Means we're doing an insertion
                             for (i = 0; i < drs.Length; i++)
                             {
-                                String insertionId = ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).Line;
-                                log.Debug(insertPos + ": " + insertionId
+                                String insertionId = ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine();
+                                log.debug(insertPos + ": " + insertionId
                                     + " is at this location in src but not dest, so needs to be inserted");
 
-                                try {
+                                Integer dicVal = notHereInSource.get(insertionId);
+                                
+                                if (dicVal==null) {
 
-                                    int dicVal = notHereInSource[insertionId];
-                                    // there is a corresponding delete, so this is really a move
-                                    log.Debug("   " + insertionId + " is a MOVE "); 
+                                    // Just a new local insertion
+
+                                    int adjPos = divergences.getTargetLocation(insertionId);
+
+                                    log.debug("<transform op=insert id=" + insertionId + "  pos=" + adjPos);
+
+                                    divergences.insert(insertionId); // change +1 to 0
+
+                                    divergences.debugInferred();
+                                	
+                                } else {
+                                	// there is a corresponding delete, so this is really a move
+                                    log.debug("   " + insertionId + " is a MOVE "); 
 
                                     //if (toPosition[insertionId] == divergences.currentPosition(insertionId))  //rhsPosition[insertionId])
                                     //{
@@ -273,7 +229,7 @@ public class Skeleton implements IDiffList
 
                                          int adjPos = divergences.getTargetLocation(insertionId);
                                         
-                                        log.Debug("<transform op=move id=" + insertionId + "  pos=" + adjPos);  
+                                        log.debug("<transform op=move id=" + insertionId + "  pos=" + adjPos);  
 
                                         divergences.insert(insertionId); // change +1 to 0
 
@@ -287,20 +243,6 @@ public class Skeleton implements IDiffList
                                         //divergences.move(insertionId, rawPos + adjPos);
                                     //}
                                 }
-                                catch (KeyNotFoundException knf)
-                                {
-                                    // Just a new local insertion
-
-                                    int adjPos = divergences.getTargetLocation(insertionId);
-
-                                    log.Debug("<transform op=insert id=" + insertionId + "  pos=" + adjPos);
-
-                                    divergences.insert(insertionId); // change +1 to 0
-
-                                    divergences.debugInferred();
-
-
-                                }
 
                             }
 
@@ -309,8 +251,8 @@ public class Skeleton implements IDiffList
                             for (i = 0; i < drs.Length; i++)
                             {
 
-                                log.Debug(insertPos + ": " + ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).Line
-                                    + "\t" + ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).Line + " (no change)");
+                                log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine()
+                                    + "\t" + ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine() + " (no change)");
 
                                 //String id = ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).Line;
 
@@ -321,31 +263,28 @@ public class Skeleton implements IDiffList
                         case DiffResultSpanStatus.AddDestination:
                             for (i = 0; i < drs.Length; i++)
                             {
-                                String deletionId = ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).Line;
-                                log.Debug(insertPos + ": " + deletionId
+                                String deletionId = ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine();
+                                log.debug(insertPos + ": " + deletionId
                                     + " present at this location in dest but not source, so needs to be deleted");
 
-                                try
-                                {
+                                Integer dicVal = notHereInDest.get(deletionId);
+                                
+                                if (dicVal==null) {
 
-                                    int dicVal = notHereInDest[deletionId];
+                                    // Just a new local deletion
+
+                                    log.debug("Couldn't find " + deletionId + " so deleting");
+                                    divergences.delete(deletionId);
+
+                                    divergences.debugInferred();
+                                	
+                                } else {
                                     // there is a corresponding insert, so this is really a move
-                                    log.Debug("   " + deletionId + " is a MOVE to elsewhere (" + dicVal + ")");
+                                    log.debug("   " + deletionId + " is a MOVE to elsewhere (" + dicVal + ")");
                                                                             
                                     // DO NOTHING
 
                                 }
-                                catch (KeyNotFoundException knf)
-                                {
-                                    // Just a new local deletion
-
-                                    log.Debug("Couldn't find " + deletionId + " so deleting");
-                                    divergences.delete(deletionId);
-
-                                    divergences.debugInferred();
-
-                                }
-
 
                             }
 
@@ -383,7 +322,7 @@ public class Skeleton implements IDiffList
         }
     }
 
-    #region IDiffList Members
+    //#region IDiffList Members
 
     public int Count()
     {
@@ -395,7 +334,31 @@ public class Skeleton implements IDiffList
         return (TextLine)ribs[index];
     }
 
-    #endregion
+    //#endregion
 
+    public class TextLine implements IComparable
+    {
+        public String line;
+		public String getLine() {
+			return line;
+		}
+		
+        public int _hash;
+
+        public TextLine(String str)
+        {
+            line = str.Replace("\t", "    ");
+            _hash = str.GetHashCode();
+        }
+        //#region IComparable Members
+
+        public int CompareTo(object obj)
+        {
+            return _hash.CompareTo(((TextLine)obj)._hash);
+        }
+
+
+        //#endregion
+    }
 
 }

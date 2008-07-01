@@ -30,14 +30,14 @@ import org.plutext.client.state.StateChunk;
 
 import java.math.BigInteger;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
-/* Represent the document at a point in time.
- * 
- * The representation is made up of two things:
- * 1. the pkg xml document (ie VSTO's .WordOpenXML)
- * 2. a Hashmap of StateChunks
+/* Represent the document at a point in time, in
+ * a manner which can be manipulated and then 
+ * used to create a new (ie replacement) document
+ * in the editor.
  * 
  * We need to be able to:
  * (i)  infer a skeleton from it
@@ -53,9 +53,7 @@ import java.util.Map;
  * In other words, rather than using WordprocessingMLPackage.exportPkgXml()
  * to create a org.docx4j.wml.Package, this
  * class should operate on the JAXB representation of the 
- * MainDocumentPart. 
- *  
- * 
+ * MainDocumentPart, or at the docx4all ML level. 
  * 
  */
 public class Pkg implements Cloneable
@@ -67,7 +65,9 @@ public class Pkg implements Cloneable
 //	public WordprocessingMLPackage getWordMLPackage() {
 //		return wordMLPackage;
 //	}
+	List<SdtBlock> orderedChunks = null;
 	
+	Skeleton skeleton = new Skeleton();
 
     public Pkg(WordMLDocument doc)  
     {
@@ -77,20 +77,31 @@ public class Pkg implements Cloneable
     	
 //    	this.wordMLPackage = wordMLPackage;
     	
-        initChunks(doc);
+    	orderedChunks = doc.getSnapshotsList(0, doc.getLength());
+		if (orderedChunks != null) {
+			this.stateChunks = 
+				new HashMap<String, StateChunk>(orderedChunks.size() );
+			
+			for (SdtBlock sdt : orderedChunks ) {
+				StateChunk sc = new StateChunk(sdt);
+				this.stateChunks.put(sc.getIdAsString(), sc);
+				
+				skeleton.getRibs().add( skeleton.new TextLine( sc.getIdAsString())); 				
+				
+			}
+		} else {
+			this.stateChunks = new HashMap<String, StateChunk>();
+		}
+		
+		
     }
 
 
 
-    /* create an inferredSkeleton by transforming document.xml
-    //    (this will also contain:            	
-    //    (i)  new content controls for anything not in a cc            	
-    //    (ii) flattening of any content controls which user has managed to nest via a paste */
     public Skeleton getInferedSkeleton()
     {
-    	// TODO
     	
-    	return null;
+    	return skeleton;
     	
     }
 
@@ -100,23 +111,6 @@ public class Pkg implements Cloneable
         return stateChunks;
     }
 
-    public void initChunks(WordMLDocument doc)
-    {
-    	
-		Map<BigInteger, SdtBlock> map = doc.getSnapshots(0, doc.getLength());
-		if (map != null) {
-			this.stateChunks = 
-				new HashMap<String, StateChunk>(map.size());
-			
-			for (SdtBlock sdt:map.values()) {
-				StateChunk sc = new StateChunk(sdt);
-				this.stateChunks.put(sc.getId(), sc);
-			}
-		} else {
-			this.stateChunks = new HashMap<String, StateChunk>();
-		}
-
-    }
 
     public Object Clone()
     {

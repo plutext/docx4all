@@ -33,6 +33,9 @@ import org.docx4all.xml.SdtBlockML;
 import org.plutext.client.ServerFrom;
 import org.plutext.transforms.Transforms.T;
 
+import org.plutext.client.Mediator;
+import org.plutext.client.Pkg;
+
 public class TransformInsert extends TransformAbstract {
 
     	private static Logger log = Logger.getLogger(TransformInsert.class);
@@ -51,49 +54,22 @@ public class TransformInsert extends TransformAbstract {
         	pos = t.getPosition().toString();
         }
 
-        public TransformInsert())
+    	public TransformInsert(T t) {
+    		super(t);
+    		insertAfterControlId = null;
+    		insertBeforeControlId = null;
+    		insertAtIndex = null;
+    	}
+    	protected BigInteger insertAfterControlId;
+    	protected BigInteger insertBeforeControlId;
+    	protected BigInteger insertAtIndex;
+
+    	
+    	public TransformInsert())
         {
         	super();
         }
 
-        public override Int32 apply(Mediator mediator, Pkg pkg)
-        {
-
-            log.Debug(this.GetType().Name);
-
-            // So first, find the @after existing sdt in the XmlDocument
-            XmlNamespaceManager nsmgr = new XmlNamespaceManager(pkg.PkgXmlDocument.NameTable);
-            nsmgr.AddNamespace("w", Namespaces.WORDML_NAMESPACE);
-
-            // if user has locally inserted/deleted sdt's
-            // we need to adjust the specified position ...
-            int adjustedPos = int.Parse(pos) + mediator.Divergences.getOffset(int.Parse(pos));
-
-            log.Debug("Insertion location " + pos + " adjusted to " + adjustedPos);
-
-            XmlNode refChild = pkg.PkgXmlDocument.SelectSingleNode("//w:sdt[" + adjustedPos + "]", nsmgr);
-
-            if (refChild == null)
-            {
-                log.Debug("Couldn't find sdt " + id);
-
-                //stateDocx.DeletedContentControls 
-
-                return -1;
-            }
-            else
-            {
-                XmlNode parent = refChild.ParentNode;
-                XmlNode importedNode = pkg.PkgXmlDocument.ImportNode(SDT, true);
-                parent.InsertAfter(importedNode, refChild);
-
-                pkg.StateChunks.Add(id, new StateChunk(sdt));
-                mediator.Divergences.insert(id, adjustedPos);
-
-                log.Debug("Inserted new sdt " + id + " in pkg");
-                return sequenceNumber;
-            }
-        }
 
         String sdtXmlString = null;
 
@@ -102,36 +78,48 @@ public class TransformInsert extends TransformAbstract {
             sdtXmlString = xml;
         }
 
-        public override XmlDocument marshal()
+
+	
+	
+
+    public long apply(Mediator mediator, Pkg pkg)
+    {
+
+        log.Debug(this.GetType().Name);
+
+        // So first, find the @after existing sdt in the XmlDocument
+        XmlNamespaceManager nsmgr = new XmlNamespaceManager(pkg.PkgXmlDocument.NameTable);
+        nsmgr.AddNamespace("w", Namespaces.WORDML_NAMESPACE);
+
+        // if user has locally inserted/deleted sdt's
+        // we need to adjust the specified position ...
+        int adjustedPos = int.Parse(pos) + mediator.Divergences.getOffset(int.Parse(pos));
+
+        log.Debug("Insertion location " + pos + " adjusted to " + adjustedPos);
+
+        XmlNode refChild = pkg.PkgXmlDocument.SelectSingleNode("//w:sdt[" + adjustedPos + "]", nsmgr);
+
+        if (refChild == null)
         {
-            XmlDocument tf = createDocument();
-            XmlElement t = tf.CreateElement("t", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE);
-            tf.AppendChild(t);
+            log.Debug("Couldn't find sdt " + id);
 
-            t.SetAttribute("op", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE, "insert");
-            t.SetAttribute("position", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE, pos);
+            //stateDocx.DeletedContentControls 
 
-            // Now attach the sdt
-            XmlNode sdtNode = tf.ReadNode(new XmlTextReader(new System.IO.StringReader(sdtXmlString)));
-            t.AppendChild(sdtNode);
-
-            log.Debug(tf.OuterXml);
-
-            return tf;
+            return -1;
         }
+        else
+        {
+            XmlNode parent = refChild.ParentNode;
+            XmlNode importedNode = pkg.PkgXmlDocument.ImportNode(SDT, true);
+            parent.InsertAfter(importedNode, refChild);
 
-	private static Logger log = Logger.getLogger(TransformInsert.class);
-	
-	protected BigInteger insertAfterControlId;
-	protected BigInteger insertBeforeControlId;
-	protected BigInteger insertAtIndex;
-	
-	public TransformInsert(T t) {
-		super(t);
-		insertAfterControlId = null;
-		insertBeforeControlId = null;
-		insertAtIndex = null;
-	}
+            pkg.StateChunks.Add(id, new StateChunk(sdt));
+            mediator.Divergences.insert(id, adjustedPos);
+
+            log.Debug("Inserted new sdt " + id + " in pkg");
+            return sequenceNumber;
+        }
+    }
 	
 	public long apply(ServerFrom serverFrom) {
 		//Plutext server is trying to use absolute index position for

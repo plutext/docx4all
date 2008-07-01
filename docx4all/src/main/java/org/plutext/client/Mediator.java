@@ -19,18 +19,20 @@
 
 package org.plutext.client;
 
+import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 
 import org.alfresco.webservice.util.AuthenticationUtils;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
+import org.plutext.Context;
 import org.plutext.client.state.StateDocx;
 import org.plutext.client.state.StateChunk;
 import org.plutext.client.webservice.PlutextService_ServiceLocator;
 import org.plutext.client.webservice.PlutextWebService;
 import org.plutext.client.wrappedTransforms.*;
-import org.plutext.transforms.Context;
+import org.plutext.transforms.Transforms;
 import org.plutext.transforms.Transforms.T;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -621,7 +623,7 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
         log.debug(myDocName + ".. .. transmitContentUpdates");
 
         // The list of transforms to be transmitted
-        List<TransformAbstract> transformsToSend = new ArrayList<TransformAbstract>();
+        List<T> transformsToSend = new ArrayList<T>();
 
         /* Pre processing  - chunk as required, so that there is
          * only one paragraph in the sdt.
@@ -660,7 +662,13 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
         Skeleton inferredSkeleton = pkg.getInferedSkeleton();
 
         String serverSkeletonStr = ws.getSkeletonDocument(stateDocx.getDocID() );
-        Skeleton serverSkeleton = new Skeleton(serverSkeletonStr);
+		Unmarshaller u = Context.jcTransitions.createUnmarshaller();
+		u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());					
+		org.plutext.server.transitions.Transitions serverDst = 
+			(org.plutext.server.transitions.Transitions)u.unmarshal( 
+				 new javax.xml.transform.stream.StreamSource(
+							new java.io.StringReader(serverSkeletonStr)) );
+        Skeleton serverSkeleton = new Skeleton(serverDst);
 
         // OK, do it
         createTramsformsForStructuralChanges(pkg, transformsToSend,
@@ -672,6 +680,9 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
 
         int insertPos;
         int i;
+        
+    	org.plutext.transforms.ObjectFactory transformsFactory = new org.plutext.transforms.ObjectFactory();
+        
         try
         {
             String checkinComment = null;
@@ -688,7 +699,7 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
                 insertPos++;
 
                 StateChunk chunkCurrent = (StateChunk)kvp.getValue();
-                String stdId = chunkCurrent.getId();
+                String stdId = chunkCurrent.getIdAsString();
 
                 StateChunk chunkOlder = stateDocx.getPkg().getStateChunks().get(stdId);                
                 
@@ -754,27 +765,31 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
                     checkinComment = "edited";
                 }
 
-                TransformUpdate tu = new TransformUpdate();
-                tu.attachSdt(chunkCurrent.getXml() );
-                tu.setId( chunkCurrent.getId() );
-                transformsToSend.add(tu);
+//                TransformUpdate tu = new TransformUpdate();
+//                tu.attachSdt(chunkCurrent.getXml() );
+//                tu.setId( chunkCurrent.getId() );
+//                transformsToSend.add(tu);
+                
+                T t = transformsFactory.createTransformsT();
+                t.setOp("update");
+                t.setIdref( chunkCurrent.getId().getVal().longValue() );
+                t.setSdt( chunkCurrent.getSdt() );
+                transformsToSend.add(t);
+                
             }
 
             // Ok, now send what we have
-
-            StringBuilder transforms = new StringBuilder();
-            transforms.append("<p:transforms xmlns:p='" + Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE + "'>");
-            for (TransformAbstract ta : transformsToSend)
-            {
-                transforms.append(ta.marshal().OuterXml);
-            }
-            transforms.append("</p:transforms>");
-
+    	    Transforms transforms = transformsFactory.createTransforms();
+    	    transforms.getT().addAll(transformsToSend);    	    
+            boolean suppressDeclaration = true;
+            boolean prettyprint = false;
+            String transformsString = org.docx4j.XmlUtils.marshaltoString(transforms, suppressDeclaration, prettyprint, org.plutext.Context.jcTransforms );
+            
             checkinComment = " whatever!";
 
-            log.debug("TRANSMITTING " + transforms.toString());
+            log.debug("TRANSMITTING " + transformsString );
 
-            String[] result = ws.transform(stateDocx.getDocID(), transforms.toString(), checkinComment);
+            String[] result = ws.transform(stateDocx.getDocID(), transformsString, checkinComment);
 
             log.debug("Checkin also returned results" );
 
@@ -792,9 +807,9 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
             Boolean appliedTrue = true; 
             Boolean localTrue = true;   // means it wouldn't be treated as a conflict
             // Handle each result appropriately
-            for (TransformAbstract ta : transformsToSend)
+            for (T t : transformsToSend)
             {
-                log.debug(ta.getId() + " " + ta.getClass().getName() + " result " + result[i]);
+                log.debug(t.getIdref() + " " + t.getOp() + " result " + result[i]);
 
                 // Primarily, we're expecting sequence numbers
 
@@ -805,18 +820,24 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
                  * because other clients could have transmitted changes to the server
                  * while this method was running, and we wouldn't want to miss those
                  * changes. */
-                if (result[i].Contains("xmlns"))
+                if (result[i].contains("xmlns"))
                 {
 
-                    XmlDocument doc = new XmlDocument();
-                    doc.LoadXml(result[i]);
-
-                    TransformAbstract t = TransformHelper.construct(doc.DocumentElement);
-                    registerTransform(t, appliedTrue, localTrue, false);
+            		T tNew = null;
+            		try {
+            			tNew = (org.plutext.transforms.Transforms.T) u
+            					.unmarshal(new java.io.StringReader(result[i]));
+            		} catch (JAXBException e) {
+            			// TODO Auto-generated catch block
+            			e.printStackTrace();
+            		}
+                	
+                    TransformAbstract ta = TransformHelper.construct(tNew);
+                    registerTransform(ta, appliedTrue, localTrue, false);
 
                     // Set the in-document tag to match the one we got back
                     // ?? the actual sdt or the state chunk?
-                    getContentControlWithId(t.ID).Tag = t.Tag;
+                    getContentControlWithId(t.ID).Tag = ta.getTag();
 
                     /* A problem with this approach is that it doesn't 
                      *  get rid of any StyleSeparator workaround in an SDT.
@@ -832,6 +853,8 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
                 }
                 else
                 {
+                	TransformAbstract ta = org.plutext.client.wrappedTransforms.TransformHelper.construct(t);
+                	
                     ta.setSequenceNumber(Integer.parseInt(result[i]) );
                     registerTransform(ta, appliedTrue, localTrue, false);
                 }
@@ -878,9 +901,11 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
 
     }
 
-    void createTramsformsForStructuralChanges(Pkg pkg , List<TransformAbstract> transformsToSend,
+    void createTramsformsForStructuralChanges(Pkg pkg , List<T> transformsToSend,
         Skeleton inferredSkeleton, Skeleton serverSkeleton)
     {
+    	
+    	org.plutext.transforms.ObjectFactory transformsFactory = new org.plutext.transforms.ObjectFactory();
 
         DiffEngine de = new DiffEngine();
         de.ProcessDiff(inferredSkeleton, serverSkeleton);
@@ -909,10 +934,10 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
                     {
                         insertPos++;
                         // Must be a new local insertion
-                        log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).Line
+                        log.debug(insertPos + ": " + ((Skeleton.TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine()
                             + " not at this location in dest");
-                        String insertionId = ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).Line;
-                        notHereInDest.Add(insertionId, insertPos);
+                        String insertionId = ((Skeleton.TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine();
+                        notHereInDest.put(insertionId, insertPos);
                     }
 
                     break;
@@ -920,8 +945,8 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
                     for (i = 0; i < drs.Length; i++)
                     {
                         insertPos++;
-                        log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).Line
-                            + "\t" + ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).Line + " (no change)");
+                        log.debug(insertPos + ": " + ((Skeleton.TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine()
+                            + "\t" + ((Skeleton.TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine() + " (no change)");
 
                         // Nothing to do
                     }
@@ -931,10 +956,10 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
                     for (i = 0; i < drs.Length; i++)
                     {
                         //insertPos++; // Not for a delete
-                        log.debug(insertPos + ": " + ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).Line
+                        log.debug(insertPos + ": " + ((Skeleton.TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine()
                             + " not at this location in source");
-                        String deletionId = ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).Line;
-                        notHereInSource.Add(deletionId, insertPos);
+                        String deletionId = ((Skeleton.TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine();
+                        notHereInSource.put(deletionId, insertPos);
 
                     }
 
@@ -956,7 +981,7 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
                 case DiffResultSpanStatus.DeleteSource:  // Means we're doing an insertion
                     for (i = 0; i < drs.Length; i++)
                     {
-                        String insertionId = ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).Line;
+                        String insertionId = ((Skeleton.TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine();
                         log.debug(insertPos + ": " + insertionId
                             + " is at this location in src but not dest, so needs to be inserted");
 
@@ -966,7 +991,7 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
                         	
                             // Just a new local insertion
 
-                            int adjPos = divergences.getTargetLocation(insertionId);
+                            long adjPos = divergences.getTargetLocation(insertionId);
                             log.debug("Couldn't find " + insertionId + " so inserting at "
                                 + adjPos);
 
@@ -976,11 +1001,18 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
 
                             StateChunk sc = pkg.getStateChunks().get(insertionId);
 
-                            TransformInsert ti = new TransformInsert();
-                            ti.setPos( Integer.toString(adjPos) );
-                            ti.setId( sc.getId() );
-                            ti.attachSdt(sc.getXml());
-                            transformsToSend.add(ti);
+//                            TransformInsert ti = new TransformInsert();
+//                            ti.setPos( Integer.toString(adjPos) );
+//                            ti.setId( sc.getId() );
+//                            ti.attachSdt(sc.getXml());
+//                            transformsToSend.add(ti);
+                            T t = transformsFactory.createTransformsT();
+                            t.setOp("insert");
+                            t.setPosition(adjPos);
+                            t.setIdref( sc.getId().getVal().longValue() );
+                            t.setSdt( sc.getSdt() );
+                            transformsToSend.add(t);
+                            
 
                             log.debug("text Inserted:");
                             log.debug("TO   " + sc.getXml());
@@ -1020,7 +1052,7 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
 	                        // delete first (update divergences object)
 	                        divergences.delete(insertionId); // remove -1
 	
-	                        int adjPos = divergences.getTargetLocation(insertionId);
+	                        long adjPos = divergences.getTargetLocation(insertionId);
 	
 	                        log.debug("<transform op=move id=" + insertionId + "  pos=" + adjPos);
 	
@@ -1032,11 +1064,19 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
 	
 	                        StateChunk sc = pkg.getStateChunks().get(insertionId);
 	
-	                        TransformMove tm = new TransformMove();
-	                        tm.setPos( Integer.toString(adjPos) );
-	                        tm.setId ( sc.getId() );
-	                        //tm.attachSdt(sc.Xml);
-	                        transformsToSend.add(tm);
+//	                        TransformMove tm = new TransformMove();
+//	                        tm.setPos( Integer.toString(adjPos) );
+//	                        tm.setId ( sc.getId() );
+//	                        //tm.attachSdt(sc.Xml);
+//	                        transformsToSend.add(tm);
+	                        
+                            T t = transformsFactory.createTransformsT();
+                            t.setOp("move");
+                            t.setPosition(adjPos);
+                            t.setIdref( sc.getId().getVal().longValue() );
+                            //t.setSdt( sc.getSdt() );
+                            transformsToSend.add(t);
+
 	
 	                        log.debug("text moved:");
 	
@@ -1055,8 +1095,8 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
                     for (i = 0; i < drs.Length; i++)
                     {
 
-                        log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).Line
-                            + "\t" + ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).Line + " (no change)");
+                        log.debug(insertPos + ": " + ((Skeleton.TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine()
+                            + "\t" + ((Skeleton.TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine() + " (no change)");
 
                     }
 
@@ -1064,7 +1104,7 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
                 case DiffResultSpanStatus.AddDestination:
                     for (i = 0; i < drs.Length; i++)
                     {
-                        String deletionId = ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).Line;
+                        String deletionId = ((Skeleton.TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine();
                         log.debug(insertPos + ": " + deletionId
                             + " present at this location in dest but not source, so needs to be deleted");
 
@@ -1078,8 +1118,15 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
 
                             divergences.debugInferred();
 
-                            TransformDelete td = new TransformDelete(deletionId);
-                            transformsToSend.add(td);
+//                            TransformDelete td = new TransformDelete(deletionId);
+//                            transformsToSend.add(td);
+                            
+                            T t = transformsFactory.createTransformsT();
+                            t.setOp("delete");
+                            t.setIdref( Long.parseLong(deletionId) );
+                            //t.setSdt( sc.getSdt() );
+                            transformsToSend.add(t);
+                            
 
                             log.debug("text deleted:");
                         	

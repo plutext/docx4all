@@ -34,77 +34,68 @@ import org.docx4j.wml.Tag;
 import org.plutext.client.ServerFrom;
 import org.plutext.transforms.Transforms.T;
 
+import org.plutext.client.Mediator;
+import org.plutext.client.Pkg;
 
-    public abstract class TransformAbstract
-    {
+public abstract class TransformAbstract {
 
-    	private static Logger log = Logger.getLogger(TransformAbstract.class);
+	private static Logger log = Logger.getLogger(TransformAbstract.class);
 
-	protected SdtBlock sdt = null;	
+	protected SdtBlock sdt = null;
+
 	public SdtBlock getSdt() {
 		return sdt;
 	}
 
-        // For debug purposes only.
-        protected XmlNode tNode = null;
-        public XmlNode TNode
-        {
-            get { return tNode; }
-        }
+	public TransformAbstract() {
+	}
 
-        public TransformAbstract()
-        { }
+	public T t = null;
 
+	public TransformAbstract(T t) {
+		this.t = t;
 
-public T t = null;
+		sequenceNumber = t.getSnum();
 
-    public TransformAbstract(T t)
-    {
-    	this.t = t;
-    	
-        sequenceNumber =  t.getSnum();
+		sdt = t.getSdt();
 
-        sdt = t.getSdt();
+		if (t.getIdref() != null) {
+			// Case: Delete
 
-        if (t.getIdref() != null)
-        {
-            // Case: Delete 
-            
-            // Convert the idref to an id object
-            org.docx4j.wml.ObjectFactory factory = new org.docx4j.wml.ObjectFactory();
-            id = factory.createId();
-            id.setVal(BigInteger.valueOf(t.getIdref()));
-            
-            
-            
-        } else if (t.getOp().equals("style")) { 
-        
-            // No ID
-        
-        } else {
-        	
-            // Case: Update, Insert
+			// Convert the idref to an id object
+			org.docx4j.wml.ObjectFactory factory = new org.docx4j.wml.ObjectFactory();
+			id = factory.createId();
+			id.setVal(BigInteger.valueOf(t.getIdref()));
 
-            id = sdt.getSdtPr().getId();
+		} else if (t.getOp().equals("style")) {
 
-            tag = sdt.getSdtPr().getTag();
+			// No ID
 
-        }
+		} else {
 
-        //log.warn("Parsed SDT ID " + id);
-        
+			// Case: Update, Insert
 
-    }
+			id = sdt.getSdtPr().getId();
 
-	protected DocumentElement getDocumentElement(WordMLTextPane editor, BigInteger sdtBlockId) {
+			tag = sdt.getSdtPr().getTag();
+
+		}
+
+		// log.warn("Parsed SDT ID " + id);
+
+	}
+
+	protected DocumentElement getDocumentElement(WordMLTextPane editor,
+			BigInteger sdtBlockId) {
 		DocumentElement elem = null;
-		
+
 		WordMLDocument doc = (WordMLDocument) editor.getDocument();
-		
+
 		try {
 			doc.readLock();
-			
-			DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+
+			DocumentElement root = (DocumentElement) doc
+					.getDefaultRootElement();
 
 			for (int i = 0; i < root.getElementCount() - 1 && elem == null; i++) {
 				elem = (DocumentElement) root.getElement(i);
@@ -124,83 +115,74 @@ public T t = null;
 		} finally {
 			doc.readUnlock();
 		}
-		
+
 		return elem;
 	}
-	
-    /* Code to apply the transform */
-    	// TODO - think through method signature
-    public abstract long apply(ServerFrom serverFrom);
-    
+
+
 	/* do the actual replacement in docx4all specific way */
 	protected void apply(WordMLTextPane editor) {
-		;//do nothing
+		;// do nothing
 	}
 
+	protected Id id;
 
-    protected Id id;
 	public Id getId() {
 		return id;
 	}
+
 	public void setId(Id id) {
 		this.id = id;
 	}
-	
-    // The tag of the wrapped SDT
-    protected Tag tag;
+
+	// The tag of the wrapped SDT
+	protected Tag tag;
+
 	public Tag getTag() {
 		return tag;
 	}
+
 	public void setTag(Tag tag) {
 		this.tag = tag;
 	}
 
+	// Has this transform been applied to the document yet?
+	Boolean applied = false;
 
-    // Has this transform been applied to the document yet?
-    Boolean applied = false;
 	public Boolean getApplied() {
 		return applied;
 	}
+
 	public void setApplied(Boolean applied) {
 		this.applied = applied;
 	}
 
-        // Is this transform something which came from this
-        // plutext client?  (If it is, we can always apply it without worrying
-        // about conflicts)
-        Boolean local = false;
-        public Boolean Local
-        {
-            get { return local; }
-            set { local = value; }
-        }
+	// Is this transform something which came from this
+	// plutext client? (If it is, we can always apply it without worrying
+	// about conflicts)
+	boolean local = false;
 
+	public boolean isLocal() {
+		return local;
+	}
 
-    // The ID of the transformation.
-    protected long sequenceNumber = 0;
+	public void setLocal(boolean local) {
+		this.local = local;
+	}
+
+	// The ID of the transformation.
+	protected long sequenceNumber = 0;
+
 	public long getSequenceNumber() {
 		return sequenceNumber;
 	}
 
-
-	public void setSequenceNumber(int sequenceNumber) {
+	public void setSequenceNumber(long sequenceNumber) {
 		this.sequenceNumber = sequenceNumber;
 	}
 
+	/* Code to apply the transform */
+	public abstract long apply(Mediator mediator, Pkg pkg);
 
-        /* Code to apply the transform */
-        public abstract Int32 apply(Mediator mediator, Pkg pkg);
 
-        public abstract XmlDocument marshal();
-
-        protected XmlDocument createDocument()
-        {
-            XmlDocument tf = new XmlDocument();
-            XmlNamespaceManager nsmgr = new XmlNamespaceManager(tf.NameTable);
-            nsmgr.AddNamespace("w", Namespaces.WORDML_NAMESPACE);
-            nsmgr.AddNamespace(Namespaces.PLUTEXT_TRANSFORMS_NS_PREFIX, 
-                Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE);
-
-            return tf;
-        }
-    }
+}

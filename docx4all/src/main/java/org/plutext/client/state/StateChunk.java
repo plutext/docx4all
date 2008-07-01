@@ -18,7 +18,13 @@
  */
 package org.plutext.client.state;
 
+import java.io.StringReader;
+import java.util.Map;
+
+import javax.xml.transform.stream.StreamSource;
+
 import org.apache.log4j.Logger;
+import org.docx4j.XmlUtils;
 import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
 
@@ -33,6 +39,10 @@ import org.docx4j.wml.SdtBlock;
  */ 
 public class StateChunk implements Cloneable
 {
+	
+	// TODO - have to be able to update the SdtBlock,
+	// I expect.
+	
 
 	private static Logger log = Logger.getLogger(StateChunk.class);
 
@@ -42,6 +52,9 @@ public class StateChunk implements Cloneable
     }
     
 	SdtBlock cc;
+    public SdtBlock getSdt() {
+    	return cc; 
+    }
     
 
 	public String getIdAsString() {
@@ -108,29 +121,30 @@ public class StateChunk implements Cloneable
 
     private void transform(String stylesheet)
     {
-        log.Debug("In: " + xml);
-
-        XmlDocument inDoc = new XmlDocument();
-        inDoc.LoadXml(xml);
-        XmlNamespaceManager nsmgr = new XmlNamespaceManager(inDoc.NameTable);
-        nsmgr.AddNamespace("w", Namespaces.WORDML_NAMESPACE);
-
-        // Stylesheet
-        //XslCompiledTransform xsltTransform = new XslCompiledTransform();  
-        XslTransform xslt = new XslTransform();
-        xslt.Load(AppDomain.CurrentDomain.BaseDirectory + stylesheet);
-
-        // Transform
-        StringWriter stringWriter = new StringWriter();  
-        XmlTextWriter transformedXml = new XmlTextWriter(stringWriter);  
- // Create a XslCompiledTransform to perform transformation  
-        xslt.Transform(inDoc, null, transformedXml, null);
+        log.debug("In: " + xml);
+        
+        
+        java.io.StringWriter sw = new java.io.StringWriter();
+        javax.xml.transform.Result result = new javax.xml.transform.stream.StreamResult(sw); 
+        
+		try {
+			StreamSource src = new StreamSource(new StringReader(xml));
+			java.io.InputStream xslt = 
+				org.docx4j.utils.ResourceUtils.getResource("org/plutext/client/state/" + stylesheet);
+				//org.docx4j.utils.ResourceUtils.getResource("org/docx4j/diff/diffx2html.xslt");
+			Map<String, Object> transformParameters = new java.util.HashMap<String, Object>();
+			XmlUtils.transform(src, xslt, transformParameters, result);
+			
+		} catch (Exception exc) {
+			exc.printStackTrace();
+		}
+        
 
 
         // Ouptut
-        xml = stringWriter.ToString();
+        xml = sw.toString();
 
-        log.Debug("Transformed (" + stylesheet + "): " + xml);
+        log.debug("Transformed (" + stylesheet + "): " + xml);
     }
 
 

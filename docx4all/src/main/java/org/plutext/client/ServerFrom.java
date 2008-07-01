@@ -35,13 +35,13 @@ import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.util.DocUtil;
 import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
+import org.plutext.Context;
 import org.plutext.client.state.ContentControlSnapshot;
 import org.plutext.client.state.StateDocx;
 import org.plutext.client.webservice.PlutextService_ServiceLocator;
 import org.plutext.client.webservice.PlutextWebService;
 import org.plutext.client.wrappedTransforms.TransformAbstract;
 import org.plutext.client.wrappedTransforms.TransformHelper;
-import org.plutext.transforms.Context;
 import org.plutext.transforms.Transforms.T;
 
 /** This class is responsible for polling the server for updates

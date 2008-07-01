@@ -16,7 +16,7 @@
     along with Docx4all.  If not, see <http://www.gnu.org/licenses/>.
     
  */
-package org.plutext.transforms;
+package org.plutext;
 
 
 import javax.xml.bind.JAXBContext;
@@ -24,11 +24,13 @@ import javax.xml.bind.JAXBContext;
 public class Context {
 	
 	public static JAXBContext jcTransforms;
+	public static JAXBContext jcTransitions;
 	
 	static {
 		
 		try {		
 			jcTransforms = JAXBContext.newInstance("org.plutext.transforms");
+			jcTransitions = JAXBContext.newInstance("org.plutext.server.transitions");			
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}				
