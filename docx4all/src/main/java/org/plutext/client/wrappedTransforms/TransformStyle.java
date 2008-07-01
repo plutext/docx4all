@@ -1,22 +1,26 @@
 /*
- *  Copyright 2007, Plutext Pty Ltd.
+ *  Copyright 2008, Plutext Pty Ltd.
  *   
- *  This file is part of plutext-client-word2007.
+ *  This file is part of Docx4all.
 
-    plutext-client-word2007 is free software: you can redistribute it and/or 
-    modify it under the terms of version 3 of the GNU General Public License
+    Docx4all is free software: you can redistribute it and/or modify
+    it under the terms of version 3 of the GNU General Public License 
     as published by the Free Software Foundation.
 
-    plutext-client-word2007 is distributed in the hope that it will be 
-    useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
-    of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    Docx4all is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License   
-    along with plutext-client-word2007.  If not, see 
-    <http://www.gnu.org/licenses/>.
-   
+    along with Docx4all.  If not, see <http://www.gnu.org/licenses/>.
+    
  */
+
+package org.plutext.client.wrappedTransforms;
+
+import org.apache.log4j.Logger;
+import org.plutext.transforms.Transforms.T;
 
 using System;
 using System.Collections.Generic;
@@ -27,17 +31,15 @@ using log4net;
 //using System.Windows.Forms;
 
 
-namespace plutext.client.word2007
-{
-    class TransformStyle : TransformAbstract
+    public class TransformStyle extends TransformAbstract
     {
-        private static readonly ILog log = LogManager.GetLogger(typeof(TransformStyle));
+    	private static Logger log = Logger.getLogger(TransformStyle.class);
 
-        public TransformStyle(XmlNode n)
-            : base(n)
+        public TransformStyle(T t)
         {
-
+        	super(t);
         }
+        
 
         public override Int32 apply(Mediator mediator, Pkg pkg)
         {
@@ -77,4 +79,3 @@ namespace plutext.client.word2007
 
 
     }
-}

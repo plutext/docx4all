@@ -1,64 +1,51 @@
 /*
- *  Copyright 2007, Plutext Pty Ltd.
+ *  Copyright 2008, Plutext Pty Ltd.
  *   
- *  This file is part of plutext-client-word2007.
+ *  This file is part of Docx4all.
 
-    plutext-client-word2007 is free software: you can redistribute it and/or 
-    modify it under the terms of version 3 of the GNU General Public License
+    Docx4all is free software: you can redistribute it and/or modify
+    it under the terms of version 3 of the GNU General Public License 
     as published by the Free Software Foundation.
 
-    plutext-client-word2007 is distributed in the hope that it will be 
-    useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
-    of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    Docx4all is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License   
-    along with plutext-client-word2007.  If not, see 
-    <http://www.gnu.org/licenses/>.
-   
+    along with Docx4all.  If not, see <http://www.gnu.org/licenses/>.
+    
  */
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Xml;
+package org.plutext.client.wrappedTransforms;
 
+import org.apache.log4j.Logger;
+import org.plutext.transforms.Transforms.T;
 
-namespace plutext.client.word2007
-{
-    public class TransformHelper
-    {
-        public static TransformAbstract construct(  XmlNode n )
-        {
+public class TransformHelper {
+	private static Logger log = Logger.getLogger(TransformHelper.class);
 
-            string operation = n.Attributes.GetNamedItem("op", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE).Value;
+	public static TransformAbstract construct(T t) {
 
-            if (operation.Equals("update"))
-            {
-                return new TransformUpdate(n);
-            }
-            else if (operation.Equals("delete"))
-            {
-                return new TransformDelete(n);
-            }
-            else if (operation.Equals("insert"))
-            {
-                return new TransformInsert(n);
-            }
-            else if (operation.Equals("move"))
-            {
-                return new TransformMove(n);
-            }
-            else if (operation.Equals("style"))
-            {
-                return new TransformStyle(n);
-            }
-            else if (operation.Equals("failed"))
-            {
-                return new TransformFailed(n);
-            }
-            else throw new System.Exception();
+		String operation = t.getOp();
 
-        }
-    }
+		if (operation.equals("update")) {
+			return new TransformUpdate(t);
+		} else if (operation.equals("delete")) {
+			return new TransformDelete(t);
+		} else if (operation.equals("insert")) {
+			return new TransformInsert(t);
+		} else if (operation.equals("move")) {
+			return new TransformMove(t);
+		} else if (operation.equals("style")) {
+			return new TransformStyle(t);
+		} else if (operation.equals("failed")) {
+			return new TransformFailed(t);
+		} else {
+			log.error("Unrecognised transform!!!");
+			// TODO - throw exception
+			return null;
+		}
+
+	}
 }

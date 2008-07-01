@@ -1,48 +1,51 @@
 /*
- *  Copyright 2007, Plutext Pty Ltd.
+ *  Copyright 2008, Plutext Pty Ltd.
  *   
- *  This file is part of plutext-client-word2007.
+ *  This file is part of Docx4all.
 
-    plutext-client-word2007 is free software: you can redistribute it and/or 
-    modify it under the terms of version 3 of the GNU General Public License
+    Docx4all is free software: you can redistribute it and/or modify
+    it under the terms of version 3 of the GNU General Public License 
     as published by the Free Software Foundation.
 
-    plutext-client-word2007 is distributed in the hope that it will be 
-    useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
-    of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    Docx4all is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License   
-    along with plutext-client-word2007.  If not, see 
-    <http://www.gnu.org/licenses/>.
-   
+    along with Docx4all.  If not, see <http://www.gnu.org/licenses/>.
+    
  */
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Xml;
-using Word = Microsoft.Office.Interop.Word;
-using log4net;
-//using System.Windows.Forms;
+package org.plutext.client.wrappedTransforms;
+
+import java.math.BigInteger;
+import java.util.Map;
+
+import javax.swing.SwingUtilities;
+
+import org.apache.log4j.Logger;
+import org.docx4all.swing.WordMLTextPane;
+import org.docx4all.swing.text.DocumentElement;
+import org.docx4all.swing.text.WordMLFragment;
+import org.docx4j.wml.Id;
+import org.plutext.client.ServerFrom;
+import org.plutext.client.state.ContentControlSnapshot;
+import org.plutext.transforms.Transforms.T;
 
 
-namespace plutext.client.word2007
-{
-    class TransformDelete : TransformAbstract
+public class TransformDelete extends TransformAbstract {
+	
+	private static Logger log = Logger.getLogger(TransformDelete.class);	
+
+    public TransformDelete(T t)
     {
-
-        private static readonly ILog log = LogManager.GetLogger(typeof(TransformDelete));
-
-        public TransformDelete(XmlNode n)
-            : base(n)
-        {
-
-        }
+    	super(t);
+    }
 
         public TransformDelete(String idref)
-            : base()
         {
+        	super();
             this.id = idref;
         }
 
@@ -87,5 +90,83 @@ namespace plutext.client.word2007
             return tf;
         }
 
+    /* delete the SDT given its ID. */
+    public long apply(ServerFrom serverFrom)
+    {
+        // Remove the ContentControlSnapshot representing the content control
+    	
+		log.debug("apply(ServerFrom): Deleting SdtBlock = " + getSdt() 
+				+ " - ID=" + getId().getVal());
+
+    	Map<Id, ContentControlSnapshot> snapshots = 
+    		serverFrom.getStateDocx().getContentControlSnapshots();
+    	if (snapshots.remove(getId()) == null) {
+    		log.debug("apply(): Could not find SDT Id=" + getId().getVal() + " snapshot.");
+	        // couldn't find!
+	        // TODO - throw error
+    		return -1;
+    	}
+    	
+		apply(serverFrom.getWordMLTextPane());
+		
+		return sequenceNumber;
     }
-}
+
+	protected void apply(final WordMLTextPane editor) {
+		final BigInteger id = getId().getVal();
+		
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				
+				log.debug("apply(WordMLTextPane): Deleting SdtBlock ID=" 
+						+ id + " from Editor.");
+				
+				int origPos = editor.getCaretPosition();
+				boolean forward = true;
+								
+				try {
+					editor.beginContentControlEdit();
+					
+					DocumentElement elem = getDocumentElement(editor, id);
+					
+					log.debug("apply(WordMLTextPane): SdtBlock Element=" + elem);
+					log.debug("apply(WordMLTextPane): Current caret position=" + origPos);
+					
+					if (elem != null) {
+						if (elem.getStartOffset() <= origPos
+								&& origPos < elem.getEndOffset()) {
+							// elem is still hosting caret.
+							// User may have not finished editing yet.
+							// Do not apply this TransformUpdate now
+							// but wait until user has finished.
+							log.debug("apply(WordMLTextPane): SKIP...StdBlock element is hosting caret.");
+						} else {
+							log.debug("apply(WordMLTextPane): Deleting SdtBlock Element...");
+							
+							if (elem.getEndOffset() <= origPos) {
+								origPos = editor.getDocument().getLength() - origPos;
+								forward = false;
+							}
+							
+							editor.setCaretPosition(elem.getStartOffset());
+							editor.moveCaretPosition(elem.getEndOffset());
+							editor.replaceSelection((WordMLFragment) null);
+						}
+					} else {
+						//silently ignore
+						log.warn("apply(WordMLTextPane): SdtBlock Id=" 
+							+ id
+							+ " NOT FOUND in editor.");
+					}
+				} finally {
+					if (!forward) {
+						origPos = editor.getDocument().getLength() - origPos;
+					}
+					log.debug("apply(WordMLTextPane): Set caret position to " + origPos);
+					editor.endContentControlEdit();
+				}
+			}
+		});
+	}
+	
+} //TransformDelete class

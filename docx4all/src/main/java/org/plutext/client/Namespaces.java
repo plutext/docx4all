@@ -19,20 +19,14 @@
 
 package org.plutext.client;
 
-public class CustomProperties
-    {
+public class Namespaces
+{
+    public static String WORDML_NAMESPACE = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 
-        // Names here should be kept consistent with
-        // the server org.plutext.server.CustomProperties
+    public static String PLUTEXT_TRANSFORMS_NAMESPACE = "http://www.plutext.org/transforms";
+    public static String PLUTEXT_TRANSFORMS_NS_PREFIX = "pt"; // document state transitions
 
-        public static final String CHUNKING_STRATEGY = "plutext:Grouping";
-        // Expected values: EachBlock, Heading1
+    public static String PLUTEXT_TRANSITIONS_NS = "http://www.plutext.org/transitions";
+    public static String PLUTEXT_TRANSITIONS_NS_PREFIX = "dst"; // document state transitions
 
-        public static final String PROMPT_FOR_CHECKIN_MESSAGE = "plutext:CheckinMessageEnabled";
-
-        // TODO - is this still used??
-        public static final String DOCUMENT_ID = "DealerID";
-
-        public static final String DOCUMENT_TRANSFORM_SEQUENCENUMBER = "plutext:transformSequenceNumber";
-
-    }
+}

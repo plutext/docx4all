@@ -1,22 +1,26 @@
 /*
- *  Copyright 2007, Plutext Pty Ltd.
+ *  Copyright 2008, Plutext Pty Ltd.
  *   
- *  This file is part of plutext-client-word2007.
+ *  This file is part of Docx4all.
 
-    plutext-client-word2007 is free software: you can redistribute it and/or 
-    modify it under the terms of version 3 of the GNU General Public License
+    Docx4all is free software: you can redistribute it and/or modify
+    it under the terms of version 3 of the GNU General Public License 
     as published by the Free Software Foundation.
 
-    plutext-client-word2007 is distributed in the hope that it will be 
-    useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
-    of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    Docx4all is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License   
-    along with plutext-client-word2007.  If not, see 
-    <http://www.gnu.org/licenses/>.
-   
+    along with Docx4all.  If not, see <http://www.gnu.org/licenses/>.
+    
  */
+
+package org.plutext.client.wrappedTransforms;
+
+import org.apache.log4j.Logger;
+import org.plutext.transforms.Transforms.T;
 
 using System;
 using System.Collections.Generic;
@@ -26,24 +30,25 @@ using Word = Microsoft.Office.Interop.Word;
 using System.Windows.Forms;
 using log4net;
 
-namespace plutext.client.word2007
-{
-    class TransformMove : TransformAbstract
+    public class TransformMove extends TransformAbstract
     {
-        private static readonly ILog log = LogManager.GetLogger(typeof(TransformMove));
+    	private static Logger log = Logger.getLogger(TransformMove.class);
 
-        private string pos;
-        public string Pos
+        private String pos;
+    	public String getPos() {
+    		return pos;
+    	}
+    	public void setPos(String pos) {
+    		this.pos = pos;
+    	}
+        
+        public TransformMove(T t)
         {
-            get { return pos; }
-            set { pos = value; }
+        	super(t);
+        	pos = t.getPosition().toString();
         }
+        
 
-        public TransformMove(XmlNode n)
-            : base(n)
-        {
-            pos = n.Attributes.GetNamedItem("position", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE).Value;
-        }
 
         public TransformMove()
             : base()
@@ -138,4 +143,3 @@ namespace plutext.client.word2007
 
 
     }
-}
