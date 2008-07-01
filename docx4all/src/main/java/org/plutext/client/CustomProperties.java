@@ -1,38 +1,44 @@
 /*
- *  Copyright 2008, Plutext Pty Ltd.
+ *  Copyright 2007, Plutext Pty Ltd.
  *   
- *  This file is part of Docx4all.
+ *  This file is part of plutext-client-word2007.
 
-    Docx4all is free software: you can redistribute it and/or modify
-    it under the terms of version 3 of the GNU General Public License 
+    plutext-client-word2007 is free software: you can redistribute it and/or 
+    modify it under the terms of version 3 of the GNU General Public License
     as published by the Free Software Foundation.
 
-    Docx4all is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    plutext-client-word2007 is distributed in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
+    of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License   
-    along with Docx4all.  If not, see <http://www.gnu.org/licenses/>.
-    
+    along with plutext-client-word2007.  If not, see 
+    <http://www.gnu.org/licenses/>.
+   
  */
 
-package org.plutext.client;
+using System;
+using System.Collections.Generic;
+using System.Text;
 
-public class CustomProperties
+namespace plutext.client.word2007
+{
+    public static class CustomProperties
     {
 
         // Names here should be kept consistent with
         // the server org.plutext.server.CustomProperties
 
-        public static final String CHUNKING_STRATEGY = "plutext:Grouping";
+        public static string CHUNKING_STRATEGY = "plutext:Grouping";
         // Expected values: EachBlock, Heading1
 
-        public static final String PROMPT_FOR_CHECKIN_MESSAGE = "plutext:CheckinMessageEnabled";
+        public static string PROMPT_FOR_CHECKIN_MESSAGE = "plutext:CheckinMessageEnabled";
 
         // TODO - is this still used??
-        public static final String DOCUMENT_ID = "DealerID";
+        public static string DOCUMENT_ID = "DealerID";
 
-        public static final String DOCUMENT_TRANSFORM_SEQUENCENUMBER = "plutext:transformSequenceNumber";
+        public static string DOCUMENT_TRANSFORM_SEQUENCENUMBER = "plutext:transformSequenceNumber";
 
     }
+}

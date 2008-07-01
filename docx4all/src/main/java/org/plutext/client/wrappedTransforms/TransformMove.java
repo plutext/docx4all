@@ -28,10 +28,9 @@ using log4net;
 
 namespace plutext.client.word2007
 {
-    class TransformInsert : TransformAbstract
+    class TransformMove : TransformAbstract
     {
-
-        private static readonly ILog log = LogManager.GetLogger(typeof(TransformInsert));
+        private static readonly ILog log = LogManager.GetLogger(typeof(TransformMove));
 
         private string pos;
         public string Pos
@@ -40,13 +39,13 @@ namespace plutext.client.word2007
             set { pos = value; }
         }
 
-        public TransformInsert(XmlNode n)
+        public TransformMove(XmlNode n)
             : base(n)
         {
             pos = n.Attributes.GetNamedItem("position", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE).Value;
         }
 
-        public TransformInsert()
+        public TransformMove()
             : base()
         {
         }
@@ -57,15 +56,46 @@ namespace plutext.client.word2007
 
             log.Debug(this.GetType().Name);
 
-            // So first, find the @after existing sdt in the XmlDocument
             XmlNamespaceManager nsmgr = new XmlNamespaceManager(pkg.PkgXmlDocument.NameTable);
             nsmgr.AddNamespace("w", Namespaces.WORDML_NAMESPACE);
+
+            // Semantics of move are
+            // 1 remove existing element from list
+            // 2 insert new element
+
+            // So
+
+            // First, find and remove the existing element
+            XmlNode target = pkg.PkgXmlDocument.SelectSingleNode("//w:sdt[w:sdtPr/w:id/@w:val='" + id + "']", nsmgr);
+
+            if (target == null)
+            {
+                log.Debug("Couldn't find sdt " + id);
+                // TODO - throw error
+                return -1;
+            }
+            else
+            {
+                XmlNode parent = target.ParentNode;
+                parent.RemoveChild(target);
+
+                // No need to 
+                // pkg.StateChunks.Remove(id);
+
+                // QUESTION: interaction between divergences object and existing entry??
+                // - Probably have to do divergences.delete?
+                mediator.Divergences.delete(id);
+            }
+
+
+            // Second, re-insert it at the correct location
+
 
             // if user has locally inserted/deleted sdt's
             // we need to adjust the specified position ...
             int adjustedPos = int.Parse(pos) + mediator.Divergences.getOffset(int.Parse(pos));
 
-            log.Debug("Insertion location " + pos + " adjusted to " + adjustedPos);
+            log.Debug("Move location " + pos + " adjusted to " + adjustedPos);
 
             XmlNode refChild = pkg.PkgXmlDocument.SelectSingleNode("//w:sdt[" + adjustedPos + "]", nsmgr);
 
@@ -80,23 +110,16 @@ namespace plutext.client.word2007
             else
             {
                 XmlNode parent = refChild.ParentNode;
-                XmlNode importedNode = pkg.PkgXmlDocument.ImportNode(SDT, true);
-                parent.InsertAfter(importedNode, refChild);
+                parent.InsertAfter(target, refChild); // or before??
 
-                pkg.StateChunks.Add(id, new StateChunk(sdt));
+                //pkg.StateChunks.Add(id, new StateChunk(sdt));
                 mediator.Divergences.insert(id, adjustedPos);
 
-                log.Debug("Inserted new sdt " + id + " in pkg");
+                log.Debug("Moved sdt " + id + " in pkg");
                 return sequenceNumber;
             }
         }
 
-        String sdtXmlString = null;
-
-        public void attachSdt( String xml )
-        {
-            sdtXmlString = xml;
-        }
 
         public override XmlDocument marshal()
         {
@@ -104,12 +127,9 @@ namespace plutext.client.word2007
             XmlElement t = tf.CreateElement("t", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE);
             tf.AppendChild(t);
 
-            t.SetAttribute("op", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE, "insert");
+            t.SetAttribute("op", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE, "move");
             t.SetAttribute("position", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE, pos);
-
-            // Now attach the sdt
-            XmlNode sdtNode = tf.ReadNode(new XmlTextReader(new System.IO.StringReader(sdtXmlString)));
-            t.AppendChild(sdtNode);
+            t.SetAttribute("idref", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE, ID);
 
             log.Debug(tf.OuterXml);
 

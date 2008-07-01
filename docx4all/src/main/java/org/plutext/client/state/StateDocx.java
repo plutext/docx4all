@@ -1,269 +1,304 @@
 /*
- *  Copyright 2008, Plutext Pty Ltd.
+ *  Copyright 2007, Plutext Pty Ltd.
  *   
- *  This file is part of Docx4all.
+ *  This file is part of plutext-client-word2007.
 
-    Docx4all is free software: you can redistribute it and/or modify
-    it under the terms of version 3 of the GNU General Public License 
+    plutext-client-word2007 is free software: you can redistribute it and/or 
+    modify it under the terms of version 3 of the GNU General Public License
     as published by the Free Software Foundation.
 
-    Docx4all is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    plutext-client-word2007 is distributed in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
+    of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License   
-    along with Docx4all.  If not, see <http://www.gnu.org/licenses/>.
-    
+    along with plutext-client-word2007.  If not, see 
+    <http://www.gnu.org/licenses/>.
+   
  */
 
-package org.plutext.client.state;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Text;
+using Word = Microsoft.Office.Interop.Word;
+using log4net;
 
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
+namespace plutext.client.word2007
+{
+    /* Represent the configuration of the
+     * document, and certain transient
+     * document-level state information.
+     */ 
+    public class StateDocx
+    {
+        private static readonly ILog log = LogManager.GetLogger(typeof(StateDocx));
 
-import org.apache.log4j.Logger;
-import org.docx4all.swing.WordMLTextPane;
-import org.docx4all.swing.text.DocumentElement;
-import org.docx4all.swing.text.WordMLDocument;
-import org.docx4all.util.DocUtil;
-import org.docx4all.xml.DocumentML;
-import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
-import org.docx4j.wml.Id;
-import org.docx4j.wml.SdtBlock;
-import org.plutext.client.CustomProperties;
-import org.plutext.client.Util;
-import org.plutext.client.wrappedTransforms.TransformAbstract;
+        public StateDocx(String docID)
+        {
+            log.Debug("StateDocx constructor fired");
 
-/* Represent the configuration of the
- * document, and certain transient
- * document-level state information.
- */
-public class StateDocx {
+            try
+            {
+                pkg = new Pkg(Globals.ThisAddIn.Application.ActiveDocument);
 
-	private static Logger log = Logger.getLogger(StateDocx.class);
+                // Get initial skeletonSnapshot
+                ChunkServiceOverride ws = ChunkServiceOverride.getWebService();
 
-	public StateDocx(WordMLTextPane textPane) {
-		WordMLDocument doc = (WordMLDocument) textPane.getDocument();
-		if (!DocUtil.isSharedDocument(doc)) {
-			throw new IllegalArgumentException("Invalid WordMLDocument");
-		}
-		
-		String fileUri = (String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
-    	int idx = fileUri.indexOf("/alfresco/");
-    	if (idx <= 0) {
-    		//temporary checking
-    		//TODO: Has to check whether fileUri's protocol is webdav
-    		//and its context is correct.
-    		throw new IllegalArgumentException("Invalid WordMLDocument.FILE_PATH_PROPERTY value");
-    	}
-    	
-		this.docID = fileUri.substring(idx);
-    	init(doc);		
-	}
+                this.docID = docID;
+                transforms = new TransformsCollection();
+                skeletonSnapshot = ws.getSkeletonDocument(docID); // TODO - do this async
 
-	private void init(WordMLDocument doc) {
-  		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
-    	WordprocessingMLPackage wordMLPackage = 
-    		((DocumentML) root.getElementML()).getWordprocessingMLPackage();
+                // Set up the prepend and append strings
+                // we need in order to use InsertXML method
+                insertionHelper = new InsertionHelper();
+            } 
+            catch (Exception ex)
+            {
+                log.Debug(ex.Message + ex.StackTrace);
+            }
 
-    	
-		this.uptodate = true;
-		
-		this.tSequenceNumberAtLoadTime = Integer.parseInt(Util
-				.getCustomDocumentProperty(wordMLPackage
-						.getDocPropsCustomPart(),
-						CustomProperties.DOCUMENT_TRANSFORM_SEQUENCENUMBER));
+        }
 
-		this.tSequenceNumberApplied = this.tSequenceNumberAtLoadTime;
+        private String skeletonSnapshot;
 
-		this.tSequenceNumberHighestFetched = this.tSequenceNumberAtLoadTime;
 
-		if (Util.getCustomDocumentProperty(
-				wordMLPackage.getDocPropsCustomPart(),
-				CustomProperties.PROMPT_FOR_CHECKIN_MESSAGE).equals("true")) {
-			this.promptForCheckinMessage = Boolean.TRUE;
-			
-		} else if (Util.getCustomDocumentProperty(
-				wordMLPackage.getDocPropsCustomPart(),
-				CustomProperties.PROMPT_FOR_CHECKIN_MESSAGE).equals("false")) {
-			this.promptForCheckinMessage = Boolean.FALSE;
-			
-		} else {
-			log.warn(CustomProperties.PROMPT_FOR_CHECKIN_MESSAGE + "unknown");
-			this.promptForCheckinMessage = Boolean.FALSE;
-		}
-		
-		// Expected values: EachBlock, Heading1
-		this.chunkingStrategy = Util.getCustomDocumentProperty(
-				wordMLPackage.getDocPropsCustomPart(),
-				CustomProperties.CHUNKING_STRATEGY);
+        // Set from App_DocumentOpen
+        private String docID = null;
+        public String DocID
+        {
+            get { return docID; }
+            set { docID = value; }
+        }
 
-		initStylesSnapshot(wordMLPackage);
-		initContentControlSnapshots(doc);
-	}
-	
-	private void initStylesSnapshot(WordprocessingMLPackage wordMLPackage) {
-		org.docx4j.wml.Styles docxStyles = 
-			(org.docx4j.wml.Styles) wordMLPackage.getMainDocumentPart().
-				getStyleDefinitionsPart().getJaxbElement();
-		this.stylesSnapshot = new StylesSnapshot(docxStyles);
-	}
-	
-	private void initContentControlSnapshots(WordMLDocument doc) {
-		Map<BigInteger, SdtBlock> map = doc.getSnapshots(0, doc.getLength());
-		if (map != null) {
-			this.contentControlSnapshots = 
-				new HashMap<Id, ContentControlSnapshot>(map.size());
-			
-			for (SdtBlock sdt:map.values()) {
-				ContentControlSnapshot ccs = 
-					new ContentControlSnapshot(sdt);
-				this.contentControlSnapshots.put(ccs.getId(), ccs);
-			}
-		} else {
-			this.contentControlSnapshots = 
-				new HashMap<Id, ContentControlSnapshot>();
-		}
-	}
-	
-	private long tSequenceNumberAtLoadTime;
+        // These three variables are read from document properties
+        // TODO:- how to prevent user from changing these values
+        // from the Word interface?
 
-	private long tSequenceNumberApplied;
+        private Boolean promptForCheckinMessage;
+        public  Boolean PromptForCheckinMessage
+        {
+            get { return promptForCheckinMessage;}
+            set { promptForCheckinMessage=value;}
+        }
 
-	public long getTSequenceNumberApplied() {
-		return tSequenceNumberApplied;
-	}
+        private String chunkingStrategy;
+        public String ChunkingStrategy
+        {
+            get { return chunkingStrategy; }
+            set { chunkingStrategy = value; }
+        }
 
-	public void setTSequenceNumberApplied(long sequenceNumberApplied) {
-		tSequenceNumberApplied = sequenceNumberApplied;
-	}
+        // Whether the cursor is currently in a 
+        // content control
+        // EXPERIMENTAL - see whether we can track this!
+/*        private Boolean inControl = false;
+        public Boolean InControl
+        {
+            get { return inControl; }
+            set { inControl = value; }
+        }
+*/
 
-	private long tSequenceNumberHighestFetched;
-	
-	public long getTSequenceNumberHighestFetched() {
-		return tSequenceNumberHighestFetched;
-	}
+        private Word.ContentControl currentCC = null;
+        public Word.ContentControl CurrentCC
+        {
+            get { return currentCC; }
+            set { currentCC = value; }
+        }
 
-	public void setTSequenceNumberHighestFetched(
-			long sequenceNumberHighestFetched) {
-		tSequenceNumberHighestFetched = sequenceNumberHighestFetched;
-	}
 
-	private String docID = null;
+        private Boolean initialized = false;
+        public Boolean Initialized
+        {
+            get { return initialized; }
+            set { initialized = value; }
+        }
 
-	public String getDocID() {
-		return docID;
-	}
 
-	public void setDocID(String docID) {
-		this.docID = docID;
-	}
+        Styles stylemap = new Styles();
+        public Styles StyleMap
+        {
+            get { return stylemap; }
+        }
 
-	// These three variables are read from document properties
+        Pkg pkg = null;
+        public Pkg Pkg
+        {
+            get { return pkg; }
+            set { pkg = value; }
+        }
 
-	private Boolean promptForCheckinMessage;
 
-	public Boolean getPromptForCheckinMessage() {
-		return promptForCheckinMessage;
-	}
+        /* Maintain a collection of Transforms keyed by tSequenceNumber, so we 
+         * can keep track of which ones have been applied.  */
+        TransformsCollection transforms;
+        public TransformsCollection Transforms
+        {
+            get { return transforms; }
+        }
 
-	public void setPromptForCheckinMessage(Boolean promptForCheckinMessage) {
-		this.promptForCheckinMessage = promptForCheckinMessage;
-	}
+        //List<DeletedContentControl> deletedContentControls = new List<DeletedContentControl>();
+        //public List<DeletedContentControl> DeletedContentControls
+        //{
+        //    get { return deletedContentControls; }
+        //}
 
-	private String chunkingStrategy;
 
-	public String getChunkingStrategy() {
-		return chunkingStrategy;
-	}
 
-	public void setChunkingStrategy(String chunkingStrategy) {
-		this.chunkingStrategy = chunkingStrategy;
-	}
+        //Boolean uptodate = true;
+        //public Boolean Uptodate
+        //{
+        //    get { return (transforms.TSequenceNumberApplied == transforms.TSequenceNumberHighestFetched); }
+        //    //set { uptodate = value; }
+        //}
 
-	private SdtBlock currentCC = null;
+        private InsertionHelper insertionHelper;
+        public InsertionHelper XmlInsertion
+        {
+            get { return insertionHelper; }
+        }
 
-	public SdtBlock getCurrentCC() {
-		return currentCC;
-	}
+        // Return the content control containing the cursor, or
+        // null if we are outside a content control or the selection
+        // spans the content control boundary
+        public Word.ContentControl getActiveContentControl()
+        {
+            Word.Selection selection = Globals.ThisAddIn.Application.Selection;
 
-	public void setCurrentCC(SdtBlock currentCC) {
-		this.currentCC = currentCC;
+            // Word.ContentControls ccs = selection.ContentControls;
+            // only has a value if the selection contains an entire ContentControl
 
-		if (currentCC == null) {
-			return;
-		}
+            // so how do you expand a selection to include the entire content control?
+            // or can we ask whether a content control is active,
+            // ie the selection is in it?
 
-		// Looks like this method is only called when
-		// entering a content control?
+            // or iterate through the content controls in the active doc,
+            // asking whether their range contains my range? YES
 
-		// No, as at May 9, we're also calling it
-		// when exiting (at beginning and end of exit)
+            foreach (Word.ContentControl ctrl in Globals.ThisAddIn.Application.ActiveDocument.ContentControls)
+            {
+                if (selection.InRange(ctrl.Range))
+                {
+                    //diagnostics("DEBUG - Got control");
+                    return ctrl;
+                }
+                // else user's selection is totally outside the content control, or crosses its boundary
+            }
+            //if (stateDocx.InControl == true)
 
-		// Therefore content control already exists in
-		// document, so you can assume it is already 
-		// listed in contentControlSnapshots
+            return null;
 
-		// But could check, just to make sure?
+        }
 
-		ContentControlSnapshot ccs = (ContentControlSnapshot) contentControlSnapshots
-				.get(currentCC.getSdtPr().getId());
-		if (ccs == null) {
-			ccs = new ContentControlSnapshot(currentCC);
-		} else {
-			ccs.refresh(currentCC);
-		}
-		contentControlSnapshots.put(currentCC.getSdtPr().getId(), ccs);
-	}
+        /* Look at this document, and derive a skeleton from it. 
+           The objective is to be able to compare the order of this document
+           to the order known to the server.  */
+        public String constructSkeleton()
+        {
+            /* There are several ways we could seek to do this.  
+             * 
+             * One would be to loop through the content controls (which assumes
+             * they are ordered).
+             * 
+             * Another would be to transform the document via XSLT, into the
+             * form we want.  This has the advantage of also identifying text
+             * which is not in a content control.
+             * 
+             
+             */
 
-	private Boolean initialized = false;
+            return null;
 
-	StylesSnapshot stylesSnapshot = null;
 
-	public StylesSnapshot getStylesSnapshot() {
-		return stylesSnapshot;
-	}
+        }
 
-	/* Maintain an ordered list of controls 
-	 * (unless docx4all already has this somewhere else?) */
-	Controls controlMap = new Controls();
+        public class TransformsCollection
+        {
+            // can I extend dictionary?
 
-	public Controls getControlMap() {
-		return controlMap;
-	}
+            private Int32 tSequenceNumberAtLoadTime = Int32.Parse(Util.getCustomDocumentProperty(Globals.ThisAddIn.Application.ActiveDocument, CustomProperties.DOCUMENT_TRANSFORM_SEQUENCENUMBER));
 
-	/* Maintain a hashmap (dictionary) of ContentControlSnapshot wrapped Content Controls 
-	 * keyed by ID, so we can detect when one has been updated (even if not
-	 * entered)  */
-	HashMap<Id, ContentControlSnapshot> contentControlSnapshots = null;
+            //private Int32 tSequenceNumberApplied = Int32.Parse(Util.getCustomDocumentProperty(Globals.ThisAddIn.Application.ActiveDocument, CustomProperties.DOCUMENT_TRANSFORM_SEQUENCENUMBER));
+            //public Int32 TSequenceNumberApplied
+            //{
+            //    get { return tSequenceNumberApplied; }
+            //    set { tSequenceNumberApplied = value; }
+            //}
 
-	//		public void setControlMap(Controls controlMap) {
-	//			this.controlMap = controlMap;
-	//		}
-	public HashMap<Id, ContentControlSnapshot> getContentControlSnapshots() {
-		return contentControlSnapshots;
-	}
+            private Int32 tSequenceNumberHighestFetched = Int32.Parse(Util.getCustomDocumentProperty(Globals.ThisAddIn.Application.ActiveDocument, CustomProperties.DOCUMENT_TRANSFORM_SEQUENCENUMBER));
+            public Int32 TSequenceNumberHighestFetched
+            {
+                get { return tSequenceNumberHighestFetched; }
+                set { tSequenceNumberHighestFetched = value; }
+            }
 
-	/* Maintain a collection of Transforms keyed by tSequenceNumber, so we 
-	 * can keep track of which ones have been applied.  */
-	// TODO - rename to wrappedTransforms
-	HashMap<Long, TransformAbstract> wrappedTransforms = new HashMap<Long, TransformAbstract>();
 
-	public HashMap<Long, TransformAbstract> getWrappedTransforms() {
-		return wrappedTransforms;
-	}
+            /* Maintain a collection of Transforms keyed by tSequenceNumber, so we 
+             * can keep track of which ones have been applied. 
+             * 
+               Key is SequenceNumber, not t.ID, since TransformStyle type doesn't have an 
+               underlying SDT.  Besides, if 2 additions related to the same SDT, the
+               keys would collide.
+             */
+            List<TransformAbstract> transformsBySeqNum = new List<TransformAbstract>();
+            public List<TransformAbstract> TransformsBySeqNum
+            {
+                get { return transformsBySeqNum; }
+            }
 
-	//Boolean uptodate = true;
-	public boolean uptodate;
+            public void add(TransformAbstract t, Boolean updateHighestFetched)
+            {
+                // Check it is not already present before adding
+                // This list should be pretty short, so there is
+                // little harm in just iterating through it
+                foreach (TransformAbstract ta in TransformsBySeqNum)
+                {
+                    if (ta.SequenceNumber == t.SequenceNumber)
+                    {
+                        log.Debug(t.SequenceNumber + " already registered.  Ignoring.");
+                        return;
+                    }
+                }
 
-	public boolean getUptodate() {
-		return (tSequenceNumberApplied == tSequenceNumberHighestFetched);
-	}
+                transformsBySeqNum.Add(t);
 
-	public void setUptodate(boolean uptodate) {
-		this.uptodate = uptodate;
-	}
+                if (updateHighestFetched && t.SequenceNumber > tSequenceNumberHighestFetched)
+                {
+                    // Only update highest fetched if this addition is 
+                    // a result of fetch updates. (If it is a result
+                    // of local transmits, there is a possibility that
+                    // someone else may have generated an snum (ie while
+                    // our transmitLocalChanges was running), and we 
+                    // wouldn't want to miss that
 
+                    tSequenceNumberHighestFetched = t.SequenceNumber;
+                }
+            }
+
+            public List<TransformAbstract> getTransformsBySdtId(String id, Boolean includeLocals)
+            {
+                List<TransformAbstract> list = new List<TransformAbstract>();
+
+                foreach (TransformAbstract ta in transformsBySeqNum)
+                {
+                    if (ta.ID.Equals(id))
+                        {
+                            if (!ta.Local || includeLocals)
+                            {
+                                list.Add(ta);
+                                log.Debug("Instance  --  found a transform applicable to Sdt " + id);
+                            }
+                        }
+
+                }
+
+                return list;
+            }
+
+        }
+
+
+    }
 }

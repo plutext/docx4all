@@ -1,187 +1,164 @@
 /*
- *  Copyright 2008, Plutext Pty Ltd.
+ *  Copyright 2007, Plutext Pty Ltd.
  *   
- *  This file is part of Docx4all.
+ *  This file is part of plutext-client-word2007.
 
-    Docx4all is free software: you can redistribute it and/or modify
-    it under the terms of version 3 of the GNU General Public License 
+    plutext-client-word2007 is free software: you can redistribute it and/or 
+    modify it under the terms of version 3 of the GNU General Public License
     as published by the Free Software Foundation.
 
-    Docx4all is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    plutext-client-word2007 is distributed in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
+    of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License   
-    along with Docx4all.  If not, see <http://www.gnu.org/licenses/>.
-    
+    along with plutext-client-word2007.  If not, see 
+    <http://www.gnu.org/licenses/>.
+   
  */
 
-package org.plutext.client.wrappedTransforms;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Xml;
+using System.Windows.Forms;
+using log4net;
 
-import java.math.BigInteger;
 
-import org.docx4all.swing.WordMLTextPane;
-import org.docx4all.swing.text.DocumentElement;
-import org.docx4all.swing.text.WordMLDocument;
-import org.docx4all.xml.ElementML;
-import org.docx4all.xml.SdtBlockML;
-import org.docx4j.wml.Id;
-import org.docx4j.wml.SdtBlock;
-import org.docx4j.wml.Tag;
-import org.plutext.client.ServerFrom;
-import org.plutext.transforms.Transforms.T;
-
-public abstract class TransformAbstract
+namespace plutext.client.word2007
 {
-
-    // The ID of the wrapped SDT. This is *not* the ID of the transformation.
-    // TODO - rename, so that this is more obvious.
-    protected Id id;
-	public Id getId() {
-		return id;
-	}
-	public void setId(Id id) {
-		this.id = id;
-	}
-
-
-    // The tag of the wrapped SDT
-    protected Tag tag;
-	public Tag getTag() {
-		return tag;
-	}
-	public void setTag(Tag tag) {
-		this.tag = tag;
-	}
-
-
-    // Has this transform been applied to the document yet?
-    Boolean applied = false;
-	public Boolean getApplied() {
-		return applied;
-	}
-	public void setApplied(Boolean applied) {
-		this.applied = applied;
-	}
-
-
-    // The ID of the transformation.
-    protected long sequenceNumber = 0;
-	public long getSequenceNumber() {
-		return sequenceNumber;
-	}
-
-
-	public void setSequenceNumber(int sequenceNumber) {
-		this.sequenceNumber = sequenceNumber;
-	}
-	
-	protected SdtBlock sdt = null;	
-	public SdtBlock getSdt() {
-		return sdt;
-	}
-	
-	public T t = null;
-	
-    public TransformAbstract(T t)
+    public abstract class TransformAbstract
     {
-    	this.t = t;
-    	
-        sequenceNumber =  t.getSnum();
 
-        sdt = t.getSdt();
+        private static readonly ILog log = LogManager.GetLogger(typeof(TransformAbstract));
 
-        if (t.getIdref() != null)
+        protected XmlNode sdt = null;
+        public XmlNode SDT
         {
-            // Case: Delete 
-            
-            // Convert the idref to an id object
-            org.docx4j.wml.ObjectFactory factory = new org.docx4j.wml.ObjectFactory();
-            id = factory.createId();
-            id.setVal(BigInteger.valueOf(t.getIdref()));
-            
-            
-            
-        } else if (t.getOp().equals("style")) { 
-        
-            // No ID
-        
-        } else {
-        	
-            // Case: Update, Insert
+            get { return sdt; }
+        }
 
-            id = sdt.getSdtPr().getId();
+        // For debug purposes only.
+        protected XmlNode tNode = null;
+        public XmlNode TNode
+        {
+            get { return tNode; }
+        }
 
-            tag = sdt.getSdtPr().getTag();
+        public TransformAbstract()
+        { }
+
+        public TransformAbstract(XmlNode n)
+        {
+            sequenceNumber = Int32.Parse(n.Attributes.GetNamedItem("snum", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE).Value);
+
+            // For debug purposes only
+            tNode = n;
+
+            sdt = n.FirstChild;
+
+
+            if (n.Attributes.GetNamedItem("idref", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE) != null)
+            {
+                // Case: Delete 
+                id = n.Attributes.GetNamedItem("idref", Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE).Value;
+            }
+            else if (this.GetType().Name.Equals("TransformStyle")) { 
+            
+                // No ID
+            
+            } else
+            {
+                // Case: Update, Insert
+
+                XmlNode sdtPr = sdt.FirstChild;
+
+                XmlNamespaceManager nsmgr = new XmlNamespaceManager(n.OwnerDocument.NameTable);
+                nsmgr.AddNamespace("w", Namespaces.WORDML_NAMESPACE);
+
+                //id = sdtPr.FirstChild.Attributes.GetNamedItem("val", "http://schemas.openxmlformats.org/wordprocessingml/2006/main").Value;
+                XmlNode idAt = sdtPr.SelectSingleNode("w:id/@w:val", nsmgr);
+                if (idAt == null)
+                {
+                    log.Debug("ERROR: - no id?!");
+                }
+                id = idAt.Value;
+
+                //tag = sdtPr.LastChild.Attributes.GetNamedItem("val", "http://schemas.openxmlformats.org/wordprocessingml/2006/main").Value;
+                XmlNode tagAt = sdtPr.SelectSingleNode("w:tag/@w:val", nsmgr);
+                if (tagAt == null)
+                {
+                    log.Debug("ERROR: - no tag?!");
+                }
+                tag = tagAt.Value;
+
+            }
+
+            //MessageBox.Show("Parsed SDT ID " + id);
+            
 
         }
 
-        //log.warn("Parsed SDT ID " + id);
-        
 
+        // The ID of the wrapped SDT. This is *not* the ID of the transformation.
+        // TODO - rename, so that this is more obvious.
+        protected string id;
+        public String ID
+        {
+            get { return id; }
+            set { id = value; }
+        }
+        // The tag of the wrapped SDT
+        protected string tag;
+        public String Tag
+        {
+            get { return tag; }
+        }
+
+
+        // Has this transform been applied to the document yet?
+        Boolean applied = false;
+        public Boolean Applied
+        {
+            get { return applied; }
+            set { applied = value; }
+        }
+
+        // Is this transform something which came from this
+        // plutext client?  (If it is, we can always apply it without worrying
+        // about conflicts)
+        Boolean local = false;
+        public Boolean Local
+        {
+            get { return local; }
+            set { local = value; }
+        }
+
+
+        // The ID of the transformation.
+        protected Int32 sequenceNumber = 0;
+        public Int32 SequenceNumber
+        {
+            get { return sequenceNumber; }
+            set { sequenceNumber = value; }
+        }
+
+
+        /* Code to apply the transform */
+        public abstract Int32 apply(Mediator mediator, Pkg pkg);
+
+        public abstract XmlDocument marshal();
+
+        protected XmlDocument createDocument()
+        {
+            XmlDocument tf = new XmlDocument();
+            XmlNamespaceManager nsmgr = new XmlNamespaceManager(tf.NameTable);
+            nsmgr.AddNamespace("w", Namespaces.WORDML_NAMESPACE);
+            nsmgr.AddNamespace(Namespaces.PLUTEXT_TRANSFORMS_NS_PREFIX, 
+                Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE);
+
+            return tf;
+        }
     }
-
-	protected DocumentElement getDocumentElement(WordMLTextPane editor, BigInteger sdtBlockId) {
-		DocumentElement elem = null;
-		
-		WordMLDocument doc = (WordMLDocument) editor.getDocument();
-		
-		try {
-			doc.readLock();
-			
-			DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
-
-			for (int i = 0; i < root.getElementCount() - 1 && elem == null; i++) {
-				elem = (DocumentElement) root.getElement(i);
-				ElementML ml = elem.getElementML();
-				if (ml instanceof SdtBlockML) {
-					SdtBlockML sdtBlockML = (SdtBlockML) ml;
-					if (sdtBlockId.equals(sdtBlockML.getSdtProperties()
-							.getIdValue())) {
-						;// got it
-					} else {
-						elem = null;
-					}
-				} else {
-					elem = null;
-				}
-			}
-		} finally {
-			doc.readUnlock();
-		}
-		
-		return elem;
-	}
-	
-    /* Code to apply the transform */
-    	// TODO - think through method signature
-    public abstract long apply(ServerFrom serverFrom);
-    
-	/* do the actual replacement in docx4all specific way */
-	protected void apply(WordMLTextPane editor) {
-		;//do nothing
-	}
-	    
-} //TransformAbstract class
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}
