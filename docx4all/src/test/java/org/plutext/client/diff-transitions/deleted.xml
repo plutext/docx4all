@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<dst:transitions xmlns:dst="http://www.plutext.org/transitions">
+  <dst:ribs>
+    <dst:rib dst:id="2" />
+    <dst:rib dst:id="3" />
+    <dst:rib dst:id="4" />
+    <dst:rib dst:id="6" />
+    <dst:rib dst:id="7" />
+  </dst:ribs>
+</dst:transitions>

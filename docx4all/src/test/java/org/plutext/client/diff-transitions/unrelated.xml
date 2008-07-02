@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<dst:transitions xmlns:dst="http://www.plutext.org/transitions">
+  <dst:ribs>
+    <dst:rib dst:id="14" />
+    <dst:rib dst:id="18" />
+    <dst:rib dst:id="13" />
+    <dst:rib dst:id="11" />
+    <dst:rib dst:id="17" />
+    <dst:rib dst:id="16" />
+    <dst:rib dst:id="12" />
+    <dst:rib dst:id="15" />
+  </dst:ribs>
+</dst:transitions>
