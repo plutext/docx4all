@@ -8,31 +8,25 @@
  *  On 23 Aug 2007, he again said "Code is free for use in anyway you want"
  */
 
-using System;
-using System.Collections;
+package org.plutext.client.diffengine;
 
-namespace plutext.client.word2007.DifferenceEngine
-{
-	public class DiffList_CharData : IDiffList
-	{
-		private char[] _charList;
+public class CharData implements IDiffList<Character> {
+	private Character[] _charList;
 
-		public DiffList_CharData(string charData)
-		{
-			_charList = charData.ToCharArray();
+	public CharData(String charData) {
+		_charList = new Character[charData.length()];
+		
+		for (int i=0; i < charData.length(); i++) {
+			_charList[i] = Character.valueOf(charData.charAt(i));
 		}
-		#region IDiffList Members
-
-		public int Count()
-		{
-			return _charList.Length;
-		}
-
-		public IComparable GetByIndex(int index)
-		{
-			return _charList[index];
-		}
-
-		#endregion
 	}
-}
+
+	public int count() {
+		return _charList.length;
+	}
+
+	public Comparable<Character> getByIndex(int index) {
+		return _charList[index];
+	}
+	
+} //CharData class
