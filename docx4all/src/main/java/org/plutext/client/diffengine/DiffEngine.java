@@ -336,7 +336,7 @@ public class DiffEngine {
 					result += "\n"
 							+ ((TextLine) source.getByIndex(drs
 									.getSourceIndex()
-									+ i)).Line
+									+ i)).getLine()
 							+ " not at this location in dest";
 					cnt++;
 				}
@@ -347,11 +347,11 @@ public class DiffEngine {
 					result += "\n"
 							+ ((TextLine) source.getByIndex(drs
 									.getSourceIndex()
-									+ i)).Line
+									+ i)).getLine()
 							+ "\t"
 							+ ((TextLine) destination.getByIndex(drs
 									.getDestIndex()
-									+ i)).Line + " (no change)";
+									+ i)).getLine() + " (no change)";
 					cnt++;
 				}
 
@@ -363,7 +363,7 @@ public class DiffEngine {
 							+ "\t"
 							+ ((TextLine) destination.getByIndex(drs
 									.getDestIndex()
-									+ i)).Line
+									+ i)).getLine()
 							+ " not at this location in source";
 					cnt++;
 				}
@@ -374,11 +374,11 @@ public class DiffEngine {
 					result += "\n"
 							+ ((TextLine) source.getByIndex(drs
 									.getSourceIndex()
-									+ i)).Line
+									+ i)).getLine()
 							+ "\t"
 							+ ((TextLine) destination.getByIndex(drs
 									.getDestIndex()
-									+ i)).Line + " replaced ";
+									+ i)).getLine() + " replaced ";
 					cnt++;
 				}
 
