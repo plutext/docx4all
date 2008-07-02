@@ -19,9 +19,11 @@
 
 package org.plutext.client;
 
-import org.apache.log4j.Logger;
-import org.plutext.client.state.StateDocx;
 import java.util.ArrayList;
+
+import org.apache.log4j.Logger;
+import org.plutext.client.diffengine.DiffEngine;
+import org.plutext.client.diffengine.DiffResultSpan;
 
 /* This class keeps track of the divergences between 
  * 2 document states.
@@ -69,16 +71,16 @@ public class Divergences
 {
 	private static Logger log = Logger.getLogger(Divergences.class);
     
-    Boolean debug = true;
+    boolean debug = true;
 
     ArrayList<Entry> entries = null;  // Model as a list, since a move will be 2 entries
 
     public Divergences(DiffEngine de) //, Skeleton source, Skeleton destination) //, ArrayList DiffLines)
     {
 
-        ArrayList DiffLines = de.DiffLines;
-        Skeleton source = (Skeleton)de.Source;
-        Skeleton destination = (Skeleton)de.Dest;
+        ArrayList<DiffResultSpan> DiffLines = de.getDiffLines();
+        Skeleton source = (Skeleton) de.getSource();
+        Skeleton destination = (Skeleton) de.getDestination();
 
         entries = new ArrayList<Entry>();
 
@@ -87,41 +89,41 @@ public class Divergences
 
         for (DiffResultSpan drs : DiffLines)
         {
-            switch (drs.Status)
+            switch (drs.getDiffResultSpanStatus())
             {
-                case DiffResultSpanStatus.DeleteSource:
-                    for (i = 0; i < drs.Length; i++)
+                case DELETE_SOURCE:
+                    for (i = 0; i < drs.getLength(); i++)
                     {
-                        result += "\n" + ((TextLine)source.GetByIndex(drs.SourceIndex + i)).Line 
+                        result += "\n" + ((TextLine)source.getByIndex(drs.getSourceIndex() + i)).getLine() 
                             + " not at this location in dest, so will add ";
 
                         entries.add(
-                            new Entry(  ((TextLine)source.GetByIndex(drs.SourceIndex + i)).Line, 
+                            new Entry(  ((TextLine)source.getByIndex(drs.getSourceIndex() + i)).getLine(), 
                                         +1));
                     }
 
                     break;
-                case DiffResultSpanStatus.NoChange:
-                    for (i = 0; i < drs.Length; i++)
+                case NOCHANGE:
+                    for (i = 0; i < drs.getLength(); i++)
                     {
-                        result += "\n" + ((TextLine)source.GetByIndex(drs.SourceIndex + i)).Line 
-                            + "\t" + ((TextLine)destination.GetByIndex(drs.DestIndex + i)).Line + " (no change)";
+                        result += "\n" + ((TextLine)source.getByIndex(drs.getSourceIndex() + i)).getLine() 
+                            + "\t" + ((TextLine)destination.getByIndex(drs.getDestIndex() + i)).getLine() + " (no change)";
 
                         entries.add(
-                            new Entry( ((TextLine)destination.GetByIndex(drs.DestIndex + i)).Line, 
+                            new Entry( ((TextLine)destination.getByIndex(drs.getDestIndex() + i)).getLine(), 
                                         0) ); // source = dest
 
                     }
 
                     break;
-                case DiffResultSpanStatus.AddDestination:
-                    for (i = 0; i < drs.Length; i++)
+                case ADD_DESTINATION:
+                    for (i = 0; i < drs.getLength(); i++)
                     {
-                        result += "\n" + "---" + "\t" + ((TextLine)destination.GetByIndex(drs.DestIndex + i)).Line 
+                        result += "\n" + "---" + "\t" + ((TextLine)destination.getByIndex(drs.getDestIndex() + i)).getLine() 
                             + " not at this location in source, so though currently present in dest, will subtract ";
 
                         entries.add(
-                            new Entry( ((TextLine)destination.GetByIndex(drs.DestIndex + i)).Line, 
+                            new Entry( ((TextLine)destination.getByIndex(drs.getDestIndex() + i)).getLine(), 
                                         -1) );
 
                     }
@@ -375,7 +377,7 @@ public class Divergences
 
             if (count == pos)
             {
-                return result;
+                return Long.valueOf(result);
             }
 
             if (e.getAdj() >= 0)
@@ -390,7 +392,7 @@ public class Divergences
         // eg if all n sdts were deleted, we'd get here
         // .. which is ok.
         log.debug("Mildly noteworthy: ran out of Divergences entries! Returning " + result);
-        return result;
+        return Long.valueOf(result);
 
     }
 
