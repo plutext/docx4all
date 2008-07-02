@@ -19,121 +19,93 @@
 
 package org.plutext.client;
 
-import java.util.HashMap;
 import java.util.ArrayList;
 
-import javax.xml.bind.Unmarshaller;
-
 import org.apache.log4j.Logger;
-import org.plutext.Context;
+import org.plutext.client.diffengine.DiffEngine;
+import org.plutext.client.diffengine.DiffEngineLevel;
+import org.plutext.client.diffengine.DiffResultSpan;
+import org.plutext.client.diffengine.IDiffList;
 import org.plutext.server.transitions.Transitions;
 
-
-
-public class Skeleton implements IDiffList
-{
+public class Skeleton implements IDiffList<TextLine> {
 	private static Logger log = Logger.getLogger(Skeleton.class);
-	
-    public Skeleton(Transitions t)
-    {
-        /*
-         * <dst:transitions>
-         *   <dst:ribs>
-         *      <dst:rib id="54989358" />
-         *      <dst:rib id="1447653797" />
-         *        :
-         * </dst:transitions>
-         * 
-         * */
 
-    	for ( Transitions.Ribs.Rib r : t.getRibs().getRib() ) {
-    		
-    		ribs.add( new TextLine( Long.toString(r.getId() ) ) );
-    		
-    	}
+	private static void TextDiff(Skeleton source, Skeleton dest) {
 
-    }
+		try {
+			double time = 0;
+			DiffEngine de = new DiffEngine();
+			time = de.processDiff(source, dest, DiffEngineLevel.MEDIUM);
 
-    
-    public Skeleton() {
-    	
-    }
-    
+			ArrayList<DiffResultSpan> rep = de.getDiffLines();
 
-    // Version number
-    int version;
+			// log.Debug(de.Results(source, dest, rep));
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
 
-    // Ordered list of ribs
-    ArrayList ribs = new ArrayList();
-    public ArrayList getRibs() {
+	// Version number
+	private int version;
+
+	// Ordered list of ribs
+	private ArrayList<TextLine> ribs = new ArrayList<TextLine>();
+
+	public Skeleton() {
+		;// do nothing
+	}
+
+	public Skeleton(Transitions t) {
+		/*
+		 * <dst:transitions> <dst:ribs> <dst:rib id="54989358" /> <dst:rib
+		 * id="1447653797" /> : </dst:transitions>
+		 * 
+		 */
+
+		for (Transitions.Ribs.Rib r : t.getRibs().getRib()) {
+			ribs.add(new TextLine(Long.toString(r.getId())));
+		}
+	}
+
+	public ArrayList<TextLine> getRibs() {
 		return ribs;
 	}
-	public void setRibs(ArrayList ribs) {
+
+	public void setRibs(ArrayList<TextLine> ribs) {
 		this.ribs = ribs;
 	}
-    
 
-    private static void TextDiff(Skeleton source, Skeleton dest)
-    {
+	public int count() {
+		return ribs.size();
+	}
 
-        try
-        {
-            double time = 0;
-            DiffEngine de = new DiffEngine();
-            time = de.ProcessDiff(source, dest, DiffEngineLevel.Medium);
+	public Comparable<TextLine> getByIndex(int index) {
+		return ribs.get(index);
+	}
 
-            System.Collections.ArrayList rep = de.DiffLines;
-
-            //log.Debug(de.Results(source, dest, rep));
-        }
-        catch (Exception ex)
-        {
-            string tmp = string.Format("{0}{1}{1}***STACK***{1}{2}",
-                ex.Message,
-                Environment.NewLine,
-                ex.StackTrace);
-            log.Debug(tmp);
-            return;
-        }
-    }
-
-    //#region IDiffList Members
-
-    public int Count()
-    {
-        return ribs.Count;
-    }
-
-    public IComparable GetByIndex(int index)
-    {
-        return (TextLine)ribs[index];
-    }
-
-    //#endregion
-
-    public class TextLine implements IComparable
-    {
-        public String line;
-		public String getLine() {
-			return line;
-		}
-		
-        public int _hash;
-
-        public TextLine(String str)
-        {
-            line = str.Replace("\t", "    ");
-            _hash = str.GetHashCode();
-        }
-        //#region IComparable Members
-
-        public int CompareTo(object obj)
-        {
-            return _hash.CompareTo(((TextLine)obj)._hash);
-        }
+}// Skeleton class
 
 
-        //#endregion
-    }
 
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
