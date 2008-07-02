@@ -26,6 +26,7 @@ import javax.xml.bind.Unmarshaller;
 import org.alfresco.webservice.util.AuthenticationUtils;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
+import org.docx4all.swing.text.WordMLDocument;
 import org.plutext.Context;
 import org.plutext.client.state.StateDocx;
 import org.plutext.client.state.StateChunk;
@@ -99,15 +100,21 @@ public class Mediator
 //	}
 
     private StateDocx stateDocx;
+
 	public StateDocx getStateDocx() {
 		return stateDocx;
 	}
+	
+	Pkg pkg;
 
 //    // So this doesn't get garbage collected.
 //    public System.Threading.Timer stateTimer = null;
 
 
 	WordMLTextPane textPane;
+	public WordMLTextPane getWordMLTextPane() {
+		return textPane;
+	}
 
 	public Mediator(WordMLTextPane textPane, StateDocx stateDocx )
     {
@@ -116,6 +123,10 @@ public class Mediator
 
         this.stateDocx = stateDocx;
         this.textPane = textPane;
+        
+        // get up to date current state
+        pkg = new Pkg( (WordMLDocument) textPane.getDocument() );
+        
 
 		// Start a new session
         try {
@@ -163,14 +174,6 @@ public class Mediator
 /* ****************************************************************************************
  *          FETCH REMOTE UPDATES (in background)
  * **************************************************************************************** */ 
-    void mediatorCallback(Object stateInfo)
-    {
-
-
-        //- gets updates from server
-        fetchUpdates();
-
-    }
 
     void fetchUpdates()
     {
@@ -250,7 +253,7 @@ public class Mediator
         Boolean updateHighestFetched)
     {
         if (setApplied) { t.setApplied(true); }
-        if (setLocal) { t.Local = true; }
+        if (setLocal) { t.setLocal(true); }
 
         log.debug("Instance " + myDocName + " -- Registering " + t.getSequenceNumber() );
         try
@@ -282,11 +285,9 @@ public void applyRemoteChanges()
 {
     // TODO: grey out if there are no remote updates to apply
 
-    // get up to date current state
-    pkgB = new Pkg(myDoc);
 
 //    DateTime startTime = DateTime.Now;
-    log.debug(startTime);
+//    log.debug(startTime);
 
 
     /* Create a DiffReport object, which tells us 
@@ -331,70 +332,22 @@ public void applyRemoteChanges()
         //}
 
 
-    applyUpdates(pkgB);
+    applyUpdates();
 
-
-    // Replace user's document
-    // Two approaches for replacing user's document:
-    /* Approach 1: copy/paste new content into existing document.
-     *             One downside is that all the rsid's are replaced with 
-     *             those of the existing editing session.
-     *             Turning them off for the duration of the paste doesn't preserve
-     *             the original rsids, but rather, inserts
-     *             them with w:rsidR="00000000"
-     *             But if we always leave opts.StoreRSIDOnSave = false
-     *             then this might be ok. (But how much does this screw
-     *             Compare accuracy?)
-     * Approach 2: Assuming rsid's in document B were preserved (have to verify this),
-     *             close the original document, and treat the new one as our doc
-     *             going forward.  
-     * We use approach 1 - rsid's disabled in ThisAddIn.
-     * 
-     * Further considerations:
-     * 
-     * - can't readily take advantage of rsid's in our own diff algorithm
-     * 
-     * - we'd have to remove them when we canonicalise. 
-     */
-
-    // In either case, we need to make document B
-    Word.Document wordDocB = pkgB.createDocument();
-    Word.Document wordDocC = null;
-    Word.Range sourceRange = null;
-    object omissing = Type.Missing;
-
-    // Replace user's document with B.
-    sourceRange = wordDocB.Content;
-
-    sourceRange.Copy();
-
-    //Word.Options opts = Globals.ThisAddIn.Application.Options;            
-
-    Word.Range targetRange = myDoc.Content;
-    targetRange.Paste();
-
-    System.Boolean savechanges = false;
-    object savechangesObj = (object)savechanges;
-    ((Word._Document)wordDocB).Close(ref savechangesObj, ref omissing, ref omissing);
-
-    // Update the snapshots        
-    // We used to do this by creating a new Pkg from the document
-    // using stateDocx.Pkg = new Pkg(myDoc);
-    // The intent was to ensure the format of the XML is as Word emits it,
-    // so we get a reliable comparison.
-    // However, with our canonicalisation algorithm, this is unnecessary.
-
-    stateDocx.setPkg( (Pkg)pkgB.Clone() ) ;
+    // Update the snapshots
+    
+    	// In docx4all, we should be able to keep these uptodate
+    //stateDocx.setPkg( (Pkg)pkgB.Clone() ) ;
 
     // logout
 
 
 //    DateTime stopTime = DateTime.Now;
-    log.debug(" finished: " + stopTime);
+//    log.debug(" finished: " + stopTime);
 
     /* Compute the duration between the initial and the end time. */
 //    TimeSpan duration = stopTime - startTime;
-    log.debug("\n\r  Time taken: " + duration + "\n\r");
+//    log.debug("\n\r  Time taken: " + duration + "\n\r");
 
 //    Globals.ThisAddIn.Application.StatusBar = "n Remote changes applied in " + duration.Seconds + "s";
 
@@ -404,7 +357,7 @@ public void applyRemoteChanges()
 
 
 /* Apply registered transforms. */
-public void applyUpdates(Pkg pkg)
+public void applyUpdates()
 {
     /* Note well that it is important to the correct functioning that the 
      * updates are applied IN ORDER.  
@@ -432,7 +385,7 @@ public void applyUpdates(Pkg pkg)
 
         log.debug(".. applying " + t.getSequenceNumber() );
 
-        int result = applyUpdate(pkg, t);
+        long result = applyUpdate(t);
 
         log.debug(".. applied " + t.getSequenceNumber());
 
@@ -462,9 +415,9 @@ public void applyUpdates(Pkg pkg)
 }
 
 /* On success, returns the transformation's tSequenceNumber; otherwise, 0 */
-private int applyUpdate(Pkg pkg, TransformAbstract t)
+private long applyUpdate(TransformAbstract t)
 {
-    int result;
+    long result;
 
     log.debug("applyUpdate " + t.getClass().getName() + " - " + t.getSequenceNumber() );
 
@@ -491,18 +444,19 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
     {
         String currentXML = stateDocx.getPkg().getStateChunks().get(t.getId()).getXml();
 
-        // The update we will insert in one that contains the results
+        // The update we will insert is one that contains the results
         // of comparing the server's SDT to the user's local one.
         // This will allow the user to see other people's changes.
-        ((TransformUpdate)t).markupChanges(pkg.getStateChunks().get(t.getId()).getXml());
+        ((TransformUpdate)t).markupChanges(pkg.getStateChunks().get(t.getId()).getSdt() );
 
         result = t.apply(this, pkg);
         t.setApplied(true);
         log.debug(t.getSequenceNumber() + " applied (" + t.getClass().getName() + ")");
 
+        // TODO - review the following ...
         if ( currentXML.equals(
         		pkg.getStateChunks().get( t.getId() ).getXml()
-        		) && !t.Local)
+        		) && !t.isLocal())
         {
             sdtChangeTypes.put(t.getId().getVal().toString(), TrackedChangeType.OtherUserChange);
         }
@@ -544,29 +498,31 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
     public void acceptNonConflictingChanges()
     {
 
-        // Iterate through the content controls in the document
-        foreach (Word.ContentControl ctrl in Globals.ThisAddIn.Application.ActiveDocument.ContentControls)
-        {
-            String id = ctrl.ID;
 
-            if (ctrl.Range.Revisions.Count > 0)
-            {
-                if (sdtChangeTypes.get(id) == TrackedChangeType.Conflict)
-                {
-                    log.debug("Change to " + id + " is a conflict, so leave Tracked");
-
-                    // TODO: how to remove this setting, once
-                    // user has manually fixed??
-
-                }
-                else 
-                {
-                    log.debug("Change to " + id + " can be accepted.");
-                    ctrl.Range.Revisions.AcceptAll();
-                    sdtChangeTypes.put(id , TrackedChangeType.NA);
-                }
-            }
-        }
+    	// TODO - Jo to implement
+    	
+//        foreach (Word.ContentControl ctrl in Globals.ThisAddIn.Application.ActiveDocument.ContentControls)
+//        {
+//            String id = ctrl.ID;
+//
+//            if (ctrl.Range.Revisions.Count > 0)
+//            {
+//                if (sdtChangeTypes.get(id) == TrackedChangeType.Conflict)
+//                {
+//                    log.debug("Change to " + id + " is a conflict, so leave Tracked");
+//
+//                    // TODO: how to remove this setting, once
+//                    // user has manually fixed??
+//
+//                }
+//                else 
+//                {
+//                    log.debug("Change to " + id + " can be accepted.");
+//                    ctrl.Range.Revisions.AcceptAll();
+//                    sdtChangeTypes.put(id , TrackedChangeType.NA);
+//                }
+//            }
+//        }
     }
 
 
@@ -632,17 +588,14 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
          * if we're set to chunk on each paragraph. */
 
         // TODO only if chunking is required.
-        List<Word.ContentControl> multiparaSdts = new ArrayList<Word.ContentControl>();
         foreach (Word.ContentControl cc in Globals.ThisAddIn.Application.ActiveDocument.ContentControls)
         {
             if (Chunker.containsMultipleBlocks(cc)) // TODO - && no remote changes to apply
             {
-                multiparaSdts.Add(cc);
+                Chunker.chunk(cc);
+                // TODO: ensure you keep pkg object up to date
             }
-        }  // NB the actual work is done below in Chunker.chunk(cc)
-
-
-        Pkg pkg = new Pkg(myDoc);
+        }  
 
         // Indentify structural changes (ie moves, inserts, deletes)
         // If skeletons are different, there must be local changes 
@@ -837,7 +790,7 @@ private int applyUpdate(Pkg pkg, TransformAbstract t)
 
                     // Set the in-document tag to match the one we got back
                     // ?? the actual sdt or the state chunk?
-                    getContentControlWithId(t.ID).Tag = ta.getTag();
+                    getContentControlWithId(ta.getId().getVal().toString() ).Tag = ta.getTag();
 
                     /* A problem with this approach is that it doesn't 
                      *  get rid of any StyleSeparator workaround in an SDT.

@@ -34,26 +34,9 @@ import java.util.List;
 import java.util.Map;
 
 
-/* Represent the document at a point in time, in
- * a manner which can be manipulated and then 
- * used to create a new (ie replacement) document
- * in the editor.
- * 
- * We need to be able to:
- * (i)  infer a skeleton from it
- * (ii) create a new Document from it  
- * 
- * In the Word addin, apply a transform is a matter
- * of manipulating the raw XML in this object (because
- * operating at a higher level is too clunky).
- * 
- * But in our Java world, it probably makes more
- * sense to operate at this higher level.
- * 
- * In other words, rather than using WordprocessingMLPackage.exportPkgXml()
- * to create a org.docx4j.wml.Package, this
- * class should operate on the JAXB representation of the 
- * MainDocumentPart, or at the docx4all ML level. 
+/* In docx4all, we may be able to keep this object
+ * uptodate, without needing to re-create it
+ * again and again in Mediator.
  * 
  */
 public class Pkg implements Cloneable
@@ -61,10 +44,6 @@ public class Pkg implements Cloneable
 
 	private static Logger log = Logger.getLogger(Pkg.class);
 	
-//	WordprocessingMLPackage wordMLPackage;
-//	public WordprocessingMLPackage getWordMLPackage() {
-//		return wordMLPackage;
-//	}
 	List<SdtBlock> orderedChunks = null;
 	
 	Skeleton skeleton = new Skeleton();
@@ -72,10 +51,6 @@ public class Pkg implements Cloneable
     public Pkg(WordMLDocument doc)  
     {
   		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();    	
-//  		wordMLPackage = 
-//    		((DocumentML) root.getElementML()).getWordprocessingMLPackage();
-    	
-//    	this.wordMLPackage = wordMLPackage;
     	
     	orderedChunks = doc.getSnapshotsList(0, doc.getLength());
 		if (orderedChunks != null) {
@@ -110,30 +85,6 @@ public class Pkg implements Cloneable
     {
         return stateChunks;
     }
-
-
-    public Object Clone()
-    {
-        // TODO
-    	return null;
-    }
-
-
-//    HashMap<String, StateChunk> cloneStateChunks() 
-//    {
-//
-//    	HashMap<String, StateChunk> dictNew = 
-//            new HashMap<String, StateChunk>();
-//
-//        for (KeyValuePair<string, StateChunk> kvp : stateChunks)
-//        {
-//            dictNew.Add(kvp.Key, (StateChunk)kvp.Value.Clone());
-//        }
-//
-//        return dictNew;
-//    }
-
-
 
 
 }

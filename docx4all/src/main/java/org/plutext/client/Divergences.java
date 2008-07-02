@@ -194,7 +194,7 @@ public class Divergences
      * in the correct position.
      * 
     */
-    public void insert(String id, int pos)
+    public void insert(String id, Long pos)
     {
 
         log.debug("Insert " + id + " entry in divergences, at explicit pos " + pos);
@@ -222,7 +222,7 @@ public class Divergences
         for (Entry e : entries)
         {
 
-            if (live == pos)
+            if (live == pos)  // will the conversion be done automatically?
             {
                 break;
             }
@@ -349,7 +349,7 @@ public class Divergences
      * received from server, to make allowance for 
      * local changes.
      */
-    public int getOffset(int pos)
+    public Long getOffset(Long pos)
     {
         // Each LHS deletion in an earlier pos means subtract one
 

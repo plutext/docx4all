@@ -43,66 +43,41 @@ public class TransformDelete extends TransformAbstract {
     	super(t);
     }
 
-        public TransformDelete(String idref)
-        {
-        	super();
-            this.id = idref;
-        }
+//        public TransformDelete(String idref)
+//        {
+//        	super();
+//            this.id = idref;
+//        }
 
 
         /* delete the SDT given its ID. */
-        public override long apply(Mediator mediator, Pkg pkg)
+        public long apply(Mediator mediator, Pkg pkg)
         {
 
-            // Find the sdt in the Pkg
-            XmlNamespaceManager nsmgr = new XmlNamespaceManager(pkg.PkgXmlDocument.NameTable);
-            nsmgr.AddNamespace("w", Namespaces.WORDML_NAMESPACE);
-
-            XmlNode target = pkg.PkgXmlDocument.SelectSingleNode("//w:sdt[w:sdtPr/w:id/@w:val='" + id + "']", nsmgr);
-
-            if (target == null)
-            {
-                log.Debug("Couldn't find sdt " + id);
-                // TODO - throw error
-                return -1;
-            }
-            else
-            {
-                XmlNode parent = target.ParentNode;
-                parent.RemoveChild(target);
-
-                pkg.StateChunks.Remove(id);
-                mediator.Divergences.delete(id);
-
-                log.Debug("Removed sdt " + id + " from pkg");
-                return sequenceNumber;
-            }
-        }
-        
-        // =================================================================
-        
-        
-        // Remove the ContentControlSnapshot representing the content control
     	
 		log.debug("apply(ServerFrom): Deleting SdtBlock = " + getSdt() 
 				+ " - ID=" + getId().getVal());
 
-    	Map<Id, ContentControlSnapshot> snapshots = 
-    		serverFrom.getStateDocx().getContentControlSnapshots();
-    	if (snapshots.remove(getId()) == null) {
+    	if ( pkg.getStateChunks().remove(id) == null) {
+    		
     		log.debug("apply(): Could not find SDT Id=" + getId().getVal() + " snapshot.");
 	        // couldn't find!
 	        // TODO - throw error
     		return -1;
     	}
     	
-		apply(mediator.getWordMLTextPane());
-		
+		apply(mediator.getWordMLTextPane(), getId().getVal());
+        mediator.getDivergences().delete(  id.getVal().toString() );
+
+        log.debug("Removed sdt " + id + " from pkg");
+        
 		return sequenceNumber;
     }
+        
+        
 
-	protected void apply(final WordMLTextPane editor) {
-		final BigInteger id = getId().getVal();
+	protected static void apply(final WordMLTextPane editor, final BigInteger id) {
+		//final BigInteger id = getId().getVal();
 		
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {

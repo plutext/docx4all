@@ -19,71 +19,46 @@
 
 package org.plutext.client.wrappedTransforms;
 
+import javax.swing.SwingUtilities;
+
 import org.apache.log4j.Logger;
 import org.plutext.transforms.Transforms.T;
 
 import org.plutext.client.Mediator;
 import org.plutext.client.Pkg;
+import org.plutext.client.wrappedTransforms.TransformInsert.InsertAtRunnable;
 
 public class TransformMove extends TransformAbstract
 {
 	private static Logger log = Logger.getLogger(TransformMove.class);
 
-    private String pos;
-	public String getPos() {
-		return pos;
-	}
-	public void setPos(String pos) {
-		this.pos = pos;
-	}
     
     public TransformMove(T t)
     {
     	super(t);
-    	pos = t.getPosition().toString();
     }
     
 
-    public TransformMove()
-    {
-    }
 
 
     public long apply(Mediator mediator, Pkg pkg)
     {
 
-        log.Debug(this.GetType().Name);
-
-        XmlNamespaceManager nsmgr = new XmlNamespaceManager(pkg.PkgXmlDocument.NameTable);
-        nsmgr.AddNamespace("w", Namespaces.WORDML_NAMESPACE);
 
         // Semantics of move are
         // 1 remove existing element from list
         // 2 insert new element
 
         // So
+		TransformDelete.apply(mediator.getWordMLTextPane(), getId().getVal());
 
-        // First, find and remove the existing element
-        XmlNode target = pkg.PkgXmlDocument.SelectSingleNode("//w:sdt[w:sdtPr/w:id/@w:val='" + id + "']", nsmgr);
-
-        if (target == null)
-        {
-            log.Debug("Couldn't find sdt " + id);
-            // TODO - throw error
-            return -1;
-        }
-        else
-        {
-            XmlNode parent = target.ParentNode;
-            parent.RemoveChild(target);
 
             // No need to 
             // pkg.StateChunks.Remove(id);
 
             // QUESTION: interaction between divergences object and existing entry??
             // - Probably have to do divergences.delete?
-            mediator.Divergences.delete(id);
-        }
+        mediator.getDivergences().delete(id.getVal().toString());
 
 
         // Second, re-insert it at the correct location
@@ -91,31 +66,24 @@ public class TransformMove extends TransformAbstract
 
         // if user has locally inserted/deleted sdt's
         // we need to adjust the specified position ...
-        int adjustedPos = int.Parse(pos) + mediator.Divergences.getOffset(int.Parse(pos));
 
-        log.Debug("Move location " + pos + " adjusted to " + adjustedPos);
+    	Long pos = t.getPosition();
+    	Long insertAtIndex = pos + mediator.getDivergences().getOffset(pos);
 
-        XmlNode refChild = pkg.PkgXmlDocument.SelectSingleNode("//w:sdt[" + adjustedPos + "]", nsmgr);
+        log.debug("Move location " + pos + " adjusted to " + insertAtIndex);
 
-        if (refChild == null)
-        {
-            log.Debug("Couldn't find sdt " + id);
+        
+		Runnable runnable = new TransformInsert.InsertAtRunnable(mediator.getWordMLTextPane(), 
+				getSdt(), insertAtIndex.intValue());
+		
+		SwingUtilities.invokeLater(runnable);
+    
 
-            //stateDocx.DeletedContentControls 
+        //pkg.StateChunks.Add(id, new StateChunk(sdt));
+        mediator.getDivergences().insert(id.getVal().toString(), insertAtIndex);
 
-            return -1;
-        }
-        else
-        {
-            XmlNode parent = refChild.ParentNode;
-            parent.InsertAfter(target, refChild); // or before??
-
-            //pkg.StateChunks.Add(id, new StateChunk(sdt));
-            mediator.Divergences.insert(id, adjustedPos);
-
-            log.Debug("Moved sdt " + id + " in pkg");
-            return sequenceNumber;
-        }
+        log.debug("Moved sdt " + id + " in pkg");
+        return sequenceNumber;
     }
 
 }

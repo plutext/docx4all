@@ -85,7 +85,7 @@ public abstract class TransformAbstract {
 
 	}
 
-	protected DocumentElement getDocumentElement(WordMLTextPane editor,
+	protected static DocumentElement getDocumentElement(WordMLTextPane editor,
 			BigInteger sdtBlockId) {
 		DocumentElement elem = null;
 

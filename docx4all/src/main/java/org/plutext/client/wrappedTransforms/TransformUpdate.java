@@ -22,6 +22,7 @@ package org.plutext.client.wrappedTransforms;
 import java.math.BigInteger;
 
 import javax.swing.SwingUtilities;
+import javax.xml.bind.JAXBException;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
@@ -29,12 +30,15 @@ import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLFragment;
 import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
 import org.docx4all.xml.SdtBlockML;
+import org.docx4j.wml.P;
 import org.docx4j.wml.SdtBlock;
 import org.plutext.client.ServerFrom;
 import org.plutext.transforms.Transforms.T;
 
 import org.plutext.client.Mediator;
 import org.plutext.client.Pkg;
+import org.plutext.client.state.StateChunk;
+import org.docx4j.diff.ParagraphDifferencer;
 
 
 public class TransformUpdate extends TransformAbstract {
@@ -46,92 +50,67 @@ public class TransformUpdate extends TransformAbstract {
 	}
 
 
-        public TransformUpdate()
-        {
-        }
+    /* Compare the updated sdt to the original, replacing the
+     * updated one with containing w:ins and w:del */
+    public void markupChanges(SdtBlock local) //throws javax.xml.bind.JAXBException
+    {
+        // In this current proof of concept, we pass 
+        // ParagraphDifferencer strings representing 
+        // each sdt.
+        // It will compare the paragraphs.
+        // Currently ASSUMES there is one paragraph
+        // in each SDT.
+    	
+		P pl = getParaFromSdt(local);
+		if (pl==null) {
+			log.error("Couldn't find p in sdt!");
+		}
+		P pr = getParaFromSdt(sdt);
+		if (pr==null) {
+			log.error("Couldn't find p in sdt!");
+		}
+    	
+		P markedUpP;
+		try {
+			javax.xml.bind.util.JAXBResult result = new javax.xml.bind.util.JAXBResult(
+					org.docx4j.jaxb.Context.jc);
+			
+			ParagraphDifferencer.diff(pl, pr, result);
+			
+			markedUpP = (P)result.getResult();
+		} catch (JAXBException e) {
+			log.error(e);
+			// Oh well, we'll display it without changes marked up
+			return;
+		}
+		
+		// Now replace the paragraph in the sdt
+		int pos = sdt.getSdtContent().getEGContentBlockContent().indexOf(pr);
+		sdt.getSdtContent().getEGContentBlockContent().add(pos, markedUpP);
+		sdt.getSdtContent().getEGContentBlockContent().remove(pos+1);
+		
+    }
+    
+    private P getParaFromSdt(SdtBlock sdt) {
+    			
+		for ( Object o : sdt.getSdtContent().getEGContentBlockContent() ) {
+			
+			if (o instanceof org.docx4j.wml.P) {
+				return (P)o;
+			}
+		}
+		return null;    	
+    }
+    
 
-        /* Compare the updated sdt to the original, replacing the
-         * updated one with containing w:ins and w:del */
-        public void markupChanges(String original)
-        {
-            // In this current proof of concept, we pass 
-            // ParagraphDifferencer strings representing 
-            // each sdt.
-            // It will compare the paragraphs.
-            // Currently ASSUMES there is one paragraph
-            // in each SDT.
+    public long apply(Mediator mediator, Pkg pkg)
+    {
 
-            String result = ParagraphDifferencer.diff(original, SDT.OuterXml);
-
-            log.Debug("PD returned: " + result);
-
-            // Have to slot the result back into SDT
-            XmlDocument doc = new XmlDocument();
-            doc.LoadXml(result);
-
-            XmlNode importableNode = SDT.OwnerDocument.ImportNode(doc.DocumentElement, true);
-
-            log.Debug("old sdt: " + SDT.OuterXml);
-
-            XmlNode oldSdtPara = SDT.ChildNodes[1].FirstChild;
-            log.Debug("old para: " + oldSdtPara.OuterXml);
-
-            XmlNode parent = oldSdtPara.ParentNode;
-
-            parent.ReplaceChild(importableNode, oldSdtPara);
-
-            log.Debug("SDT now: " + SDT.OuterXml);
-        }
-
-
-        public long apply(Mediator mediator, Pkg pkg)
-        {
-
-            log.Debug(this.GetType().Name);
-
-            // So first, find the @after existing sdt in the XmlDocument
-            XmlNamespaceManager nsmgr = new XmlNamespaceManager(pkg.PkgXmlDocument.NameTable);
-            nsmgr.AddNamespace("w", Namespaces.WORDML_NAMESPACE);
-
-            XmlNode refChild = pkg.PkgXmlDocument.SelectSingleNode("//w:sdt[w:sdtPr/w:id/@w:val='" + id + "']", nsmgr);
-
-            if (refChild == null)
-            {
-                log.Debug("Couldn't find sdt to update " + id);
-                // TODO - this will happen to a client A which deleted a chunk
-                // or B which has the document open, if a client C reinstates
-                // a chunk.  It will happen because A and B simply get an
-                // update notice
-
-                // One way to address this is to treat it as an insert,
-                // asking for the skeleton doc in order to find out where
-                // exactly to insert it.
-
-                throw new SystemException();
-            }
-            else
-            {
-                XmlNode parent = refChild.ParentNode;
-                XmlNode importedNode = pkg.PkgXmlDocument.ImportNode(SDT, true);
-                parent.ReplaceChild(importedNode, refChild);
-
-                pkg.StateChunks.Remove(id);
-                pkg.StateChunks.Add(id, new StateChunk(sdt));
-
-                log.Debug("Updated existing sdt " + id + " in pkg");
-                return sequenceNumber;
-            }
-
-        }
-
-
-	public long apply(ServerFrom serverFrom) {
 
 		log.debug("apply(ServerFrom): sdtBolck = " + getSdt() 
 			+ " - ID=" + getSdt().getSdtPr().getId().getVal()
 			+ " - TAG=" + getSdt().getSdtPr().getTag().getVal());
 
-		// First, find the Content Control we need to update
 		Boolean found = false;
 
 		if (!found) {
@@ -148,9 +127,11 @@ public class TransformUpdate extends TransformAbstract {
 
 		}
 
-		// TODO - do the actual replacement in a docx4all specific way.
-		apply(serverFrom.getWordMLTextPane());
+		apply(mediator.getWordMLTextPane());
 
+        pkg.getStateChunks().remove(id);
+        pkg.getStateChunks().put(id.getVal().toString(), new StateChunk(sdt));
+		
 		// Fourth, if we haven't thrown an exception, return the sequence number
 		return sequenceNumber;
 	}

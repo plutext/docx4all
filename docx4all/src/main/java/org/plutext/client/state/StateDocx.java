@@ -97,10 +97,6 @@ public class StateDocx {
 
 	}
 	
-	
-
-        private String skeletonSnapshot;
-
 
         // Set from App_DocumentOpen
         private String docID = null;
@@ -239,7 +235,7 @@ public class StateDocx {
                 {
                     if (ta.getId().getVal().toString().equals(id))
                         {
-                            if (!ta.Local || includeLocals)
+                            if (!ta.isLocal() || includeLocals)
                             {
                                 list.add(ta);
                                 log.debug("Instance  --  found a transform applicable to Sdt " + id);

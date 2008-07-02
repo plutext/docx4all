@@ -1382,6 +1382,59 @@ public class WordMLDocument extends DefaultStyledDocument {
 		}
 		return theSnapshots;
     }
+
+    /**
+     * Take the current snapshots of content controls within [offset, offset + length].
+     * Each snapshot is a clone of content control's SdtBlockML.
+     * 
+     * @param offset
+     * @param length
+     * @return A Map whose key is SdtBlock Id and value is SdtBlockML 
+     * if there are content controls within the specified area;
+     *         null, otherwise;
+     */
+    public List<SdtBlock> getSnapshotsList(int offset, int length) {
+    	offset = Math.max(offset, 0);
+    	offset = Math.min(offset, getLength());
+    	
+    	length = Math.min(length, getLength() - offset);
+    	length = Math.max(length, 1);
+    	
+		List<SdtBlock> theSnapshots = 
+			new ArrayList<SdtBlock>();
+		
+		try {
+			readLock();
+			
+			DocumentElement rootE = (DocumentElement) getDefaultRootElement();
+			int topIdx = rootE.getElementIndex(offset) - 1;
+			int bottomIdx = Math.min(
+					rootE.getElementIndex(offset + length - 1) + 1, rootE
+							.getElementCount() - 1);
+			for (int i = topIdx + 1; i < bottomIdx; i++) {
+				DocumentElement elem = (DocumentElement) rootE.getElement(i);
+				ElementML elemML = elem.getElementML();
+				if (elemML instanceof SdtBlockML) {
+					SdtBlockML elemSdt = (SdtBlockML) elemML;
+
+					Object cloneObj = XmlUtils
+							.deepCopy(elemSdt.getDocxObject());
+					org.docx4j.wml.SdtBlock snapshot = (org.docx4j.wml.SdtBlock) JAXBIntrospector
+							.getValue(cloneObj);
+					theSnapshots.add(snapshot);
+				}
+			}
+			
+		} finally {
+			readUnlock();
+		}
+		
+		if (theSnapshots.isEmpty()) {
+			theSnapshots = null;
+		}
+		return theSnapshots;
+    }
+    
     
     protected void fireSnapshotChanged(WordMLDocumentEvent e) {
     	if (isSnapshotFireBan()) {

@@ -37,7 +37,7 @@ import org.docx4j.wml.SdtBlock;
  * We never directly look at the content
  * control itself 
  */ 
-public class StateChunk implements Cloneable
+public class StateChunk 
 {
 	
 	// TODO - have to be able to update the SdtBlock,
@@ -145,12 +145,6 @@ public class StateChunk implements Cloneable
         xml = sw.toString();
 
         log.debug("Transformed (" + stylesheet + "): " + xml);
-    }
-
-
-    public Object Clone()
-    {
-        return MemberwiseClone();
     }
 
 

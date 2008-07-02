@@ -21,37 +21,27 @@ package org.plutext.client.wrappedTransforms;
 
 import org.apache.log4j.Logger;
 import org.plutext.transforms.Transforms.T;
-
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Xml;
-using Word = Microsoft.Office.Interop.Word;
-using log4net;
-//using System.Windows.Forms;
+import org.plutext.client.Mediator;
+import org.plutext.client.Pkg;
 
 
     /* This class allows the server to return the details of an
      * update which was attempted, but which failed. */
-    public class TransformFailed extends TransformAbstract
+public class TransformFailed extends TransformAbstract
+{
+	private static Logger log = Logger.getLogger(TransformFailed.class);
+
+    public TransformFailed(T t)
     {
-    	private static Logger log = Logger.getLogger(TransformFailed.class);
-
-        public TransformFailed(T t)
-        {
-        	super(t);
-        }
-
-        public override Int32 apply(Mediator mediator, Pkg pkg)
-        {
-            log.Debug("TransformFailed not fully implemented!");
-
-            return SequenceNumber;
-        }
-
-        public override XmlDocument marshal()
-        {
-            return null;
-        }
-
+    	super(t);
     }
+
+    public long apply(Mediator mediator, Pkg pkg)
+    {
+        log.debug("TransformFailed not fully implemented!");
+
+        return sequenceNumber;
+    }
+
+
+}
