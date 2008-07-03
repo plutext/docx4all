@@ -39,7 +39,7 @@ public class DivergencesTransmitTest {
     static String[] tests = { "base", "deleted", "inserted", "moved", "complex", "unrelated", "random" };
 	
 	
-	public static void testDiff() throws Exception {
+	public static void testDivergencesTransmit() throws Exception {
 		
         for (int h = 0; h < tests.length; h++)
         {
@@ -71,12 +71,10 @@ public class DivergencesTransmitTest {
         }
 	}
 
-	
-	public static void main(String[] args) throws Exception {
-
-		//testDiff();
+	public static void testDiffEngineHarness() throws Exception {
+		
         String filenameleft = BASE_DIR + "base.xml";
-        String filenameright = BASE_DIR + "base.xml";
+        String filenameright = BASE_DIR + "inserted.xml";
 
         Unmarshaller u = Context.jcTransitions.createUnmarshaller();
 		u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());					
@@ -91,28 +89,25 @@ public class DivergencesTransmitTest {
         
         Skeleton serverSkeleton = new Skeleton(right);
         
-        testDiff(inferredSkeleton, serverSkeleton);
+        testDiffEngine(inferredSkeleton, serverSkeleton);
+		
+	}
+	
+	public static void main(String[] args) throws Exception {
+
+		//testDiffEngineHarness();
+		testDivergencesTransmit();
         		
 	}
 	
 	@Test
-	public static void testDiff(Skeleton inferredSkeleton, Skeleton serverSkeleton) throws Exception {
+	public static void testDiffEngine(Skeleton inferredSkeleton, Skeleton serverSkeleton) throws Exception {
 		
         DiffEngine de = new DiffEngine();
         de.processDiff(inferredSkeleton, serverSkeleton);
 
         ArrayList<DiffResultSpan> diffLines = de.getDiffLines();
 
-        /* Detect moves
-         * 
-         * In order to detect moves, we have to be able to
-         * identify whether a delete has a corresponding
-         * insert (and vice versa).
-         * 
-         * These Dictionary objects facilitate this. */
-        HashMap<String, Integer> notHereInDest = new HashMap<String, Integer>();
-        HashMap<String, Integer> notHereInSource = new HashMap<String, Integer>();
-        //Populate the dictionaries
         int insertPos = -1;
         int i;
         log.debug("\n\r");
@@ -127,8 +122,6 @@ public class DivergencesTransmitTest {
                         // Must be a new local insertion
                         log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.getByIndex(drs.getSourceIndex() + i)).getLine()
                             + " not at this location in dest");
-                        String insertionId = ((TextLine)inferredSkeleton.getByIndex(drs.getSourceIndex() + i)).getLine();
-                        notHereInDest.put(insertionId, insertPos);
                     }
 
                     break;
@@ -149,8 +142,6 @@ public class DivergencesTransmitTest {
                         //insertPos++; // Not for a delete
                         log.debug(insertPos + ": " + ((TextLine)serverSkeleton.getByIndex(drs.getDestIndex() + i)).getLine()
                             + " not at this location in source");
-                        String deletionId = ((TextLine)serverSkeleton.getByIndex(drs.getDestIndex() + i)).getLine();
-                        notHereInSource.put(deletionId, insertPos);
 
                     }
 
