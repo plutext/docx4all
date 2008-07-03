@@ -19,6 +19,7 @@
 
 package org.plutext.client.diffengine;
 
+
 /**
  * @author Jojada Tirtowidjojo - 02/07/2008
  */
@@ -97,12 +98,12 @@ public class DiffState {
 	}
 
 	public void setMatch(int start, int length) {
-		if (length > 0) {
+		if (length <= 0) {
 			throw new IllegalArgumentException(
 					"Length must be greater than zero. length=" + length);
 		}
 
-		if (start >= 0) {
+		if (start < 0) {
 			throw new IllegalArgumentException(
 					"Start must be greater than or equal to zero. start="
 							+ start);
@@ -118,15 +119,15 @@ public class DiffState {
 
 	public boolean hasValidLength(int newStart, int newEnd,
 			int maxPossibleDestLength) {
-		if (getLength() > 0) // have unlocked match
+		if (_length > 0) // have unlocked match
 		{
-			if (maxPossibleDestLength < getLength()
-				|| getStartIndex() < newStart 
+			if (maxPossibleDestLength < _length
+				|| _startIndex < newStart 
 				|| getEndIndex() > newEnd) {
 				setToUnkown();
 			}
 		}
-		return (getLength() != DiffStatus.UNKNOWN.value());
+		return (_length != DiffStatus.UNKNOWN.value());
 	}
 
 	
