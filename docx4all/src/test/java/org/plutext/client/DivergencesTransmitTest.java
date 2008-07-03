@@ -34,7 +34,7 @@ public class DivergencesTransmitTest {
 	
 	private static Logger log = Logger.getLogger(DivergencesTransmitTest.class);	
 	
-    static String BASE_DIR = "/home/dev/workspace/docx4all/src/tests/org/plutext/client/diff-transitions/";
+    static String BASE_DIR = "/home/dev/workspace/docx4all/src/test/java/org/plutext/client/diff-transitions/";
     
     static String[] tests = { "base", "deleted", "inserted", "moved", "complex", "unrelated", "random" };
 	
@@ -74,9 +74,91 @@ public class DivergencesTransmitTest {
 	
 	public static void main(String[] args) throws Exception {
 
-		testDiff();
+		//testDiff();
+        String filenameleft = BASE_DIR + "base.xml";
+        String filenameright = BASE_DIR + "base.xml";
+
+        Unmarshaller u = Context.jcTransitions.createUnmarshaller();
+		u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());					
+		org.plutext.server.transitions.Transitions left = 
+			(org.plutext.server.transitions.Transitions)u.unmarshal( 
+					new java.io.File(filenameleft) );
+        Skeleton inferredSkeleton = new Skeleton(left);
+    	
+		org.plutext.server.transitions.Transitions right = 
+			(org.plutext.server.transitions.Transitions)u.unmarshal( 
+					new java.io.File(filenameright) );
+        
+        Skeleton serverSkeleton = new Skeleton(right);
+        
+        testDiff(inferredSkeleton, serverSkeleton);
+        		
 	}
 	
+	@Test
+	public static void testDiff(Skeleton inferredSkeleton, Skeleton serverSkeleton) throws Exception {
+		
+        DiffEngine de = new DiffEngine();
+        de.processDiff(inferredSkeleton, serverSkeleton);
+
+        ArrayList<DiffResultSpan> diffLines = de.getDiffLines();
+
+        /* Detect moves
+         * 
+         * In order to detect moves, we have to be able to
+         * identify whether a delete has a corresponding
+         * insert (and vice versa).
+         * 
+         * These Dictionary objects facilitate this. */
+        HashMap<String, Integer> notHereInDest = new HashMap<String, Integer>();
+        HashMap<String, Integer> notHereInSource = new HashMap<String, Integer>();
+        //Populate the dictionaries
+        int insertPos = -1;
+        int i;
+        log.debug("\n\r");
+        for (DiffResultSpan drs : diffLines)
+        {
+            switch (drs.getDiffResultSpanStatus())
+            {
+                case DELETE_SOURCE:
+                    for (i = 0; i < drs.getLength(); i++)
+                    {
+                        insertPos++;
+                        // Must be a new local insertion
+                        log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.getByIndex(drs.getSourceIndex() + i)).getLine()
+                            + " not at this location in dest");
+                        String insertionId = ((TextLine)inferredSkeleton.getByIndex(drs.getSourceIndex() + i)).getLine();
+                        notHereInDest.put(insertionId, insertPos);
+                    }
+
+                    break;
+                case NOCHANGE:
+                    for (i = 0; i < drs.getLength(); i++)
+                    {
+                        insertPos++;
+                        log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.getByIndex(drs.getSourceIndex() + i)).getLine()
+                            + "\t" + ((TextLine)serverSkeleton.getByIndex(drs.getDestIndex() + i)).getLine() + " (no change)");
+
+                        // Nothing to do
+                    }
+
+                    break;
+                case ADD_DESTINATION:
+                    for (i = 0; i < drs.getLength(); i++)
+                    {
+                        //insertPos++; // Not for a delete
+                        log.debug(insertPos + ": " + ((TextLine)serverSkeleton.getByIndex(drs.getDestIndex() + i)).getLine()
+                            + " not at this location in source");
+                        String deletionId = ((TextLine)serverSkeleton.getByIndex(drs.getDestIndex() + i)).getLine();
+                        notHereInSource.put(deletionId, insertPos);
+
+                    }
+
+                    break;
+            }
+        }
+	
+}
 	@Test
 	public static void testDivergence(Skeleton inferredSkeleton, Skeleton serverSkeleton) throws Exception {
 		
