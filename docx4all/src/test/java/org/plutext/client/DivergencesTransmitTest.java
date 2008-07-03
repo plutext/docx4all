@@ -19,31 +19,23 @@
  */
 package org.plutext.client;
 
-import static org.junit.Assert.*;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.apache.log4j.Logger;
-import org.docx4j.diff.ParagraphDifferencer;
-
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.stream.StreamResult;
 
-import org.plutext.Context;
-import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
-import org.docx4j.wml.P;
+import org.apache.log4j.Logger;
 import org.junit.Test;
-import org.plutext.client.Skeleton.TextLine;
+import org.plutext.Context;
+import org.plutext.client.diffengine.DiffEngine;
+import org.plutext.client.diffengine.DiffResultSpan;
 
 public class DivergencesTransmitTest {
 	
 	private static Logger log = Logger.getLogger(DivergencesTransmitTest.class);	
 	
     static String BASE_DIR = "/home/dev/workspace/docx4all/src/tests/org/plutext/client/diff-transitions/";
-
+    
     static String[] tests = { "base", "deleted", "inserted", "moved", "complex", "unrelated", "random" };
 	
 	
@@ -89,9 +81,9 @@ public class DivergencesTransmitTest {
 	public static void testDivergence(Skeleton inferredSkeleton, Skeleton serverSkeleton) throws Exception {
 		
         DiffEngine de = new DiffEngine();
-        de.ProcessDiff(inferredSkeleton, serverSkeleton);
+        de.processDiff(inferredSkeleton, serverSkeleton);
 
-        ArrayList diffLines = de.DiffLines;
+        ArrayList<DiffResultSpan> diffLines = de.getDiffLines();
 
         /* Detect moves
          * 
@@ -108,38 +100,38 @@ public class DivergencesTransmitTest {
         log.debug("\n\r");
         for (DiffResultSpan drs : diffLines)
         {
-            switch (drs.Status)
+            switch (drs.getDiffResultSpanStatus())
             {
-                case DiffResultSpanStatus.DeleteSource:
-                    for (i = 0; i < drs.Length; i++)
+                case DELETE_SOURCE:
+                    for (i = 0; i < drs.getLength(); i++)
                     {
                         insertPos++;
                         // Must be a new local insertion
-                        log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine()
+                        log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.getByIndex(drs.getSourceIndex() + i)).getLine()
                             + " not at this location in dest");
-                        String insertionId = ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine();
+                        String insertionId = ((TextLine)inferredSkeleton.getByIndex(drs.getSourceIndex() + i)).getLine();
                         notHereInDest.put(insertionId, insertPos);
                     }
 
                     break;
-                case DiffResultSpanStatus.NoChange:
-                    for (i = 0; i < drs.Length; i++)
+                case NOCHANGE:
+                    for (i = 0; i < drs.getLength(); i++)
                     {
                         insertPos++;
-                        log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine()
-                            + "\t" + ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine() + " (no change)");
+                        log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.getByIndex(drs.getSourceIndex() + i)).getLine()
+                            + "\t" + ((TextLine)serverSkeleton.getByIndex(drs.getDestIndex() + i)).getLine() + " (no change)");
 
                         // Nothing to do
                     }
 
                     break;
-                case DiffResultSpanStatus.AddDestination:
-                    for (i = 0; i < drs.Length; i++)
+                case ADD_DESTINATION:
+                    for (i = 0; i < drs.getLength(); i++)
                     {
                         //insertPos++; // Not for a delete
-                        log.debug(insertPos + ": " + ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine()
+                        log.debug(insertPos + ": " + ((TextLine)serverSkeleton.getByIndex(drs.getDestIndex() + i)).getLine()
                             + " not at this location in source");
-                        String deletionId = ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine();
+                        String deletionId = ((TextLine)serverSkeleton.getByIndex(drs.getDestIndex() + i)).getLine();
                         notHereInSource.put(deletionId, insertPos);
 
                     }
@@ -158,12 +150,12 @@ public class DivergencesTransmitTest {
 
         for (DiffResultSpan drs : diffLines)
         {
-            switch (drs.Status)
+            switch (drs.getDiffResultSpanStatus())
             {
-                case DiffResultSpanStatus.DeleteSource:  // Means we're doing an insertion
-                    for (i = 0; i < drs.Length; i++)
+                case DELETE_SOURCE:  // Means we're doing an insertion
+                    for (i = 0; i < drs.getLength(); i++)
                     {
-                        String insertionId = ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine();
+                        String insertionId = ((TextLine)inferredSkeleton.getByIndex(drs.getSourceIndex() + i)).getLine();
                         log.debug(insertPos + ": " + insertionId
                             + " is at this location in src but not dest, so needs to be inserted");
 
@@ -231,23 +223,23 @@ public class DivergencesTransmitTest {
                     }
 
                     break;
-                case DiffResultSpanStatus.NoChange:
-                    for (i = 0; i < drs.Length; i++)
+                case NOCHANGE:
+                    for (i = 0; i < drs.getLength(); i++)
                     {
 
-                        log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine()
-                            + "\t" + ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine() + " (no change)");
+                        log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.getByIndex(drs.getSourceIndex() + i)).getLine()
+                            + "\t" + ((TextLine)serverSkeleton.getByIndex(drs.getDestIndex() + i)).getLine() + " (no change)");
 
-                        //String id = ((TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).Line;
+                        //String id = ((TextLine)inferredSkeleton.getByIndex(drs.getSourceIndex() + i)).Line;
 
 
                     }
 
                     break;
-                case DiffResultSpanStatus.AddDestination:
-                    for (i = 0; i < drs.Length; i++)
+                case ADD_DESTINATION:
+                    for (i = 0; i < drs.getLength(); i++)
                     {
-                        String deletionId = ((TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine();
+                        String deletionId = ((TextLine)serverSkeleton.getByIndex(drs.getDestIndex() + i)).getLine();
                         log.debug(insertPos + ": " + deletionId
                             + " present at this location in dest but not source, so needs to be deleted");
 
