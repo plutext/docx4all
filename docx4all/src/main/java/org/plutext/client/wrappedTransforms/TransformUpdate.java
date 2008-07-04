@@ -61,11 +61,11 @@ public class TransformUpdate extends TransformAbstract {
         // Currently ASSUMES there is one paragraph
         // in each SDT.
     	
-		P pl = getParaFromSdt(local);
+		P pl = getParaFromSdt(sdt);
 		if (pl==null) {
 			log.error("Couldn't find p in sdt!");
 		}
-		P pr = getParaFromSdt(sdt);
+		P pr = getParaFromSdt(local);
 		if (pr==null) {
 			log.error("Couldn't find p in sdt!");
 		}
