@@ -19,21 +19,14 @@
 
 package org.plutext.client.state;
 
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.ArrayList;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
-import org.docx4all.util.DocUtil;
 import org.docx4all.xml.DocumentML;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
-import org.docx4j.wml.Id;
-import org.docx4j.wml.SdtBlock;
-
 import org.plutext.client.CustomProperties;
 import org.plutext.client.Pkg;
 import org.plutext.client.Util;
@@ -47,31 +40,20 @@ public class StateDocx {
 
 	private static Logger log = Logger.getLogger(StateDocx.class);
 
-	public StateDocx(WordMLTextPane textPane) {
-		WordMLDocument doc = (WordMLDocument) textPane.getDocument();
-		if (!DocUtil.isSharedDocument(doc)) {
-			throw new IllegalArgumentException("Invalid WordMLDocument");
-		}
-		
-		String fileUri = (String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
-    	int idx = fileUri.indexOf("/alfresco/");
-    	if (idx <= 0) {
-    		//temporary checking
-    		//TODO: Has to check whether fileUri's protocol is webdav
-    		//and its context is correct.
-    		throw new IllegalArgumentException("Invalid WordMLDocument.FILE_PATH_PROPERTY value");
-    	}
-    	
-		this.docID = fileUri.substring(idx);
+	public StateDocx(WordMLDocument doc) {
     	init(doc);		
 	}
 
 	WordprocessingMLPackage wordMLPackage = null;
 	
 	private void init(WordMLDocument doc) {
-  		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+		String fileUri = (String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
+    	int idx = fileUri.indexOf("/alfresco/");
+		this.docID = fileUri.substring(idx);
+		
+ 		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
     	
-  		wordMLPackage = 
+  		this.wordMLPackage = 
     		((DocumentML) root.getElementML()).getWordprocessingMLPackage();
 
     			
@@ -95,6 +77,14 @@ public class StateDocx {
 				wordMLPackage.getDocPropsCustomPart(),
 				CustomProperties.CHUNKING_STRATEGY);
 
+		this.transforms = new TransformsCollection();
+		
+		try {
+			doc.readLock();
+	        this.pkg = new Pkg(doc);
+		} finally {
+			doc.readUnlock();
+		}
 	}
 	
 
@@ -146,7 +136,6 @@ public class StateDocx {
     	public void setPkg(Pkg pkg) {
     		this.pkg = pkg;
     	}
-
 
 //        Styles stylemap = new Styles();
 //    	public Styles getStylemap() {
