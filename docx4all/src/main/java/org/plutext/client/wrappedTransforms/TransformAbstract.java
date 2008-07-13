@@ -20,6 +20,7 @@
 package org.plutext.client.wrappedTransforms;
 
 import java.math.BigInteger;
+import java.util.HashMap;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
@@ -28,6 +29,7 @@ import org.docx4j.wml.SdtBlock;
 import org.docx4j.wml.Tag;
 import org.plutext.client.Mediator;
 import org.plutext.client.Pkg;
+import org.plutext.client.state.StateChunk;
 import org.plutext.transforms.Transforms.T;
 
 public abstract class TransformAbstract {
@@ -140,7 +142,7 @@ public abstract class TransformAbstract {
 	}
 
 	/* Code to apply the transform */
-	public abstract long apply(Mediator mediator, Pkg pkg);
+	public abstract long apply(Mediator mediator, Pkg pkg, HashMap<String, StateChunk> stateChunks);
 
 
 }

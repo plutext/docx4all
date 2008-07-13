@@ -19,11 +19,14 @@
 
 package org.plutext.client.wrappedTransforms;
 
+import java.util.HashMap;
+
 import org.apache.log4j.Logger;
 import org.plutext.transforms.Transforms.T;
 
 import org.plutext.client.Mediator;
 import org.plutext.client.Pkg;
+import org.plutext.client.state.StateChunk;
 
 
 public class TransformStyle extends TransformAbstract
@@ -36,7 +39,7 @@ public class TransformStyle extends TransformAbstract
     }
     
 
-    public long apply(Mediator mediator, Pkg pkg)
+    public long apply(Mediator mediator, Pkg pkg, HashMap<String, StateChunk> stateChunks)
     {
         log.debug("TransformStyle not fully implemented!");
 

@@ -19,6 +19,8 @@
 
 package org.plutext.client.wrappedTransforms;
 
+import java.util.HashMap;
+
 import javax.swing.SwingUtilities;
 
 import org.apache.log4j.Logger;
@@ -26,6 +28,7 @@ import org.plutext.transforms.Transforms.T;
 
 import org.plutext.client.Mediator;
 import org.plutext.client.Pkg;
+import org.plutext.client.state.StateChunk;
 import org.plutext.client.wrappedTransforms.TransformInsert.InsertAtRunnable;
 
 public class TransformMove extends TransformAbstract
@@ -41,7 +44,7 @@ public class TransformMove extends TransformAbstract
 
 
 
-    public long apply(Mediator mediator, Pkg pkg)
+    public long apply(Mediator mediator, Pkg pkg, HashMap<String, StateChunk> stateChunks)
     {
 
 
@@ -79,7 +82,7 @@ public class TransformMove extends TransformAbstract
 		SwingUtilities.invokeLater(runnable);
     
 
-        //pkg.StateChunks.Add(id, new StateChunk(sdt));
+        //stateChunks.Add(id, new StateChunk(sdt));
         mediator.getDivergences().insert(id.getVal().toString(), insertAtIndex);
 
         log.debug("Moved sdt " + id + " in pkg");

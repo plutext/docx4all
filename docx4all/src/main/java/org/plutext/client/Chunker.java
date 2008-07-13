@@ -31,7 +31,7 @@ public class Chunker
 
 	private static Logger log = Logger.getLogger(Chunker.class);
 
-	public boolean containsMultipleBlocks(org.docx4j.wml.SdtContentBlock sdtContent) {
+	public static boolean containsMultipleBlocks(org.docx4j.wml.SdtContentBlock sdtContent) {
 		log.info(sdtContent.getEGContentBlockContent().size());
 		
 		// TODO - In addition to P, getEGContentBlockContent() can contain things

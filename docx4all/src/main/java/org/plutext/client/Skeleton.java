@@ -21,7 +21,11 @@ package org.plutext.client;
 
 import java.util.ArrayList;
 
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+
 import org.apache.log4j.Logger;
+import org.plutext.Context;
 import org.plutext.client.diffengine.DiffEngine;
 import org.plutext.client.diffengine.DiffEngineLevel;
 import org.plutext.client.diffengine.DiffResultSpan;
@@ -56,18 +60,52 @@ public class Skeleton implements IDiffList<TextLine> {
 		;// do nothing
 	}
 
+    // Constructor - make object from string
+    public Skeleton(String skeletonStr)
+    {
+        /*
+         * <dst:transitions>
+         *   <dst:ribs>
+         *      <dst:rib id="54989358" />
+         *      <dst:rib id="1447653797" />
+         *        :
+         * </dst:transitions>
+         * 
+         * */
+        try {
+			Unmarshaller u = Context.jcTransitions.createUnmarshaller();
+			u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());
+			org.plutext.server.transitions.Transitions transitions = 
+				(org.plutext.server.transitions.Transitions) u
+					.unmarshal(new javax.xml.transform.stream.StreamSource(
+							new java.io.StringReader(skeletonStr)));
+			init(transitions);
+		} catch (JAXBException exc) {
+			exc.printStackTrace(); //should not happen
+		}
+    }
+    
 	public Skeleton(Transitions t) {
 		/*
 		 * <dst:transitions> <dst:ribs> <dst:rib id="54989358" /> <dst:rib
 		 * id="1447653797" /> : </dst:transitions>
 		 * 
 		 */
-
-		for (Transitions.Ribs.Rib r : t.getRibs().getRib()) {
-			ribs.add(new TextLine(Long.toString(r.getId())));
-		}
+		init(t);
 	}
 
+	private void init(Transitions t) {
+		for (Transitions.Ribs.Rib r : t.getRibs().getRib()) {
+			if (r.isDeleted() != null && r.isDeleted()) {
+                log.debug("Rib " + r.getId() + " deleted, so ignoring.");				
+			} else {
+                log.debug("Added Rib " + r.getId());
+				ribs.add(new TextLine(Long.toString(r.getId())));
+			}
+		}
+	
+	}
+	
 	public ArrayList<TextLine> getRibs() {
 		return ribs;
 	}

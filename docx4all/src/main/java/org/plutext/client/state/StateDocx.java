@@ -20,6 +20,7 @@
 package org.plutext.client.state;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -81,12 +82,17 @@ public class StateDocx {
 		
 		try {
 			doc.readLock();
-	        this.pkg = new Pkg(doc);
+			Pkg pkg = new Pkg(doc);
+	        stateChunks = pkg.extractStateChunks();
 		} finally {
 			doc.readUnlock();
 		}
 	}
 	
+	private HashMap<String, StateChunk> stateChunks;
+	public HashMap<String, StateChunk> getStateChunks() {
+		return stateChunks;
+	}
 
         // Set from App_DocumentOpen
         private String docID = null;
@@ -127,14 +133,6 @@ public class StateDocx {
 
     	public void setInitialized(Boolean initialized) {
     		this.initialized = initialized;
-    	}
-
-        Pkg pkg = null;
-    	public Pkg getPkg() {
-    		return pkg;
-    	}
-    	public void setPkg(Pkg pkg) {
-    		this.pkg = pkg;
     	}
 
 //        Styles stylemap = new Styles();

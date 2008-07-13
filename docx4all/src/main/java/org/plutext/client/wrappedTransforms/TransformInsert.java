@@ -20,6 +20,7 @@
 package org.plutext.client.wrappedTransforms;
 
 import java.math.BigInteger;
+import java.util.HashMap;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
@@ -28,7 +29,6 @@ import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLFragment;
 import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
 import org.docx4all.xml.SdtBlockML;
-import org.docx4j.wml.SdtBlock;
 import org.plutext.client.Mediator;
 import org.plutext.client.Pkg;
 import org.plutext.client.Util;
@@ -46,7 +46,7 @@ public class TransformInsert extends TransformAbstract {
 
 	protected Long insertAtIndex;
 
-	public long apply(Mediator mediator, Pkg pkg) {
+	public long apply(Mediator mediator, Pkg pkg, HashMap<String, StateChunk> stateChunks) {
 		// Plutext server is trying to use absolute index position for
 		// locating the insert positon.
 		// TODO: The following code is subject to change.
@@ -76,8 +76,8 @@ public class TransformInsert extends TransformAbstract {
 		} else {
 			apply(mediator.getWordMLTextPane());
 
-			//StateChunk sc = new StateChunk(sdt);
-			//pkg.getStateChunks().put(sc.getIdAsString(), new StateChunk(sdt));
+			StateChunk sc = new StateChunk(sdt);
+			stateChunks.put(sc.getIdAsString(), sc);
 			mediator.getDivergences().insert(id.getVal().toString(),
 					insertAtIndex);
 

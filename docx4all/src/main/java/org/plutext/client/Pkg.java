@@ -20,7 +20,6 @@
 package org.plutext.client;
 
 import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.DocumentElement;
@@ -39,11 +38,18 @@ public class Pkg implements Cloneable {
 
 	private static Logger log = Logger.getLogger(Pkg.class);
 
-	private Map<String, StateChunk> stateChunks = null;
+	//private Map<String, StateChunk> stateChunks = null;
 	private Skeleton skeleton = new Skeleton();
 
-	public Pkg(WordMLDocument doc) {
-		this.stateChunks = new HashMap<String, StateChunk>();
+	private WordMLDocument doc;
+	
+	public Pkg(WordMLDocument doc) { 
+		this.doc = doc;
+	}
+	
+	public HashMap<String, StateChunk> extractStateChunks() {
+		
+		HashMap<String, StateChunk> stateChunks = new HashMap<String, StateChunk>();
 
 		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
 		for (int idx = 0; idx < root.getElementCount(); idx++) {
@@ -54,19 +60,17 @@ public class Pkg implements Cloneable {
 					(org.docx4j.wml.SdtBlock) ml.getDocxObject();
 				sdt = (org.docx4j.wml.SdtBlock) XmlUtils.deepCopy(sdt);
 				StateChunk sc = new StateChunk(sdt);
-				this.stateChunks.put(sc.getIdAsString(), sc);
+				stateChunks.put(sc.getIdAsString(), sc);
 
 				skeleton.getRibs().add(new TextLine(sc.getIdAsString()));
 			}
 		}
+		
+		return stateChunks;
 	}
 
 	public Skeleton getInferedSkeleton() {
 		return skeleton;
-	}
-
-	public Map<String, StateChunk> getStateChunks() {
-		return stateChunks;
 	}
 
 }// Pkg class

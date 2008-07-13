@@ -20,6 +20,7 @@
 package org.plutext.client.wrappedTransforms;
 
 import java.math.BigInteger;
+import java.util.HashMap;
 
 import javax.xml.bind.JAXBException;
 
@@ -102,7 +103,7 @@ public class TransformUpdate extends TransformAbstract {
     }
     
 
-    public long apply(Mediator mediator, Pkg pkg)
+    public long apply(Mediator mediator, Pkg pkg, HashMap<String, StateChunk> stateChunks)
     {
 
 
@@ -129,8 +130,7 @@ public class TransformUpdate extends TransformAbstract {
 		if (!getApplied() || isLocal()) {
 			apply(mediator.getWordMLTextPane());
 
-	        //pkg.getStateChunks().remove(id);
-	        //pkg.getStateChunks().put(id.getVal().toString(), new StateChunk(sdt));	
+	        stateChunks.put(id.getVal().toString(), new StateChunk(sdt));	
 		}
 		
 		// Fourth, if we haven't thrown an exception, return the sequence number

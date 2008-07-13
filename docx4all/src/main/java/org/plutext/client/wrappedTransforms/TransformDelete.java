@@ -20,6 +20,7 @@
 package org.plutext.client.wrappedTransforms;
 
 import java.math.BigInteger;
+import java.util.HashMap;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
@@ -29,6 +30,7 @@ import org.docx4all.swing.text.WordMLFragment;
 import org.plutext.client.Mediator;
 import org.plutext.client.Pkg;
 import org.plutext.client.Util;
+import org.plutext.client.state.StateChunk;
 import org.plutext.transforms.Transforms.T;
 
 
@@ -49,14 +51,14 @@ public class TransformDelete extends TransformAbstract {
 
 
         /* delete the SDT given its ID. */
-        public long apply(Mediator mediator, Pkg pkg)
+	public long apply(Mediator mediator, Pkg pkg, HashMap<String, StateChunk> stateChunks)
         {
 
     	
 		log.debug("apply(ServerFrom): Deleting SdtBlock = " + getSdt() 
 				+ " - ID=" + getId().getVal());
 
-    	if ( pkg.getStateChunks().remove(id) == null) {
+    	if ( stateChunks.remove(id) == null) {
     		
     		log.debug("apply(): Could not find SDT Id=" + getId().getVal() + " snapshot.");
 	        // couldn't find!

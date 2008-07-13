@@ -39,6 +39,7 @@ import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.util.DocUtil;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.SdtBlockML;
+import org.docx4j.wml.Tag;
 import org.plutext.Context;
 import org.plutext.client.diffengine.DiffEngine;
 import org.plutext.client.diffengine.DiffResultSpan;
@@ -164,6 +165,8 @@ public class Mediator
  *          FETCH REMOTE UPDATES (in background)
  * **************************************************************************************** */ 
 
+    private Skeleton oldServer;
+    
     public void fetchUpdates() throws RemoteException {
 		log.debug(".. .. fetchUpdates, from "
 				+ stateDocx.getTransforms().getTSequenceNumberHighestFetched());
@@ -180,6 +183,9 @@ public class Mediator
 
 		} else {
 			log.debug(stateDocx.getDocID() + " transforms = " + updates[1]);
+			
+			String serverSkeletonStr = ws.getSkeletonDocument(stateDocx.getDocID());
+			oldServer = new Skeleton(serverSkeletonStr);
 
 			if (Integer.parseInt(updates[0]) > stateDocx.getTransforms()
 					.getTSequenceNumberHighestFetched()) {
@@ -237,6 +243,22 @@ public class Mediator
 		}
     }
 
+    public void registerTransforms(
+    		org.plutext.transforms.Transforms transformsObj, 
+        	Boolean setApplied, 
+        	Boolean setLocal, 
+        	Boolean updateHighestFetched)
+        {
+            log.debug(stateDocx.getDocID() + ".. .. registerTransforms");
+
+         
+
+    		for (T t : transformsObj.getT()) {
+    			TransformAbstract ta = TransformHelper.construct(t);
+                registerTransform(ta, setApplied, setLocal, updateHighestFetched);
+    		}
+        }
+    
     public void registerTransform(TransformAbstract t, Boolean setApplied, Boolean setLocal, 
         Boolean updateHighestFetched)
     {
@@ -303,10 +325,9 @@ public void applyRemoteChanges()
 		WordMLDocument wordMLDoc = 
 			(WordMLDocument) getWordMLTextPane().getDocument();
         Skeleton actuals  = Util.createSkeleton(wordMLDoc);
-        Skeleton oldserver = stateDocx.getPkg().getInferedSkeleton();
 
         DiffEngine drift = new DiffEngine();
-        drift.processDiff(oldserver, actuals);
+        drift.processDiff(this.oldServer, actuals);
         divergences = new Divergences(drift);
 
         /* For example
@@ -323,12 +344,6 @@ public void applyRemoteChanges()
 
 
     applyUpdates();
-
-    stateDocx.setPkg(new Pkg(wordMLDoc));
-    // Update the snapshots
-    
-    	// In docx4all, we should be able to keep these uptodate
-    //stateDocx.setPkg( (Pkg)pkgB.Clone() ) ;
 
     remoteUpdatesNeedApplying = false;
 
@@ -406,7 +421,7 @@ private long applyUpdate(TransformAbstract t)
     		|| t instanceof org.plutext.client.wrappedTransforms.TransformMove
         )
     {
-        result = t.apply(this, pkg);
+        result = t.apply(this, pkg, stateDocx.getStateChunks());
         t.setApplied(true);
         log.debug(t.getSequenceNumber() + " applied (" + t.getClass().getName() + ")");
         return result;
@@ -415,7 +430,7 @@ private long applyUpdate(TransformAbstract t)
     {
         // TODO - Implement TransformStyle
         // that class is currently non functional.
-        result = t.apply(this, pkg);
+        result = t.apply(this, pkg, stateDocx.getStateChunks());
         t.setApplied(true);
         log.debug(t.getSequenceNumber() + " UNDER CONSTRUCTION (" + t.getClass().getName() + ")");
         return result;
@@ -433,14 +448,14 @@ private long applyUpdate(TransformAbstract t)
         }
         
         boolean noConflict = currentChunk.getXml().equals(
-        	stateDocx.getPkg().getStateChunks().get(t.getId().getVal().toString()).getXml());
+        	stateDocx.getStateChunks().get(t.getId().getVal().toString()).getXml());
 
         // The update we will insert is one that contains the results
         // of comparing the server's SDT to the user's local one.
         // This will allow the user to see other people's changes.
         //((TransformUpdate)t).markupChanges(pkg.getStateChunks().get(t.getId()).getSdt() );
 
-        result = t.apply(this, pkg);
+        result = t.apply(this, pkg, stateDocx.getStateChunks());
         t.setApplied(true);
         log.debug(t.getSequenceNumber() + " applied (" + t.getClass().getName() + ")");
 
@@ -519,27 +534,6 @@ private long applyUpdate(TransformAbstract t)
  * **************************************************************************************** */ 
     public void transmitLocalChanges() throws RemoteException, ClientException
     {
-
-        /* ENTRY CONDITION
-         * Remote changes received and applied
-         *
-         * This is critical, so that we can guarantee
-         * that any differences are local changes
-         * which need to be transmitted.
-         * 
-         * TODO - automatically get and apply changes.
-         * If there are any, tell the user "Remote changes
-         * detected.  Please review, then try transmit 
-         * again."
-         * 
-         */ 
-
-        if (remoteUpdatesNeedApplying)
-        {
-        	throw new ClientException("Remote updates needs to be applied firt.");
-        }
-
-
         // Look for local modifications
         // - commit any which are non-conflicting (send these as TRANSFORMS)
         transmitContentUpdates();
@@ -608,7 +602,7 @@ private long applyUpdate(TransformAbstract t)
 		}
 
         // OK, do it
-        createTramsformsForStructuralChanges(
+        createTransformsForStructuralChanges(
         	transformsToSend,
             inferredSkeleton, 
             serverSkeleton);
@@ -638,7 +632,7 @@ private long applyUpdate(TransformAbstract t)
                     	new StateChunk((org.docx4j.wml.SdtBlock) ml.getDocxObject());
                     String stdId = chunkCurrent.getIdAsString();
 
-                    StateChunk chunkOlder = stateDocx.getPkg().getStateChunks().get(stdId);                
+                    StateChunk chunkOlder = stateDocx.getStateChunks().get(stdId);                
                     
                     if (chunkOlder==null) { 
                     	
@@ -768,27 +762,42 @@ private long applyUpdate(TransformAbstract t)
         			sb.append("<p:transforms xmlns:p='"); 
         			sb.append(Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE); 
         			sb.append("'>");  
-        			sb.append(result); 
+        			sb.append(result[i]); 
         			sb.append("</p:transforms>");
 
-        			registerTransforms(
-        				sb.toString(), appliedTrue, localTrue, updateHighestFetchedFalse);
-
-                    // Set the in-document tag to match the one we got back
-                    // ?? the actual sdt or the state chunk?
                     //getContentControlWithId(ta.getId().getVal().toString() ).Tag = ta.getTag();
+        			org.plutext.transforms.Transforms transformsObj = null;
+        			try {
+        				Unmarshaller u = Context.jcTransforms.createUnmarshaller();
+        				u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());
+        				transformsObj = (org.plutext.transforms.Transforms) u
+        						.unmarshal(new java.io.StringReader(sb.toString()));
+        			} catch (JAXBException e) {
+        				// TODO Auto-generated catch block
+        				e.printStackTrace();
+        			}
 
-                    /* A problem with this approach is that it doesn't 
-                     *  get rid of any StyleSeparator workaround in an SDT.
-                     * 
-                     * It doesn't get rid of it now, and it doesn't register
-                     * a transform which will be applied later (which would
-                     * get rid of it then).  
-                     * 
-                     * But this doesn't matter, since the Style Separator never
-                     * gets saved on the server, so no other user will receive
-                     * it; and when this user next re-opens the document, they
-                     * won't have it either.*/
+        			for (T tmp : transformsObj.getT()) {
+        				TransformAbstract ta = TransformHelper.construct(tmp);
+        	            if (ta instanceof TransformUpdate) {
+                            // Set the in-document tag to match the one we got back
+                            // ?? the actual sdt or the state chunk?
+                			updateLocalContentControlTag(
+                				ta.getId().getVal().toString(), 
+                				ta.getTag());
+                			this.stateDocx.getStateChunks().put(
+                				ta.getId().getVal().toString(), 
+                				new StateChunk(ta.getSdt()));
+        	            } else {
+        	            	// Assumption is that chunking is done locally, 
+        	            	// and we won't get eg an Insert back
+        	            	log.error("Not handled: " + ta.getClass().getName() );
+        	            }
+        			}
+        			
+        			registerTransforms(
+        					transformsObj, appliedTrue, localTrue, updateHighestFetchedFalse);
+                 
                 }
                 else
                 {
@@ -843,7 +852,7 @@ private long applyUpdate(TransformAbstract t)
         	title, checkinResult, JOptionPane.INFORMATION_MESSAGE);
     }
 
-    void createTramsformsForStructuralChanges(
+    void createTransformsForStructuralChanges(
     	List<T> transformsToSend,
         Skeleton inferredSkeleton, 
         Skeleton serverSkeleton)
@@ -962,6 +971,7 @@ private long applyUpdate(TransformAbstract t)
                             t.setSdt( sc.getSdt() );
                             transformsToSend.add(t);
                             
+                            this.stateDocx.getStateChunks().put(sc.getIdAsString(), sc);
 
                             log.debug("text Inserted:");
                             log.debug("TO   " + sc.getXml());
@@ -1079,6 +1089,7 @@ private long applyUpdate(TransformAbstract t)
                             //t.setSdt( sc.getSdt() );
                             transformsToSend.add(t);
                             
+                            this.stateDocx.getStateChunks().remove(deletionId);
 
                             log.debug("text deleted:");
                         	
@@ -1093,10 +1104,6 @@ private long applyUpdate(TransformAbstract t)
                     break;
             }
         }
-
-
-
-
     }
 
     void transmitStyleUpdates() throws RemoteException {
@@ -1126,6 +1133,18 @@ private long applyUpdate(TransformAbstract t)
 		}
 	}
 
+    private void updateLocalContentControlTag(String sdtId, Tag tag) {
+    	WordMLDocument doc = (WordMLDocument) this.textPane.getDocument();
+		DocumentElement elem = Util.getDocumentElement(doc, sdtId);
+		
+		log.debug("updateLocalContentControlTag(): elem=" + elem);
+		log.debug("updateLocalContentControlTag(): tag param=" + tag.getVal());
+		
+		SdtBlockML ml = (SdtBlockML) elem.getElementML();
+		ml.getSdtProperties().setTagValue(tag.getVal());
+		doc.refreshParagraphs(elem.getStartOffset(), 0);
+    }
+    
 }// Mediator class
 
 
