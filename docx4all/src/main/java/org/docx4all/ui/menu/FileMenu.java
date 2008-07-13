@@ -218,8 +218,8 @@ public class FileMenu extends UIMenu {
     	} else if (SAVE_AS_SHARED_DOC_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
     		toolbarStates.addPropertyChangeListener(
-    				ToolBarStates.SHARE_ENABLED_PROPERTY_NAME, 
-    				new EnableOnEqual(theItem, Boolean.TRUE));
+    				ToolBarStates.DOC_SHARED_PROPERTY_NAME, 
+    				new DisableOnEqual(theItem, Boolean.TRUE));
    	
     	} else if (PRINT_PREVIEW_ACTION_NAME.equals(actionName)
     		|| CLOSE_FILE_ACTION_NAME.equals(actionName)
@@ -318,8 +318,7 @@ public class FileMenu extends UIMenu {
             	    	wmlTextPane.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
 
             	    	if (DocUtil.isSharedDocument(doc)) {
-            	    		wmlTextPane.getWordMLEditorKit().
-            	    			schedulePlutextClientWork(wmlTextPane, 10000, 10000);
+            	    		wmlTextPane.getWordMLEditorKit().initPlutextClient(wmlTextPane);
             	    	}
 	        		} catch (IOException exc) {
 	        			exc.printStackTrace();
