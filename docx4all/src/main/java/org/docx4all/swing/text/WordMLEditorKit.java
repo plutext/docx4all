@@ -83,7 +83,7 @@ import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.SdtBlockML;
-import org.plutext.client.ServerTo;
+import org.plutext.client.Mediator;
 
 public class WordMLEditorKit extends DefaultEditorKit {
 	private static Logger log = Logger.getLogger(WordMLEditorKit.class);
@@ -103,6 +103,10 @@ public class WordMLEditorKit extends DefaultEditorKit {
     public static final String fontItalicAction = "font-italic";
     
     public static final String fontUnderlineAction = "font-underline";
+
+    public static final String fetchRemoteEditsAction = "fetch-remote-edits";
+    
+    public static final String commitLocalEditsAction = "commit-local-edits";
 
     public static final String acceptRevisionAction = "accept-revision";
     
@@ -135,6 +139,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	private MouseListener mouseListener;
 	private ContentControlTracker contentControlTracker;
 	private PlutextClientScheduler plutextClientScheduler;
+	private Mediator plutextClient;
 	
     /**
      * This is the set of attributes used to store the
@@ -185,8 +190,8 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		doc.lockWrite();
 		doc.setSnapshotFireBan(true);
 		
-		doc.removeDocumentListener(this.plutextClientScheduler);
-		editor.removeCaretListener(this.plutextClientScheduler);
+		//doc.removeDocumentListener(this.plutextClientScheduler);
+		//editor.removeCaretListener(this.plutextClientScheduler);
 		//editor.removeCaretListener(contentControlTracker);
 		
 		inContentControlEdit = true;
@@ -198,8 +203,8 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		inContentControlEdit = false;
 		
 		//editor.addCaretListener(contentControlTracker);
-		editor.addCaretListener(this.plutextClientScheduler);
-		doc.addDocumentListener(this.plutextClientScheduler);
+		//editor.addCaretListener(this.plutextClientScheduler);
+		//doc.addDocumentListener(this.plutextClientScheduler);
 		
 		doc.setSnapshotFireBan(false);
 		doc.unlockWrite();
@@ -360,15 +365,27 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		//deinstall PlutextClientScheduler.
 		//This PlutextClientScheduler is not installed in install() method
 		//but in scheduletPlutextClientWork().
-		if (plutextClientScheduler != null) {
-			plutextClientScheduler.cancel();
+		if (this.plutextClientScheduler != null) {
+			this.plutextClientScheduler.cancel();
 			c.removeCaretListener(plutextClientScheduler);
 			c.getDocument().removeDocumentListener(plutextClientScheduler);
-			plutextClientScheduler = null;
+			this.plutextClientScheduler = null;
 		}
+		
+		this.plutextClient = null;
 	}
 
-	public void schedulePlutextClientWork(
+	public void initPlutextClient(WordMLTextPane editor) {
+		//schedulePlutextClientWork(editor, 10000, 10000);
+		this.plutextClient = new Mediator(editor);
+	}
+	
+	public Mediator getPlutextClient() {
+		return this.plutextClient;
+	}
+	
+	/*
+	private void schedulePlutextClientWork(
 		WordMLTextPane editor, long delay, long period) {
 		
 		if (this.plutextClientScheduler == null) {
@@ -384,7 +401,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			
 			this.plutextClientScheduler.schedule(delay, period);
 		}
-	}
+	}*/
 	
 	/**
 	 * Fetches the command list for the editor. This is the list of commands
@@ -776,6 +793,97 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	    
 	}// CaretListener inner class
 	
+    public static class FetchRemoteEditsAction extends TextAction {
+    	private Exception exc;
+    	   	
+    	public FetchRemoteEditsAction() {
+            super(fetchRemoteEditsAction);
+            exc = null;
+        }
+
+        /** The operation to perform when this action is triggered. */
+        public void actionPerformed(ActionEvent e) {
+        	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
+        	if (editor != null) {
+        		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+        		Mediator plutextClient = editor.getWordMLEditorKit().getPlutextClient();
+        		if (plutextClient != null) {
+                	log.debug("FetchRemoteEditsAction.actionPerformed():...");
+                	try {
+                		doc.lockWrite();
+                		
+                		editor.saveCaretText();
+                		
+                		plutextClient.startSession();
+                		plutextClient.fetchUpdates();
+                		plutextClient.applyRemoteChanges();
+                		
+                	} catch (Exception exc) {
+                		this.exc = exc;
+                	} finally {
+                		plutextClient.endSession();
+                		doc.unlockWrite();
+                	}
+        		}
+        	}
+        }
+        
+        public Exception getThrownException() {
+        	return exc;
+        }
+        
+        public boolean success() {
+        	return (exc == null);
+        }
+        
+    }// FetchRemoteEditsAction inner class
+    
+    public static class CommitLocalEditsAction extends TextAction {
+    	private Exception exc;
+    	
+    	public CommitLocalEditsAction() {
+            super(commitLocalEditsAction);
+            exc = null;
+        }
+
+        /** The operation to perform when this action is triggered. */
+        public void actionPerformed(ActionEvent e) {
+        	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
+        	if (editor != null) {
+        		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+        		Mediator plutextClient = editor.getWordMLEditorKit().getPlutextClient();
+        		if (plutextClient != null) {
+                	log.debug("CommitLocalEditsAction.actionPerformed():...");
+                	try {
+                		doc.lockWrite();
+                		
+                		editor.saveCaretText();
+                		
+                		plutextClient.startSession();
+                		plutextClient.fetchUpdates();
+                		plutextClient.transmitLocalChanges();
+                		
+                	} catch (Exception exc) {
+                		this.exc = exc;
+                		
+                	} finally {
+                		plutextClient.endSession();
+                		doc.unlockWrite();
+                	}
+        		}
+        	}
+        }
+        
+        public Exception getThrownException() {
+        	return exc;
+        }
+        
+        public boolean success() {
+        	return (exc == null);
+        }
+        
+    }// CommitLocalEditsAction inner class
+    
     public static class AcceptRevisionAction extends TextAction {
     	private boolean success;
     	
