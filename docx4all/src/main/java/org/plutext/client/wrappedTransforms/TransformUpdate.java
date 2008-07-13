@@ -21,24 +21,23 @@ package org.plutext.client.wrappedTransforms;
 
 import java.math.BigInteger;
 
-import javax.swing.SwingUtilities;
 import javax.xml.bind.JAXBException;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
+import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLFragment;
 import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
 import org.docx4all.xml.SdtBlockML;
+import org.docx4j.diff.ParagraphDifferencer;
 import org.docx4j.wml.P;
 import org.docx4j.wml.SdtBlock;
-import org.plutext.client.ServerFrom;
-import org.plutext.transforms.Transforms.T;
-
 import org.plutext.client.Mediator;
 import org.plutext.client.Pkg;
+import org.plutext.client.Util;
 import org.plutext.client.state.StateChunk;
-import org.docx4j.diff.ParagraphDifferencer;
+import org.plutext.transforms.Transforms.T;
 
 
 public class TransformUpdate extends TransformAbstract {
@@ -127,76 +126,100 @@ public class TransformUpdate extends TransformAbstract {
 
 		}
 
-		apply(mediator.getWordMLTextPane());
+		if (!getApplied() || isLocal()) {
+			apply(mediator.getWordMLTextPane());
 
-        pkg.getStateChunks().remove(id);
-        pkg.getStateChunks().put(id.getVal().toString(), new StateChunk(sdt));
+	        //pkg.getStateChunks().remove(id);
+	        //pkg.getStateChunks().put(id.getVal().toString(), new StateChunk(sdt));	
+		}
 		
 		// Fourth, if we haven't thrown an exception, return the sequence number
 		return sequenceNumber;
 	}
 
-	protected void apply(final WordMLTextPane editor) {
-		final SdtBlock sdt = getSdt();
+	protected void apply(WordMLTextPane editor) {
+		BigInteger id = getSdt().getSdtPr().getId().getVal();
 		
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				BigInteger id = sdt.getSdtPr().getId().getVal();
-				
-				log.debug("apply(WordMLTextPane): Updating SdtBlock Id=" 
-						+ id + " in Editor.");
-				
-				int origPos = editor.getCaretPosition();
-				boolean forward = true;
-				
-				try {
-					editor.beginContentControlEdit();
-					
-					DocumentElement elem = getDocumentElement(editor, id);
-					
-					log.debug("apply(WordMLTextPane): SdtBlock Element=" + elem);
-					log.debug("apply(WordMLTextPane): Current caret position=" + origPos);
-					
-					if (elem != null) {
-						if (elem.getStartOffset() <= origPos
-							&& origPos < elem.getEndOffset()) {
-							//elem is still hosting caret.
-							//User may have not finished editing yet.
-							//Do not apply this TransformUpdate now 
-							//but wait until user has finished.
-							log.debug("apply(WordMLTextPane): SKIP...StdBlock element is hosting caret.");
-						} else {
-							log.debug("apply(WordMLTextPane): Updating SdtBlock Element...");
-							
-							if (elem.getEndOffset() <= origPos) {
-								origPos = editor.getDocument().getLength() - origPos;
-								forward = false;
-							}
-							
-							ElementMLRecord[] recs = { new ElementMLRecord(
-									new SdtBlockML(sdt), false) };
-							WordMLFragment frag = new WordMLFragment(recs);
-
-							editor.setCaretPosition(elem.getStartOffset());
-							editor.moveCaretPosition(elem.getEndOffset());
-							editor.replaceSelection(frag);
-						}
-					} else {
-						//silently ignore
-						log.warn("apply(WordMLTextPane): SdtBlock Id=" 
-							+ id
-							+ " NOT FOUND in editor.");
-					}
-				} finally {
-					if (!forward) {
-						origPos = editor.getDocument().getLength() - origPos;
-					}
-					log.debug("apply(WordMLTextPane): Set caret position to " + origPos);
-					editor.setCaretPosition(origPos);
-					editor.endContentControlEdit();
+		log.debug("apply(WordMLTextPane): Updating SdtBlock Id=" 
+				+ id + " in Editor.");
+		
+		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+		int origPos = editor.getCaretPosition();
+		boolean forward = true;
+		
+		try {
+			//editor.beginContentControlEdit();
+			
+			DocumentElement elem = Util.getDocumentElement(doc, id.toString());
+			
+			log.debug("apply(WordMLTextPane): SdtBlock Element=" + elem);
+			log.debug("apply(WordMLTextPane): Current caret position=" + origPos);
+			log.debug("apply(WordMLTextPane): Current getApplied()=" 
+				+ getApplied()
+				+ " isLocal()=" + isLocal());
+			
+			if (elem != null) {
+				if (elem.getEndOffset() <= origPos) {
+					origPos = doc.getLength() - origPos;
+					forward = false;
 				}
+				
+				if (getApplied() && isLocal()) {
+					SdtBlockML ml = (SdtBlockML) elem.getElementML();
+					ml.getSdtProperties().setTagValue(getTag().getVal());
+					doc.refreshParagraphs(elem.getStartOffset(), 0);
+					
+				} else if (!getApplied()){
+					ElementMLRecord[] recs = { new ElementMLRecord(
+							new SdtBlockML(sdt), false) };
+					WordMLFragment frag = new WordMLFragment(recs);
+
+					editor.setCaretPosition(elem.getStartOffset());
+					editor.moveCaretPosition(elem.getEndOffset());
+					editor.replaceSelection(frag);
+					
+				} else {
+					log.warn("apply(WordMLTextPane): Cannot re-apply SdtBlock Id=" 
+						+ id);
+				}
+			} else {
+				//silently ignore
+				log.warn("apply(WordMLTextPane): SdtBlock Id=" 
+					+ id
+					+ " NOT FOUND in editor.");
 			}
-		});
+		} finally {
+			if (!forward) {
+				origPos = editor.getDocument().getLength() - origPos;
+			}
+			log.debug("apply(WordMLTextPane): Set caret position to " + origPos);
+			editor.setCaretPosition(origPos);
+			//editor.endContentControlEdit();
+		}
 	}
-	
 } //TransformUpdate class
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

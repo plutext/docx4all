@@ -19,23 +19,16 @@
 
 package org.plutext.client.wrappedTransforms;
 
-import org.apache.log4j.Logger;
-
 import java.math.BigInteger;
 
+import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
-import org.docx4all.swing.text.DocumentElement;
-import org.docx4all.swing.text.WordMLDocument;
-import org.docx4all.xml.ElementML;
-import org.docx4all.xml.SdtBlockML;
 import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
 import org.docx4j.wml.Tag;
-import org.plutext.client.ServerFrom;
-import org.plutext.transforms.Transforms.T;
-
 import org.plutext.client.Mediator;
 import org.plutext.client.Pkg;
+import org.plutext.transforms.Transforms.T;
 
 public abstract class TransformAbstract {
 
@@ -84,41 +77,6 @@ public abstract class TransformAbstract {
 		// log.warn("Parsed SDT ID " + id);
 
 	}
-
-	protected static DocumentElement getDocumentElement(WordMLTextPane editor,
-			BigInteger sdtBlockId) {
-		DocumentElement elem = null;
-
-		WordMLDocument doc = (WordMLDocument) editor.getDocument();
-
-		try {
-			doc.readLock();
-
-			DocumentElement root = (DocumentElement) doc
-					.getDefaultRootElement();
-
-			for (int i = 0; i < root.getElementCount() - 1 && elem == null; i++) {
-				elem = (DocumentElement) root.getElement(i);
-				ElementML ml = elem.getElementML();
-				if (ml instanceof SdtBlockML) {
-					SdtBlockML sdtBlockML = (SdtBlockML) ml;
-					if (sdtBlockId.equals(sdtBlockML.getSdtProperties()
-							.getIdValue())) {
-						;// got it
-					} else {
-						elem = null;
-					}
-				} else {
-					elem = null;
-				}
-			}
-		} finally {
-			doc.readUnlock();
-		}
-
-		return elem;
-	}
-
 
 	/* do the actual replacement in docx4all specific way */
 	protected void apply(WordMLTextPane editor) {

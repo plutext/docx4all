@@ -20,17 +20,15 @@
 package org.plutext.client.wrappedTransforms;
 
 import java.math.BigInteger;
-import java.util.Map;
-
-import javax.swing.SwingUtilities;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
+import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLFragment;
-import org.docx4j.wml.Id;
 import org.plutext.client.Mediator;
 import org.plutext.client.Pkg;
+import org.plutext.client.Util;
 import org.plutext.transforms.Transforms.T;
 
 
@@ -66,10 +64,13 @@ public class TransformDelete extends TransformAbstract {
     		return -1;
     	}
     	
-		apply(mediator.getWordMLTextPane(), getId().getVal());
-        mediator.getDivergences().delete(  id.getVal().toString() );
+    	if (!getApplied()) {
+    		apply(mediator.getWordMLTextPane(), getId().getVal());
+        	
+            mediator.getDivergences().delete(  id.getVal().toString() );
 
-        log.debug("Removed sdt " + id + " from pkg");
+            log.debug("Removed sdt " + id + " from pkg");
+    	}
         
 		return sequenceNumber;
     }
@@ -77,60 +78,46 @@ public class TransformDelete extends TransformAbstract {
         
 
 	protected static void apply(final WordMLTextPane editor, final BigInteger id) {
-		//final BigInteger id = getId().getVal();
 		
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				
-				log.debug("apply(WordMLTextPane): Deleting SdtBlock ID=" 
-						+ id + " from Editor.");
-				
-				int origPos = editor.getCaretPosition();
-				boolean forward = true;
-								
-				try {
-					editor.beginContentControlEdit();
+		log.debug("apply(WordMLTextPane): Deleting SdtBlock ID=" 
+				+ id + " from Editor.");
+		
+		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+		int origPos = editor.getCaretPosition();
+		boolean forward = true;
+						
+		try {
+			//editor.beginContentControlEdit();
+			
+			DocumentElement elem = Util.getDocumentElement(doc, id.toString());
+			
+			log.debug("apply(WordMLTextPane): SdtBlock Element=" + elem);
+			log.debug("apply(WordMLTextPane): Current caret position=" + origPos);
+			
+			if (elem != null) {
+				log.debug("apply(WordMLTextPane): Deleting SdtBlock Element...");
 					
-					DocumentElement elem = getDocumentElement(editor, id);
-					
-					log.debug("apply(WordMLTextPane): SdtBlock Element=" + elem);
-					log.debug("apply(WordMLTextPane): Current caret position=" + origPos);
-					
-					if (elem != null) {
-						if (elem.getStartOffset() <= origPos
-								&& origPos < elem.getEndOffset()) {
-							// elem is still hosting caret.
-							// User may have not finished editing yet.
-							// Do not apply this TransformUpdate now
-							// but wait until user has finished.
-							log.debug("apply(WordMLTextPane): SKIP...StdBlock element is hosting caret.");
-						} else {
-							log.debug("apply(WordMLTextPane): Deleting SdtBlock Element...");
-							
-							if (elem.getEndOffset() <= origPos) {
-								origPos = editor.getDocument().getLength() - origPos;
-								forward = false;
-							}
-							
-							editor.setCaretPosition(elem.getStartOffset());
-							editor.moveCaretPosition(elem.getEndOffset());
-							editor.replaceSelection((WordMLFragment) null);
-						}
-					} else {
-						//silently ignore
-						log.warn("apply(WordMLTextPane): SdtBlock Id=" 
-							+ id
-							+ " NOT FOUND in editor.");
-					}
-				} finally {
-					if (!forward) {
-						origPos = editor.getDocument().getLength() - origPos;
-					}
-					log.debug("apply(WordMLTextPane): Set caret position to " + origPos);
-					editor.endContentControlEdit();
+				if (elem.getEndOffset() <= origPos) {
+					origPos = editor.getDocument().getLength() - origPos;
+					forward = false;
 				}
+					
+				editor.setCaretPosition(elem.getStartOffset());
+				editor.moveCaretPosition(elem.getEndOffset());
+				editor.replaceSelection((WordMLFragment) null);
+			} else {
+				//silently ignore
+				log.warn("apply(WordMLTextPane): SdtBlock Id=" 
+					+ id
+					+ " NOT FOUND in editor.");
 			}
-		});
+		} finally {
+			if (!forward) {
+				origPos = doc.getLength() - origPos;
+			}
+			log.debug("apply(WordMLTextPane): Set caret position to " + origPos);
+			//editor.endContentControlEdit();
+		}
 	}
 	
 } //TransformDelete class
