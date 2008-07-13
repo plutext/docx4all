@@ -19,27 +19,38 @@
 
 package org.plutext.client;
 
-import javax.xml.bind.JAXBContext;
+import java.rmi.RemoteException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+import javax.swing.JOptionPane;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.rpc.ServiceException;
 
+import org.alfresco.webservice.authentication.AuthenticationFault;
 import org.alfresco.webservice.util.AuthenticationUtils;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
+import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
+import org.docx4all.ui.main.WordMLEditor;
+import org.docx4all.util.DocUtil;
+import org.docx4all.xml.ElementML;
+import org.docx4all.xml.SdtBlockML;
 import org.plutext.Context;
-import org.plutext.client.state.StateDocx;
+import org.plutext.client.diffengine.DiffEngine;
+import org.plutext.client.diffengine.DiffResultSpan;
 import org.plutext.client.state.StateChunk;
+import org.plutext.client.state.StateDocx;
 import org.plutext.client.webservice.PlutextService_ServiceLocator;
 import org.plutext.client.webservice.PlutextWebService;
-import org.plutext.client.wrappedTransforms.*;
+import org.plutext.client.wrappedTransforms.TransformAbstract;
+import org.plutext.client.wrappedTransforms.TransformHelper;
+import org.plutext.client.wrappedTransforms.TransformUpdate;
 import org.plutext.transforms.Transforms;
 import org.plutext.transforms.Transforms.T;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
 
 
 
@@ -105,30 +116,31 @@ public class Mediator
 		return stateDocx;
 	}
 	
-	Pkg pkg;
-
-//    // So this doesn't get garbage collected.
-//    public System.Threading.Timer stateTimer = null;
-
-
 	WordMLTextPane textPane;
 	public WordMLTextPane getWordMLTextPane() {
 		return textPane;
 	}
 
-	public Mediator(WordMLTextPane textPane, StateDocx stateDocx )
+	public Mediator(WordMLTextPane textPane)
     {
-
+		WordMLDocument doc = (WordMLDocument) textPane.getDocument();
+		if (!DocUtil.isSharedDocument(doc)) {
+			throw new IllegalArgumentException("Not a shared WordMLDocument");
+		}
+		
         //Skeleton.difftest();
 
-        this.stateDocx = stateDocx;
         this.textPane = textPane;
-        
-        // get up to date current state
-        pkg = new Pkg( (WordMLDocument) textPane.getDocument() );
-        
+        this.stateDocx = new StateDocx(doc);
+    }
 
-		// Start a new session
+
+	PlutextWebService ws = null;
+    
+/* *****************************************************
+ *                   SESSION MANAGEMENT
+ * ***************************************************** */
+    public void startSession() throws ServiceException {
         try {
 			AuthenticationUtils.startSession(USERNAME, PASSWORD);
 			PlutextService_ServiceLocator locator = new PlutextService_ServiceLocator(
@@ -138,100 +150,76 @@ public class Mediator
 							.getEndpointAddress()
 							+ "/" + locator.getPlutextServiceWSDDServiceName());
 			ws = locator.getPlutextService();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally {
-			// End the current session
-			AuthenticationUtils.endSession();
+			
+        } catch (AuthenticationFault exc) {
+        	throw new ServiceException("Authentication failure.", exc);
 		}
-
-
-//        try {
-//            // Timer stuff 
-//            Console.Beep();
-//            AutoResetEvent autoEvent = new AutoResetEvent(false);
-//            TimerCallback timerDelegate =
-//                new TimerCallback(mediatorCallback);
-//
-//            // Useful to comment this out to test/debug certain things
-//            // (eg collision handling)
-//            stateTimer = new System.Threading.Timer(timerDelegate, null, 20000, 60000); // 20 sec, 1.5 min
-//
-//
-//        }
-//        catch (Exception ex)
-//        {
-//            log.Debug(ex.Message + ex.StackTrace);
-//        }
     }
-
-
-	PlutextWebService ws = null;
     
-    String myDocName = "??"; 
-
+    public void endSession() {
+    	AuthenticationUtils.endSession();
+    }
+    
 /* ****************************************************************************************
  *          FETCH REMOTE UPDATES (in background)
  * **************************************************************************************** */ 
 
-    void fetchUpdates()
-    {
-        log.debug(".. .. fetchUpdates, from " + stateDocx.getTransforms().getTSequenceNumberHighestFetched() );
+    public void fetchUpdates() throws RemoteException {
+		log.debug(".. .. fetchUpdates, from "
+				+ stateDocx.getTransforms().getTSequenceNumberHighestFetched());
 
-        String[] updates = null;
+		// ws = ChunkServiceOverride.getWebService();
+		String[] updates = 
+			ws.getTransforms(
+				stateDocx.getDocID(), 
+				stateDocx.getTransforms().getTSequenceNumberHighestFetched());
 
+		log.debug(" sequence = " + updates[0]);
+		if (updates.length < 2) {
+			log.debug(stateDocx.getDocID() + " ERROR!!!");
 
+		} else {
+			log.debug(stateDocx.getDocID() + " transforms = " + updates[1]);
 
-        try
-        {
-//            ws = ChunkServiceOverride.getWebService();
-            updates = ws.getTransforms(stateDocx.getDocID(),
-                                    stateDocx.getTransforms().getTSequenceNumberHighestFetched());
-        }
-        catch (Exception ex)
-        {
-            log.debug(ex.getMessage() + ex.getStackTrace());
-        }
+			if (Integer.parseInt(updates[0]) > stateDocx.getTransforms()
+					.getTSequenceNumberHighestFetched()) {
+				stateDocx.getTransforms().setTSequenceNumberHighestFetched(
+						Integer.parseInt(updates[0]));
+				Boolean appliedTrue = false;
+				Boolean localTrue = false;
+				registerTransforms(updates[1], appliedTrue, localTrue);
+				// Globals.ThisAddIn.Application.StatusBar = "Fetched " +
+				// updates[0];
 
-        log.debug(" sequence = " + updates[0]);
-        if (updates.length < 2)
-        {
-            log.debug(myDocName + " ERROR!!!");
-        }
-        else
-        {
-        	        	
-            log.debug(myDocName + " transforms = " + updates[1]);
+				remoteUpdatesNeedApplying = true;
+			} else {
+				// Globals.ThisAddIn.Application.StatusBar = "No remote
+				// updates";
 
-            if (Integer.parseInt(updates[0]) > stateDocx.getTransforms().getTSequenceNumberHighestFetched() )
-            {
-                stateDocx.getTransforms().setTSequenceNumberHighestFetched( Integer.parseInt(updates[0]) );
-                Boolean appliedTrue = false;
-                Boolean localTrue = false;
-                registerTransforms(updates[1], appliedTrue, localTrue);
-                //Globals.ThisAddIn.Application.StatusBar = "Fetched " + updates[0];
-
-                remoteUpdatesNeedApplying = true;
-            }
-            else
-            {
-                //Globals.ThisAddIn.Application.StatusBar = "No remote updates";
-
-                // Do not do: remoteUpdatesNeedApplying = false;
-                // since there may be some from the last time this was executed
-            }
-
-
-        }
-    }
+				// Do not do: remoteUpdatesNeedApplying = false;
+				// since there may be some from the last time this was executed
+			}
+		}
+	}
 
     /* Put transforms received from server into the transforms collection. */
-    public void registerTransforms(String transforms, Boolean setApplied, Boolean setLocal)
+    public void registerTransforms(
+    	String transforms, 
+    	Boolean setApplied, 
+    	Boolean setLocal) {
+    	registerTransforms(transforms, setApplied, setLocal, true);
+    }
+    
+    public void registerTransforms(
+    	String transforms, 
+    	Boolean setApplied, 
+    	Boolean setLocal, 
+    	Boolean updateHighestFetched)
     {
-        log.debug(myDocName + ".. .. registerTransforms");
+        log.debug(stateDocx.getDocID() + ".. .. registerTransforms");
 
-        // Parse the XML document, and put each transform into the transforms collection
+        // Parse the XML document, and put each transform into the transforms
+		// collection
 		org.plutext.transforms.Transforms transformsObj = null;
 		try {
 			Unmarshaller u = Context.jcTransforms.createUnmarshaller();
@@ -245,7 +233,7 @@ public class Mediator
 
 		for (T t : transformsObj.getT()) {
 			TransformAbstract ta = TransformHelper.construct(t);
-            registerTransform(ta, setApplied, setLocal, true);
+            registerTransform(ta, setApplied, setLocal, updateHighestFetched);
 		}
     }
 
@@ -255,7 +243,7 @@ public class Mediator
         if (setApplied) { t.setApplied(true); }
         if (setLocal) { t.setLocal(true); }
 
-        log.debug("Instance " + myDocName + " -- Registering " + t.getSequenceNumber() );
+        log.debug("Instance " + stateDocx.getDocID() + " -- Registering " + t.getSequenceNumber() );
         try
         {
             stateDocx.getTransforms().add(t, updateHighestFetched);
@@ -312,11 +300,13 @@ public void applyRemoteChanges()
 
     //if (updatesIncludeInsertions)
     //{
-        Skeleton actuals  = pkgB.getInferedSkeleton();
+		WordMLDocument wordMLDoc = 
+			(WordMLDocument) getWordMLTextPane().getDocument();
+        Skeleton actuals  = Util.createSkeleton(wordMLDoc);
         Skeleton oldserver = stateDocx.getPkg().getInferedSkeleton();
 
         DiffEngine drift = new DiffEngine();
-        drift.ProcessDiff(oldserver, actuals);
+        drift.processDiff(oldserver, actuals);
         divergences = new Divergences(drift);
 
         /* For example
@@ -334,22 +324,11 @@ public void applyRemoteChanges()
 
     applyUpdates();
 
+    stateDocx.setPkg(new Pkg(wordMLDoc));
     // Update the snapshots
     
     	// In docx4all, we should be able to keep these uptodate
     //stateDocx.setPkg( (Pkg)pkgB.Clone() ) ;
-
-    // logout
-
-
-//    DateTime stopTime = DateTime.Now;
-//    log.debug(" finished: " + stopTime);
-
-    /* Compute the duration between the initial and the end time. */
-//    TimeSpan duration = stopTime - startTime;
-//    log.debug("\n\r  Time taken: " + duration + "\n\r");
-
-//    Globals.ThisAddIn.Application.StatusBar = "n Remote changes applied in " + duration.Seconds + "s";
 
     remoteUpdatesNeedApplying = false;
 
@@ -363,7 +342,7 @@ public void applyUpdates()
      * updates are applied IN ORDER.  
      */
  
-        log.debug(myDocName + ".. .. applyUpdates");
+        log.debug(stateDocx.getDocID() + ".. .. applyUpdates");
 
     // loop through, fetch, apply 
     List<TransformAbstract> transformsBySeqNum = stateDocx.getTransforms().getTransformsBySeqNum();
@@ -421,6 +400,8 @@ private long applyUpdate(TransformAbstract t)
 
     log.debug("applyUpdate " + t.getClass().getName() + " - " + t.getSequenceNumber() );
 
+    //TODO: Clean up this pkg = null.
+    Pkg pkg = null;
     if (t instanceof org.plutext.client.wrappedTransforms.TransformInsert 
     		|| t instanceof org.plutext.client.wrappedTransforms.TransformMove
         )
@@ -442,21 +423,28 @@ private long applyUpdate(TransformAbstract t)
     }
     else if (t instanceof org.plutext.client.wrappedTransforms.TransformUpdate)
     {
-        String currentXML = stateDocx.getPkg().getStateChunks().get(t.getId()).getXml();
+        WordMLDocument wordMLDoc = (WordMLDocument) getWordMLTextPane().getDocument();
+        StateChunk currentChunk = 
+        	Util.getStateChunk(wordMLDoc, t.getId().getVal().toString());
+        if (currentChunk == null) {
+            log.debug(t.getSequenceNumber() + " trying to apply (" + t.getClass().getName() + ")");
+        	log.debug("BUT No StateChunk found in WordMLDocument. t.getId()=" + t.getId().getVal());
+        	return -1;
+        }
+        
+        boolean noConflict = currentChunk.getXml().equals(
+        	stateDocx.getPkg().getStateChunks().get(t.getId().getVal().toString()).getXml());
 
         // The update we will insert is one that contains the results
         // of comparing the server's SDT to the user's local one.
         // This will allow the user to see other people's changes.
-        ((TransformUpdate)t).markupChanges(pkg.getStateChunks().get(t.getId()).getSdt() );
+        //((TransformUpdate)t).markupChanges(pkg.getStateChunks().get(t.getId()).getSdt() );
 
         result = t.apply(this, pkg);
         t.setApplied(true);
         log.debug(t.getSequenceNumber() + " applied (" + t.getClass().getName() + ")");
 
-        // TODO - review the following ...
-        if ( currentXML.equals(
-        		pkg.getStateChunks().get( t.getId() ).getXml()
-        		) && !t.isLocal())
+        if ( noConflict || t.isLocal() )
         {
             sdtChangeTypes.put(t.getId().getVal().toString(), TrackedChangeType.OtherUserChange);
         }
@@ -529,13 +517,7 @@ private long applyUpdate(TransformAbstract t)
 /* ****************************************************************************************
  *          TRANSMIT LOCAL CHANGES
  * **************************************************************************************** */ 
-
-    //  make a document.xml .. this will become document B, and it is to this that
-    //  we apply transforms (eg splitting an SDT with 2 paras into 2 SDTs).   
-    //  (this doc will eventually replace existing document) 
-    Pkg pkgB;
-
-    public void transmitLocalChanges()
+    public void transmitLocalChanges() throws RemoteException, ClientException
     {
 
         /* ENTRY CONDITION
@@ -552,31 +534,26 @@ private long applyUpdate(TransformAbstract t)
          * 
          */ 
 
-        ////    (Button should be greyed out if this is not the case)
-        //if (remoteUpdatesNeedApplying)
-        //{
-        //    // Ultimately, we'll grey the button out if this is the case.
-
-        //    // Until then ...
-        //    MessageBox.Show("Please 'Insert Remote Updates' before transmitting your changes");
-        //    return;
-        //}
+        if (remoteUpdatesNeedApplying)
+        {
+        	throw new ClientException("Remote updates needs to be applied firt.");
+        }
 
 
         // Look for local modifications
         // - commit any which are non-conflicting (send these as TRANSFORMS)
         transmitContentUpdates();
 
-        transmitStyleUpdates();
+        //transmitStyleUpdates();
 
         //Globals.ThisAddIn.Application.StatusBar = "Local changes transmitted";
     }
 
 
-    void transmitContentUpdates()
+    void transmitContentUpdates() throws RemoteException
     {
 
-        log.debug(myDocName + ".. .. transmitContentUpdates");
+        log.debug(stateDocx.getDocID() + ".. .. transmitContentUpdates");
 
         // The list of transforms to be transmitted
         List<T> transformsToSend = new ArrayList<T>();
@@ -588,14 +565,14 @@ private long applyUpdate(TransformAbstract t)
          * if we're set to chunk on each paragraph. */
 
         // TODO only if chunking is required.
-        foreach (Word.ContentControl cc in Globals.ThisAddIn.Application.ActiveDocument.ContentControls)
-        {
-            if (Chunker.containsMultipleBlocks(cc)) // TODO - && no remote changes to apply
-            {
-                Chunker.chunk(cc);
+        //foreach (Word.ContentControl cc in Globals.ThisAddIn.Application.ActiveDocument.ContentControls)
+        //{
+        //    if (Chunker.containsMultipleBlocks(cc)) // TODO - && no remote changes to apply
+        //    {
+        //        Chunker.chunk(cc);
                 // TODO: ensure you keep pkg object up to date
-            }
-        }  
+        //    }
+        //}  
 
         // Indentify structural changes (ie moves, inserts, deletes)
         // If skeletons are different, there must be local changes 
@@ -612,20 +589,29 @@ private long applyUpdate(TransformAbstract t)
 
 
         // compare the inferredSkeleton to serverSkeleton
-        Skeleton inferredSkeleton = pkg.getInferedSkeleton();
+        WordMLDocument wordMLDoc = (WordMLDocument) getWordMLTextPane().getDocument();
+        Skeleton inferredSkeleton = Util.createSkeleton(wordMLDoc); 
 
-        String serverSkeletonStr = ws.getSkeletonDocument(stateDocx.getDocID() );
-		Unmarshaller u = Context.jcTransitions.createUnmarshaller();
-		u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());					
-		org.plutext.server.transitions.Transitions serverDst = 
-			(org.plutext.server.transitions.Transitions)u.unmarshal( 
-				 new javax.xml.transform.stream.StreamSource(
-							new java.io.StringReader(serverSkeletonStr)) );
-        Skeleton serverSkeleton = new Skeleton(serverDst);
+        Skeleton serverSkeleton = null;
+        try {
+			String serverSkeletonStr = ws.getSkeletonDocument(stateDocx
+					.getDocID());
+			Unmarshaller u = Context.jcTransitions.createUnmarshaller();
+			u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());
+			org.plutext.server.transitions.Transitions serverDst = 
+				(org.plutext.server.transitions.Transitions) u
+					.unmarshal(new javax.xml.transform.stream.StreamSource(
+							new java.io.StringReader(serverSkeletonStr)));
+			serverSkeleton = new Skeleton(serverDst);
+		} catch (JAXBException exc) {
+			exc.printStackTrace(); //should not happen
+		}
 
         // OK, do it
-        createTramsformsForStructuralChanges(pkg, transformsToSend,
-            inferredSkeleton, serverSkeleton);
+        createTramsformsForStructuralChanges(
+        	transformsToSend,
+            inferredSkeleton, 
+            serverSkeleton);
 
 
         Boolean someTransmitted = false;
@@ -642,94 +628,95 @@ private long applyUpdate(TransformAbstract t)
 
             insertPos = -1;
             
-            
-    		Iterator stateChunkIterator = pkg.getStateChunks().entrySet().iterator();
-    	    while (stateChunkIterator.hasNext()) {
-    	        Map.Entry kvp = (Map.Entry)stateChunkIterator.next();
-    	                    
-//            for (KeyValuePair<String, StateChunk> kvp : pkg.StateChunks)
-//            {
-                insertPos++;
+            DocumentElement root = (DocumentElement) wordMLDoc.getDefaultRootElement();
+            for (int idx=0; idx < root.getElementCount(); idx++) {
+            	DocumentElement elem = (DocumentElement) root.getElement(idx);
+            	ElementML ml = elem.getElementML();
+            	if (ml instanceof SdtBlockML) {
+                    insertPos++;
+                    StateChunk chunkCurrent =
+                    	new StateChunk((org.docx4j.wml.SdtBlock) ml.getDocxObject());
+                    String stdId = chunkCurrent.getIdAsString();
 
-                StateChunk chunkCurrent = (StateChunk)kvp.getValue();
-                String stdId = chunkCurrent.getIdAsString();
+                    StateChunk chunkOlder = stateDocx.getPkg().getStateChunks().get(stdId);                
+                    
+                    if (chunkOlder==null) { 
+                    	
+                        log.debug("Couldn't find " + stdId + " .. handled already ...");
 
-                StateChunk chunkOlder = stateDocx.getPkg().getStateChunks().get(stdId);                
-                
-                if (chunkOlder==null) { 
-                	
-                    log.debug("Couldn't find " + stdId + " .. handled already ...");
+                        continue;                    	
+                    	
+                    } else if (chunkCurrent.getXml().equals(chunkOlder.getXml()))
+                    {
+                        continue;
+                    }
+                    
+                    log.debug("textChanged:");
+                    log.debug("FROM " + chunkOlder.getXml() );
+                    log.debug("");
+                    log.debug("TO   " + chunkCurrent.getXml() );
+                    log.debug("");
 
-                    continue;                    	
-                	
-                } else if (chunkCurrent.getXml().equals(chunkOlder.getXml()))
-                {
-                    continue;
-                }
-                
-                log.debug("textChanged:");
-                log.debug("FROM " + chunkOlder.getXml() );
-                log.debug("");
-                log.debug("TO   " + chunkCurrent.getXml() );
-                log.debug("");
+                    // If we get this far, it is an update
+                    // We don't need to worry about the possibility that it has
+                    // changed remotely, since we checked all updates
+                    // on server had been applied before entering this method.
 
-                // If we get this far, it is an update
-                // We don't need to worry about the possibility that it has
-                // changed remotely, since we checked all updates
-                // on server had been applied before entering this method.
+                    if ( chunkCurrent.containsTrackedChanges())
+                    {
+                        // This is a conflicting update, so don't transmit ours.
+                        // Keep a copy of what this user did in StateChunk
+                        // (so that 
 
-                if ( chunkCurrent.containsTrackedChanges())
-                {
-                    // This is a conflicting update, so don't transmit ours.
-                    // Keep a copy of what this user did in StateChunk
-                    // (so that 
+                        log.debug("Conflict! Local edit " + stdId + " not committed.");
+                        someConflicted = true;
+                        continue;
+                    }
 
-                    log.debug("Conflict! Local edit " + stdId + " not committed.");
-                    someConflicted = true;
-                    continue;
-                }
-
-                if (stateDocx.getPromptForCheckinMessage() )
-                {
-
-                    if (checkinComment == null)
+                    if (stateDocx.getPromptForCheckinMessage() )
                     {
 
-                        log.debug("Prompting for checkin message...");
-                        // NB with this model, we are no longer applying a 
-                        // comment to a single paragraph.  The server will stick
-                        // the comment on each affected rib.
-
-                        formCheckin form = new formCheckin();
-                        //form.Text = "Changes to '" + plutextTabbedControl.TextBoxChunkDisplayName.Text + "'";
-                        form.Text = "Changes ";
-                        using (form)
+                        if (checkinComment == null)
                         {
-                            //if (form.ShowDialog(plutextTabbedControl) == DialogResult.OK)
-                            if (form.ShowDialog() == DialogResult.OK)
+
+                            log.debug("Prompting for checkin message...");
+                            // NB with this model, we are no longer applying a 
+                            // comment to a single paragraph.  The server will stick
+                            // the comment on each affected rib.
+
+                            /*
+                            formCheckin form = new formCheckin();
+                            //form.Text = "Changes to '" + plutextTabbedControl.TextBoxChunkDisplayName.Text + "'";
+                            form.Text = "Changes ";
+                            using (form)
                             {
-                                checkinComment = form.textBoxChange.Text;
-                            }
+                                //if (form.ShowDialog(plutextTabbedControl) == DialogResult.OK)
+                                if (form.ShowDialog() == DialogResult.OK)
+                                {
+                                    checkinComment = form.textBoxChange.Text;
+                                }
+                            }*/
                         }
                     }
-                }
-                else
-                {
-                    checkinComment = "edited";
-                }
+                    else
+                    {
+                        checkinComment = "edited";
+                    }
 
-//                TransformUpdate tu = new TransformUpdate();
-//                tu.attachSdt(chunkCurrent.getXml() );
-//                tu.setId( chunkCurrent.getId() );
-//                transformsToSend.add(tu);
-                
-                T t = transformsFactory.createTransformsT();
-                t.setOp("update");
-                t.setIdref( chunkCurrent.getId().getVal().longValue() );
-                t.setSdt( chunkCurrent.getSdt() );
-                transformsToSend.add(t);
-                
-            }
+//                    TransformUpdate tu = new TransformUpdate();
+//                    tu.attachSdt(chunkCurrent.getXml() );
+//                    tu.setId( chunkCurrent.getId() );
+//                    transformsToSend.add(tu);
+                    
+                    T t = transformsFactory.createTransformsT();
+                    t.setOp("update");
+                    t.setIdref( chunkCurrent.getId().getVal().longValue() );
+                    t.setSdt( chunkCurrent.getSdt() );
+                    transformsToSend.add(t);
+                    
+                    
+            	}
+            } //for (idx) loop
 
             // Ok, now send what we have
     	    Transforms transforms = transformsFactory.createTransforms();
@@ -759,6 +746,8 @@ private long applyUpdate(TransformAbstract t)
             // (that is, until we're able to transform them away ...)
             Boolean appliedTrue = true; 
             Boolean localTrue = true;   // means it wouldn't be treated as a conflict
+            Boolean updateHighestFetchedFalse = false;
+            
             // Handle each result appropriately
             for (T t : transformsToSend)
             {
@@ -775,22 +764,19 @@ private long applyUpdate(TransformAbstract t)
                  * changes. */
                 if (result[i].contains("xmlns"))
                 {
+        			StringBuffer sb = new StringBuffer();
+        			sb.append("<p:transforms xmlns:p='"); 
+        			sb.append(Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE); 
+        			sb.append("'>");  
+        			sb.append(result); 
+        			sb.append("</p:transforms>");
 
-            		T tNew = null;
-            		try {
-            			tNew = (org.plutext.transforms.Transforms.T) u
-            					.unmarshal(new java.io.StringReader(result[i]));
-            		} catch (JAXBException e) {
-            			// TODO Auto-generated catch block
-            			e.printStackTrace();
-            		}
-                	
-                    TransformAbstract ta = TransformHelper.construct(tNew);
-                    registerTransform(ta, appliedTrue, localTrue, false);
+        			registerTransforms(
+        				sb.toString(), appliedTrue, localTrue, updateHighestFetchedFalse);
 
                     // Set the in-document tag to match the one we got back
                     // ?? the actual sdt or the state chunk?
-                    getContentControlWithId(ta.getId().getVal().toString() ).Tag = ta.getTag();
+                    //getContentControlWithId(ta.getId().getVal().toString() ).Tag = ta.getTag();
 
                     /* A problem with this approach is that it doesn't 
                      *  get rid of any StyleSeparator workaround in an SDT.
@@ -807,9 +793,8 @@ private long applyUpdate(TransformAbstract t)
                 else
                 {
                 	TransformAbstract ta = org.plutext.client.wrappedTransforms.TransformHelper.construct(t);
-                	
                     ta.setSequenceNumber(Integer.parseInt(result[i]) );
-                    registerTransform(ta, appliedTrue, localTrue, false);
+                    registerTransform(ta, appliedTrue, localTrue, updateHighestFetchedFalse);
                 }
 
 
@@ -831,8 +816,9 @@ private long applyUpdate(TransformAbstract t)
         }
         catch (Exception e)
         {
-            log.debug(e.getMessage());
-            log.debug(e.getStackTrace());
+        	e.printStackTrace();
+            //log.debug(e.getMessage());
+            //log.debug(e.getStackTrace());
         }
 
         String checkinResult = null;
@@ -850,20 +836,25 @@ private long applyUpdate(TransformAbstract t)
                 checkinResult += " This is because there were conflicts.";
         }
 
-        MessageBox.Show(checkinResult);
-
+        WordMLEditor wmlEditor = 
+        	WordMLEditor.getInstance(WordMLEditor.class);
+        String title = "Commit Local Edits";
+        wmlEditor.showMessageDialog(
+        	title, checkinResult, JOptionPane.INFORMATION_MESSAGE);
     }
 
-    void createTramsformsForStructuralChanges(Pkg pkg , List<T> transformsToSend,
-        Skeleton inferredSkeleton, Skeleton serverSkeleton)
+    void createTramsformsForStructuralChanges(
+    	List<T> transformsToSend,
+        Skeleton inferredSkeleton, 
+        Skeleton serverSkeleton)
     {
     	
     	org.plutext.transforms.ObjectFactory transformsFactory = new org.plutext.transforms.ObjectFactory();
 
         DiffEngine de = new DiffEngine();
-        de.ProcessDiff(inferredSkeleton, serverSkeleton);
+        de.processDiff(inferredSkeleton, serverSkeleton);
 
-        ArrayList diffLines = de.DiffLines;
+        ArrayList<DiffResultSpan> diffLines = de.getDiffLines();
 
         /* Detect moves
          * 
@@ -871,7 +862,9 @@ private long applyUpdate(TransformAbstract t)
          * identify whether a delete has a corresponding
          * insert (and vice versa).
          * 
-         * These HashMap objects facilitate this. */
+         * These HashMap objects facilitate this. 
+         * 
+         */
         HashMap<String, Integer> notHereInDest = new HashMap<String, Integer>();
         HashMap<String, Integer> notHereInSource = new HashMap<String, Integer>();
         //Populate the dictionaries
@@ -880,38 +873,38 @@ private long applyUpdate(TransformAbstract t)
         log.debug("\n\r");
         for (DiffResultSpan drs : diffLines)
         {
-            switch (drs.Status)
+            switch (drs.getDiffResultSpanStatus())
             {
-                case DiffResultSpanStatus.DeleteSource:
-                    for (i = 0; i < drs.Length; i++)
+                case DELETE_SOURCE:
+                    for (i = 0; i < drs.getLength(); i++)
                     {
                         insertPos++;
                         // Must be a new local insertion
-                        log.debug(insertPos + ": " + ((Skeleton.TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine()
+                        log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.getByIndex(drs.getSourceIndex() + i)).getLine()
                             + " not at this location in dest");
-                        String insertionId = ((Skeleton.TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine();
+                        String insertionId = ((TextLine)inferredSkeleton.getByIndex(drs.getSourceIndex() + i)).getLine();
                         notHereInDest.put(insertionId, insertPos);
                     }
 
                     break;
-                case DiffResultSpanStatus.NoChange:
-                    for (i = 0; i < drs.Length; i++)
+                case NOCHANGE:
+                    for (i = 0; i < drs.getLength(); i++)
                     {
                         insertPos++;
-                        log.debug(insertPos + ": " + ((Skeleton.TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine()
-                            + "\t" + ((Skeleton.TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine() + " (no change)");
+                        log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.getByIndex(drs.getSourceIndex() + i)).getLine()
+                            + "\t" + ((TextLine)serverSkeleton.getByIndex(drs.getDestIndex() + i)).getLine() + " (no change)");
 
                         // Nothing to do
                     }
 
                     break;
-                case DiffResultSpanStatus.AddDestination:
-                    for (i = 0; i < drs.Length; i++)
+                case ADD_DESTINATION:
+                    for (i = 0; i < drs.getLength(); i++)
                     {
                         //insertPos++; // Not for a delete
-                        log.debug(insertPos + ": " + ((Skeleton.TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine()
+                        log.debug(insertPos + ": " + ((TextLine)serverSkeleton.getByIndex(drs.getDestIndex() + i)).getLine()
                             + " not at this location in source");
-                        String deletionId = ((Skeleton.TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine();
+                        String deletionId = ((TextLine)serverSkeleton.getByIndex(drs.getDestIndex() + i)).getLine();
                         notHereInSource.put(deletionId, insertPos);
 
                     }
@@ -929,12 +922,12 @@ private long applyUpdate(TransformAbstract t)
 
         for (DiffResultSpan drs : diffLines)
         {
-            switch (drs.Status)
+            switch (drs.getDiffResultSpanStatus())
             {
-                case DiffResultSpanStatus.DeleteSource:  // Means we're doing an insertion
-                    for (i = 0; i < drs.Length; i++)
+                case DELETE_SOURCE:  // Means we're doing an insertion
+                    for (i = 0; i < drs.getLength(); i++)
                     {
-                        String insertionId = ((Skeleton.TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine();
+                        String insertionId = ((TextLine)inferredSkeleton.getByIndex(drs.getSourceIndex() + i)).getLine();
                         log.debug(insertPos + ": " + insertionId
                             + " is at this location in src but not dest, so needs to be inserted");
 
@@ -952,7 +945,10 @@ private long applyUpdate(TransformAbstract t)
 
                             divergences.debugInferred();
 
-                            StateChunk sc = pkg.getStateChunks().get(insertionId);
+                            StateChunk sc = 
+                            	Util.getStateChunk(
+                            		(WordMLDocument) getWordMLTextPane().getDocument(), 
+                            		insertionId);
 
 //                            TransformInsert ti = new TransformInsert();
 //                            ti.setPos( Integer.toString(adjPos) );
@@ -1015,7 +1011,10 @@ private long applyUpdate(TransformAbstract t)
 	
 	                        log.debug("<transform op=move id=" + insertionId + "  pos=" + adjPos);
 	
-	                        StateChunk sc = pkg.getStateChunks().get(insertionId);
+                            StateChunk sc = 
+                            	Util.getStateChunk(
+                            		(WordMLDocument) getWordMLTextPane().getDocument(), 
+                            		insertionId);
 	
 //	                        TransformMove tm = new TransformMove();
 //	                        tm.setPos( Integer.toString(adjPos) );
@@ -1044,20 +1043,20 @@ private long applyUpdate(TransformAbstract t)
                     }
 
                     break;
-                case DiffResultSpanStatus.NoChange:
-                    for (i = 0; i < drs.Length; i++)
+                case NOCHANGE:
+                    for (i = 0; i < drs.getLength(); i++)
                     {
 
-                        log.debug(insertPos + ": " + ((Skeleton.TextLine)inferredSkeleton.GetByIndex(drs.SourceIndex + i)).getLine()
-                            + "\t" + ((Skeleton.TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine() + " (no change)");
+                        log.debug(insertPos + ": " + ((TextLine)inferredSkeleton.getByIndex(drs.getSourceIndex() + i)).getLine()
+                            + "\t" + ((TextLine)serverSkeleton.getByIndex(drs.getDestIndex() + i)).getLine() + " (no change)");
 
                     }
 
                     break;
-                case DiffResultSpanStatus.AddDestination:
-                    for (i = 0; i < drs.Length; i++)
+                case ADD_DESTINATION:
+                    for (i = 0; i < drs.getLength(); i++)
                     {
-                        String deletionId = ((Skeleton.TextLine)serverSkeleton.GetByIndex(drs.DestIndex + i)).getLine();
+                        String deletionId = ((TextLine)serverSkeleton.getByIndex(drs.getDestIndex() + i)).getLine();
                         log.debug(insertPos + ": " + deletionId
                             + " present at this location in dest but not source, so needs to be deleted");
 
@@ -1100,45 +1099,60 @@ private long applyUpdate(TransformAbstract t)
 
     }
 
-    void transmitStyleUpdates()
-    {
+    void transmitStyleUpdates() throws RemoteException {
+		log.debug(stateDocx.getDocID() + ".. .. transmitStyleUpdates");
 
-        log.debug(myDocName + ".. .. transmitStyleUpdates");
+		// TODO
+		String newStyles = ""; // stateDocx.StyleMap.identifyAlteredStyles();
+		if (newStyles.equals("")) {
+			log.debug("styles haven't Changed ..");
+			
+		} else {
+			log.debug("stylesChanged");
+			log.debug("Committing new/updated styles" + newStyles);
+			//stateDocx.TSequenceNumberHighestSeen = Int32.Parse(ws.style(stateDocx.DocID, newStyles));                    
+			String[] result = { "", "" };
 
-        try
-        {
-            // TODO
-            String newStyles = ""; // stateDocx.StyleMap.identifyAlteredStyles();
-            if (newStyles.equals(""))
-            {
-                log.debug("styles haven't Changed ..");
-            }
-            else
-            {
-                log.debug("stylesChanged");
-                log.debug("Committing new/updated styles" + newStyles);
-                //stateDocx.TSequenceNumberHighestSeen = Int32.Parse(ws.style(stateDocx.DocID, newStyles));                    
-                String[] result = { "", "" };
+			// TODO - call transforms
+			//result = ws.style(stateDocx.getDocID(), newStyles);
 
-                // TODO - call transforms
-                //result = ws.style(stateDocx.DocID, newStyles);
+			log.debug(result[1]);
 
-                log.debug(result[1]);
+			Boolean appliedTrue = true; // Don't have to do anything more
+			Boolean localTrue = true;
+			registerTransforms(result[1], appliedTrue, localTrue);
+			// TODO, can't use that, since it automatically updates highest fetched.
 
-                Boolean appliedTrue = true; // Don't have to do anything more
-                Boolean localTrue = true;
-                registerTransforms(result[1], appliedTrue, localTrue);
-                  // TODO, can't use that, since it automatically updates highest fetched.
+		}
+	}
 
-            }
-        }
-        catch (Exception e)
-        {
-            log.error(e);
-        }
-    }
+}// Mediator class
 
 
 
 
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

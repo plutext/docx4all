@@ -20,9 +20,14 @@
 package org.plutext.client;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.text.DocumentElement;
+import org.docx4all.swing.text.WordMLDocument;
+import org.docx4all.xml.ElementML;
+import org.docx4all.xml.SdtBlockML;
 import org.docx4j.openpackaging.parts.DocPropsCustomPart;
-import org.docx4j.wml.SdtBlock;
 import org.docx4j.wml.Id;
+import org.docx4j.wml.SdtBlock;
+import org.plutext.client.state.StateChunk;
 
 
 public class Util {
@@ -59,5 +64,107 @@ public class Util {
     {
     	return id.getVal().toString();
     }
-	
-}
+    
+    
+    public static DocumentElement getDocumentElement(
+    	WordMLDocument doc,
+    	String sdtBlockId) {
+    	
+		DocumentElement elem = null;
+
+		try {
+			doc.readLock();
+
+			DocumentElement root = (DocumentElement) doc
+					.getDefaultRootElement();
+
+			for (int i = 0; i < root.getElementCount() - 1 && elem == null; i++) {
+				elem = (DocumentElement) root.getElement(i);
+				ElementML ml = elem.getElementML();
+				if (ml instanceof SdtBlockML) {
+					SdtBlockML sdtBlockML = (SdtBlockML) ml;
+					if (sdtBlockId.equals(sdtBlockML.getSdtProperties()
+							.getIdValue().toString())) {
+						;// got it
+					} else {
+						elem = null;
+					}
+				} else {
+					elem = null;
+				}
+			}
+		} finally {
+			doc.readUnlock();
+		}
+
+		return elem;
+	}
+
+    public static StateChunk getStateChunk(
+    	WordMLDocument doc,
+    	String sdtBlockId) {
+    	
+    	StateChunk theChunk = null;
+    	
+    	DocumentElement elem = getDocumentElement(doc, sdtBlockId);
+    	if (elem != null) {
+    		ElementML ml = elem.getElementML();
+    		theChunk = new StateChunk((org.docx4j.wml.SdtBlock) ml.getDocxObject());
+    	}
+    	
+    	return theChunk;
+    }
+    
+    public static Skeleton createSkeleton(WordMLDocument doc) {
+    	Skeleton skeleton = new Skeleton();
+  		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();    	
+  		for (int i=0; i < root.getElementCount(); i++) {
+  			DocumentElement elem = (DocumentElement) root.getElement(i);
+  			ElementML ml = elem.getElementML();
+  			if (ml instanceof SdtBlockML) {
+  				SdtBlockML sdt = (SdtBlockML) ml;
+  				String id = sdt.getSdtProperties().getIdValue().toString();
+				skeleton.getRibs().add(new TextLine(id)); 				
+  			}
+  		}
+  		return skeleton;
+    }
+    
+	public static String getContentControlXML(SdtBlock cc) {
+
+		boolean suppressDeclaration = true;
+		return org.docx4j.XmlUtils.marshaltoString(cc, suppressDeclaration);
+
+		// return "<w:sdt
+		// xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">"
+		// + node.InnerXml + "</w:sdt>";
+	}
+    
+
+}// Util class
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

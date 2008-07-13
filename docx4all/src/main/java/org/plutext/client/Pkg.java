@@ -19,72 +19,81 @@
 
 package org.plutext.client;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
-//import org.docx4all.xml.DocumentML;
-//import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
-//import org.docx4j.wml.Id;
-import org.docx4j.wml.SdtBlock;
+import org.docx4all.xml.ElementML;
+import org.docx4all.xml.SdtBlockML;
+import org.docx4j.XmlUtils;
 import org.plutext.client.state.StateChunk;
 
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-
-/* In docx4all, we may be able to keep this object
- * uptodate, without needing to re-create it
- * again and again in Mediator.
+/*
+ * In docx4all, we may be able to keep this object uptodate, without needing to
+ * re-create it again and again in Mediator.
  * 
  */
-public class Pkg implements Cloneable
-{
+public class Pkg implements Cloneable {
 
 	private static Logger log = Logger.getLogger(Pkg.class);
-	
-	List<SdtBlock> orderedChunks = null;
-	
-	Skeleton skeleton = new Skeleton();
 
-    public Pkg(WordMLDocument doc)  
-    {
-  		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();    	
-    	
-    	orderedChunks = doc.getSnapshotsList(0, doc.getLength());
-		if (orderedChunks != null) {
-			this.stateChunks = 
-				new HashMap<String, StateChunk>(orderedChunks.size() );
-			
-			for (SdtBlock sdt : orderedChunks ) {
+	private Map<String, StateChunk> stateChunks = null;
+	private Skeleton skeleton = new Skeleton();
+
+	public Pkg(WordMLDocument doc) {
+		this.stateChunks = new HashMap<String, StateChunk>();
+
+		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+		for (int idx = 0; idx < root.getElementCount(); idx++) {
+			DocumentElement elem = (DocumentElement) root.getElement(idx);
+			ElementML ml = elem.getElementML();
+			if (ml instanceof SdtBlockML) {
+				org.docx4j.wml.SdtBlock sdt = 
+					(org.docx4j.wml.SdtBlock) ml.getDocxObject();
+				sdt = (org.docx4j.wml.SdtBlock) XmlUtils.deepCopy(sdt);
 				StateChunk sc = new StateChunk(sdt);
 				this.stateChunks.put(sc.getIdAsString(), sc);
-				
-				skeleton.getRibs().add( skeleton.new TextLine( sc.getIdAsString())); 				
-				
+
+				skeleton.getRibs().add(new TextLine(sc.getIdAsString()));
 			}
-		} else {
-			this.stateChunks = new HashMap<String, StateChunk>();
 		}
-		
-		
-    }
+	}
+
+	public Skeleton getInferedSkeleton() {
+		return skeleton;
+	}
+
+	public Map<String, StateChunk> getStateChunks() {
+		return stateChunks;
+	}
+
+}// Pkg class
 
 
 
-    public Skeleton getInferedSkeleton()
-    {
-    	
-    	return skeleton;
-    	
-    }
-
-    HashMap<String, StateChunk> stateChunks = null;
-    public HashMap<String, StateChunk> getStateChunks()
-    {
-        return stateChunks;
-    }
 
 
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
