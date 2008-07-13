@@ -85,6 +85,7 @@ import org.docx4all.ui.menu.FileMenu;
 import org.docx4all.ui.menu.FormatMenu;
 import org.docx4all.ui.menu.HelpMenu;
 import org.docx4all.ui.menu.ReviewMenu;
+import org.docx4all.ui.menu.TeamMenu;
 import org.docx4all.ui.menu.ViewMenu;
 import org.docx4all.ui.menu.WindowMenu;
 import org.docx4all.util.DocUtil;
@@ -488,7 +489,7 @@ public class WordMLEditor extends SingleFrameApplication {
     	editorView.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
     	
     	if (DocUtil.isSharedDocument(doc)) {
-    		editorKit.schedulePlutextClientWork(editorView, 10000, 10000);
+    		editorKit.initPlutextClient(editorView);
     	}
     	
     	return editorView;
@@ -557,6 +558,7 @@ public class WordMLEditor extends SingleFrameApplication {
     	JMenu fileMenu = FileMenu.getInstance().createJMenu();
     	JMenu editMenu = EditMenu.getInstance().createJMenu();
     	JMenu formatMenu = FormatMenu.getInstance().createJMenu();
+    	JMenu teamMenu = TeamMenu.getInstance().createJMenu();
     	JMenu reviewMenu = ReviewMenu.getInstance().createJMenu();
     	JMenu viewMenu = ViewMenu.getInstance().createJMenu();
     	JMenu windowMenu = WindowMenu.getInstance().createJMenu();
@@ -567,6 +569,8 @@ public class WordMLEditor extends SingleFrameApplication {
     	menubar.add(editMenu);
     	menubar.add(Box.createRigidArea(new Dimension(10, 0)));
     	menubar.add(formatMenu);
+    	menubar.add(Box.createRigidArea(new Dimension(10, 0)));
+    	menubar.add(teamMenu);
     	menubar.add(Box.createRigidArea(new Dimension(10, 0)));
     	menubar.add(reviewMenu);
     	menubar.add(Box.createRigidArea(new Dimension(10, 0)));
