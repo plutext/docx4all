@@ -74,7 +74,7 @@ public class ToolBarStates extends InternalFrameAdapter
 	public final static String DOC_DIRTY_PROPERTY_NAME = "documentDirty";
 	public final static String ANY_DOC_DIRTY_PROPERTY_NAME = "anyDocumentDirty";
 	
-	public final static String SHARE_ENABLED_PROPERTY_NAME = "shareEnabled";
+	public final static String DOC_SHARED_PROPERTY_NAME = "documentShared";
 	
 	public final static String CURRENT_EDITOR_PROPERTY_NAME = "currentEditor";
 	
@@ -97,6 +97,8 @@ public class ToolBarStates extends InternalFrameAdapter
 	public final static String STYLE_SHEET_PROPERTY_NAME = "styleSheet";
 	public final static String SELECTED_STYLE_PROPERTY_NAME = "selectedStyle";
 	
+	public final static String COMMIT_LOCAL_EDITS_PROPERTY_NAME  = "commitLocalEdits";
+	
 	public final static String REVISION_SELECTED_PROPERTY_NAME = "revisionSelected";
 	public final static String REMOTE_REVISION_IN_PARA_PROPERTY_NAME = "remoteRevisionInPara";
 	public final static String REMOTE_REVISION_IN_DOC_PROPERTY_NAME = "remoteRevisionInDoc";
@@ -108,7 +110,8 @@ public class ToolBarStates extends InternalFrameAdapter
 	private volatile boolean _fontBold, _fontItalic, _fontUnderlined;
 	private volatile boolean _isCutEnabled, _isCopyEnabled, _isPasteEnabled;
 	private volatile boolean _filterApplied;
-	private volatile boolean _isShareEnabled;
+	private volatile Boolean _isDocumentShared;
+	private volatile Boolean _isCommitLocalEditsEnabled;
 	private volatile boolean _isRevisionSelected;
 	private volatile boolean _isRemoteRevisionInPara;
 	private volatile boolean _isRemoteRevisionInDoc;
@@ -131,7 +134,8 @@ public class ToolBarStates extends InternalFrameAdapter
 		_isCopyEnabled = false;
 		_isPasteEnabled = false;
 		_filterApplied = true;
-		_isShareEnabled = false;
+		_isDocumentShared = null;
+		_isCommitLocalEditsEnabled = null;
 		_isRevisionSelected = false;
 		_isRemoteRevisionInPara = false;
 		_isRemoteRevisionInDoc = false;
@@ -221,28 +225,63 @@ public class ToolBarStates extends InternalFrameAdapter
 			return;
 		}
 		firePropertyChange(ANY_DOC_DIRTY_PROPERTY_NAME, oldAllDirty, newDirty);
+		
+		//Whether 'CommitLocalEdits' is enabled
+		boolean isShared = false;
+		if (getCurrentEditor() instanceof WordMLTextPane) {
+			//Current editor is an editor view
+    		isShared = 
+    			DocUtil.isSharedDocument(
+    				(WordMLDocument) getCurrentEditor().getDocument());
+		}
+		setCommitLocalEditsEnabled(newDirty && isShared);
 	}
 	
-	public boolean isShareEnabled() {
-		return _isShareEnabled;
+	public boolean isDocumentShared() {
+		return (_isDocumentShared == null) ? false : _isDocumentShared.booleanValue();
 	}
 	
-	public void setShareEnabled(boolean enabled) {
+	public void setDocumentShared(boolean b) {
 		if (log.isDebugEnabled()) {
-			log.debug("setShareEnabled(): _isShareEnabled = " + _isShareEnabled + " enabled param = " + enabled);
+			log.debug("setDocumentShared(): _isDocumentShared = " + _isDocumentShared + " param = " + b);
 		}
 	
-		if (_isShareEnabled == enabled) {
+		if (_isDocumentShared != null 
+			&& _isDocumentShared.booleanValue() == b) {
 			return;
 		}
 		
-		boolean oldValue = _isShareEnabled;
-		_isShareEnabled = enabled;
+		Boolean oldValue = _isDocumentShared;
+		_isDocumentShared = Boolean.valueOf(b);
 		
 		firePropertyChange(
-			SHARE_ENABLED_PROPERTY_NAME, 
-			Boolean.valueOf(oldValue), 
-			Boolean.valueOf(enabled));
+			DOC_SHARED_PROPERTY_NAME, 
+			oldValue, 
+			_isDocumentShared);
+	}
+	
+	public boolean isCommitLocalEditsEnabled() {
+		return (_isCommitLocalEditsEnabled == null) ? false : _isCommitLocalEditsEnabled.booleanValue();
+	}
+	
+	public void setCommitLocalEditsEnabled(boolean b) {
+		if (log.isDebugEnabled()) {
+			log.debug("setCommitLocalEditsEnabled(): _isCommitLocalEditsEnabled = " 
+				+ _isCommitLocalEditsEnabled + " param = " + b);
+		}
+	
+		if (_isCommitLocalEditsEnabled != null 
+			&& _isCommitLocalEditsEnabled.booleanValue() == b) {
+			return;
+		}
+		
+		Boolean oldValue = _isCommitLocalEditsEnabled;
+		_isCommitLocalEditsEnabled = Boolean.valueOf(b);
+		
+		firePropertyChange(
+			COMMIT_LOCAL_EDITS_PROPERTY_NAME, 
+			oldValue, 
+			_isCommitLocalEditsEnabled);
 	}
 	
 	public String getSelectedStyle() {
@@ -586,17 +625,18 @@ public class ToolBarStates extends InternalFrameAdapter
     	setCopyEnabled(b);
     	setCutEnabled(b);
     	
-    	boolean isSharedEnabled = false;
+    	boolean isShared = false;
     	if (editor instanceof WordMLTextPane) {
     		b = ((WordMLTextPane) editor).isFilterApplied();
-    		isSharedEnabled = !DocUtil.isSharedDocument((WordMLDocument) editor.getDocument());
+    		isShared = DocUtil.isSharedDocument((WordMLDocument) editor.getDocument());
         	setRemoteRevision((WordMLTextPane) editor);
     	} else {
     		b = false;
     	}
     	setFilterApplied(b);
     	
-    	setShareEnabled(isSharedEnabled);
+    	setDocumentShared(isShared);
+    	setCommitLocalEditsEnabled(isShared && newDirty);
 	}	
 	
     /**
