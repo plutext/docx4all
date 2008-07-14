@@ -138,7 +138,6 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	private CaretListener caretListener;
 	private MouseListener mouseListener;
 	private ContentControlTracker contentControlTracker;
-	private PlutextClientScheduler plutextClientScheduler;
 	private Mediator plutextClient;
 	
     /**
@@ -362,47 +361,23 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		c.removeMouseMotionListener(mouseListener);
 		c.removePropertyChangeListener(caretListener);
 		
-		//deinstall PlutextClientScheduler.
-		//This PlutextClientScheduler is not installed in install() method
-		//but in scheduletPlutextClientWork().
-		if (this.plutextClientScheduler != null) {
-			this.plutextClientScheduler.cancel();
-			c.removeCaretListener(plutextClientScheduler);
-			c.getDocument().removeDocumentListener(plutextClientScheduler);
-			this.plutextClientScheduler = null;
-		}
-		
 		this.plutextClient = null;
 	}
 
 	public void initPlutextClient(WordMLTextPane editor) {
-		//schedulePlutextClientWork(editor, 10000, 10000);
-		this.plutextClient = new Mediator(editor);
+		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+		try {
+			doc.readLock();
+			this.plutextClient = new Mediator(editor);
+		} finally {
+			doc.readUnlock();
+		}
 	}
 	
 	public Mediator getPlutextClient() {
 		return this.plutextClient;
 	}
-	
-	/*
-	private void schedulePlutextClientWork(
-		WordMLTextPane editor, long delay, long period) {
 		
-		if (this.plutextClientScheduler == null) {
-			//lazily initialised and once only.
-			ServerTo client = new ServerTo(editor);
-			this.plutextClientScheduler = 
-				new PlutextClientScheduler(client);
-			
-			WordMLDocument doc = 
-				(WordMLDocument) editor.getDocument();
-			doc.addDocumentListener(this.plutextClientScheduler);
-			editor.addCaretListener(this.plutextClientScheduler);
-			
-			this.plutextClientScheduler.schedule(delay, period);
-		}
-	}*/
-	
 	/**
 	 * Fetches the command list for the editor. This is the list of commands
 	 * supported by the superclass augmented by the collection of commands
