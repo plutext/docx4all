@@ -32,10 +32,9 @@ import org.docx4all.swing.text.WordMLFragment;
 import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
 import org.docx4all.xml.SdtBlockML;
 import org.docx4j.diff.ParagraphDifferencer;
-import org.docx4j.wml.P;
 import org.docx4j.wml.SdtBlock;
+import org.docx4j.wml.SdtContentBlock;
 import org.plutext.client.Mediator;
-import org.plutext.client.Pkg;
 import org.plutext.client.Util;
 import org.plutext.client.state.StateChunk;
 import org.plutext.transforms.Transforms.T;
@@ -54,60 +53,29 @@ public class TransformUpdate extends TransformAbstract {
      * updated one with containing w:ins and w:del */
     public void markupChanges(SdtBlock local) //throws javax.xml.bind.JAXBException
     {
-        // In this current proof of concept, we pass 
-        // ParagraphDifferencer strings representing 
-        // each sdt.
-        // It will compare the paragraphs.
-        // Currently ASSUMES there is one paragraph
-        // in each SDT.
-    	
-		P pl = getParaFromSdt(sdt);
-		if (pl==null) {
-			log.error("Couldn't find p in sdt!");
-		}
-		P pr = getParaFromSdt(local);
-		if (pr==null) {
-			log.error("Couldn't find p in sdt!");
-		}
-    	
-		P markedUpP;
+		SdtContentBlock markedUpContent;
 		try {
 			javax.xml.bind.util.JAXBResult result = new javax.xml.bind.util.JAXBResult(
 					org.docx4j.jaxb.Context.jc);
 			
-			ParagraphDifferencer.diff(pl, pr, result);
+			ParagraphDifferencer.diff(getSdt().getSdtContent(), local.getSdtContent(), result);
 			
-			markedUpP = (P)result.getResult();
+			markedUpContent = (SdtContentBlock) result.getResult();
 		} catch (JAXBException e) {
-			log.error(e);
+			log.error("markupChanges(): JAXBException caught.", e);
 			// Oh well, we'll display it without changes marked up
 			return;
 		}
 		
-		// Now replace the paragraph in the sdt
-		int pos = sdt.getSdtContent().getEGContentBlockContent().indexOf(pr);
-		sdt.getSdtContent().getEGContentBlockContent().add(pos, markedUpP);
-		sdt.getSdtContent().getEGContentBlockContent().remove(pos+1);
-		
+		// Now replace the content of sdt
+		getSdt().setSdtContent(markedUpContent);
     }
-    
-    private P getParaFromSdt(SdtBlock sdt) {
-    			
-		for ( Object o : sdt.getSdtContent().getEGContentBlockContent() ) {
-			
-			if (o instanceof org.docx4j.wml.P) {
-				return (P)o;
-			}
-		}
-		return null;    	
-    }
-    
 
-    public long apply(Mediator mediator, Pkg pkg, HashMap<String, StateChunk> stateChunks)
+    public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks)
     {
 
 
-		log.debug("apply(ServerFrom): sdtBolck = " + getSdt() 
+		log.debug("apply(Mediator, HashMap): sdtBolck = " + getSdt() 
 			+ " - ID=" + getSdt().getSdtPr().getId().getVal()
 			+ " - TAG=" + getSdt().getSdtPr().getTag().getVal());
 
@@ -127,11 +95,8 @@ public class TransformUpdate extends TransformAbstract {
 
 		}
 
-		if (!getApplied() || isLocal()) {
-			apply(mediator.getWordMLTextPane());
-
-	        stateChunks.put(id.getVal().toString(), new StateChunk(sdt));	
-		}
+		apply(mediator.getWordMLTextPane());
+        stateChunks.put(id.getVal().toString(), new StateChunk(sdt));	
 		
 		// Fourth, if we haven't thrown an exception, return the sequence number
 		return sequenceNumber;
@@ -164,24 +129,14 @@ public class TransformUpdate extends TransformAbstract {
 					forward = false;
 				}
 				
-				if (getApplied() && isLocal()) {
-					SdtBlockML ml = (SdtBlockML) elem.getElementML();
-					ml.getSdtProperties().setTagValue(getTag().getVal());
-					doc.refreshParagraphs(elem.getStartOffset(), 0);
-					
-				} else if (!getApplied()){
-					ElementMLRecord[] recs = { new ElementMLRecord(
-							new SdtBlockML(sdt), false) };
-					WordMLFragment frag = new WordMLFragment(recs);
+				ElementMLRecord[] recs = 
+					{ new ElementMLRecord(new SdtBlockML(sdt), false) };
+				WordMLFragment frag = new WordMLFragment(recs);
 
-					editor.setCaretPosition(elem.getStartOffset());
-					editor.moveCaretPosition(elem.getEndOffset());
-					editor.replaceSelection(frag);
+				editor.setCaretPosition(elem.getStartOffset());
+				editor.moveCaretPosition(elem.getEndOffset());
+				editor.replaceSelection(frag);
 					
-				} else {
-					log.warn("apply(WordMLTextPane): Cannot re-apply SdtBlock Id=" 
-						+ id);
-				}
 			} else {
 				//silently ignore
 				log.warn("apply(WordMLTextPane): SdtBlock Id=" 
