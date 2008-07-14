@@ -86,6 +86,7 @@ public class SdtBlockML extends ElementML {
 			org.docx4j.wml.SdtPr pr = sdtBlock.getSdtPr();
 			if (pr != null) {
 				pr.setId();
+				pr.setTag(ObjectFactory.createTag("0"));
 			}			
 		}
 
