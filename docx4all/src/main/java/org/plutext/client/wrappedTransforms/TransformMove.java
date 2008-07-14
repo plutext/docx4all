@@ -21,72 +21,135 @@ package org.plutext.client.wrappedTransforms;
 
 import java.util.HashMap;
 
-import javax.swing.SwingUtilities;
+import javax.swing.text.BadLocationException;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.WordMLTextPane;
+import org.docx4all.swing.text.DocumentElement;
+import org.docx4all.swing.text.WordMLDocument;
+import org.docx4all.swing.text.WordMLFragment;
+import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
+import org.docx4all.xml.SdtBlockML;
+import org.plutext.client.Mediator;
+import org.plutext.client.Util;
+import org.plutext.client.state.StateChunk;
 import org.plutext.transforms.Transforms.T;
 
-import org.plutext.client.Mediator;
-import org.plutext.client.Pkg;
-import org.plutext.client.state.StateChunk;
-import org.plutext.client.wrappedTransforms.TransformInsert.InsertAtRunnable;
-
-public class TransformMove extends TransformAbstract
-{
+public class TransformMove extends TransformAbstract {
 	private static Logger log = Logger.getLogger(TransformMove.class);
 
-    
-    public TransformMove(T t)
-    {
-    	super(t);
-    }
-    
+	public TransformMove(T t) {
+		super(t);
+	}
 
+	protected Long moveToIndex;
 
+	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
+		if (this.t.getPosition() == null || this.t.getPosition() < 0) {
+			log.warn("Invalid location t.getPosition()=" + t.getPosition());
+			this.moveToIndex = null;
 
-    public long apply(Mediator mediator, Pkg pkg, HashMap<String, StateChunk> stateChunks)
-    {
+		} else {
+			// if user has locally inserted/deleted sdt's
+			// we need to adjust the specified position ...
+			Long pos = t.getPosition();
+			this.moveToIndex = pos + mediator.getDivergences().getOffset(pos);
 
+			log.debug("Location " + pos + " adjusted to " + this.moveToIndex);
+		}
 
-        // Semantics of move are
-        // 1 remove existing element from list
-        // 2 insert new element
+		if (this.moveToIndex == null || this.moveToIndex < 0) {
+			log.error("Invalid moveToIndex=" + this.moveToIndex);
+			return -1;
+		}
 
-        // So
-		TransformDelete.apply(mediator.getWordMLTextPane(), getId().getVal());
+		// Semantics of move are
+		// 1 remove existing element
+		// 2 insert new element
 
+		// So
+		mediator.getDivergences().delete(getId().getVal().toString());
+		mediator.getDivergences().insert(getId().getVal().toString(),
+				this.moveToIndex);
 
-            // No need to 
-            // pkg.StateChunks.Remove(id);
+		apply(mediator.getWordMLTextPane());
 
-            // QUESTION: interaction between divergences object and existing entry??
-            // - Probably have to do divergences.delete?
-        mediator.getDivergences().delete(id.getVal().toString());
+		return sequenceNumber;
+	}
 
+	protected void apply(WordMLTextPane editor) {
+		int origPos = editor.getCaretPosition();
+		boolean forward = true;
 
-        // Second, re-insert it at the correct location
+		WordMLDocument doc = (WordMLDocument) editor.getDocument();
 
+		// Delete first
+		DocumentElement elem = Util.getDocumentElement(doc, getId().getVal()
+				.toString());
+		if (elem != null) {
+			int start = elem.getStartOffset();
+			int end = elem.getEndOffset();
 
-        // if user has locally inserted/deleted sdt's
-        // we need to adjust the specified position ...
+			if (start <= origPos && origPos < end) {
+				origPos = end;
+			}
 
-    	Long pos = t.getPosition();
-    	Long insertAtIndex = pos + mediator.getDivergences().getOffset(pos);
+			if (end <= origPos) {
+				origPos = editor.getDocument().getLength() - origPos;
+				forward = false;
+			}
 
-        log.debug("Move location " + pos + " adjusted to " + insertAtIndex);
+			try {
+				doc.remove(start, end - start);
+			} catch (BadLocationException exc) {
+				;// should not happen
+			}
 
-        
-		Runnable runnable = new TransformInsert.InsertAtRunnable(mediator.getWordMLTextPane(), 
-				getSdt(), insertAtIndex.intValue());
-		
-		SwingUtilities.invokeLater(runnable);
-    
+			if (!forward) {
+				origPos = doc.getLength() - origPos;
+				forward = true;
+			}
+		}
 
-        //stateChunks.Add(id, new StateChunk(sdt));
-        mediator.getDivergences().insert(id.getVal().toString(), insertAtIndex);
+		// Then insert at new location
+		elem = (DocumentElement) doc.getDefaultRootElement();
+		int idx = Math.min(elem.getElementCount() - 1, this.moveToIndex
+				.intValue());
+		idx = Math.max(idx, 0);
 
-        log.debug("Moved sdt " + id + " in pkg");
-        return sequenceNumber;
-    }
+		log.debug("apply(WordMLTextPane): SdtBlock will be moved to idx=" + idx
+				+ " in document.");
 
-}
+		elem = (DocumentElement) elem.getElement(idx);
+
+		log.debug("apply(WordMLTextPane): DocumentElement at idx=" + idx
+				+ " is " + elem);
+
+		log.debug("apply(WordMLTextPane): Current caret position=" + origPos);
+
+		if (elem.getStartOffset() <= origPos) {
+			origPos = doc.getLength() - origPos;
+			forward = false;
+		}
+
+		ElementMLRecord[] recs = { new ElementMLRecord(new SdtBlockML(sdt),
+				false) };
+		WordMLFragment frag = new WordMLFragment(recs);
+		try {
+			doc.insertFragment(elem.getStartOffset(), frag, null);
+		} catch (BadLocationException exc) {
+			;// should not happen
+		} finally {
+			if (!forward) {
+				origPos = editor.getDocument().getLength() - origPos;
+			}
+
+			log
+					.debug("apply(WordMLTextPane): Set caret position to "
+							+ origPos);
+			editor.setCaretPosition(origPos);
+		}
+	}
+
+}// TransformMove class
+

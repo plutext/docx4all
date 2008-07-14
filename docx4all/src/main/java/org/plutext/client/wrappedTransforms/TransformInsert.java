@@ -30,7 +30,6 @@ import org.docx4all.swing.text.WordMLFragment;
 import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
 import org.docx4all.xml.SdtBlockML;
 import org.plutext.client.Mediator;
-import org.plutext.client.Pkg;
 import org.plutext.client.Util;
 import org.plutext.client.state.StateChunk;
 import org.plutext.transforms.Transforms.T;
@@ -46,7 +45,7 @@ public class TransformInsert extends TransformAbstract {
 
 	protected Long insertAtIndex;
 
-	public long apply(Mediator mediator, Pkg pkg, HashMap<String, StateChunk> stateChunks) {
+	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
 		// Plutext server is trying to use absolute index position for
 		// locating the insert positon.
 		// TODO: The following code is subject to change.
@@ -70,29 +69,25 @@ public class TransformInsert extends TransformAbstract {
 			return -1;
 		}
 
-		if (getApplied()) {
-			log.debug("Cannot re-apply this TransformInsert. sdt id="
-					+ id.getVal());
-		} else {
-			apply(mediator.getWordMLTextPane());
+		apply(mediator.getWordMLTextPane());
 
-			StateChunk sc = new StateChunk(sdt);
-			stateChunks.put(sc.getIdAsString(), sc);
-			mediator.getDivergences().insert(id.getVal().toString(),
+		StateChunk sc = new StateChunk(sdt);
+		stateChunks.put(sc.getIdAsString(), sc);
+		mediator.getDivergences().insert(id.getVal().toString(),
 					insertAtIndex);
-
-			log.debug("Inserted new sdt " + id.getVal() + " in pkg");
-		}
 
 		return sequenceNumber;
 	}
 
 	protected void apply(WordMLTextPane editor) {
 		BigInteger id = getSdt().getSdtPr().getId().getVal();
+		
+		log.debug("apply(WordMLTextPane): Inserting SdtBlock Id=" 
+				+ id + " in Editor.");
+		
 		WordMLDocument doc = (WordMLDocument) editor.getDocument();
-
 		if (Util.getDocumentElement(doc, id.toString()) != null) {
-			log.debug("apply(WordMLTextPane): SdtBlock Id=" + id
+			log.error("apply(WordMLTextPane): SdtBlock Id=" + id
 					+ " already exists in editor");
 			return;
 		}

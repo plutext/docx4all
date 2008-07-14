@@ -51,7 +51,7 @@ public class TransformDelete extends TransformAbstract {
 
 
         /* delete the SDT given its ID. */
-	public long apply(Mediator mediator, Pkg pkg, HashMap<String, StateChunk> stateChunks)
+	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks)
         {
 
     	
@@ -66,13 +66,9 @@ public class TransformDelete extends TransformAbstract {
     		return -1;
     	}
     	
-    	if (!getApplied()) {
-    		apply(mediator.getWordMLTextPane(), getId().getVal());
+   		apply(mediator.getWordMLTextPane(), getId().getVal());
         	
-            mediator.getDivergences().delete(  id.getVal().toString() );
-
-            log.debug("Removed sdt " + id + " from pkg");
-    	}
+        mediator.getDivergences().delete(  id.getVal().toString() );
         
 		return sequenceNumber;
     }
@@ -98,7 +94,12 @@ public class TransformDelete extends TransformAbstract {
 			
 			if (elem != null) {
 				log.debug("apply(WordMLTextPane): Deleting SdtBlock Element...");
-					
+				
+				if (elem.getStartOffset() <= origPos 
+					&& origPos < elem.getEndOffset()) {
+					origPos = elem.getEndOffset();
+				}
+				
 				if (elem.getEndOffset() <= origPos) {
 					origPos = editor.getDocument().getLength() - origPos;
 					forward = false;
@@ -117,7 +118,10 @@ public class TransformDelete extends TransformAbstract {
 			if (!forward) {
 				origPos = doc.getLength() - origPos;
 			}
+			
 			log.debug("apply(WordMLTextPane): Set caret position to " + origPos);
+			editor.setCaretPosition(origPos);
+			
 			//editor.endContentControlEdit();
 		}
 	}

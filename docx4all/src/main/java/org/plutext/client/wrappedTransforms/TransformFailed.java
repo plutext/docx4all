@@ -22,10 +22,9 @@ package org.plutext.client.wrappedTransforms;
 import java.util.HashMap;
 
 import org.apache.log4j.Logger;
-import org.plutext.transforms.Transforms.T;
 import org.plutext.client.Mediator;
-import org.plutext.client.Pkg;
 import org.plutext.client.state.StateChunk;
+import org.plutext.transforms.Transforms.T;
 
 
     /* This class allows the server to return the details of an
@@ -39,7 +38,7 @@ public class TransformFailed extends TransformAbstract
     	super(t);
     }
 
-    public long apply(Mediator mediator, Pkg pkg, HashMap<String, StateChunk> stateChunks)
+    public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks)
     {
         log.debug("TransformFailed not fully implemented!");
 

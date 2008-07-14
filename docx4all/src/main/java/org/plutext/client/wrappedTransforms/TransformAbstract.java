@@ -142,7 +142,7 @@ public abstract class TransformAbstract {
 	}
 
 	/* Code to apply the transform */
-	public abstract long apply(Mediator mediator, Pkg pkg, HashMap<String, StateChunk> stateChunks);
+	public abstract long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks);
 
 
 }
