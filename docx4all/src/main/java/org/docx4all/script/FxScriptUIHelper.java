@@ -33,6 +33,7 @@ import org.docx4all.ui.menu.EditMenu;
 import org.docx4all.ui.menu.FileMenu;
 import org.docx4all.ui.menu.FormatMenu;
 import org.docx4all.ui.menu.ReviewMenu;
+import org.docx4all.ui.menu.TeamMenu;
 
 /**
  *	@author Jojada Tirtowidjojo - 28/11/2007
@@ -58,6 +59,7 @@ public class FxScriptUIHelper {
     	menus.put(FileMenu.SCRIPT_BINDING_KEY, FileMenu.getInstance());
     	menus.put(EditMenu.SCRIPT_BINDING_KEY, EditMenu.getInstance());
     	menus.put(FormatMenu.SCRIPT_BINDING_KEY, FormatMenu.getInstance());
+    	menus.put(TeamMenu.SCRIPT_BINDING_KEY, TeamMenu.getInstance());
     	menus.put(ReviewMenu.SCRIPT_BINDING_KEY, ReviewMenu.getInstance());
    	
     	JPanel toolbar = (JPanel) _fxEngine.run(FxScript.TOOLBAR_FX, menus);
