@@ -129,8 +129,6 @@ public class Mediator
 			throw new IllegalArgumentException("Not a shared WordMLDocument");
 		}
 		
-        //Skeleton.difftest();
-
         this.textPane = textPane;
         this.stateDocx = new StateDocx(doc);
     }
@@ -415,13 +413,11 @@ private long applyUpdate(TransformAbstract t)
 
     log.debug("applyUpdate " + t.getClass().getName() + " - " + t.getSequenceNumber() );
 
-    //TODO: Clean up this pkg = null.
-    Pkg pkg = null;
     if (t instanceof org.plutext.client.wrappedTransforms.TransformInsert 
     		|| t instanceof org.plutext.client.wrappedTransforms.TransformMove
         )
     {
-        result = t.apply(this, pkg, stateDocx.getStateChunks());
+        result = t.apply(this, stateDocx.getStateChunks());
         t.setApplied(true);
         log.debug(t.getSequenceNumber() + " applied (" + t.getClass().getName() + ")");
         return result;
@@ -430,7 +426,7 @@ private long applyUpdate(TransformAbstract t)
     {
         // TODO - Implement TransformStyle
         // that class is currently non functional.
-        result = t.apply(this, pkg, stateDocx.getStateChunks());
+        result = t.apply(this, stateDocx.getStateChunks());
         t.setApplied(true);
         log.debug(t.getSequenceNumber() + " UNDER CONSTRUCTION (" + t.getClass().getName() + ")");
         return result;
@@ -453,12 +449,12 @@ private long applyUpdate(TransformAbstract t)
         // The update we will insert is one that contains the results
         // of comparing the server's SDT to the user's local one.
         // This will allow the user to see other people's changes.
-        //((TransformUpdate)t).markupChanges(pkg.getStateChunks().get(t.getId()).getSdt() );
-
-        result = t.apply(this, pkg, stateDocx.getStateChunks());
+       	((TransformUpdate)t).markupChanges(currentChunk.getSdt() );
+       	
+        result = t.apply(this, stateDocx.getStateChunks());
         t.setApplied(true);
         log.debug(t.getSequenceNumber() + " applied (" + t.getClass().getName() + ")");
-
+       	
         if ( noConflict || t.isLocal() )
         {
             sdtChangeTypes.put(t.getId().getVal().toString(), TrackedChangeType.OtherUserChange);
@@ -467,6 +463,7 @@ private long applyUpdate(TransformAbstract t)
         {
             sdtChangeTypes.put(t.getId().getVal().toString(), TrackedChangeType.Conflict);
         }
+
 
         return result;
 
@@ -1142,7 +1139,6 @@ private long applyUpdate(TransformAbstract t)
 		
 		SdtBlockML ml = (SdtBlockML) elem.getElementML();
 		ml.getSdtProperties().setTagValue(tag.getVal());
-		doc.refreshParagraphs(elem.getStartOffset(), 0);
     }
     
 }// Mediator class
