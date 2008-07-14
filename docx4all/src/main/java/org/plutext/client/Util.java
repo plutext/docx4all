@@ -19,11 +19,14 @@
 
 package org.plutext.client;
 
+import java.util.HashMap;
+
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.SdtBlockML;
+import org.docx4j.XmlUtils;
 import org.docx4j.openpackaging.parts.DocPropsCustomPart;
 import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
@@ -130,6 +133,27 @@ public class Util {
   		return skeleton;
     }
     
+	public static HashMap<String, StateChunk> createStateChunks(WordMLDocument doc) {
+		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+		
+		HashMap<String, StateChunk> stateChunks = 
+			new HashMap<String, StateChunk>(root.getElementCount());
+
+		for (int idx = 0; idx < root.getElementCount(); idx++) {
+			DocumentElement elem = (DocumentElement) root.getElement(idx);
+			ElementML ml = elem.getElementML();
+			if (ml instanceof SdtBlockML) {
+				org.docx4j.wml.SdtBlock sdt = 
+					(org.docx4j.wml.SdtBlock) ml.getDocxObject();
+				sdt = (org.docx4j.wml.SdtBlock) XmlUtils.deepCopy(sdt);
+				StateChunk sc = new StateChunk(sdt);
+				stateChunks.put(sc.getIdAsString(), sc);
+			}
+		}
+		
+		return stateChunks;
+	}
+
 	public static String getContentControlXML(SdtBlock cc) {
 
 		boolean suppressDeclaration = true;
