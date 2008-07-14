@@ -21,7 +21,6 @@ package org.plutext.client.state;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.DocumentElement;
@@ -29,7 +28,6 @@ import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.xml.DocumentML;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.plutext.client.CustomProperties;
-import org.plutext.client.Pkg;
 import org.plutext.client.Util;
 import org.plutext.client.wrappedTransforms.TransformAbstract;
 
@@ -80,13 +78,7 @@ public class StateDocx {
 
 		this.transforms = new TransformsCollection();
 		
-		try {
-			doc.readLock();
-			Pkg pkg = new Pkg(doc);
-	        stateChunks = pkg.extractStateChunks();
-		} finally {
-			doc.readUnlock();
-		}
+		this.stateChunks = Util.createStateChunks(doc);
 	}
 	
 	private HashMap<String, StateChunk> stateChunks;
