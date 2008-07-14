@@ -160,6 +160,7 @@ public class ElementMLFactory {
 		org.docx4j.wml.SdtContentBlock content = ObjectFactory.createSdtContentBlock();
 		
 		sdtPr.setId();
+		sdtPr.setTag(ObjectFactory.createTag("0"));
 		sdtBlock.setSdtPr(sdtPr);
 		sdtBlock.setSdtContent(content);
 
