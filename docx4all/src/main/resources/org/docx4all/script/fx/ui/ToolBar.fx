@@ -38,6 +38,7 @@ var toolBarStates = toolBarStates:<<org.docx4all.ui.main.ToolBarStates>>;
 var fileMenu = fileMenu:<<org.docx4all.ui.menu.FileMenu>>;
 var editMenu = editMenu:<<org.docx4all.ui.menu.EditMenu>>;
 var formatMenu = formatMenu:<<org.docx4all.ui.menu.FormatMenu>>;
+var teamMenu = teamMenu:<<org.docx4all.ui.menu.TeamMenu>>;
 var reviewMenu = reviewMenu:<<org.docx4all.ui.menu.ReviewMenu>>;
 
 //Global variables
@@ -171,6 +172,19 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
         swingAction: formatMenu.getAction(formatMenu.UNDERLINE_ACTION_NAME)
     }
     
+    var fetchRemotEditsButton = Button {
+        enabledPropertyName: toolBarStates.DOC_SHARED_PROPERTY_NAME
+        swingAction: teamMenu.getAction(teamMenu.FETCH_REMOTE_EDITS_ACTION_NAME)
+        enabled: toolBarStates.isDocumentShared()
+    }
+    
+    var commitLocalEditsButton = Button {
+        enabledPropertyName: toolBarStates.COMMIT_LOCAL_EDITS_PROPERTY_NAME
+        swingAction: teamMenu.getAction(teamMenu.COMMIT_LOCAL_EDITS_ACTION_NAME)
+        enabled: toolBarStates.isCommitLocalEditsEnabled()
+    }
+    
+    
     var applyRemoteRevisionsInParaButton = Button {
         enabledPropertyName: toolBarStates.REMOTE_REVISION_IN_PARA_PROPERTY_NAME
         swingAction: reviewMenu.getAction(reviewMenu.APPLY_REMOTE_REVISIONS_IN_CURRENT_PARA_ACTION_NAME)
@@ -234,6 +248,11 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
         boldButton,
         italicButton,
         underlineButton,
+        RigidArea { width: 10 },
+        Separator { orientation: VERTICAL:Orientation },
+        RigidArea { width: 10 },
+        fetchRemotEditsButton,
+        commitLocalEditsButton,
         RigidArea { width: 10 },
         Separator { orientation: VERTICAL:Orientation },
         RigidArea { width: 10 },
