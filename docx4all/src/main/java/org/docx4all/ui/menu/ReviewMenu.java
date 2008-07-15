@@ -90,19 +90,19 @@ public class ReviewMenu extends UIMenu {
 	public final static String APPLY_REMOTE_REVISIONS_IN_CURRENT_PARA_ACTION_NAME = "applyRemoteRevisionsInCurrentPara";
 
 	/**
-	 * The action name of 'Apply All Remote Revisions' Review menu
-	 */
-	public final static String APPLY_ALL_REMOTE_REVISIONS_ACTION_NAME = "applyAllRemoteRevisions";
-	
-	/**
 	 * The action name of 'Discard Remote Revisions in Current Paragraph' Review menu
 	 */
 	public final static String DISCARD_REMOTE_REVISIONS_IN_CURRENT_PARA_ACTION_NAME = "discardRemoteRevisionsInCurrentPara";
 	
 	/**
-	 * The action name of 'Discard All Remote Revisions' Review menu
+	 * The action name of 'Accept All Non-Conflicting Remote Revisions' Review menu
 	 */
-	public final static String DISCARD_ALL_REMOTE_REVISIONS_ACTION_NAME = "discardAllRemoteRevisions";
+	public final static String ACCEPT_NON_CONFLICTING_REMOTE_REVISIONS_ACTION_NAME = "acceptNonConflictingRemoteRevisions";
+	
+	/**
+	 * The action name of 'Reject All Non-Conflicting Remote Revisions' Review menu
+	 */
+	public final static String REJECT_NON_CONFLICTING_REMOTE_REVISIONS_ACTION_NAME = "rejectNonConflictingRemoteRevisions";
 	
 	/**
 	 * The action name of 'Goto Next Revision'  Review menu
@@ -122,9 +122,10 @@ public class ReviewMenu extends UIMenu {
 		REJECT_REVISION_ACTION_NAME,
 		SEPARATOR_CODE,
 		APPLY_REMOTE_REVISIONS_IN_CURRENT_PARA_ACTION_NAME,
-		APPLY_ALL_REMOTE_REVISIONS_ACTION_NAME,
 		DISCARD_REMOTE_REVISIONS_IN_CURRENT_PARA_ACTION_NAME,
-		DISCARD_ALL_REMOTE_REVISIONS_ACTION_NAME,
+		SEPARATOR_CODE,
+		ACCEPT_NON_CONFLICTING_REMOTE_REVISIONS_ACTION_NAME,
+		REJECT_NON_CONFLICTING_REMOTE_REVISIONS_ACTION_NAME,
 		SEPARATOR_CODE,
 		GOTO_NEXT_REVISION_ACTION_NAME,
 		GOTO_PREV_REVISION_ACTION_NAME
@@ -169,8 +170,8 @@ public class ReviewMenu extends UIMenu {
 				ToolBarStates.REMOTE_REVISION_IN_PARA_PROPERTY_NAME, 
 				new EnableOnEqual(theItem, Boolean.TRUE));
 			
-		} else if (APPLY_ALL_REMOTE_REVISIONS_ACTION_NAME.equals(actionName)
-				|| DISCARD_ALL_REMOTE_REVISIONS_ACTION_NAME.equals(actionName)) {
+		} else if (ACCEPT_NON_CONFLICTING_REMOTE_REVISIONS_ACTION_NAME.equals(actionName)
+				|| REJECT_NON_CONFLICTING_REMOTE_REVISIONS_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(toolbarStates.isRemoteRevisionInDoc());
 			toolbarStates.addPropertyChangeListener(
 				ToolBarStates.REMOTE_REVISION_IN_DOC_PROPERTY_NAME, 
@@ -253,21 +254,21 @@ public class ReviewMenu extends UIMenu {
 		action.actionPerformed(evt);
 	}
 	
-	@Action public void applyAllRemoteRevisions(ActionEvent evt) {
-		WordMLEditorKit.ApplyAllRemoteRevisionsAction action = 
-			new WordMLEditorKit.ApplyAllRemoteRevisionsAction();
-		action.actionPerformed(evt);
-	}
-	
 	@Action public void discardRemoteRevisionsInCurrentPara(ActionEvent evt) {
 		WordMLEditorKit.DiscardRemoteRevisionsInParaAction action = 
 			new WordMLEditorKit.DiscardRemoteRevisionsInParaAction();
 		action.actionPerformed(evt);
 	}
 	
-	@Action public void discardAllRemoteRevisions(ActionEvent evt) {
-		WordMLEditorKit.DiscardAllRemoteRevisionsAction action = 
-			new WordMLEditorKit.DiscardAllRemoteRevisionsAction();
+	@Action public void acceptNonConflictingRemoteRevisions(ActionEvent evt) {
+		WordMLEditorKit.AcceptNonConflictingRevisionsAction action = 
+			new WordMLEditorKit.AcceptNonConflictingRevisionsAction();
+		action.actionPerformed(evt);
+	}
+	
+	@Action public void rejectNonConflictingRemoteRevisions(ActionEvent evt) {
+		WordMLEditorKit.RejectNonConflictingRevisionsAction action = 
+			new WordMLEditorKit.RejectNonConflictingRevisionsAction();
 		action.actionPerformed(evt);
 	}
 	
