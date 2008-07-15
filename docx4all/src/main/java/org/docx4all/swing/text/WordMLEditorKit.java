@@ -77,13 +77,13 @@ import org.docx4all.ui.main.Constants;
 import org.docx4all.util.DocUtil;
 import org.docx4all.util.SwingUtil;
 import org.docx4all.util.XmlUtil;
-import org.docx4all.xml.BodyML;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.SdtBlockML;
 import org.plutext.client.Mediator;
+import org.plutext.client.Util;
 
 public class WordMLEditorKit extends DefaultEditorKit {
 	private static Logger log = Logger.getLogger(WordMLEditorKit.class);
@@ -110,15 +110,15 @@ public class WordMLEditorKit extends DefaultEditorKit {
 
     public static final String acceptRevisionAction = "accept-revision";
     
+    public static final String acceptNonConflictingRevisionsAction = "accept-non-conflicting-revisions";
+    
+    public static final String rejectNonConflictingRevisionsAction = "reject-non-conflicting-revisions";
+    
     public static final String rejectRevisionAction = "reject-revision";
     
     public static final String applyRemoteRevisionsInParaAction = "apply-remote-revisions-in-para";
     
-    public static final String applyAllRemoteRevisionsAction = "apply-all-remote-revisions";
-    
     public static final String discardRemoteRevisionsInParaAction = "discard-remote-revisions-in-para";
-    
-    public static final String discardAllRemoteRevisionsAction = "discard-all-remote-revisions";
     
     public static final String selectNextRevisionAction = "select-next-revision";
     
@@ -859,6 +859,168 @@ public class WordMLEditorKit extends DefaultEditorKit {
         
     }// CommitLocalEditsAction inner class
     
+    public static class AcceptNonConflictingRevisionsAction extends TextAction {
+    	private Exception exc;
+    	
+    	public AcceptNonConflictingRevisionsAction() {
+    		super(acceptNonConflictingRevisionsAction);
+    		this.exc = null;
+    	}
+    	
+        /** The operation to perform when this action is triggered. */
+        public void actionPerformed(ActionEvent e) {
+        	log.debug("AcceptNonConflictingRevisionsAction.actionPerformed():...");
+        	
+        	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
+        	if (editor != null) {
+        		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+        		Mediator plutextClient = editor.getWordMLEditorKit().getPlutextClient();
+        		if (plutextClient != null && plutextClient.hasNonConflictingChanges()) {
+                	log.debug("AcceptNonConflictingRevisionsAction.actionPerformed():"
+                		+ " plutextClient HAS non-conflicting changes");
+                	
+            		int caretPos = editor.getCaretPosition();
+            		
+                	try {
+                		doc.lockWrite();
+                		
+                		editor.saveCaretText();
+                		for (String id: plutextClient.getIdsOfNonConflictingChanges()) {
+                    		DocumentElement elem = Util.getDocumentElement(doc, id);
+                    		if (elem != null) {
+                        		plutextClient.removeTrackedChangeType(id);
+                        		
+                        		ElementML sdt = elem.getElementML();
+                    			String temp = 
+                    				org.docx4j.XmlUtils.marshaltoString(
+                    						sdt.getDocxObject()
+                    					, false);
+                    			StreamSource src = new StreamSource(new StringReader(temp));
+
+                    			javax.xml.bind.util.JAXBResult result = 
+                    				new javax.xml.bind.util.JAXBResult(
+                    					org.docx4j.jaxb.Context.jc);
+                    			XmlUtil.applyRemoteRevisions(src, result);
+                    			
+                    			ElementML newSdt = 
+                    				new SdtBlockML(
+                    					(org.docx4j.wml.SdtBlock) result.getResult());
+                    			sdt.addSibling(newSdt, true);
+                    			sdt.delete();
+                    			
+                    			int end = doc.getLength() - elem.getEndOffset();
+                    			doc.refreshParagraphs(elem.getStartOffset(), 0);
+                    			caretPos = doc.getLength() - end;
+                    		}
+                    	}//for (id) loop
+                		
+                		plutextClient.setHasNonConflictingChanges(false);
+                		
+                	} catch (Exception exc) {
+                		this.exc = exc;
+                		
+                	} finally {
+                		doc.unlockWrite();
+                		editor.setCaretPosition(caretPos);
+                	}
+        		} else {
+                	log.debug("AcceptNonConflictingRevisionsAction.actionPerformed():"
+                    		+ " NO plutextClient NOR non-conflicting changes");
+        		} //if (plutextClient != null && plutextClient.hasNonConflictingChanges())
+        	} //if (editor != null)
+        } //actionPerformed()
+        
+        public Exception getThrownException() {
+        	return this.exc;
+        }
+        
+        public boolean success() {
+        	return (this.exc == null);
+        }
+    	
+    }// AcceptNonConflictingRevisionsAction inner class
+    
+    public static class RejectNonConflictingRevisionsAction extends TextAction {
+    	private Exception exc;
+    	
+    	public RejectNonConflictingRevisionsAction() {
+    		super(acceptNonConflictingRevisionsAction);
+    		this.exc = null;
+    	}
+    	
+        /** The operation to perform when this action is triggered. */
+        public void actionPerformed(ActionEvent e) {
+        	log.debug("RejectNonConflictingRevisionsAction.actionPerformed():...");
+        	
+        	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
+        	if (editor != null) {
+        		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+        		Mediator plutextClient = editor.getWordMLEditorKit().getPlutextClient();
+        		if (plutextClient != null && plutextClient.hasNonConflictingChanges()) {
+                	log.debug("RejectNonConflictingRevisionsAction.actionPerformed():"
+                    		+ " plutextClient HAS non-conflicting changes");
+                	
+            		int caretPos = editor.getCaretPosition();
+            		
+                	try {
+                		doc.lockWrite();
+                		
+                		editor.saveCaretText();
+                		for (String id: plutextClient.getIdsOfNonConflictingChanges()) {
+                    		DocumentElement elem = Util.getDocumentElement(doc, id);
+                    		if (elem != null) {
+                        		plutextClient.removeTrackedChangeType(id);
+                        		
+                        		ElementML sdt = elem.getElementML();
+                    			String temp = 
+                    				org.docx4j.XmlUtils.marshaltoString(
+                    						sdt.getDocxObject()
+                    					, false);
+                    			StreamSource src = new StreamSource(new StringReader(temp));
+
+                    			javax.xml.bind.util.JAXBResult result = 
+                    				new javax.xml.bind.util.JAXBResult(
+                    					org.docx4j.jaxb.Context.jc);
+                    			XmlUtil.discardRemoteRevisions(src, result);
+                    			
+                    			ElementML newSdt = 
+                    				new SdtBlockML(
+                    					(org.docx4j.wml.SdtBlock) result.getResult());
+                    			sdt.addSibling(newSdt, true);
+                    			sdt.delete();
+                    			
+                    			int end = doc.getLength() - elem.getEndOffset();
+                    			doc.refreshParagraphs(elem.getStartOffset(), 0);
+                    			caretPos = doc.getLength() - end;
+                    		}
+                    	}//for (id) loop
+                		
+                		plutextClient.setHasNonConflictingChanges(false);
+                		
+                	} catch (Exception exc) {
+                		this.exc = exc;
+                		
+                	} finally {
+                		doc.unlockWrite();
+                		editor.setCaretPosition(caretPos);
+                	}
+        		} else {
+                	log.debug("RejectNonConflictingRevisionsAction.actionPerformed():"
+                    		+ " NO plutextClient NOR non-conflicting changes");
+        		} //if (plutextClient != null && plutextClient.hasNonConflictingChanges())
+        	} //if (editor != null)
+        } //actionPerformed()
+        
+        public Exception getThrownException() {
+        	return this.exc;
+        }
+        
+        public boolean success() {
+        	return (this.exc == null);
+        }
+    	
+    }// RejectNonConflictingRevisionsAction inner class
+    
     public static class AcceptRevisionAction extends TextAction {
     	private boolean success;
     	
@@ -1014,70 +1176,6 @@ public class WordMLEditorKit extends DefaultEditorKit {
         
     }// ApplyRemoteRevisionsInParaAction inner class
     
-    public static class ApplyAllRemoteRevisionsAction extends TextAction {
-    	private boolean success;
-    	
-    	public ApplyAllRemoteRevisionsAction() {
-            super(applyRemoteRevisionsInParaAction);
-            success = Boolean.FALSE;
-        }
-
-        /** The operation to perform when this action is triggered. */
-        public void actionPerformed(ActionEvent e) {
-        	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
-            if (editor != null) {
-            	WordMLDocument doc = (WordMLDocument) editor.getDocument();
-            	try {
-            		doc.lockWrite();
-            		
-            		editor.saveCaretText();
-            	
-            		DocumentElement root = 
-            			(DocumentElement) doc.getDefaultRootElement();
-            		ElementML docML = root.getElementML();
-            		ElementML bodyML = root.getElementML().getChild(0);
-
-        			String temp = 
-        				org.docx4j.XmlUtils.marshaltoString(
-        					bodyML.getDocxObject(), 
-        					false);
-
-        			if (temp.indexOf("</w:del>") != -1) {
-						StreamSource src = new StreamSource(new StringReader(
-								temp));
-
-						StreamResult result = new StreamResult(
-								new ByteArrayOutputStream());
-						XmlUtil.applyRemoteRevisions(src, result);
-
-						temp = result.getOutputStream().toString();
-						ElementML newBodyML = new BodyML(org.docx4j.XmlUtils
-								.unmarshalString(temp));
-
-						doc.remove(0, doc.getLength());
-
-						bodyML.delete();
-						docML.addChild(newBodyML);
-
-						doc.refreshParagraphs(0, 0);
-						editor.setCaretPosition(doc.getLength());
-					}
-        			
-    				success = Boolean.TRUE;
-            	} catch (BadLocationException exc) {
-            		;//should not happen
-    			} finally {
-    				doc.unlockWrite();
-    			}
-            }
-        }
-        
-        public boolean success() {
-        	return success;
-        }
-        
-    }// ApplyAllRemoteRevisionsAction inner class
-    
     public static class DiscardRemoteRevisionsInParaAction extends TextAction {
     	private boolean success;
     	
@@ -1140,70 +1238,6 @@ public class WordMLEditorKit extends DefaultEditorKit {
         }
         
     }// DiscardRemoteRevisionsInParaAction inner class
-    
-    public static class DiscardAllRemoteRevisionsAction extends TextAction {
-    	private boolean success;
-    	
-    	public DiscardAllRemoteRevisionsAction() {
-            super(discardAllRemoteRevisionsAction);
-            success = Boolean.FALSE;
-        }
-
-        /** The operation to perform when this action is triggered. */
-        public void actionPerformed(ActionEvent e) {
-        	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
-            if (editor != null) {
-            	WordMLDocument doc = (WordMLDocument) editor.getDocument();
-            	try {
-            		doc.lockWrite();
-            		
-            		editor.saveCaretText();
-            	
-            		DocumentElement root = 
-            			(DocumentElement) doc.getDefaultRootElement();
-            		ElementML docML = root.getElementML();
-            		ElementML bodyML = root.getElementML().getChild(0);
-
-        			String temp = 
-        				org.docx4j.XmlUtils.marshaltoString(
-        					bodyML.getDocxObject(), 
-        					false);
-
-        			if (temp.indexOf("</w:del>") != -1) {
-						StreamSource src = new StreamSource(new StringReader(
-								temp));
-
-						StreamResult result = new StreamResult(
-								new ByteArrayOutputStream());
-						XmlUtil.discardRemoteRevisions(src, result);
-
-						temp = result.getOutputStream().toString();
-						ElementML newBodyML = new BodyML(org.docx4j.XmlUtils
-								.unmarshalString(temp));
-
-						doc.remove(0, doc.getLength());
-
-						bodyML.delete();
-						docML.addChild(newBodyML);
-
-						doc.refreshParagraphs(0, 0);
-						editor.setCaretPosition(doc.getLength());
-					}
-        			
-    				success = Boolean.TRUE;
-            	} catch (BadLocationException exc) {
-            		;//should not happen
-    			} finally {
-    				doc.unlockWrite();
-    			}
-            }
-        }
-        
-        public boolean success() {
-        	return success;
-        }
-        
-    }// DiscardAllRemoteRevisionsAction inner class
     
     public static class SelectNextRevisionAction extends TextAction {
     	public SelectNextRevisionAction() {
