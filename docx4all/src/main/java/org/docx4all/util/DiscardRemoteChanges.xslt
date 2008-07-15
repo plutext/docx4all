@@ -37,13 +37,13 @@
   <xsl:output method="xml" encoding="utf-8" omit-xml-declaration="no" indent="yes" />
 
 
-  <xsl:template match="/ | @*|node()">
+  <xsl:template match="@*|node()">
     <xsl:copy>
       <xsl:apply-templates select="@*|node()"/>
     </xsl:copy>
   </xsl:template>
 
-<!--
+  <!--
 
        <w:body>
                <w:p w:rsidR="00265854" w:rsidRDefault="00320AE9">
@@ -83,14 +83,21 @@ w:header="708" w:footer="708" w:gutter="0" />
        </w:body>
 
 
-<w:sdt xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:sdtPr><w:id w:val="1028116818"></w:id><w:tag w:val="4"></w:tag></w:sdtPr><w:sdtContent><w:customXmlDelRangeEnd w:id="0"></w:customXmlDelRangeEnd><w:p><w:del w:author="Jason Harrop" w:date="2008-06-06T09:16:00Z" w:id="1"><w:r><w:delText>Heading</w:delText></w:r></w:del><w:ins w:author="Jason Harrop" w:date="2008-06-06T09:16:00Z" w:id="2"><w:r><w:t>y</w:t></w:r></w:ins><w:customXmlInsRangeStart w:author="Jason Harrop" w:date="2008-06-06T09:16:00Z" w:id="3"></w:customXmlInsRangeStart><w:sdt><w:sdtPr><w:id w:val="135511535"></w:id><w:tag w:val="4"></w:tag></w:sdtPr><w:sdtContent><w:customXmlInsRangeEnd w:id="3"></w:customXmlInsRangeEnd><w:ins w:author="Jason Harrop" w:date="2008-06-06T09:16:00Z" w:id="4"><w:r><w:t>Heading</w:t></w:r></w:ins><w:r><w:t xml:space="preserve"> is back, with a </w:t></w:r><w:ins w:author="Jason Harrop" w:date="2008-06-06T09:16:00Z" w:id="5"><w:r><w:t>vengenace.</w:t></w:r></w:ins><w:customXmlInsRangeStart w:author="Jason Harrop" w:date="2008-06-06T09:16:00Z" w:id="6"></w:customXmlInsRangeStart></w:sdtContent></w:sdt><w:customXmlInsRangeEnd w:id="6"></w:customXmlInsRangeEnd><w:del w:author="Jason Harrop" w:date="2008-06-06T09:16:00Z" w:id="7"><w:r><w:delText>vengenace.</w:delText></w:r></w:del></w:p></w:sdtContent><w:customXmlDelRangeStart w:author="Jason Harrop" w:date="2008-06-06T09:16:00Z" w:id="8"></w:customXmlDelRangeStart></w:sdt>
-
 -->
 
-  <xsl:template match="w:del" />
+  <xsl:template match="w:ins" />
 
-  <xsl:template match="w:ins" >
+  <xsl:template match="w:del" >
     <xsl:apply-templates select="*"/>
   </xsl:template>
+
+  <xsl:template match="@w:rsidDel" />
+
+  <xsl:template match="w:delText" >
+    <w:t>
+      <xsl:apply-templates  select="@*|node()"/>
+    </w:t>    
+  </xsl:template>
+
 
 </xsl:stylesheet>
