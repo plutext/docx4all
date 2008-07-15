@@ -22,7 +22,9 @@ package org.plutext.client;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.JOptionPane;
 import javax.xml.bind.JAXBException;
@@ -453,11 +455,18 @@ private long applyUpdate(TransformAbstract t)
        	
         result = t.apply(this, stateDocx.getStateChunks());
         t.setApplied(true);
-        log.debug(t.getSequenceNumber() + " applied (" + t.getClass().getName() + ")");
-       	
+        
+        log.debug("t.getSequenceNumber()=" + t.getSequenceNumber() 
+        	+ " applied (" + t.getClass().getName() + ")");
+        
+        log.debug("t.getSequenceNumber()=" + t.getSequenceNumber() 
+        		+ " t.isLocal()=" + t.isLocal()
+				+ " noConflict=" + noConflict); 
+
         if ( noConflict || t.isLocal() )
         {
             sdtChangeTypes.put(t.getId().getVal().toString(), TrackedChangeType.OtherUserChange);
+            hasNonConflictingChanges = true;
         }
         else
         {
@@ -485,8 +494,6 @@ private long applyUpdate(TransformAbstract t)
  * **************************************************************************************** */
 
     HashMap<String, TrackedChangeType> sdtChangeTypes = new HashMap<String, TrackedChangeType>();
-    
-    
 
     public enum TrackedChangeType
     {
@@ -495,34 +502,36 @@ private long applyUpdate(TransformAbstract t)
         NA
     }
 
-    public void acceptNonConflictingChanges()
+    boolean hasNonConflictingChanges = false;
+    
+    public boolean hasNonConflictingChanges() {
+    	return hasNonConflictingChanges;
+    }
+    
+    public void setHasNonConflictingChanges(boolean b) {
+    	this.hasNonConflictingChanges = b;
+    }
+    
+    public TrackedChangeType removeTrackedChangeType(String sdtBlockId) {
+    	return this.sdtChangeTypes.remove(sdtBlockId);
+    }
+    
+    public List<String> getIdsOfNonConflictingChanges()
     {
-
-
-    	// TODO - Jo to implement
+    	List<String> nonConflictingChanges = new ArrayList<String>();
     	
-//        foreach (Word.ContentControl ctrl in Globals.ThisAddIn.Application.ActiveDocument.ContentControls)
-//        {
-//            String id = ctrl.ID;
-//
-//            if (ctrl.Range.Revisions.Count > 0)
-//            {
-//                if (sdtChangeTypes.get(id) == TrackedChangeType.Conflict)
-//                {
-//                    log.debug("Change to " + id + " is a conflict, so leave Tracked");
-//
-//                    // TODO: how to remove this setting, once
-//                    // user has manually fixed??
-//
-//                }
-//                else 
-//                {
-//                    log.debug("Change to " + id + " can be accepted.");
-//                    ctrl.Range.Revisions.AcceptAll();
-//                    sdtChangeTypes.put(id , TrackedChangeType.NA);
-//                }
-//            }
-//        }
+    	Iterator<Map.Entry<String, TrackedChangeType>> it = 
+    		this.sdtChangeTypes.entrySet().iterator();
+    	while (it.hasNext()) {
+    		Map.Entry<String, TrackedChangeType> entry = it.next();
+    		String id = entry.getKey();
+    		TrackedChangeType type = entry.getValue();
+    		if (type == TrackedChangeType.OtherUserChange) {
+    			nonConflictingChanges.add(id);
+    		}
+    	}
+    	
+    	return nonConflictingChanges.isEmpty() ? null : nonConflictingChanges;
     }
 
 
