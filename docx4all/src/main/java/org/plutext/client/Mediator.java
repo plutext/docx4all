@@ -162,7 +162,7 @@ public class Mediator
     }
     
 /* ****************************************************************************************
- *          FETCH REMOTE UPDATES (in background)
+ *          FETCH REMOTE UPDATES 
  * **************************************************************************************** */ 
 
     private Skeleton oldServer;
@@ -417,6 +417,7 @@ private long applyUpdate(TransformAbstract t)
 
     if (t instanceof org.plutext.client.wrappedTransforms.TransformInsert 
     		|| t instanceof org.plutext.client.wrappedTransforms.TransformMove
+    		|| t instanceof org.plutext.client.wrappedTransforms.TransformDelete
         )
     {
         result = t.apply(this, stateDocx.getStateChunks());
