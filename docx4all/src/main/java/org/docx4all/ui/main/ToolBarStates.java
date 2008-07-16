@@ -56,6 +56,7 @@ import org.docx4all.swing.text.StyleSheet;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLStyleConstants;
 import org.docx4all.util.DocUtil;
+import org.plutext.client.Mediator;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -98,12 +99,13 @@ public class ToolBarStates extends InternalFrameAdapter
 	public final static String SELECTED_STYLE_PROPERTY_NAME = "selectedStyle";
 	
 	public final static String COMMIT_LOCAL_EDITS_PROPERTY_NAME  = "commitLocalEdits";
+	public final static String HAS_NON_CONFLICTING_CHANGES_PROPERTY_NAME = "hasNonConflictingChanges";
 	
 	public final static String REVISION_SELECTED_PROPERTY_NAME = "revisionSelected";
 	public final static String REMOTE_REVISION_IN_PARA_PROPERTY_NAME = "remoteRevisionInPara";
-	public final static String REMOTE_REVISION_IN_DOC_PROPERTY_NAME = "remoteRevisionInDoc";
 	
 	private final Hashtable<JInternalFrame, Boolean> _dirtyTable;
+
 	private volatile JEditorPane _currentEditor;
 	private volatile String _fontFamily;
 	private volatile int _fontSize;
@@ -114,7 +116,7 @@ public class ToolBarStates extends InternalFrameAdapter
 	private volatile Boolean _isCommitLocalEditsEnabled;
 	private volatile boolean _isRevisionSelected;
 	private volatile boolean _isRemoteRevisionInPara;
-	private volatile boolean _isRemoteRevisionInDoc;
+	private volatile Boolean _hasNonConflictingChanges;
 	
 	private volatile int _iframeNumbers;
 	
@@ -136,9 +138,9 @@ public class ToolBarStates extends InternalFrameAdapter
 		_filterApplied = true;
 		_isDocumentShared = null;
 		_isCommitLocalEditsEnabled = null;
+		_hasNonConflictingChanges = null;
 		_isRevisionSelected = false;
 		_isRemoteRevisionInPara = false;
-		_isRemoteRevisionInDoc = false;
 		_iframeNumbers = 0;
 		_alignment = -1;
 	}
@@ -282,6 +284,30 @@ public class ToolBarStates extends InternalFrameAdapter
 			COMMIT_LOCAL_EDITS_PROPERTY_NAME, 
 			oldValue, 
 			_isCommitLocalEditsEnabled);
+	}
+	
+	public boolean hasNonConflictingChanges() {
+		return (_hasNonConflictingChanges == null) ? false : _hasNonConflictingChanges.booleanValue();
+	}
+	
+	public void hasNonConflictingChanges(boolean b) {
+		if (log.isDebugEnabled()) {
+			log.debug("hasNonConflictingChanges(): _hasNonConflictingChanges = " 
+				+ _hasNonConflictingChanges + " param = " + b);
+		}
+	
+		if (_hasNonConflictingChanges != null 
+			&& _hasNonConflictingChanges.booleanValue() == b) {
+			return;
+		}
+		
+		Boolean oldValue = _hasNonConflictingChanges;
+		_hasNonConflictingChanges = Boolean.valueOf(b);
+		
+		firePropertyChange(
+			HAS_NON_CONFLICTING_CHANGES_PROPERTY_NAME, 
+			oldValue, 
+			_hasNonConflictingChanges);
 	}
 	
 	public String getSelectedStyle() {
@@ -434,29 +460,6 @@ public class ToolBarStates extends InternalFrameAdapter
 		
 		firePropertyChange(
 			REMOTE_REVISION_IN_PARA_PROPERTY_NAME, 
-			Boolean.valueOf(oldValue), 
-			Boolean.valueOf(b));
-	}
-	
-	public boolean isRemoteRevisionInDoc() {
-		return _isRemoteRevisionInDoc;
-	}
-	
-	public void setRemoteRevisionInDoc(boolean b) {
-		if (log.isDebugEnabled()) {
-			log.debug("setRemoteRevisionInDoc(): _isRemoteRevisionInDoc = " 
-				+ _isRemoteRevisionInDoc + " param = " + b);
-		}
-	
-		if (_isRemoteRevisionInDoc == b) {
-			return;
-		}
-		
-		boolean oldValue = _isRemoteRevisionInDoc;
-		_isRemoteRevisionInDoc = b;
-		
-		firePropertyChange(
-			REMOTE_REVISION_IN_DOC_PROPERTY_NAME, 
 			Boolean.valueOf(oldValue), 
 			Boolean.valueOf(b));
 	}
@@ -627,9 +630,10 @@ public class ToolBarStates extends InternalFrameAdapter
     	
     	boolean isShared = false;
     	if (editor instanceof WordMLTextPane) {
-    		b = ((WordMLTextPane) editor).isFilterApplied();
+    		WordMLTextPane textpane = (WordMLTextPane) editor;
+    		b = textpane.isFilterApplied();
     		isShared = DocUtil.isSharedDocument((WordMLDocument) editor.getDocument());
-        	setRemoteRevision((WordMLTextPane) editor);
+        	setRemoteRevision(textpane);
     	} else {
     		b = false;
     	}
@@ -867,18 +871,12 @@ public class ToolBarStates extends InternalFrameAdapter
 			org.docx4j.XmlUtils.marshaltoString(
 				elem.getElementML().getDocxObject(), 
 				false);
-		boolean hasRemoteRevision = (temp.indexOf("</w:del>") != -1);
+		boolean hasRemoteRevision = (temp.indexOf("</w:ins>") != -1);
 	    setRemoteRevisionInPara(hasRemoteRevision);
 
-	    if (!hasRemoteRevision) {
-    		elem = (DocumentElement) doc.getDefaultRootElement();
-			temp = 
-				org.docx4j.XmlUtils.marshaltoString(
-					elem.getElementML().getDocxObject(), 
-					false);
-			hasRemoteRevision = (temp.indexOf("</w:del>") != -1);
-	    }
-	    setRemoteRevisionInDoc(hasRemoteRevision);
+	    Mediator client = editor.getWordMLEditorKit().getPlutextClient();
+	    hasNonConflictingChanges(
+	    	(client == null) ? false : client.hasNonConflictingChanges());
     }
     
 	// ============================
