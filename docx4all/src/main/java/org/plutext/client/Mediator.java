@@ -449,17 +449,6 @@ private long applyUpdate(TransformAbstract t)
         boolean noConflict = currentChunk.getXml().equals(
         	stateDocx.getStateChunks().get(t.getId().getVal().toString()).getXml());
 
-        // The update we will insert is one that contains the results
-        // of comparing the server's SDT to the user's local one.
-        // This will allow the user to see other people's changes.
-       	((TransformUpdate)t).markupChanges(currentChunk.getSdt() );
-       	
-        result = t.apply(this, stateDocx.getStateChunks());
-        t.setApplied(true);
-        
-        log.debug("t.getSequenceNumber()=" + t.getSequenceNumber() 
-        	+ " applied (" + t.getClass().getName() + ")");
-        
         log.debug("t.getSequenceNumber()=" + t.getSequenceNumber() 
         		+ " t.isLocal()=" + t.isLocal()
 				+ " noConflict=" + noConflict); 
@@ -474,7 +463,17 @@ private long applyUpdate(TransformAbstract t)
             sdtChangeTypes.put(t.getId().getVal().toString(), TrackedChangeType.Conflict);
         }
 
-
+        // The update we will insert is one that contains the results
+        // of comparing the server's SDT to the user's local one.
+        // This will allow the user to see other people's changes.
+       	((TransformUpdate)t).markupChanges(currentChunk.getSdt() );
+       	
+        result = t.apply(this, stateDocx.getStateChunks());
+        t.setApplied(true);
+        
+        log.debug("t.getSequenceNumber()=" + t.getSequenceNumber() 
+        	+ " applied (" + t.getClass().getName() + ")");
+        
         return result;
 
     }
@@ -511,6 +510,10 @@ private long applyUpdate(TransformAbstract t)
     
     public void setHasNonConflictingChanges(boolean b) {
     	this.hasNonConflictingChanges = b;
+    }
+    
+    public TrackedChangeType getTrackedChangeType(String sdtBlockId) {
+    	return this.sdtChangeTypes.get(sdtBlockId);
     }
     
     public TrackedChangeType removeTrackedChangeType(String sdtBlockId) {
