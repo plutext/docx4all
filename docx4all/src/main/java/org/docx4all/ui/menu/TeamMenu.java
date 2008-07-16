@@ -24,6 +24,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 
+import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.WordMLEditorKit;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
@@ -110,7 +111,7 @@ public class TeamMenu extends UIMenu {
     	} else if (COMMIT_LOCAL_EDITS_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
     		toolbarStates.addPropertyChangeListener(
-    				ToolBarStates.COMMIT_LOCAL_EDITS_PROPERTY_NAME, 
+    				ToolBarStates.LOCAL_EDITS_ENABLED_PROPERTY_NAME, 
     				new EnableOnEqual(theItem, Boolean.TRUE));
     	}
 		
@@ -137,14 +138,22 @@ public class TeamMenu extends UIMenu {
 			wmlEditor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);	
 		}
 	}
-
+	
 	@Action public void commitLocalEdits(ActionEvent evt) {
 		WordMLEditorKit.CommitLocalEditsAction action = 
 			new WordMLEditorKit.CommitLocalEditsAction();
 		action.actionPerformed(evt);
 		
-		if (!action.success()) {
-			WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+		WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+		if (action.success()) {
+			if (evt.getSource() instanceof WordMLTextPane) {
+				WordMLTextPane textpane = (WordMLTextPane) evt.getSource();
+				wmlEditor.getToolbarStates().setLocalEditsEnabled(textpane, false);
+			} else if (wmlEditor.getCurrentEditor() instanceof WordMLTextPane) {
+				WordMLTextPane textpane = (WordMLTextPane) wmlEditor.getCurrentEditor();
+				wmlEditor.getToolbarStates().setLocalEditsEnabled(textpane, false);
+			}
+		} else {
         	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
             String title = 
             	rm.getString(COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.text");
@@ -165,8 +174,7 @@ public class TeamMenu extends UIMenu {
 			wmlEditor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);	
 		}
 	}
-
-
+	
 }// TeamMenu class
 
 
