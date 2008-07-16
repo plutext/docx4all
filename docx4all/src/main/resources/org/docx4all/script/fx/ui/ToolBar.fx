@@ -179,9 +179,9 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
     }
     
     var commitLocalEditsButton = Button {
-        enabledPropertyName: toolBarStates.COMMIT_LOCAL_EDITS_PROPERTY_NAME
+        enabledPropertyName: toolBarStates.LOCAL_EDITS_ENABLED_PROPERTY_NAME
         swingAction: teamMenu.getAction(teamMenu.COMMIT_LOCAL_EDITS_ACTION_NAME)
-        enabled: toolBarStates.isCommitLocalEditsEnabled()
+        enabled: toolBarStates.isLocalEditsEnabled()
     }
     
     
