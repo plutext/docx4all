@@ -376,6 +376,7 @@ public class FileMenu extends UIMenu {
 				boolean success = save(iframe, null, SAVE_FILE_ACTION_NAME);
 				if (success) {
 					editor.getToolbarStates().setDocumentDirty(iframe, false);
+					editor.getToolbarStates().setLocalEditsEnabled(false);
 				}
 			}
 		}
@@ -483,6 +484,7 @@ public class FileMenu extends UIMenu {
 		       			//If saving as .docx then update the document dirty flag 
 		       			//of toolbar states as well as internal frame title
 		       			editor.getToolbarStates().setDocumentDirty(iframe, false);
+		       			editor.getToolbarStates().setLocalEditsEnabled(false);
 		       			editor.updateInternalFrame(file, selectedFile);
 		       		} else {
 		       			//Because document dirty flag is not cleared
@@ -550,6 +552,10 @@ public class FileMenu extends UIMenu {
 			if (wmlEditor.getToolbarStates().isDocumentDirty(iframe)
 					&& save(iframe, null, SAVE_ALL_FILES_ACTION_NAME)) {
 				wmlEditor.getToolbarStates().setDocumentDirty(iframe, false);
+				WordMLTextPane editorView = SwingUtil.getWordMLTextPane(iframe);
+				if (editorView != null) {
+					wmlEditor.getToolbarStates().setLocalEditsEnabled(editorView, false);
+				}
 			}
 		}
     }
