@@ -172,9 +172,9 @@ public class ReviewMenu extends UIMenu {
 			
 		} else if (ACCEPT_NON_CONFLICTING_REMOTE_REVISIONS_ACTION_NAME.equals(actionName)
 				|| REJECT_NON_CONFLICTING_REMOTE_REVISIONS_ACTION_NAME.equals(actionName)) {
-    		theItem.setEnabled(toolbarStates.isRemoteRevisionInDoc());
+    		theItem.setEnabled(toolbarStates.hasNonConflictingChanges());
 			toolbarStates.addPropertyChangeListener(
-				ToolBarStates.REMOTE_REVISION_IN_DOC_PROPERTY_NAME, 
+				ToolBarStates.HAS_NON_CONFLICTING_CHANGES_PROPERTY_NAME, 
 				new EnableOnEqual(theItem, Boolean.TRUE));
 			
 		}
