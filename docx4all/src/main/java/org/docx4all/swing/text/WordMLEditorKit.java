@@ -835,7 +835,6 @@ public class WordMLEditorKit extends DefaultEditorKit {
                 		editor.saveCaretText();
                 		
                 		plutextClient.startSession();
-                		plutextClient.fetchUpdates();
                 		plutextClient.transmitLocalChanges();
                 		
                 	} catch (Exception exc) {
@@ -886,9 +885,10 @@ public class WordMLEditorKit extends DefaultEditorKit {
                 		
                 		editor.saveCaretText();
                 		for (String id: plutextClient.getIdsOfNonConflictingChanges()) {
+                    		plutextClient.removeTrackedChangeType(id);
+                    		
                     		DocumentElement elem = Util.getDocumentElement(doc, id);
                     		if (elem != null) {
-                        		plutextClient.removeTrackedChangeType(id);
                         		
                         		ElementML sdt = elem.getElementML();
                     			String temp = 
@@ -967,10 +967,10 @@ public class WordMLEditorKit extends DefaultEditorKit {
                 		
                 		editor.saveCaretText();
                 		for (String id: plutextClient.getIdsOfNonConflictingChanges()) {
+                    		plutextClient.removeTrackedChangeType(id);
+                    		
                     		DocumentElement elem = Util.getDocumentElement(doc, id);
                     		if (elem != null) {
-                        		plutextClient.removeTrackedChangeType(id);
-                        		
                         		ElementML sdt = elem.getElementML();
                     			String temp = 
                     				org.docx4j.XmlUtils.marshaltoString(
