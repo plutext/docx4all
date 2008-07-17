@@ -145,7 +145,16 @@ public class TeamMenu extends UIMenu {
 		action.actionPerformed(evt);
 		
 		WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+    	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
+        String title = 
+        	rm.getString(COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.text");
+        
 		if (action.success()) {
+			String message = 
+        		rm.getString(
+                		COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.successMessage");
+			wmlEditor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);	
+			
 			if (evt.getSource() instanceof WordMLTextPane) {
 				WordMLTextPane textpane = (WordMLTextPane) evt.getSource();
 				wmlEditor.getToolbarStates().setLocalEditsEnabled(textpane, false);
@@ -154,22 +163,18 @@ public class TeamMenu extends UIMenu {
 				wmlEditor.getToolbarStates().setLocalEditsEnabled(textpane, false);
 			}
 		} else {
-        	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
-            String title = 
-            	rm.getString(COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.text");
-            
             Exception exc = action.getThrownException();
             
             String message = null;
             if (exc instanceof ClientException) {
             	message = 
             		rm.getString(
-                		COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.fetchFirstMessage");
+                		COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.conflictExistenceMessage");
             } else {
                 exc.printStackTrace();
             	message = 
             		rm.getString(
-            				COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.errorMessage");
+            			COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.errorMessage");
             }
 			wmlEditor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);	
 		}
