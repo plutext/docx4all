@@ -26,7 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.swing.JOptionPane;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.rpc.ServiceException;
@@ -37,7 +36,6 @@ import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
-import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.util.DocUtil;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.SdtBlockML;
@@ -554,7 +552,7 @@ private long applyUpdate(TransformAbstract t)
     }
 
 
-    void transmitContentUpdates() throws RemoteException
+    void transmitContentUpdates() throws RemoteException, ClientException
     {
 
         log.debug(stateDocx.getDocID() + ".. .. transmitContentUpdates");
@@ -618,250 +616,203 @@ private long applyUpdate(TransformAbstract t)
             serverSkeleton);
 
 
-        Boolean someTransmitted = false;
+		org.plutext.transforms.ObjectFactory transformsFactory = 
+			new org.plutext.transforms.ObjectFactory();
+
+		String checkinComment = null;
+
         Boolean someConflicted = false;
+		
+		DocumentElement root = (DocumentElement) wordMLDoc
+				.getDefaultRootElement();
+		for (int idx = 0; idx < root.getElementCount(); idx++) {
+			DocumentElement elem = (DocumentElement) root.getElement(idx);
+			ElementML ml = elem.getElementML();
+			if (ml instanceof SdtBlockML) {
+				StateChunk chunkCurrent = new StateChunk(
+						(org.docx4j.wml.SdtBlock) ml.getDocxObject());
+				String stdId = chunkCurrent.getIdAsString();
 
-        int insertPos;
-        int i;
-        
-    	org.plutext.transforms.ObjectFactory transformsFactory = new org.plutext.transforms.ObjectFactory();
-        
-        try
-        {
-            String checkinComment = null;
+				StateChunk chunkOlder = stateDocx.getStateChunks().get(stdId);
 
-            insertPos = -1;
-            
-            DocumentElement root = (DocumentElement) wordMLDoc.getDefaultRootElement();
-            for (int idx=0; idx < root.getElementCount(); idx++) {
-            	DocumentElement elem = (DocumentElement) root.getElement(idx);
-            	ElementML ml = elem.getElementML();
-            	if (ml instanceof SdtBlockML) {
-                    insertPos++;
-                    StateChunk chunkCurrent =
-                    	new StateChunk((org.docx4j.wml.SdtBlock) ml.getDocxObject());
-                    String stdId = chunkCurrent.getIdAsString();
+				if (chunkOlder == null) {
 
-                    StateChunk chunkOlder = stateDocx.getStateChunks().get(stdId);                
-                    
-                    if (chunkOlder==null) { 
-                    	
-                        log.debug("Couldn't find " + stdId + " .. handled already ...");
+					log.debug("Couldn't find " + stdId
+							+ " .. handled already ...");
 
-                        continue;                    	
-                    	
-                    } else if (chunkCurrent.getXml().equals(chunkOlder.getXml()))
-                    {
-                        continue;
-                    }
-                    
-                    log.debug("textChanged:");
-                    log.debug("FROM " + chunkOlder.getXml() );
-                    log.debug("");
-                    log.debug("TO   " + chunkCurrent.getXml() );
-                    log.debug("");
+					continue;
 
-                    // If we get this far, it is an update
-                    // We don't need to worry about the possibility that it has
-                    // changed remotely, since we checked all updates
-                    // on server had been applied before entering this method.
+				} else if (chunkCurrent.getXml().equals(chunkOlder.getXml())) {
+					continue;
+				}
 
-                    if ( chunkCurrent.containsTrackedChanges())
-                    {
-                        // This is a conflicting update, so don't transmit ours.
-                        // Keep a copy of what this user did in StateChunk
-                        // (so that 
+				log.debug("textChanged:");
+				log.debug("FROM " + chunkOlder.getXml());
+				log.debug("");
+				log.debug("TO   " + chunkCurrent.getXml());
+				log.debug("");
 
-                        log.debug("Conflict! Local edit " + stdId + " not committed.");
-                        someConflicted = true;
-                        continue;
-                    }
+				// If we get this far, it is an update
+				// We don't need to worry about the possibility that it has
+				// changed remotely, since we checked all updates
+				// on server had been applied before entering this method.
 
-                    if (stateDocx.getPromptForCheckinMessage() )
-                    {
+				if (chunkCurrent.containsTrackedChanges()) {
+					// This is a conflicting update, so don't transmit ours.
+					// Keep a copy of what this user did in StateChunk
+					// (so that
 
-                        if (checkinComment == null)
-                        {
+					log.debug("Conflict! Local edit " + stdId
+							+ " not committed.");
+					someConflicted = true;
+					continue;
+				}
 
-                            log.debug("Prompting for checkin message...");
-                            // NB with this model, we are no longer applying a 
-                            // comment to a single paragraph.  The server will stick
-                            // the comment on each affected rib.
+				if (stateDocx.getPromptForCheckinMessage()) {
 
-                            /*
-                            formCheckin form = new formCheckin();
-                            //form.Text = "Changes to '" + plutextTabbedControl.TextBoxChunkDisplayName.Text + "'";
-                            form.Text = "Changes ";
-                            using (form)
-                            {
-                                //if (form.ShowDialog(plutextTabbedControl) == DialogResult.OK)
-                                if (form.ShowDialog() == DialogResult.OK)
-                                {
-                                    checkinComment = form.textBoxChange.Text;
-                                }
-                            }*/
-                        }
-                    }
-                    else
-                    {
-                        checkinComment = "edited";
-                    }
+					if (checkinComment == null) {
 
-//                    TransformUpdate tu = new TransformUpdate();
-//                    tu.attachSdt(chunkCurrent.getXml() );
-//                    tu.setId( chunkCurrent.getId() );
-//                    transformsToSend.add(tu);
-                    
-                    T t = transformsFactory.createTransformsT();
-                    t.setOp("update");
-                    t.setIdref( chunkCurrent.getId().getVal().longValue() );
-                    t.setSdt( chunkCurrent.getSdt() );
-                    transformsToSend.add(t);
-                    
-                    
-            	}
-            } //for (idx) loop
+						log.debug("Prompting for checkin message...");
+						// NB with this model, we are no longer applying a
+						// comment to a single paragraph. The server will stick
+						// the comment on each affected rib.
 
-            // Ok, now send what we have
-    	    Transforms transforms = transformsFactory.createTransforms();
-    	    transforms.getT().addAll(transformsToSend);    	    
-            boolean suppressDeclaration = true;
-            boolean prettyprint = false;
-            String transformsString = org.docx4j.XmlUtils.marshaltoString(transforms, suppressDeclaration, prettyprint, org.plutext.Context.jcTransforms );
-            
-            checkinComment = " whatever!";
+						/*
+						 * formCheckin form = new formCheckin(); //form.Text =
+						 * "Changes to '" +
+						 * plutextTabbedControl.TextBoxChunkDisplayName.Text +
+						 * "'"; form.Text = "Changes "; using (form) { //if
+						 * (form.ShowDialog(plutextTabbedControl) ==
+						 * DialogResult.OK) if (form.ShowDialog() ==
+						 * DialogResult.OK) { checkinComment =
+						 * form.textBoxChange.Text; } }
+						 */
+					}
+				} else {
+					checkinComment = "edited";
+				}
 
-            log.debug("TRANSMITTING " + transformsString );
+				// TransformUpdate tu = new TransformUpdate();
+				// tu.attachSdt(chunkCurrent.getXml() );
+				// tu.setId( chunkCurrent.getId() );
+				// transformsToSend.add(tu);
 
-            String[] result = ws.transform(stateDocx.getDocID(), transformsString, checkinComment);
+				T t = transformsFactory.createTransformsT();
+				t.setOp("update");
+				t.setIdref(chunkCurrent.getId().getVal().longValue());
+				t.setSdt(chunkCurrent.getSdt());
+				transformsToSend.add(t);
 
-            log.debug("Checkin also returned results" );
+			}
+		} // for (idx) loop
 
-            i = 0;
-            // We do what is necessary to in effect apply the changes immediately,
-            // so there is no issue with the user making changes before it
-            // is applied, and those changes getting lost
-            // In strict theory, we shouldn't do this, because they'll end 
-            // up in the list in the wrong order.
-            // But we actually know there are no conflicting transforms with
-            // lower snums, so it isn't a problem.
-            // Remember the indocument controls still have the dodgy StyleSeparator, 
-            // so we will have to make allowance for that later
-            // (that is, until we're able to transform them away ...)
-            Boolean appliedTrue = true; 
-            Boolean localTrue = true;   // means it wouldn't be treated as a conflict
-            Boolean updateHighestFetchedFalse = false;
-            
-            // Handle each result appropriately
-            for (T t : transformsToSend)
-            {
-                log.debug(t.getIdref() + " " + t.getOp() + " result " + result[i]);
+		// Ok, now send what we have
+		Transforms transforms = transformsFactory.createTransforms();
+		transforms.getT().addAll(transformsToSend);
+		boolean suppressDeclaration = true;
+		boolean prettyprint = false;
+		String transformsString = org.docx4j.XmlUtils.marshaltoString(
+				transforms, suppressDeclaration, prettyprint,
+				org.plutext.Context.jcTransforms);
 
-                // Primarily, we're expecting sequence numbers
+		checkinComment = " whatever!";
 
-                // At present, op="update" returns a transform
-                // but it should be no different to what we sent
-                // except that its tag is updated
-                /* When registering these transforms, don't update highest fetched, 
-                 * because other clients could have transmitted changes to the server
-                 * while this method was running, and we wouldn't want to miss those
-                 * changes. */
-                if (result[i].contains("xmlns"))
-                {
-        			StringBuffer sb = new StringBuffer();
-        			sb.append("<p:transforms xmlns:p='"); 
-        			sb.append(Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE); 
-        			sb.append("'>");  
-        			sb.append(result[i]); 
-        			sb.append("</p:transforms>");
+		log.debug("TRANSMITTING " + transformsString);
 
-                    //getContentControlWithId(ta.getId().getVal().toString() ).Tag = ta.getTag();
-        			org.plutext.transforms.Transforms transformsObj = null;
-        			try {
-        				Unmarshaller u = Context.jcTransforms.createUnmarshaller();
-        				u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());
-        				transformsObj = (org.plutext.transforms.Transforms) u
-        						.unmarshal(new java.io.StringReader(sb.toString()));
-        			} catch (JAXBException e) {
-        				// TODO Auto-generated catch block
-        				e.printStackTrace();
-        			}
+		String[] result = ws.transform(stateDocx.getDocID(), transformsString,
+				checkinComment);
 
-        			for (T tmp : transformsObj.getT()) {
-        				TransformAbstract ta = TransformHelper.construct(tmp);
-        	            if (ta instanceof TransformUpdate) {
-                            // Set the in-document tag to match the one we got back
-                            // ?? the actual sdt or the state chunk?
-                			updateLocalContentControlTag(
-                				ta.getId().getVal().toString(), 
-                				ta.getTag());
-                			this.stateDocx.getStateChunks().put(
-                				ta.getId().getVal().toString(), 
-                				new StateChunk(ta.getSdt()));
-        	            } else {
-        	            	// Assumption is that chunking is done locally, 
-        	            	// and we won't get eg an Insert back
-        	            	log.error("Not handled: " + ta.getClass().getName() );
-        	            }
-        			}
-        			
-        			registerTransforms(
-        					transformsObj, appliedTrue, localTrue, updateHighestFetchedFalse);
-                 
-                }
-                else
-                {
-                	TransformAbstract ta = org.plutext.client.wrappedTransforms.TransformHelper.construct(t);
-                    ta.setSequenceNumber(Integer.parseInt(result[i]) );
-                    registerTransform(ta, appliedTrue, localTrue, updateHighestFetchedFalse);
-                }
+		log.debug("Checkin also returned results");
 
+		// We do what is necessary to in effect apply the changes immediately,
+		// so there is no issue with the user making changes before it
+		// is applied, and those changes getting lost
+		// In strict theory, we shouldn't do this, because they'll end
+		// up in the list in the wrong order.
+		// But we actually know there are no conflicting transforms with
+		// lower snums, so it isn't a problem.
+		// Remember the indocument controls still have the dodgy StyleSeparator,
+		// so we will have to make allowance for that later
+		// (that is, until we're able to transform them away ...)
+		Boolean appliedTrue = true;
+		Boolean localTrue = true; // means it wouldn't be treated as a
+									// conflict
+		Boolean updateHighestFetchedFalse = false;
 
+		// Handle each result appropriately
+		int i=0;
+		for (T t : transformsToSend) {
+			log.debug(t.getIdref() + " " + t.getOp() + " result " + result[i]);
 
-                i++;
-            }
+			// Primarily, we're expecting sequence numbers
 
-            someTransmitted = true;
+			// At present, op="update" returns a transform
+			// but it should be no different to what we sent
+			// except that its tag is updated
+			/*
+			 * When registering these transforms, don't update highest fetched,
+			 * because other clients could have transmitted changes to the
+			 * server while this method was running, and we wouldn't want to
+			 * miss those changes.
+			 */
+			if (result[i].contains("xmlns")) {
+				StringBuffer sb = new StringBuffer();
+				sb.append("<p:transforms xmlns:p='");
+				sb.append(Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE);
+				sb.append("'>");
+				sb.append(result[i]);
+				sb.append("</p:transforms>");
 
-            //// Need to wrap in a transforms element
-            //result = "<p:transforms xmlns:p='" + Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE + "'>"
-            //            + result
-            //            + "</p:transforms>";
+				// getContentControlWithId(ta.getId().getVal().toString() ).Tag
+				// = ta.getTag();
+				org.plutext.transforms.Transforms transformsObj = null;
+				try {
+					Unmarshaller u = Context.jcTransforms.createUnmarshaller();
+					u
+							.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());
+					transformsObj = (org.plutext.transforms.Transforms) u
+							.unmarshal(new java.io.StringReader(sb.toString()));
+				} catch (JAXBException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 
-            //log.debug("Parsing " + result);
+				for (T tmp : transformsObj.getT()) {
+					TransformAbstract ta = TransformHelper.construct(tmp);
+					if (ta instanceof TransformUpdate) {
+						// Set the in-document tag to match the one we got back
+						// ?? the actual sdt or the state chunk?
+						updateLocalContentControlTag(ta.getId().getVal()
+								.toString(), ta.getTag());
+						this.stateDocx.getStateChunks().put(
+								ta.getId().getVal().toString(),
+								new StateChunk(ta.getSdt()));
+					} else {
+						// Assumption is that chunking is done locally,
+						// and we won't get eg an Insert back
+						log.error("Not handled: " + ta.getClass().getName());
+					}
+				}
 
+				registerTransforms(transformsObj, appliedTrue, localTrue,
+						updateHighestFetchedFalse);
 
+			} else {
+				TransformAbstract ta = org.plutext.client.wrappedTransforms.TransformHelper
+						.construct(t);
+				ta.setSequenceNumber(Integer.parseInt(result[i]));
+				registerTransform(ta, appliedTrue, localTrue,
+						updateHighestFetchedFalse);
+			}
 
-        }
-        catch (Exception e)
-        {
-        	e.printStackTrace();
-            //log.debug(e.getMessage());
-            //log.debug(e.getStackTrace());
-        }
+			i++;
+		}
 
-        String checkinResult = null;
-
-        if (someTransmitted)
-        {
-            checkinResult = "Your changes were transmitted successfully.";
-            if (someConflicted)
-                checkinResult += " But there were one or more conflicts.";
-        }
-        else
-        {
-            checkinResult = "Your changes were NOT transmitted.";
-            if (someConflicted)
-                checkinResult += " This is because there were conflicts.";
-        }
-
-        WordMLEditor wmlEditor = 
-        	WordMLEditor.getInstance(WordMLEditor.class);
-        String title = "Commit Local Edits";
-        wmlEditor.showMessageDialog(
-        	title, checkinResult, JOptionPane.INFORMATION_MESSAGE);
+		if (someConflicted) {
+			throw new ClientException("There were one or more conflicts.");
+		}
     }
-
+    
     void createTransformsForStructuralChanges(
     	List<T> transformsToSend,
         Skeleton inferredSkeleton, 
@@ -875,18 +826,18 @@ private long applyUpdate(TransformAbstract t)
 
         ArrayList<DiffResultSpan> diffLines = de.getDiffLines();
 
-        /* Detect moves
-         * 
-         * In order to detect moves, we have to be able to
-         * identify whether a delete has a corresponding
-         * insert (and vice versa).
-         * 
-         * These HashMap objects facilitate this. 
-         * 
-         */
+        /*
+		 * Detect moves
+		 * 
+		 * In order to detect moves, we have to be able to identify whether a
+		 * delete has a corresponding insert (and vice versa).
+		 * 
+		 * These HashMap objects facilitate this.
+		 * 
+		 */
         HashMap<String, Integer> notHereInDest = new HashMap<String, Integer>();
         HashMap<String, Integer> notHereInSource = new HashMap<String, Integer>();
-        //Populate the dictionaries
+        // Populate the dictionaries
         int insertPos = -1;
         int i;
         log.debug("\n\r");
