@@ -1054,6 +1054,22 @@ public class WordMLEditorKit extends DefaultEditorKit {
         				insOrDel.delete();
         				
         				doc.refreshParagraphs(start, 0);
+        				
+        				Mediator client = editor.getWordMLEditorKit().getPlutextClient();
+        				if (client != null) {
+        					elem = (DocumentElement) doc.getSdtBlockMLElement(start);
+        					SdtBlockML sdt = (SdtBlockML) elem.getElementML();
+        					String s = 
+        						org.docx4j.XmlUtils.marshaltoString(
+        							sdt.getDocxObject(), 
+        							false);
+        					if (s.indexOf("</w:ins>") == -1
+        						&& s.indexOf("</w:del>") == -1) {
+        						s = sdt.getSdtProperties().getIdValue().toString();
+        						client.removeTrackedChangeType(s);
+        					}
+        				}
+
         				editor.setCaretPosition(end);
         				success = Boolean.TRUE;
             		}
@@ -1098,6 +1114,22 @@ public class WordMLEditorKit extends DefaultEditorKit {
         				insOrDel.delete();
         				
         				doc.refreshParagraphs(start, 0);
+        				
+        				Mediator client = editor.getWordMLEditorKit().getPlutextClient();
+        				if (client != null) {
+        					elem = (DocumentElement) doc.getSdtBlockMLElement(start);
+        					SdtBlockML sdt = (SdtBlockML) elem.getElementML();
+        					String s = 
+        						org.docx4j.XmlUtils.marshaltoString(
+        							sdt.getDocxObject(), 
+        							false);
+        					if (s.indexOf("</w:ins>") == -1
+        						&& s.indexOf("</w:del>") == -1) {
+        						s = sdt.getSdtProperties().getIdValue().toString();
+        						client.removeTrackedChangeType(s);
+        					}
+        				}
+        				
         				editor.setCaretPosition(start);
         				success = Boolean.TRUE;
                 	}
