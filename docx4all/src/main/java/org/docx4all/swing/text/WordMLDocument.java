@@ -99,6 +99,25 @@ public class WordMLDocument extends DefaultStyledDocument {
     	return FontManager.getInstance().getFontInAction(attr);
     }
 
+    public Element getSdtBlockMLElement(int pos) {
+    	DocumentElement elem = 
+    		(DocumentElement) 
+    			getParagraphMLElement(pos, false).getParentElement();
+    	ElementML ml = elem.getElementML();
+    	
+    	while (!(ml instanceof SdtBlockML) && elem.getParentElement() != null) {
+    		elem = (DocumentElement) elem.getParentElement();
+    		ml = elem.getElementML();
+    	}
+    	
+    	if (elem.getParentElement() == null) {
+    		//elem is root and root is never be an SdtBlockML
+    		elem = null;
+    	}
+    	
+    	return elem;
+    }
+    
 	public Element getParagraphMLElement(int pos, boolean impliedParagraph) {
 		Element elem = getRunMLElement(pos);
 		if (elem != null) {
