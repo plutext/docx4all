@@ -104,6 +104,25 @@ public class DocUtil {
 		return isShared;
 	}
 	
+	public final static String getChunkingStrategy(WordMLDocument doc) {
+		String theStrategy = null;
+		
+		DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
+		DocumentML docML = (DocumentML) elem.getElementML();
+		WordprocessingMLPackage wmlPackage = docML.getWordprocessingMLPackage();
+		if (wmlPackage != null) {
+			org.docx4j.docProps.custom.Properties.Property chunkingStrategy =
+				XmlUtil.getCustomProperty(
+						wmlPackage, 
+						Constants.PLUTEXT_GROUPING_PROPERTY_NAME);
+			if (chunkingStrategy != null) {
+				theStrategy = chunkingStrategy.getLpwstr();
+			}
+		}
+		
+		return theStrategy;
+	}
+	
 	/**
 	 * Makes the xml content of document become the main document part
 	 * of WordprocessingMLPackage.
