@@ -39,10 +39,12 @@ import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.PropertiesContainerML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
+import org.docx4j.XmlUtils;
 import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.DocPropsCustomPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
+import org.docx4j.wml.SdtBlock;
 import org.w3c.dom.Node;
 
 /**
@@ -465,6 +467,58 @@ public class XmlUtil {
 		}
 	}
 	
+    /* Split a control containing n paragraphs
+     * into n controls.  
+     * 
+     * The ID of the first control remains the same.
+     * 
+     * Returns a list of SdtBlock(s) that represents 
+     * all new resulting content controls.
+     */
+    public static List<SdtBlock> chunk(SdtBlock cc)
+    {
+    	SdtBlock copy = (SdtBlock) XmlUtils.deepCopy(cc);
+    	
+    	List<SdtBlock> theChunks = new ArrayList<SdtBlock>();
+		theChunks.add(copy);
+    	
+    	List<Object> children = copy.getSdtContent().getEGContentBlockContent();
+    	if (children.size() > 1) {
+        	List<Object> childrenToChunk = new ArrayList<Object>();
+    		for (int i=1; i < children.size(); i++) {
+    			Object o = children.get(i);
+    			if (o instanceof org.docx4j.wml.P
+    				|| (o instanceof org.docx4j.wml.Tbl)) {
+    				childrenToChunk.add(o);
+    			} else {
+    				//TODO: Consider what to do with these
+    			}
+    		}
+    		
+    		for (Object o: childrenToChunk) {
+    			children.remove(o);
+    			SdtBlock newChunk = createSdtBlock();
+    			newChunk.getSdtContent().getEGContentBlockContent().add(o);
+    			theChunks.add(newChunk);
+    		}
+    	}
+    	
+    	return theChunks;
+    }
+
+    private static SdtBlock createSdtBlock() {
+		org.docx4j.wml.SdtBlock sdtBlock = ObjectFactory.createSdtBlock();
+		org.docx4j.wml.SdtPr sdtPr = ObjectFactory.createSdtPr();
+		org.docx4j.wml.SdtContentBlock content = ObjectFactory.createSdtContentBlock();
+		
+		sdtPr.setId();
+		sdtPr.setTag(ObjectFactory.createTag("0"));
+		sdtBlock.setSdtPr(sdtPr);
+		sdtBlock.setSdtContent(content);
+
+		return sdtBlock;
+    }
+
 	private XmlUtil() {
 		;//uninstantiable
 	}
