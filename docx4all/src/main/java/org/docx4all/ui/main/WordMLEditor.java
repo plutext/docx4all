@@ -465,7 +465,7 @@ public class WordMLEditor extends SingleFrameApplication {
     		if (f.exists()) {
     			doc = editorKit.read(f);
     		}
-		} catch (IOException exc) {
+		} catch (Exception exc) {
 			exc.printStackTrace();
 			
 			ResourceMap rm = getContext().getResourceMap();
