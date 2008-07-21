@@ -83,7 +83,13 @@ public class WordMLDocument extends DefaultStyledDocument {
 	}
 	
 	public synchronized boolean isSnapshotFireBan() {
-		return snapshotFireBan;
+		//TODO: Uncomment this if needed.
+		//return snapshotFireBan;
+		//Currently we are not using this feature.
+		//By returning true we are applying snapshotFireBan
+		//and thus, preventing this WordMLDocument from
+		//firing snapshot change event (see: fireSnapshotChanged()).
+		return true;
 	}
 	
 	public synchronized void setSnapshotFireBan(boolean b) {
