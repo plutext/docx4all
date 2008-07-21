@@ -34,7 +34,7 @@ public interface Constants {
 	
 	public final static String DOT = ".";
 
-	public final static String SYNCHRONIZED_FLAG = "synchronizedFlag";
+	public final static String LOCAL_VIEWS_SYNCHRONIZED_FLAG = "localViewsSynchronizedFlag";
 	
 	public final static String NEWLINE = "\n";
 	
