@@ -96,7 +96,7 @@ public class TransformInsert extends TransformAbstract {
 		boolean forward = true;
 
 		try {
-			// editor.beginContentControlEdit();
+			editor.beginContentControlEdit();
 
 			DocumentElement elem = (DocumentElement) doc
 					.getDefaultRootElement();
@@ -134,12 +134,11 @@ public class TransformInsert extends TransformAbstract {
 				origPos = editor.getDocument().getLength() - origPos;
 			}
 
-			log
-					.debug("apply(WordMLTextPane): Set caret position to "
-							+ origPos);
+			editor.endContentControlEdit();
+			
+			log.debug("apply(WordMLTextPane): Set caret position to " + origPos);
 			editor.setCaretPosition(origPos);
 
-			// editor.endContentControlEdit();
 		}
 	}
 
