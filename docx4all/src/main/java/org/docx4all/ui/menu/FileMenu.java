@@ -315,7 +315,7 @@ public class FileMenu extends UIMenu {
             	    	doc.setDocumentFilter(new WordMLDocumentFilter());
             	    	
             	    	wmlTextPane.setDocument(doc);
-            	    	wmlTextPane.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
+            	    	wmlTextPane.putClientProperty(Constants.LOCAL_VIEWS_SYNCHRONIZED_FLAG, Boolean.TRUE);
 
             	    	if (DocUtil.isSharedDocument(doc)) {
             	    		wmlTextPane.getWordMLEditorKit().initPlutextClient(wmlTextPane);
@@ -701,7 +701,7 @@ public class FileMenu extends UIMenu {
 		
     	JEditorPane editor = SwingUtil.getSourceEditor(iframe);
     	if (editor != null
-        	&& !((Boolean) editor.getClientProperty(Constants.SYNCHRONIZED_FLAG)).booleanValue()) {
+        	&& !((Boolean) editor.getClientProperty(Constants.LOCAL_VIEWS_SYNCHRONIZED_FLAG)).booleanValue()) {
     		//signifies that Source View is not synchronised with Editor View yet.
     		//Therefore, it is dirty and has to be saved.
     		
