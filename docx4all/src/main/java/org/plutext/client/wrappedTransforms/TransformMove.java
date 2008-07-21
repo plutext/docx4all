@@ -82,71 +82,72 @@ public class TransformMove extends TransformAbstract {
 		boolean forward = true;
 
 		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+		try {
+			editor.beginContentControlEdit();
 
-		// Delete first
-		DocumentElement elem = Util.getDocumentElement(doc, getId().getVal()
-				.toString());
-		if (elem != null) {
-			int start = elem.getStartOffset();
-			int end = elem.getEndOffset();
+			// Delete first
+			DocumentElement elem = 
+				Util.getDocumentElement(doc, getId().getVal().toString());
+			if (elem != null) {
+				int start = elem.getStartOffset();
+				int end = elem.getEndOffset();
 
-			if (start <= origPos && origPos < end) {
-				origPos = end;
+				if (start <= origPos && origPos < end) {
+					origPos = end;
+				}
+
+				if (end <= origPos) {
+					origPos = editor.getDocument().getLength() - origPos;
+					forward = false;
+				}
+
+				doc.remove(start, end - start);
+
+				if (!forward) {
+					origPos = doc.getLength() - origPos;
+					forward = true;
+				}
 			}
 
-			if (end <= origPos) {
-				origPos = editor.getDocument().getLength() - origPos;
+			// Then insert at new location
+			elem = (DocumentElement) doc.getDefaultRootElement();
+			int idx = 
+				Math.min(elem.getElementCount() - 1, this.moveToIndex.intValue());
+			idx = Math.max(idx, 0);
+
+			log.debug("apply(WordMLTextPane): SdtBlock will be moved to idx=" 
+				+ idx
+				+ " in document.");
+
+			elem = (DocumentElement) elem.getElement(idx);
+
+			log.debug("apply(WordMLTextPane): DocumentElement at idx=" + idx
+				+ " is " + elem);
+
+			log.debug("apply(WordMLTextPane): Current caret position=" + origPos);
+
+			if (elem.getStartOffset() <= origPos) {
+				origPos = doc.getLength() - origPos;
 				forward = false;
 			}
 
-			try {
-				doc.remove(start, end - start);
-			} catch (BadLocationException exc) {
-				;// should not happen
-			}
-
-			if (!forward) {
-				origPos = doc.getLength() - origPos;
-				forward = true;
-			}
-		}
-
-		// Then insert at new location
-		elem = (DocumentElement) doc.getDefaultRootElement();
-		int idx = Math.min(elem.getElementCount() - 1, this.moveToIndex
-				.intValue());
-		idx = Math.max(idx, 0);
-
-		log.debug("apply(WordMLTextPane): SdtBlock will be moved to idx=" + idx
-				+ " in document.");
-
-		elem = (DocumentElement) elem.getElement(idx);
-
-		log.debug("apply(WordMLTextPane): DocumentElement at idx=" + idx
-				+ " is " + elem);
-
-		log.debug("apply(WordMLTextPane): Current caret position=" + origPos);
-
-		if (elem.getStartOffset() <= origPos) {
-			origPos = doc.getLength() - origPos;
-			forward = false;
-		}
-
-		ElementMLRecord[] recs = { new ElementMLRecord(new SdtBlockML(sdt),
-				false) };
-		WordMLFragment frag = new WordMLFragment(recs);
-		try {
+			ElementMLRecord[] recs = 
+				{ new ElementMLRecord(new SdtBlockML(sdt), false) };
+			WordMLFragment frag = new WordMLFragment(recs);
+			
 			doc.insertFragment(elem.getStartOffset(), frag, null);
+				
 		} catch (BadLocationException exc) {
-			;// should not happen
+			exc.printStackTrace();// should not happen
+			
 		} finally {
 			if (!forward) {
 				origPos = editor.getDocument().getLength() - origPos;
 			}
 
-			log
-					.debug("apply(WordMLTextPane): Set caret position to "
-							+ origPos);
+			editor.endContentControlEdit();
+			
+			log.debug("apply(WordMLTextPane): Set caret position to " + origPos);
 			editor.setCaretPosition(origPos);
 		}
 	}
