@@ -941,13 +941,21 @@ public class ToolBarStates extends InternalFrameAdapter
     	}
     	if (_currentEditor != null 
         		&& _currentEditor.getDocument() == e.getDocument()) {
-    		_currentEditor.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.FALSE);
-    		setDocumentDirty(_currentEditor, true);
+    		//Set a flag that signifies Editor View is not synchronised with Source View.
+   			_currentEditor.putClientProperty(Constants.LOCAL_VIEWS_SYNCHRONIZED_FLAG, Boolean.FALSE);
+   			
     		if (_currentEditor instanceof WordMLTextPane) {
     			WordMLTextPane editorView = (WordMLTextPane) _currentEditor;
-    			WordMLDocument doc = (WordMLDocument) editorView.getDocument();
-    			boolean isShared = DocUtil.isSharedDocument(doc);
-    			setLocalEditsEnabled(editorView, isShared);
+    			if (editorView.isInContentControlEdit()) {
+    				//Ignore this changedUpdate event.
+    			} else {
+    				WordMLDocument doc = (WordMLDocument) editorView.getDocument();
+    				boolean isShared = DocUtil.isSharedDocument(doc);
+    				setLocalEditsEnabled(editorView, isShared);
+            		setDocumentDirty(_currentEditor, true);
+    			}
+    		} else {
+        		setDocumentDirty(_currentEditor, true);
     		}
     	}
     }
@@ -965,13 +973,21 @@ public class ToolBarStates extends InternalFrameAdapter
     	}
     	if (_currentEditor != null 
         		&& _currentEditor.getDocument() == e.getDocument()) {
-    		_currentEditor.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.FALSE);
-    		setDocumentDirty(_currentEditor, true);
+    		//Set a flag that signifies Editor View is not synchronised with Source View.
+   			_currentEditor.putClientProperty(Constants.LOCAL_VIEWS_SYNCHRONIZED_FLAG, Boolean.FALSE);
+   			
     		if (_currentEditor instanceof WordMLTextPane) {
     			WordMLTextPane editorView = (WordMLTextPane) _currentEditor;
-    			WordMLDocument doc = (WordMLDocument) editorView.getDocument();
-    			boolean isShared = DocUtil.isSharedDocument(doc);
-    			setLocalEditsEnabled(editorView, isShared);
+    			if (editorView.isInContentControlEdit()) {
+    				//Ignore this changedUpdate event.
+    			} else {
+    				WordMLDocument doc = (WordMLDocument) editorView.getDocument();
+    				boolean isShared = DocUtil.isSharedDocument(doc);
+    				setLocalEditsEnabled(editorView, isShared);
+            		setDocumentDirty(_currentEditor, true);
+    			}
+    		} else {
+        		setDocumentDirty(_currentEditor, true);
     		}
     	}
     }
@@ -987,13 +1003,21 @@ public class ToolBarStates extends InternalFrameAdapter
     	}
     	if (_currentEditor != null 
     		&& _currentEditor.getDocument() == e.getDocument()) {
-   			_currentEditor.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.FALSE);
-    		setDocumentDirty(_currentEditor, true);
+    		//Set a flag that signifies Editor View is not synchronised with Source View.
+   			_currentEditor.putClientProperty(Constants.LOCAL_VIEWS_SYNCHRONIZED_FLAG, Boolean.FALSE);
+   			
     		if (_currentEditor instanceof WordMLTextPane) {
     			WordMLTextPane editorView = (WordMLTextPane) _currentEditor;
-    			WordMLDocument doc = (WordMLDocument) editorView.getDocument();
-    			boolean isShared = DocUtil.isSharedDocument(doc);
-    			setLocalEditsEnabled(editorView, isShared);
+    			if (editorView.isInContentControlEdit()) {
+    				//Ignore this changedUpdate event.
+    			} else {
+    				WordMLDocument doc = (WordMLDocument) editorView.getDocument();
+    				boolean isShared = DocUtil.isSharedDocument(doc);
+    				setLocalEditsEnabled(editorView, isShared);
+            		setDocumentDirty(_currentEditor, true);
+    			}
+    		} else {
+        		setDocumentDirty(_currentEditor, true);
     		}
     	}
 	}
