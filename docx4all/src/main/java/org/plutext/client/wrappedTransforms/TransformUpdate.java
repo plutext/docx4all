@@ -113,7 +113,7 @@ public class TransformUpdate extends TransformAbstract {
 		boolean forward = true;
 		
 		try {
-			//editor.beginContentControlEdit();
+			editor.beginContentControlEdit();
 			
 			DocumentElement elem = Util.getDocumentElement(doc, id.toString());
 			
@@ -147,9 +147,10 @@ public class TransformUpdate extends TransformAbstract {
 			if (!forward) {
 				origPos = editor.getDocument().getLength() - origPos;
 			}
+			editor.endContentControlEdit();
+			
 			log.debug("apply(WordMLTextPane): Set caret position to " + origPos);
 			editor.setCaretPosition(origPos);
-			//editor.endContentControlEdit();
 		}
 	}
 } //TransformUpdate class
