@@ -443,7 +443,7 @@ public class WordMLEditor extends SingleFrameApplication {
    	
     	sourceView.addFocusListener(getToolbarStates());
     	sourceView.setDocument(doc);
-    	sourceView.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
+    	sourceView.putClientProperty(Constants.LOCAL_VIEWS_SYNCHRONIZED_FLAG, Boolean.TRUE);
     	
     	return sourceView;
     }
@@ -486,7 +486,7 @@ public class WordMLEditor extends SingleFrameApplication {
     	doc.addDocumentListener(_toolbarStates);
     	doc.setDocumentFilter(new WordMLDocumentFilter());
     	editorView.setDocument(doc);
-    	editorView.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
+    	editorView.putClientProperty(Constants.LOCAL_VIEWS_SYNCHRONIZED_FLAG, Boolean.TRUE);
     	
     	if (DocUtil.isSharedDocument(doc)) {
     		editorKit.initPlutextClient(editorView);
@@ -717,7 +717,7 @@ public class WordMLEditor extends SingleFrameApplication {
     					(Container) pane.getSelectedComponent(), 
     					false);
     		if (selectedView == editorView) {
-    			Boolean isSynched = (Boolean) sourceView.getClientProperty(Constants.SYNCHRONIZED_FLAG);
+    			Boolean isSynched = (Boolean) sourceView.getClientProperty(Constants.LOCAL_VIEWS_SYNCHRONIZED_FLAG);
     			if (!isSynched.booleanValue()) {
     				//means that source view has been edited and
     				//editorView has to be synchronised.
@@ -756,11 +756,11 @@ public class WordMLEditor extends SingleFrameApplication {
     		    	editorView.repaint();
     		    	editorView.setCaretPosition(caretPos);
     		    	
-    		    	//reset SYNCHRONIZED_FLAG of source view
-    		    	sourceView.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
+    		    	//reset LOCAL_VIEWS_SYNCHRONIZED_FLAG of source view
+    		    	sourceView.putClientProperty(Constants.LOCAL_VIEWS_SYNCHRONIZED_FLAG, Boolean.TRUE);
     			}
     		} else if (selectedView == sourceView) {
-    			Boolean isSynched = (Boolean) editorView.getClientProperty(Constants.SYNCHRONIZED_FLAG);
+    			Boolean isSynched = (Boolean) editorView.getClientProperty(Constants.LOCAL_VIEWS_SYNCHRONIZED_FLAG);
     			if (!isSynched.booleanValue()) {
     				int caretPos = sourceView.getCaretPosition();
     				
@@ -772,8 +772,8 @@ public class WordMLEditor extends SingleFrameApplication {
     				sourceView.repaint();
     				sourceView.setCaretPosition(caretPos);
     				
-    				//reset SYNCHRONIZED_FLAG of editor view
-    				editorView.putClientProperty(Constants.SYNCHRONIZED_FLAG, Boolean.TRUE);
+    				//reset LOCAL_VIEWS_SYNCHRONIZED_FLAG of editor view
+    				editorView.putClientProperty(Constants.LOCAL_VIEWS_SYNCHRONIZED_FLAG, Boolean.TRUE);
     			}    			
     		}
     	}
