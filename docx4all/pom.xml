@@ -180,6 +180,10 @@
 
  mvn deploy:deploy-file -f wagon-svn-pom.xml -Dfile=lib/alfresco-web-service-client.jar -DgroupId=alfresco.community -DartifactId=alfresco-web-service-client-patched -Dversion=2.9.1 -Dpackaging=jar -DrepositoryId=docx4all -Durl=svn:http://dev.plutext.org/svn/docx4all/trunk/docx4all/m2
 
+			or (for docx4j.jar)www  
+						
+			mvn deploy:deploy-file -f wagon-svn-pom.xml -Dfile=dist/docx4j.jar -DpomFile=pom.xml  -Dpackaging=jar -DrepositoryId=docx4all -Durl=svn:http://dev.plutext.org/svn/docx4all/trunk/docx4all/m2
+
 
 --> 
 
@@ -243,8 +247,7 @@
 			
 			(stuff not available in public repositories) 
 			
-			mvn deploy:deploy-file -f wagon-svn-pom.xml -Dfile=lib/xalan-2.7.0-patched-6396599-stripped.jar -DgroupId=xalan -DartifactId=xalan-patched -Dversion=2.7.0 -Dpackaging=jar -DrepositoryId=docx4j -Durl=svn:http://dev.plutext.org/svn/docx4j/trunk/docx4j/m2
-			
+			mvn deploy:deploy-file -f wagon-svn-pom.xml -Dfile=lib/xalan-2.7.0-patched-6396599-stripped.jar -DpomFile=xxx -DgroupId=xalan -DartifactId=xalan-patched -Dversion=2.7.0 -Dpackaging=jar -DrepositoryId=docx4j -Durl=svn:http://dev.plutext.org/svn/docx4j/trunk/docx4j/m2
 			
 		-->
 
