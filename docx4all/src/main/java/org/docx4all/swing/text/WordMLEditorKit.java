@@ -189,9 +189,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		doc.lockWrite();
 		doc.setSnapshotFireBan(true);
 		
-		//doc.removeDocumentListener(this.plutextClientScheduler);
-		//editor.removeCaretListener(this.plutextClientScheduler);
-		//editor.removeCaretListener(contentControlTracker);
+		editor.removeCaretListener(contentControlTracker);
 		
 		inContentControlEdit = true;
 	}
@@ -201,9 +199,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		
 		inContentControlEdit = false;
 		
-		//editor.addCaretListener(contentControlTracker);
-		//editor.addCaretListener(this.plutextClientScheduler);
-		//doc.addDocumentListener(this.plutextClientScheduler);
+		editor.addCaretListener(contentControlTracker);
 		
 		doc.setSnapshotFireBan(false);
 		doc.unlockWrite();
