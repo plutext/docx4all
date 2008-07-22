@@ -19,16 +19,13 @@
 
 package org.plutext.client.wrappedTransforms;
 
-import java.math.BigInteger;
 import java.util.HashMap;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
-import org.docx4all.swing.text.WordMLFragment;
 import org.plutext.client.Mediator;
-import org.plutext.client.Pkg;
 import org.plutext.client.Util;
 import org.plutext.client.state.StateChunk;
 import org.plutext.transforms.Transforms.T;
@@ -58,27 +55,24 @@ public class TransformDelete extends TransformAbstract {
 		log.debug("apply(ServerFrom): Deleting SdtBlock = " + getSdt() 
 				+ " - ID=" + getId().getVal());
 
-    	if ( stateChunks.remove(id) == null) {
-    		
+    	if ( stateChunks.remove(getId().getVal().toString()) == null) {
     		log.debug("apply(): Could not find SDT Id=" + getId().getVal() + " snapshot.");
 	        // couldn't find!
 	        // TODO - throw error
     		return -1;
     	}
     	
-   		apply(mediator.getWordMLTextPane(), getId().getVal());
+   		apply(mediator.getWordMLTextPane());
         	
-        mediator.getDivergences().delete(  id.getVal().toString() );
+        mediator.getDivergences().delete(getId().getVal().toString());
         
 		return sequenceNumber;
     }
         
-        
-
-	protected static void apply(final WordMLTextPane editor, final BigInteger id) {
+	protected void apply(WordMLTextPane editor) {
 		
 		log.debug("apply(WordMLTextPane): Deleting SdtBlock ID=" 
-				+ id + " from Editor.");
+				+ getId().getVal().toString() + "...");
 		
 		WordMLDocument doc = (WordMLDocument) editor.getDocument();
 		int origPos = editor.getCaretPosition();
@@ -87,33 +81,31 @@ public class TransformDelete extends TransformAbstract {
 		try {
 			editor.beginContentControlEdit();
 			
-			DocumentElement elem = Util.getDocumentElement(doc, id.toString());
+			DocumentElement elem = Util.getDocumentElement(doc, getId().getVal().toString());
+			
+			if (elem == null) {
+				//should not happen.
+				log.error("apply(WordMLTextPane): DocumentElement NOT FOUND. Sdt Id=" 
+					+ getId().getVal().toString());
+				return;
+			}
 			
 			log.debug("apply(WordMLTextPane): SdtBlock Element=" + elem);
 			log.debug("apply(WordMLTextPane): Current caret position=" + origPos);
 			
-			if (elem != null) {
-				log.debug("apply(WordMLTextPane): Deleting SdtBlock Element...");
-				
-				if (elem.getStartOffset() <= origPos 
-					&& origPos < elem.getEndOffset()) {
-					origPos = elem.getEndOffset();
-				}
-				
-				if (elem.getEndOffset() <= origPos) {
-					origPos = editor.getDocument().getLength() - origPos;
-					forward = false;
-				}
-					
-				editor.setCaretPosition(elem.getStartOffset());
-				editor.moveCaretPosition(elem.getEndOffset());
-				editor.replaceSelection((WordMLFragment) null);
-			} else {
-				//silently ignore
-				log.warn("apply(WordMLTextPane): SdtBlock Id=" 
-					+ id
-					+ " NOT FOUND in editor.");
+			if (elem.getStartOffset() <= origPos 
+				&& origPos < elem.getEndOffset()) {
+				origPos = elem.getEndOffset();
 			}
+				
+			if (elem.getEndOffset() <= origPos) {
+				origPos = doc.getLength() - origPos;
+				forward = false;
+			}
+			
+			elem.getElementML().delete();
+			doc.refreshParagraphs(elem.getStartOffset(), 1);
+
 		} finally {
 			if (!forward) {
 				origPos = doc.getLength() - origPos;
