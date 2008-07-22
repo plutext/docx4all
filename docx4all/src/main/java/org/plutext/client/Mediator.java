@@ -642,7 +642,8 @@ private long applyUpdate(TransformAbstract t)
 
 					continue;
 
-				} else if (chunkCurrent.getXml().equals(chunkOlder.getXml())) {
+				} else if (chunkCurrent.getXml().equals(chunkOlder.getXml())
+								&& !chunkCurrent.containsTrackedChanges()) {
 					continue;
 				}
 
@@ -818,7 +819,6 @@ private long applyUpdate(TransformAbstract t)
         Skeleton inferredSkeleton, 
         Skeleton serverSkeleton)
     {
-    	
     	org.plutext.transforms.ObjectFactory transformsFactory = new org.plutext.transforms.ObjectFactory();
 
         DiffEngine de = new DiffEngine();
