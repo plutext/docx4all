@@ -20,6 +20,7 @@
 package org.plutext.client.state;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 
 import org.apache.log4j.Logger;
@@ -30,6 +31,7 @@ import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.plutext.client.CustomProperties;
 import org.plutext.client.Util;
 import org.plutext.client.wrappedTransforms.TransformAbstract;
+import org.plutext.client.wrappedTransforms.TransformComparator;
 
 /* Represent the configuration of the
  * document, and certain transient
@@ -172,6 +174,7 @@ public class StateDocx {
              */
             ArrayList<TransformAbstract> transformsBySeqNum = new ArrayList<TransformAbstract>();
 			public ArrayList<TransformAbstract> getTransformsBySeqNum() {
+				Collections.sort(transformsBySeqNum, new TransformComparator());
 				return transformsBySeqNum;
 			}
 
@@ -227,7 +230,38 @@ public class StateDocx {
             }
 
 
-        }
+        } //TransformsCollection inner class
+
+    } //StateDocx class
 
 
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
