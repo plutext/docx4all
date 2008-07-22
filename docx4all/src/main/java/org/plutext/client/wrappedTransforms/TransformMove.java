@@ -21,14 +21,11 @@ package org.plutext.client.wrappedTransforms;
 
 import java.util.HashMap;
 
-import javax.swing.text.BadLocationException;
-
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
-import org.docx4all.swing.text.WordMLFragment;
-import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
+import org.docx4all.util.DocUtil;
 import org.docx4all.xml.SdtBlockML;
 import org.plutext.client.Mediator;
 import org.plutext.client.Util;
@@ -45,8 +42,14 @@ public class TransformMove extends TransformAbstract {
 	protected Long moveToIndex;
 
 	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
+    	if ( stateChunks.get(getId().getVal().toString()) == null) {
+    		log.error("Could not find SDT Id=" + getId().getVal() + " snapshot.");
+	        // TODO - throw error
+    		return -1;
+    	}
+    	
 		if (this.t.getPosition() == null || this.t.getPosition() < 0) {
-			log.warn("Invalid location t.getPosition()=" + t.getPosition());
+			log.error("Invalid location t.getPosition()=" + t.getPosition());
 			this.moveToIndex = null;
 
 		} else {
@@ -81,70 +84,81 @@ public class TransformMove extends TransformAbstract {
 		int origPos = editor.getCaretPosition();
 		boolean forward = true;
 
+		log.debug("apply(WordMLTextPane): Moving SdtBlock Id=" 
+				+ getId().getVal().toString() + " in Editor.");
+		log.debug("apply(WordMLTextPane): Current caret position=" + origPos);
+
 		WordMLDocument doc = (WordMLDocument) editor.getDocument();
 		try {
 			editor.beginContentControlEdit();
 
-			// Delete first
 			DocumentElement elem = 
 				Util.getDocumentElement(doc, getId().getVal().toString());
-			if (elem != null) {
-				int start = elem.getStartOffset();
-				int end = elem.getEndOffset();
+			if (elem == null) {
+				//should not happen.
+				log.error("apply(WordMLTextPane): DocumentElement NOT FOUND. Sdt Id=" 
+					+ getId().getVal().toString());
+				return;
+			}
+			
+			DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+			int idx = root.getElementIndex(elem.getStartOffset());
+			if (this.moveToIndex.intValue() == idx) {
+				log.debug("apply(WordMLTextPane): Need not to move."
+					+ " moveToIndex == currentIndex == " 
+					+ idx);
+				return;
+			}
+			
+			int start = elem.getStartOffset();
+			int end = elem.getEndOffset();
 
-				if (start <= origPos && origPos < end) {
-					origPos = end;
-				}
-
-				if (end <= origPos) {
-					origPos = editor.getDocument().getLength() - origPos;
-					forward = false;
-				}
-
-				doc.remove(start, end - start);
-
-				if (!forward) {
-					origPos = doc.getLength() - origPos;
-					forward = true;
-				}
+			if (start <= origPos && origPos < end) {
+				origPos = end;
 			}
 
-			// Then insert at new location
-			elem = (DocumentElement) doc.getDefaultRootElement();
-			int idx = 
-				Math.min(elem.getElementCount() - 1, this.moveToIndex.intValue());
+			if (end <= origPos) {
+				origPos = doc.getLength() - origPos;
+				forward = false;
+			}
+
+			SdtBlockML copy = (SdtBlockML) elem.getElementML().clone();
+			elem.getElementML().delete();
+			doc.refreshParagraphs(elem.getStartOffset(), 1);
+									
+			if (!forward) {
+				origPos = doc.getLength() - origPos;
+				forward = true;
+			}
+
+			idx = Math.min(root.getElementCount() - 1, this.moveToIndex.intValue());
 			idx = Math.max(idx, 0);
 
 			log.debug("apply(WordMLTextPane): SdtBlock will be moved to idx=" 
 				+ idx
 				+ " in document.");
 
-			elem = (DocumentElement) elem.getElement(idx);
+			elem = (DocumentElement) root.getElement(idx);
 
 			log.debug("apply(WordMLTextPane): DocumentElement at idx=" + idx
 				+ " is " + elem);
-
-			log.debug("apply(WordMLTextPane): Current caret position=" + origPos);
-
+			
 			if (elem.getStartOffset() <= origPos) {
 				origPos = doc.getLength() - origPos;
 				forward = false;
 			}
 
-			ElementMLRecord[] recs = 
-				{ new ElementMLRecord(new SdtBlockML(sdt), false) };
-			WordMLFragment frag = new WordMLFragment(recs);
-			
-			doc.insertFragment(elem.getStartOffset(), frag, null);
-				
-		} catch (BadLocationException exc) {
-			exc.printStackTrace();// should not happen
+			elem.getElementML().addSibling(copy, false);
+			doc.refreshParagraphs(elem.getStartOffset(), 1);
 			
 		} finally {
 			if (!forward) {
-				origPos = editor.getDocument().getLength() - origPos;
+				origPos = doc.getLength() - origPos;
 			}
 
+			log.debug("apply(WordMLTextPane): Resulting Structure...");
+			DocUtil.displayStructure(doc);
+			
 			editor.endContentControlEdit();
 			
 			log.debug("apply(WordMLTextPane): Set caret position to " + origPos);
