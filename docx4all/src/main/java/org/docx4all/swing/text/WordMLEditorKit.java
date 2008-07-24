@@ -185,24 +185,19 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	}
 	
 	public final synchronized void beginContentControlEdit(WordMLTextPane editor) {
+		inContentControlEdit = true;
+		
 		WordMLDocument doc = (WordMLDocument) editor.getDocument();
 		doc.lockWrite();
 		doc.setSnapshotFireBan(true);
-		
-		editor.removeCaretListener(contentControlTracker);
-		
-		inContentControlEdit = true;
 	}
 	
 	public final synchronized void endContentControlEdit(WordMLTextPane editor) {
 		WordMLDocument doc = (WordMLDocument) editor.getDocument();
-		
-		inContentControlEdit = false;
-		
-		editor.addCaretListener(contentControlTracker);
-		
 		doc.setSnapshotFireBan(false);
 		doc.unlockWrite();
+		
+		inContentControlEdit = false;
 	}
 	
 	public final synchronized boolean isInContentControlEdit() {
@@ -560,6 +555,10 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		
 	    public void caretUpdate(CaretEvent evt) {			
 	    	WordMLTextPane editor = (WordMLTextPane) evt.getSource();
+	    	if (editor.isInContentControlEdit()) {
+	    		return;
+	    	}
+	    	
     		int start = Math.min(evt.getDot(), evt.getMark());
     		int end = Math.max(evt.getDot(), evt.getMark());
     		
@@ -776,24 +775,28 @@ public class WordMLEditorKit extends DefaultEditorKit {
         public void actionPerformed(ActionEvent e) {
         	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
         	if (editor != null) {
-        		WordMLDocument doc = (WordMLDocument) editor.getDocument();
         		Mediator plutextClient = editor.getWordMLEditorKit().getPlutextClient();
         		if (plutextClient != null) {
                 	log.debug("FetchRemoteEditsAction.actionPerformed():...");
+                	
                 	try {
-                		doc.lockWrite();
-                		
                 		editor.saveCaretText();
                 		
+                		editor.beginContentControlEdit();
                 		plutextClient.startSession();
                 		plutextClient.fetchUpdates();
                 		plutextClient.applyRemoteChanges();
+                		
+                		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+                		int start = plutextClient.getUpdateStartOffset();
+                		int end = plutextClient.getUpdateEndOffset();
+                		doc.refreshParagraphs(start, end);
                 		
                 	} catch (Exception exc) {
                 		this.exc = exc;
                 	} finally {
                 		plutextClient.endSession();
-                		doc.unlockWrite();
+                		editor.endContentControlEdit();
                 	}
         		}
         	}
