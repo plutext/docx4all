@@ -263,7 +263,9 @@ public class Mediator
         if (setApplied) { t.setApplied(true); }
         if (setLocal) { t.setLocal(true); }
 
-        log.debug("Instance " + stateDocx.getDocID() + " -- Registering " + t.getSequenceNumber() );
+        log.debug("Instance " + stateDocx.getDocID() + " -- Registering " + t.getSequenceNumber() 
+        	+ ": "
+        	+ t.getClass().getSimpleName());
         try
         {
             stateDocx.getTransforms().add(t, updateHighestFetched);
@@ -320,9 +322,12 @@ public void applyRemoteChanges()
 
     //if (updatesIncludeInsertions)
     //{
-		WordMLDocument wordMLDoc = 
+		WordMLDocument doc = 
 			(WordMLDocument) getWordMLTextPane().getDocument();
-        Skeleton actuals  = Util.createSkeleton(wordMLDoc);
+		this.updateStartOffset = doc.getLength();
+		this.updateEndOffset = 0;
+		
+        Skeleton actuals  = Util.createSkeleton(doc);
 
         DiffEngine drift = new DiffEngine();
         drift.processDiff(this.oldServer, actuals);
@@ -483,6 +488,24 @@ private long applyUpdate(TransformAbstract t)
     }
 
 }
+
+	private int updateStartOffset;
+	public int getUpdateStartOffset() {
+		return this.updateStartOffset;
+	}
+	
+	public void setUpdateStartOffset(int i) {
+		this.updateStartOffset = i;
+	}
+
+	private int updateEndOffset;
+	public int getUpdateEndOffset() {
+		return this.updateEndOffset;
+	}
+	
+	public void setUpdateEndOffset(int i) {
+		this.updateEndOffset = i;
+	}
 
 
 
