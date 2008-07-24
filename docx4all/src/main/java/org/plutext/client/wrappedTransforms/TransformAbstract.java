@@ -23,12 +23,10 @@ import java.math.BigInteger;
 import java.util.HashMap;
 
 import org.apache.log4j.Logger;
-import org.docx4all.swing.WordMLTextPane;
 import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
 import org.docx4j.wml.Tag;
 import org.plutext.client.Mediator;
-import org.plutext.client.Pkg;
 import org.plutext.client.state.StateChunk;
 import org.plutext.transforms.Transforms.T;
 
@@ -78,11 +76,6 @@ public abstract class TransformAbstract {
 
 		// log.warn("Parsed SDT ID " + id);
 
-	}
-
-	/* do the actual replacement in docx4all specific way */
-	protected void apply(WordMLTextPane editor) {
-		;// do nothing
 	}
 
 	protected Id id;

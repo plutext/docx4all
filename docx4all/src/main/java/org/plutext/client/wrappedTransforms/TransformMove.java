@@ -22,10 +22,9 @@ package org.plutext.client.wrappedTransforms;
 import java.util.HashMap;
 
 import org.apache.log4j.Logger;
-import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
-import org.docx4all.util.DocUtil;
+import org.docx4all.xml.ElementML;
 import org.docx4all.xml.SdtBlockML;
 import org.plutext.client.Mediator;
 import org.plutext.client.Util;
@@ -39,30 +38,36 @@ public class TransformMove extends TransformAbstract {
 		super(t);
 	}
 
-	protected Long moveToIndex;
-
 	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
-    	if ( stateChunks.get(getId().getVal().toString()) == null) {
-    		log.error("Could not find SDT Id=" + getId().getVal() + " snapshot.");
-	        // TODO - throw error
-    		return -1;
-    	}
-    	
+		String idStr = getId().getVal().toString();
+
+		log.debug("apply(): Moving SdtBlock = " + getSdt() + " - ID=" + idStr);
+
+		if (stateChunks.get(idStr) == null) {
+			log.error("apply(): Could not find SDT Id=" + idStr + " snapshot.");
+			// TODO - throw error
+			return -1;
+		}
+
+		Long moveToIndex = null;
 		if (this.t.getPosition() == null || this.t.getPosition() < 0) {
-			log.error("Invalid location t.getPosition()=" + t.getPosition());
-			this.moveToIndex = null;
+			log.error("apply(): Invalid location t.getPosition()="
+					+ t.getPosition());
+			moveToIndex = null;
 
 		} else {
 			// if user has locally inserted/deleted sdt's
 			// we need to adjust the specified position ...
 			Long pos = t.getPosition();
-			this.moveToIndex = pos + mediator.getDivergences().getOffset(pos);
+			moveToIndex = pos + mediator.getDivergences().getOffset(pos);
 
-			log.debug("Location " + pos + " adjusted to " + this.moveToIndex);
+			log.debug("apply(): Location " + pos + " adjusted to "
+					+ moveToIndex);
 		}
 
-		if (this.moveToIndex == null || this.moveToIndex < 0) {
-			log.error("Invalid moveToIndex=" + this.moveToIndex);
+		if (moveToIndex == null || moveToIndex < 0) {
+			log.error("apply(): Invalid moveToIndex=" + moveToIndex);
+			// TODO - throw error
 			return -1;
 		}
 
@@ -71,99 +76,87 @@ public class TransformMove extends TransformAbstract {
 		// 2 insert new element
 
 		// So
-		mediator.getDivergences().delete(getId().getVal().toString());
-		mediator.getDivergences().insert(getId().getVal().toString(),
-				this.moveToIndex);
+		mediator.getDivergences().delete(idStr);
+		mediator.getDivergences().insert(idStr, moveToIndex);
 
-		apply(mediator.getWordMLTextPane());
-
-		return sequenceNumber;
-	}
-
-	protected void apply(WordMLTextPane editor) {
-		int origPos = editor.getCaretPosition();
-		boolean forward = true;
-
-		log.debug("apply(WordMLTextPane): Moving SdtBlock Id=" 
-				+ getId().getVal().toString() + " in Editor.");
-		log.debug("apply(WordMLTextPane): Current caret position=" + origPos);
-
-		WordMLDocument doc = (WordMLDocument) editor.getDocument();
-		try {
-			editor.beginContentControlEdit();
-
-			DocumentElement elem = 
-				Util.getDocumentElement(doc, getId().getVal().toString());
-			if (elem == null) {
-				//should not happen.
-				log.error("apply(WordMLTextPane): DocumentElement NOT FOUND. Sdt Id=" 
-					+ getId().getVal().toString());
-				return;
-			}
-			
-			DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
-			int idx = root.getElementIndex(elem.getStartOffset());
-			if (this.moveToIndex.intValue() == idx) {
-				log.debug("apply(WordMLTextPane): Need not to move."
-					+ " moveToIndex == currentIndex == " 
-					+ idx);
-				return;
-			}
-			
-			int start = elem.getStartOffset();
-			int end = elem.getEndOffset();
-
-			if (start <= origPos && origPos < end) {
-				origPos = end;
-			}
-
-			if (end <= origPos) {
-				origPos = doc.getLength() - origPos;
-				forward = false;
-			}
-
-			SdtBlockML copy = (SdtBlockML) elem.getElementML().clone();
-			elem.getElementML().delete();
-			doc.refreshParagraphs(elem.getStartOffset(), 1);
-									
-			if (!forward) {
-				origPos = doc.getLength() - origPos;
-				forward = true;
-			}
-
-			idx = Math.min(root.getElementCount() - 1, this.moveToIndex.intValue());
-			idx = Math.max(idx, 0);
-
-			log.debug("apply(WordMLTextPane): SdtBlock will be moved to idx=" 
-				+ idx
-				+ " in document.");
-
-			elem = (DocumentElement) root.getElement(idx);
-
-			log.debug("apply(WordMLTextPane): DocumentElement at idx=" + idx
-				+ " is " + elem);
-			
-			if (elem.getStartOffset() <= origPos) {
-				origPos = doc.getLength() - origPos;
-				forward = false;
-			}
-
-			elem.getElementML().addSibling(copy, false);
-			doc.refreshParagraphs(elem.getStartOffset(), 1);
-			
-		} finally {
-			if (!forward) {
-				origPos = doc.getLength() - origPos;
-			}
-
-			log.debug("apply(WordMLTextPane): Resulting Structure...");
-			DocUtil.displayStructure(doc);
-			
-			editor.endContentControlEdit();
-			
-			log.debug("apply(WordMLTextPane): Set caret position to " + origPos);
-			editor.setCaretPosition(origPos);
+		
+		WordMLDocument doc = 
+			(WordMLDocument) mediator.getWordMLTextPane().getDocument();
+		DocumentElement elem = Util.getDocumentElement(doc, idStr);
+		if (elem == null) {
+			// should not happen.
+			log.error("apply(): DocumentElement NOT FOUND. Sdt Id=" + idStr);
+			// TODO - throw error
+			return -1;
 		}
+		
+		log.debug("apply(): DocumentElement of Sdt Id=" + idStr
+			+ " is "
+			+ elem);
+
+		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+
+		ElementML bodyML = root.getElementML().getChild(0);
+		int idx = Math.min(bodyML.getChildrenCount() - 1, moveToIndex.intValue());
+
+		log.debug("apply(): Maximum Index="
+			+ (bodyML.getChildrenCount() - 1)
+			+ ". SdtBlock will be moved to idx=" + idx);
+
+		ElementML elemMLAtMoveToIndex = bodyML.getChild(idx);
+		log.debug("apply(): Currently, ElementML at idx=" + idx + " is " + elemMLAtMoveToIndex);
+
+		if (elemMLAtMoveToIndex instanceof SdtBlockML) {
+			SdtBlockML sdtML = (SdtBlockML) elemMLAtMoveToIndex;
+			if (sdtML.getSdtProperties().getIdValue() == getId().getVal()) {
+				log.debug("apply(): Need not to move."
+						+ " moveToIndex == currentIndex == " + idx);
+				return sequenceNumber;				
+			}
+		}
+		
+		//Move SdtBlock by first deleting the block.
+		SdtBlockML copy = (SdtBlockML) elem.getElementML().clone();
+		elem.getElementML().delete();
+
+		//Record the update range in document.
+		int offset = mediator.getUpdateStartOffset();
+		offset = Math.min(offset, elem.getStartOffset());
+		mediator.setUpdateStartOffset(offset);
+
+		offset = mediator.getUpdateEndOffset();
+		offset = Math.max(offset, elem.getEndOffset());
+		mediator.setUpdateEndOffset(offset);
+
+		//Insert the deleted block into new position.
+		elemMLAtMoveToIndex.addSibling(copy, false);
+		
+		//Record the update range for the insertion just done.
+		elem = null;
+		for (int i = 0; (elem == null && i < root.getElementCount() - 1); i++) {
+			elem = (DocumentElement) root.getElement(i);
+			if (elem.getElementML() != elemMLAtMoveToIndex) {
+				elem = null;
+			}
+		}
+
+		if (elem == null) {
+			//should not happen.
+			//If it does happen then refresh the whole document.
+			mediator.setUpdateStartOffset(0);
+			mediator.setUpdateEndOffset(doc.getLength());
+			
+		} else {
+			offset = mediator.getUpdateStartOffset();
+			offset = Math.min(offset, elem.getStartOffset());
+			mediator.setUpdateStartOffset(offset);
+
+			offset = mediator.getUpdateEndOffset();
+			offset = Math.max(offset, elem.getEndOffset());
+			mediator.setUpdateEndOffset(offset);
+		}
+		
+		return sequenceNumber;
 	}
 
 }// TransformMove class

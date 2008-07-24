@@ -19,18 +19,14 @@
 
 package org.plutext.client.wrappedTransforms;
 
-import java.math.BigInteger;
 import java.util.HashMap;
 
 import org.apache.log4j.Logger;
-import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
-import org.docx4all.swing.text.WordMLFragment;
-import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
+import org.docx4all.xml.ElementML;
 import org.docx4all.xml.SdtBlockML;
 import org.plutext.client.Mediator;
-import org.plutext.client.Util;
 import org.plutext.client.state.StateChunk;
 import org.plutext.transforms.Transforms.T;
 
@@ -40,106 +36,82 @@ public class TransformInsert extends TransformAbstract {
 
 	public TransformInsert(T t) {
 		super(t);
-		insertAtIndex = null;
 	}
 
-	protected Long insertAtIndex;
-
 	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
+		String idStr = getId().getVal().toString();
+
+		log.debug("apply(): Inserting SdtBlock = " + getSdt() + " - ID="
+				+ idStr);
+
 		// Plutext server is trying to use absolute index position for
 		// locating the insert positon.
-		// TODO: The following code is subject to change.
+		Long insertAtIndex = null;
 		if (this.t.getPosition() == null || this.t.getPosition() < 0) {
-			log.warn("Invalid insertion location t.getPosition()="
+			log.error("apply(): Invalid insertion location t.getPosition()="
 					+ t.getPosition());
-			this.insertAtIndex = null;
+			insertAtIndex = null;
 
 		} else {
 			// if user has locally inserted/deleted sdt's
 			// we need to adjust the specified position ...
 			Long pos = t.getPosition();
-			this.insertAtIndex = pos + mediator.getDivergences().getOffset(pos);
+			insertAtIndex = pos + mediator.getDivergences().getOffset(pos);
 
-			log.debug("Insertion location " + pos + " adjusted to "
+			log.debug("apply(): Insertion location " + pos + " adjusted to "
 					+ insertAtIndex);
 		}
 
-		if (this.insertAtIndex == null || this.insertAtIndex < 0) {
-			log.warn("Invalid insertAtIndex=" + this.insertAtIndex);
+		if (insertAtIndex == null || insertAtIndex < 0) {
+			log.error("apply(): Invalid insertAtIndex=" + insertAtIndex);
+			// TODO - throw error
 			return -1;
 		}
 
-		apply(mediator.getWordMLTextPane());
+		WordMLDocument doc = (WordMLDocument) mediator.getWordMLTextPane()
+				.getDocument();
+		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
 
-		StateChunk sc = new StateChunk(sdt);
-		stateChunks.put(sc.getIdAsString(), sc);
-		mediator.getDivergences().insert(id.getVal().toString(),
-					insertAtIndex);
+		ElementML bodyML = root.getElementML().getChild(0);
+		int idx = Math.min(bodyML.getChildrenCount() - 1, insertAtIndex
+				.intValue());
 
-		return sequenceNumber;
-	}
+		log.debug("apply(): SdtBlock will be inserted at idx=" + idx);
 
-	protected void apply(WordMLTextPane editor) {
-		BigInteger id = getSdt().getSdtPr().getId().getVal();
-		
-		log.debug("apply(WordMLTextPane): Inserting SdtBlock Id=" 
-				+ id + " in Editor.");
-		
-		WordMLDocument doc = (WordMLDocument) editor.getDocument();
-		if (Util.getDocumentElement(doc, id.toString()) != null) {
-			log.error("apply(WordMLTextPane): SdtBlock Id=" + id
-					+ " already exists in editor");
-			return;
+		ElementML ml = bodyML.getChild(idx);
+		log.debug("apply(): Currently, ElementML at idx=" + idx + " is " + ml);
+
+		ml.addSibling(new SdtBlockML(getSdt()), false);
+
+		DocumentElement elem = null;
+		for (int i = 0; (elem == null && i < root.getElementCount() - 1); i++) {
+			elem = (DocumentElement) root.getElement(i);
+			if (elem.getElementML() != ml) {
+				elem = null;
+			}
 		}
 
-		int origPos = editor.getCaretPosition();
-		boolean forward = true;
-
-		try {
-			editor.beginContentControlEdit();
-
-			DocumentElement elem = (DocumentElement) doc
-					.getDefaultRootElement();
-
-			int idx = Math.min(elem.getElementCount() - 1, this.insertAtIndex
-					.intValue());
-			idx = Math.max(idx, 0);
-
-			log
-					.debug("apply(WordMLTextPane): SdtBlock will be inserted at idx="
-							+ idx + " in document.");
-
-			elem = (DocumentElement) elem.getElement(idx);
-
-			log.debug("apply(WordMLTextPane): DocumentElement at idx=" + idx
-					+ " is " + elem);
-
-			log.debug("apply(WordMLTextPane): Current caret position="
-					+ origPos);
-
-			if (elem.getStartOffset() <= origPos) {
-				origPos = doc.getLength() - origPos;
-				forward = false;
-			}
-
-			ElementMLRecord[] recs = { new ElementMLRecord(new SdtBlockML(sdt),
-					false) };
-			WordMLFragment frag = new WordMLFragment(recs);
-
-			editor.setCaretPosition(elem.getStartOffset());
-			editor.replaceSelection(frag);
-
-		} finally {
-			if (!forward) {
-				origPos = editor.getDocument().getLength() - origPos;
-			}
-
-			editor.endContentControlEdit();
+		if (elem == null) {
+			//should not happen.
+			//If it does happen then refresh the whole document.
+			mediator.setUpdateStartOffset(0);
+			mediator.setUpdateEndOffset(doc.getLength());
 			
-			log.debug("apply(WordMLTextPane): Set caret position to " + origPos);
-			editor.setCaretPosition(origPos);
+		} else {
+			int offset = mediator.getUpdateStartOffset();
+			offset = Math.min(offset, elem.getStartOffset());
+			mediator.setUpdateStartOffset(offset);
 
+			offset = mediator.getUpdateEndOffset();
+			offset = Math.max(offset, elem.getEndOffset());
+			mediator.setUpdateEndOffset(offset);
 		}
+
+		StateChunk sc = new StateChunk(getSdt());
+		stateChunks.put(sc.getIdAsString(), sc);
+		mediator.getDivergences().insert(idStr, Long.valueOf(idx));
+		
+		return sequenceNumber;
 	}
 
 } // TransformInsert class

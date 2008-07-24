@@ -22,7 +22,6 @@ package org.plutext.client.wrappedTransforms;
 import java.util.HashMap;
 
 import org.apache.log4j.Logger;
-import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.plutext.client.Mediator;
@@ -30,93 +29,50 @@ import org.plutext.client.Util;
 import org.plutext.client.state.StateChunk;
 import org.plutext.transforms.Transforms.T;
 
-
 public class TransformDelete extends TransformAbstract {
-	
-	private static Logger log = Logger.getLogger(TransformDelete.class);	
 
-    public TransformDelete(T t)
-    {
-    	super(t);
-    }
+	private static Logger log = Logger.getLogger(TransformDelete.class);
 
-//        public TransformDelete(String idref)
-//        {
-//        	super();
-//            this.id = idref;
-//        }
-
-
-        /* delete the SDT given its ID. */
-	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks)
-        {
-
-    	
-		log.debug("apply(ServerFrom): Deleting SdtBlock = " + getSdt() 
-				+ " - ID=" + getId().getVal());
-
-    	if ( stateChunks.remove(getId().getVal().toString()) == null) {
-    		log.debug("apply(): Could not find SDT Id=" + getId().getVal() + " snapshot.");
-	        // couldn't find!
-	        // TODO - throw error
-    		return -1;
-    	}
-    	
-   		apply(mediator.getWordMLTextPane());
-        	
-        mediator.getDivergences().delete(getId().getVal().toString());
-        
-		return sequenceNumber;
-    }
-        
-	protected void apply(WordMLTextPane editor) {
-		
-		log.debug("apply(WordMLTextPane): Deleting SdtBlock ID=" 
-				+ getId().getVal().toString() + "...");
-		
-		WordMLDocument doc = (WordMLDocument) editor.getDocument();
-		int origPos = editor.getCaretPosition();
-		boolean forward = true;
-						
-		try {
-			editor.beginContentControlEdit();
-			
-			DocumentElement elem = Util.getDocumentElement(doc, getId().getVal().toString());
-			
-			if (elem == null) {
-				//should not happen.
-				log.error("apply(WordMLTextPane): DocumentElement NOT FOUND. Sdt Id=" 
-					+ getId().getVal().toString());
-				return;
-			}
-			
-			log.debug("apply(WordMLTextPane): SdtBlock Element=" + elem);
-			log.debug("apply(WordMLTextPane): Current caret position=" + origPos);
-			
-			if (elem.getStartOffset() <= origPos 
-				&& origPos < elem.getEndOffset()) {
-				origPos = elem.getEndOffset();
-			}
-				
-			if (elem.getEndOffset() <= origPos) {
-				origPos = doc.getLength() - origPos;
-				forward = false;
-			}
-			
-			elem.getElementML().delete();
-			doc.refreshParagraphs(elem.getStartOffset(), 1);
-
-		} finally {
-			if (!forward) {
-				origPos = doc.getLength() - origPos;
-			}
-			
-			editor.endContentControlEdit();
-			
-			log.debug("apply(WordMLTextPane): Set caret position to " + origPos);
-			editor.setCaretPosition(origPos);
-			
-		}
+	public TransformDelete(T t) {
+		super(t);
 	}
-	
-} //TransformDelete class
+
+	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
+		String idStr = getId().getVal().toString();
+
+		log.debug("apply(): Deleting SdtBlock = " + getSdt()
+				+ " - ID=" + idStr);
+
+		if (stateChunks.remove(idStr) == null) {
+			log.error("apply(): Could not find SDT Id=" + idStr + " snapshot.");
+			// TODO - throw error
+			return -1;
+		}
+
+		WordMLDocument doc = 
+			(WordMLDocument) mediator.getWordMLTextPane().getDocument();
+		DocumentElement elem = Util.getDocumentElement(doc, idStr);
+		if (elem == null) {
+			// should not happen.
+			log.error("apply(): DocumentElement NOT FOUND. Sdt Id=" + idStr);
+			// TODO - throw error
+			return -1;
+		}
+
+		elem.getElementML().delete();
+
+		int offset = mediator.getUpdateStartOffset();
+		offset = Math.min(offset, elem.getStartOffset());
+		mediator.setUpdateStartOffset(offset);
+
+		offset = mediator.getUpdateEndOffset();
+		offset = Math.max(offset, elem.getEndOffset());
+		mediator.setUpdateEndOffset(offset);
+
+		mediator.getDivergences().delete(idStr);
+
+		return sequenceNumber;
+	}
+
+} // TransformDelete class
+
