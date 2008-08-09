@@ -1,21 +1,22 @@
 /*
  *  Copyright 2008, Plutext Pty Ltd.
  *   
- *  This file is part of Docx4all.
+ *  This file is part of Plutext-Server.
 
-    Docx4all is free software: you can redistribute it and/or modify
-    it under the terms of version 3 of the GNU General Public License 
+    Plutext-Server is free software: you can redistribute it and/or modify
+    it under the terms of version 3 of the GNU Affero General Public License 
     as published by the Free Software Foundation.
 
-    Docx4all is distributed in the hope that it will be useful,
+    Plutext-Server is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    GNU Affero General Public License for more details.
 
-    You should have received a copy of the GNU General Public License   
-    along with Docx4all.  If not, see <http://www.gnu.org/licenses/>.
+    You should have received a copy of the GNU Affero General Public License   
+    along with Plutext-Server.  If not, see <http://www.fsf.org/licensing/licenses/>.
     
  */
+
 package org.plutext.transforms;
 
 import javax.xml.bind.annotation.XmlRegistry;
@@ -47,6 +48,30 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link Transforms }
+     * 
+     */
+    public Transforms createTransforms() {
+        return new Transforms();
+    }
+
+    /**
+     * Create an instance of {@link Updates }
+     * 
+     */
+    public Updates createUpdates() {
+        return new Updates();
+    }
+
+    /**
+     * Create an instance of {@link Changesets }
+     * 
+     */
+    public Changesets createChangesets() {
+        return new Changesets();
+    }
+
+    /**
      * Create an instance of {@link Transforms.T }
      * 
      */
@@ -55,11 +80,11 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link Transforms }
+     * Create an instance of {@link Changesets.Changeset }
      * 
      */
-    public Transforms createTransforms() {
-        return new Transforms();
+    public Changesets.Changeset createChangesetsChangeset() {
+        return new Changesets.Changeset();
     }
 
 }

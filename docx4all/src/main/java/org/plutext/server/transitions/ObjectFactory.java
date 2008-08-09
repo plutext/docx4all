@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007, Plutext Pty Ltd.
+ *  Copyright 2008, Plutext Pty Ltd.
  *   
  *  This file is part of Plutext-Server.
 
@@ -16,6 +16,7 @@
     along with Plutext-Server.  If not, see <http://www.fsf.org/licensing/licenses/>.
     
  */
+
 package org.plutext.server.transitions;
 
 import javax.xml.bind.annotation.XmlRegistry;
@@ -47,22 +48,6 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link Transitions }
-     * 
-     */
-    public Transitions createTransitions() {
-        return new Transitions();
-    }
-
-    /**
-     * Create an instance of {@link Transitions.Styles }
-     * 
-     */
-    public Transitions.Styles createTransitionsStyles() {
-        return new Transitions.Styles();
-    }
-
-    /**
      * Create an instance of {@link Transitions.Styles.Styletransition }
      * 
      */
@@ -84,6 +69,22 @@ public class ObjectFactory {
      */
     public Transitions.Ribs createTransitionsRibs() {
         return new Transitions.Ribs();
+    }
+
+    /**
+     * Create an instance of {@link Transitions }
+     * 
+     */
+    public Transitions createTransitions() {
+        return new Transitions();
+    }
+
+    /**
+     * Create an instance of {@link Transitions.Styles }
+     * 
+     */
+    public Transitions.Styles createTransitionsStyles() {
+        return new Transitions.Styles();
     }
 
     /**

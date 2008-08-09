@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007, Plutext Pty Ltd.
+ *  Copyright 2008, Plutext Pty Ltd.
  *   
  *  This file is part of Plutext-Server.
 
@@ -16,6 +16,7 @@
     along with Plutext-Server.  If not, see <http://www.fsf.org/licensing/licenses/>.
     
  */
+
 package org.plutext.server.transitions;
 
 import java.util.ArrayList;
@@ -40,7 +41,7 @@ import org.docx4j.wml.Style;
  *   &lt;complexContent>
  *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *       &lt;sequence>
- *         &lt;element name="styles">
+ *         &lt;element name="styles" minOccurs="0">
  *           &lt;complexType>
  *             &lt;complexContent>
  *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
@@ -54,6 +55,7 @@ import org.docx4j.wml.Style;
  *                           &lt;/sequence>
  *                           &lt;attribute name="snum" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
  *                           &lt;attribute name="tstamp" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
+ *                           &lt;attribute name="changeset" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
  *                         &lt;/restriction>
  *                       &lt;/complexContent>
  *                     &lt;/complexType>
@@ -79,6 +81,7 @@ import org.docx4j.wml.Style;
  *                                   &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *                                     &lt;attribute name="tstamp" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
  *                                     &lt;attribute name="snum" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
+ *                                     &lt;attribute name="changeset" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
  *                                     &lt;attribute name="op" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
  *                                   &lt;/restriction>
  *                                 &lt;/complexContent>
@@ -116,7 +119,6 @@ import org.docx4j.wml.Style;
 @XmlRootElement(name = "transitions")
 public class Transitions {
 
-    @XmlElement(required = true)
     protected Transitions.Styles styles;
     @XmlElement(required = true)
     protected Transitions.Ribs ribs;
@@ -271,6 +273,7 @@ public class Transitions {
      *                         &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
      *                           &lt;attribute name="tstamp" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
      *                           &lt;attribute name="snum" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
+     *                           &lt;attribute name="changeset" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
      *                           &lt;attribute name="op" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
      *                         &lt;/restriction>
      *                       &lt;/complexContent>
@@ -347,6 +350,7 @@ public class Transitions {
          *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
          *                 &lt;attribute name="tstamp" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
          *                 &lt;attribute name="snum" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
+         *                 &lt;attribute name="changeset" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
          *                 &lt;attribute name="op" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
          *               &lt;/restriction>
          *             &lt;/complexContent>
@@ -476,6 +480,7 @@ public class Transitions {
              *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
              *       &lt;attribute name="tstamp" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
              *       &lt;attribute name="snum" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
+             *       &lt;attribute name="changeset" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
              *       &lt;attribute name="op" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
              *     &lt;/restriction>
              *   &lt;/complexContent>
@@ -494,6 +499,9 @@ public class Transitions {
                 @XmlAttribute(namespace = "http://www.plutext.org/transitions", required = true)
                 @XmlSchemaType(name = "unsignedInt")
                 protected long snum;
+                @XmlAttribute(namespace = "http://www.plutext.org/transitions", required = true)
+                @XmlSchemaType(name = "unsignedInt")
+                protected long changeset;
                 @XmlAttribute(namespace = "http://www.plutext.org/transitions", required = true)
                 protected String op;
 
@@ -527,6 +535,22 @@ public class Transitions {
                  */
                 public void setSnum(long value) {
                     this.snum = value;
+                }
+
+                /**
+                 * Gets the value of the changeset property.
+                 * 
+                 */
+                public long getChangeset() {
+                    return changeset;
+                }
+
+                /**
+                 * Sets the value of the changeset property.
+                 * 
+                 */
+                public void setChangeset(long value) {
+                    this.changeset = value;
                 }
 
                 /**
@@ -579,6 +603,7 @@ public class Transitions {
      *                 &lt;/sequence>
      *                 &lt;attribute name="snum" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
      *                 &lt;attribute name="tstamp" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
+     *                 &lt;attribute name="changeset" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
      *               &lt;/restriction>
      *             &lt;/complexContent>
      *           &lt;/complexType>
@@ -644,6 +669,7 @@ public class Transitions {
          *       &lt;/sequence>
          *       &lt;attribute name="snum" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
          *       &lt;attribute name="tstamp" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
+         *       &lt;attribute name="changeset" use="required" type="{http://www.w3.org/2001/XMLSchema}unsignedInt" />
          *     &lt;/restriction>
          *   &lt;/complexContent>
          * &lt;/complexType>
@@ -665,6 +691,9 @@ public class Transitions {
             @XmlAttribute(namespace = "http://www.plutext.org/transitions", required = true)
             @XmlSchemaType(name = "unsignedInt")
             protected long tstamp;
+            @XmlAttribute(namespace = "http://www.plutext.org/transitions", required = true)
+            @XmlSchemaType(name = "unsignedInt")
+            protected long changeset;
 
             /**
              * Gets the value of the style property.
@@ -720,6 +749,22 @@ public class Transitions {
              */
             public void setTstamp(long value) {
                 this.tstamp = value;
+            }
+
+            /**
+             * Gets the value of the changeset property.
+             * 
+             */
+            public long getChangeset() {
+                return changeset;
+            }
+
+            /**
+             * Sets the value of the changeset property.
+             * 
+             */
+            public void setChangeset(long value) {
+                this.changeset = value;
             }
 
         }

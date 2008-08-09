@@ -211,11 +211,12 @@ public class Mediator
     	String transforms, 
     	Boolean setApplied, 
     	Boolean setLocal) {
-    	registerTransforms(transforms, setApplied, setLocal, true);
+    	
+    	registerUpdates(transforms, setApplied, setLocal, true);
     }
     
-    public void registerTransforms(
-    	String transforms, 
+    public void registerUpdates(
+    	String updates, 
     	Boolean setApplied, 
     	Boolean setLocal, 
     	Boolean updateHighestFetched)
@@ -224,16 +225,17 @@ public class Mediator
 
         // Parse the XML document, and put each transform into the transforms
 		// collection
-		org.plutext.transforms.Transforms transformsObj = null;
+        org.plutext.transforms.Updates updatesObj = null;
 		try {
 			Unmarshaller u = Context.jcTransforms.createUnmarshaller();
 			u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());
-			transformsObj = (org.plutext.transforms.Transforms) u
-					.unmarshal(new java.io.StringReader(transforms));
+			updatesObj = (org.plutext.transforms.Updates) u
+					.unmarshal(new java.io.StringReader(updates));
 		} catch (JAXBException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		org.plutext.transforms.Transforms transformsObj = updatesObj.getTransforms();
 
 		for (T t : transformsObj.getT()) {
 			TransformAbstract ta = TransformHelper.construct(t);
@@ -248,8 +250,6 @@ public class Mediator
         	Boolean updateHighestFetched)
         {
             log.debug(stateDocx.getDocID() + ".. .. registerTransforms");
-
-         
 
     		for (T t : transformsObj.getT()) {
     			TransformAbstract ta = TransformHelper.construct(t);
