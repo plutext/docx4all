@@ -49,24 +49,21 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
      </sequence>
     </complexType>
    </element>
-   <element name="checkinWithComment">
+   <element name="reportRecentChanges">
     <complexType>
      <sequence>
       <element name="docID" type="xsd:string"/>
-      <element name="chunkID" type="xsd:string"/>
-      <element name="xml" type="xsd:string"/>
-      <element name="message" type="xsd:string"/>
      </sequence>
     </complexType>
    </element>
-   <element name="checkinWithCommentResponse">
+   <element name="reportRecentChangesResponse">
     <complexType>
      <sequence>
-      <element name="checkinWithCommentReturn" type="xsd:string"/>
+      <element name="reportRecentChangesReturn" type="xsd:string"/>
      </sequence>
     </complexType>
    </element>
-   <element name="deleteChunk">
+   <element name="reportVersionHistory">
     <complexType>
      <sequence>
       <element name="docID" type="xsd:string"/>
@@ -74,42 +71,10 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
      </sequence>
     </complexType>
    </element>
-   <element name="deleteChunkResponse">
+   <element name="reportVersionHistoryResponse">
     <complexType>
      <sequence>
-      <element name="deleteChunkReturn" type="xsd:string"/>
-     </sequence>
-    </complexType>
-   </element>
-   <element name="getVersionHistory">
-    <complexType>
-     <sequence>
-      <element name="docID" type="xsd:string"/>
-      <element name="chunkID" type="xsd:string"/>
-     </sequence>
-    </complexType>
-   </element>
-   <element name="getVersionHistoryResponse">
-    <complexType>
-     <sequence>
-      <element name="getVersionHistoryReturn" type="xsd:string"/>
-     </sequence>
-    </complexType>
-   </element>
-   <element name="compareVersions">
-    <complexType>
-     <sequence>
-      <element name="docID" type="xsd:string"/>
-      <element name="chunkID" type="xsd:string"/>
-      <element name="left" type="xsd:string"/>
-      <element name="right" type="xsd:string"/>
-     </sequence>
-    </complexType>
-   </element>
-   <element name="compareVersionsResponse">
-    <complexType>
-     <sequence>
-      <element name="compareVersionsReturn" type="xsd:string"/>
+      <element name="reportVersionHistoryReturn" type="xsd:string"/>
      </sequence>
     </complexType>
    </element>
@@ -129,36 +94,8 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
      </sequence>
     </complexType>
    </element>
-   <element name="getChunk">
-    <complexType>
-     <sequence>
-      <element name="docID" type="xsd:string"/>
-      <element name="chunkID" type="xsd:string"/>
-      <element name="currentClientVersion" type="xsd:string"/>
-     </sequence>
-    </complexType>
-   </element>
-   <element name="getChunkResponse">
-    <complexType>
-     <sequence>
-      <element name="getChunkReturn" type="xsd:string"/>
-     </sequence>
-    </complexType>
-   </element>
   </schema>
  </wsdl:types>
-
-   <wsdl:message name="deleteChunkRequest">
-
-      <wsdl:part element="impl:deleteChunk" name="parameters"/>
-
-   </wsdl:message>
-
-   <wsdl:message name="getVersionHistoryRequest">
-
-      <wsdl:part element="impl:getVersionHistory" name="parameters"/>
-
-   </wsdl:message>
 
    <wsdl:message name="transformResponse">
 
@@ -172,15 +109,9 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
 
    </wsdl:message>
 
-   <wsdl:message name="getChunkResponse">
+   <wsdl:message name="getSkeletonDocumentResponse">
 
-      <wsdl:part element="impl:getChunkResponse" name="parameters"/>
-
-   </wsdl:message>
-
-   <wsdl:message name="getVersionHistoryResponse">
-
-      <wsdl:part element="impl:getVersionHistoryResponse" name="parameters"/>
+      <wsdl:part element="impl:getSkeletonDocumentResponse" name="parameters"/>
 
    </wsdl:message>
 
@@ -190,57 +121,27 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
 
    </wsdl:message>
 
-   <wsdl:message name="putMainDocumentPartRequest">
-
-      <wsdl:part element="impl:putMainDocumentPart" name="parameters"/>
-
-   </wsdl:message>
-
-   <wsdl:message name="checkinWithCommentResponse">
-
-      <wsdl:part element="impl:checkinWithCommentResponse" name="parameters"/>
-
-   </wsdl:message>
-
-   <wsdl:message name="getChunkRequest">
-
-      <wsdl:part element="impl:getChunk" name="parameters"/>
-
-   </wsdl:message>
-
-   <wsdl:message name="deleteChunkResponse">
-
-      <wsdl:part element="impl:deleteChunkResponse" name="parameters"/>
-
-   </wsdl:message>
-
-   <wsdl:message name="compareVersionsRequest">
-
-      <wsdl:part element="impl:compareVersions" name="parameters"/>
-
-   </wsdl:message>
-
-   <wsdl:message name="compareVersionsResponse">
-
-      <wsdl:part element="impl:compareVersionsResponse" name="parameters"/>
-
-   </wsdl:message>
-
-   <wsdl:message name="getSkeletonDocumentResponse">
-
-      <wsdl:part element="impl:getSkeletonDocumentResponse" name="parameters"/>
-
-   </wsdl:message>
-
    <wsdl:message name="getSkeletonDocumentRequest">
 
       <wsdl:part element="impl:getSkeletonDocument" name="parameters"/>
 
    </wsdl:message>
 
-   <wsdl:message name="checkinWithCommentRequest">
+   <wsdl:message name="putMainDocumentPartRequest">
 
-      <wsdl:part element="impl:checkinWithComment" name="parameters"/>
+      <wsdl:part element="impl:putMainDocumentPart" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="reportVersionHistoryResponse">
+
+      <wsdl:part element="impl:reportVersionHistoryResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="getTransformsResponse">
+
+      <wsdl:part element="impl:getTransformsResponse" name="parameters"/>
 
    </wsdl:message>
 
@@ -250,9 +151,21 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
 
    </wsdl:message>
 
-   <wsdl:message name="getTransformsResponse">
+   <wsdl:message name="reportRecentChangesResponse">
 
-      <wsdl:part element="impl:getTransformsResponse" name="parameters"/>
+      <wsdl:part element="impl:reportRecentChangesResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="reportVersionHistoryRequest">
+
+      <wsdl:part element="impl:reportVersionHistory" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="reportRecentChangesRequest">
+
+      <wsdl:part element="impl:reportRecentChanges" name="parameters"/>
 
    </wsdl:message>
 
@@ -282,35 +195,19 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
 
       </wsdl:operation>
 
-      <wsdl:operation name="checkinWithComment">
+      <wsdl:operation name="reportRecentChanges">
 
-         <wsdl:input message="impl:checkinWithCommentRequest" name="checkinWithCommentRequest"/>
+         <wsdl:input message="impl:reportRecentChangesRequest" name="reportRecentChangesRequest"/>
 
-         <wsdl:output message="impl:checkinWithCommentResponse" name="checkinWithCommentResponse"/>
-
-      </wsdl:operation>
-
-      <wsdl:operation name="deleteChunk">
-
-         <wsdl:input message="impl:deleteChunkRequest" name="deleteChunkRequest"/>
-
-         <wsdl:output message="impl:deleteChunkResponse" name="deleteChunkResponse"/>
+         <wsdl:output message="impl:reportRecentChangesResponse" name="reportRecentChangesResponse"/>
 
       </wsdl:operation>
 
-      <wsdl:operation name="getVersionHistory">
+      <wsdl:operation name="reportVersionHistory">
 
-         <wsdl:input message="impl:getVersionHistoryRequest" name="getVersionHistoryRequest"/>
+         <wsdl:input message="impl:reportVersionHistoryRequest" name="reportVersionHistoryRequest"/>
 
-         <wsdl:output message="impl:getVersionHistoryResponse" name="getVersionHistoryResponse"/>
-
-      </wsdl:operation>
-
-      <wsdl:operation name="compareVersions">
-
-         <wsdl:input message="impl:compareVersionsRequest" name="compareVersionsRequest"/>
-
-         <wsdl:output message="impl:compareVersionsResponse" name="compareVersionsResponse"/>
+         <wsdl:output message="impl:reportVersionHistoryResponse" name="reportVersionHistoryResponse"/>
 
       </wsdl:operation>
 
@@ -319,14 +216,6 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
          <wsdl:input message="impl:transformRequest" name="transformRequest"/>
 
          <wsdl:output message="impl:transformResponse" name="transformResponse"/>
-
-      </wsdl:operation>
-
-      <wsdl:operation name="getChunk">
-
-         <wsdl:input message="impl:getChunkRequest" name="getChunkRequest"/>
-
-         <wsdl:output message="impl:getChunkResponse" name="getChunkResponse"/>
 
       </wsdl:operation>
 
@@ -390,17 +279,17 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
 
       </wsdl:operation>
 
-      <wsdl:operation name="checkinWithComment">
+      <wsdl:operation name="reportRecentChanges">
 
          <wsdlsoap:operation soapAction=""/>
 
-         <wsdl:input name="checkinWithCommentRequest">
+         <wsdl:input name="reportRecentChangesRequest">
 
             <wsdlsoap:body use="literal"/>
 
          </wsdl:input>
 
-         <wsdl:output name="checkinWithCommentResponse">
+         <wsdl:output name="reportRecentChangesResponse">
 
             <wsdlsoap:body use="literal"/>
 
@@ -408,53 +297,17 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
 
       </wsdl:operation>
 
-      <wsdl:operation name="deleteChunk">
+      <wsdl:operation name="reportVersionHistory">
 
          <wsdlsoap:operation soapAction=""/>
 
-         <wsdl:input name="deleteChunkRequest">
+         <wsdl:input name="reportVersionHistoryRequest">
 
             <wsdlsoap:body use="literal"/>
 
          </wsdl:input>
 
-         <wsdl:output name="deleteChunkResponse">
-
-            <wsdlsoap:body use="literal"/>
-
-         </wsdl:output>
-
-      </wsdl:operation>
-
-      <wsdl:operation name="getVersionHistory">
-
-         <wsdlsoap:operation soapAction=""/>
-
-         <wsdl:input name="getVersionHistoryRequest">
-
-            <wsdlsoap:body use="literal"/>
-
-         </wsdl:input>
-
-         <wsdl:output name="getVersionHistoryResponse">
-
-            <wsdlsoap:body use="literal"/>
-
-         </wsdl:output>
-
-      </wsdl:operation>
-
-      <wsdl:operation name="compareVersions">
-
-         <wsdlsoap:operation soapAction=""/>
-
-         <wsdl:input name="compareVersionsRequest">
-
-            <wsdlsoap:body use="literal"/>
-
-         </wsdl:input>
-
-         <wsdl:output name="compareVersionsResponse">
+         <wsdl:output name="reportVersionHistoryResponse">
 
             <wsdlsoap:body use="literal"/>
 
@@ -473,24 +326,6 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
          </wsdl:input>
 
          <wsdl:output name="transformResponse">
-
-            <wsdlsoap:body use="literal"/>
-
-         </wsdl:output>
-
-      </wsdl:operation>
-
-      <wsdl:operation name="getChunk">
-
-         <wsdlsoap:operation soapAction=""/>
-
-         <wsdl:input name="getChunkRequest">
-
-            <wsdlsoap:body use="literal"/>
-
-         </wsdl:input>
-
-         <wsdl:output name="getChunkResponse">
 
             <wsdlsoap:body use="literal"/>
 

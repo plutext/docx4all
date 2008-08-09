@@ -1,8 +1,20 @@
-/**
- * PlutextWebService.java
- *
- * This file was auto-generated from WSDL
- * by the Apache Axis 1.4 Apr 22, 2006 (06:55:48 PDT) WSDL2Java emitter.
+/*
+ *  Copyright 2008, Plutext Pty Ltd.
+ *   
+ *  This file is part of Docx4all.
+
+    Docx4all is free software: you can redistribute it and/or modify
+    it under the terms of version 3 of the GNU General Public License 
+    as published by the Free Software Foundation.
+
+    Docx4all is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License   
+    along with Docx4all.  If not, see <http://www.gnu.org/licenses/>.
+    
  */
 
 package org.plutext.client.webservice;
@@ -11,10 +23,7 @@ public interface PlutextWebService extends java.rmi.Remote {
     public java.lang.String[] getTransforms(java.lang.String docID, long firstSequenceNumber) throws java.rmi.RemoteException;
     public java.lang.String getSkeletonDocument(java.lang.String docID) throws java.rmi.RemoteException;
     public java.lang.String[] putMainDocumentPart(java.lang.String docID, java.lang.String xml, java.lang.String message) throws java.rmi.RemoteException;
-    public java.lang.String checkinWithComment(java.lang.String docID, java.lang.String chunkID, java.lang.String xml, java.lang.String message) throws java.rmi.RemoteException;
-    public java.lang.String deleteChunk(java.lang.String docID, java.lang.String chunkID) throws java.rmi.RemoteException;
-    public java.lang.String getVersionHistory(java.lang.String docID, java.lang.String chunkID) throws java.rmi.RemoteException;
-    public java.lang.String compareVersions(java.lang.String docID, java.lang.String chunkID, java.lang.String left, java.lang.String right) throws java.rmi.RemoteException;
+    public java.lang.String reportRecentChanges(java.lang.String docID) throws java.rmi.RemoteException;
+    public java.lang.String reportVersionHistory(java.lang.String docID, java.lang.String chunkID) throws java.rmi.RemoteException;
     public java.lang.String[] transform(java.lang.String docID, java.lang.String xml, java.lang.String message) throws java.rmi.RemoteException;
-    public java.lang.String getChunk(java.lang.String docID, java.lang.String chunkID, java.lang.String currentClientVersion) throws java.rmi.RemoteException;
 }
