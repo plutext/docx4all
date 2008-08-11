@@ -21,14 +21,19 @@ package org.docx4all.util;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringReader;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.text.AttributeSet;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.namespace.QName;
+import javax.xml.transform.stream.StreamSource;
 
 import org.docx4all.swing.NewShareDialog;
 import org.docx4all.ui.main.Constants;
@@ -40,11 +45,14 @@ import org.docx4all.xml.PropertiesContainerML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
 import org.docx4j.XmlUtils;
+import org.docx4j.diff.ParagraphDifferencer;
 import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.DocPropsCustomPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.wml.SdtBlock;
+import org.docx4j.wml.SdtContentBlock;
+import org.plutext.transforms.Changesets.Changeset;
 import org.w3c.dom.Node;
 
 /**
@@ -52,6 +60,8 @@ import org.w3c.dom.Node;
  */
 public class XmlUtil {
 
+    private final static SimpleDateFormat RFC3339_FORMAT = 
+    	new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 	
 	/**
 	 * Serialise the WordprocessingMLPackage in pkg:package format
@@ -475,7 +485,7 @@ public class XmlUtil {
      * Returns a list of SdtBlock(s) that represents 
      * all new resulting content controls.
      */
-    public static List<SdtBlock> chunk(SdtBlock cc)
+    public final static List<SdtBlock> chunk(SdtBlock cc)
     {
     	SdtBlock copy = (SdtBlock) XmlUtils.deepCopy(cc);
     	
@@ -506,7 +516,7 @@ public class XmlUtil {
     	return theChunks;
     }
 
-    private static SdtBlock createSdtBlock() {
+    private final static SdtBlock createSdtBlock() {
 		org.docx4j.wml.SdtBlock sdtBlock = ObjectFactory.createSdtBlock();
 		org.docx4j.wml.SdtPr sdtPr = ObjectFactory.createSdtPr();
 		org.docx4j.wml.SdtContentBlock content = ObjectFactory.createSdtContentBlock();
@@ -519,6 +529,94 @@ public class XmlUtil {
 		return sdtBlock;
     }
 
+    public final static boolean containsTrackedChanges(Object jaxbObject) {
+		String s = org.docx4j.XmlUtils.marshaltoString(jaxbObject, false);
+		return (s.indexOf("</w:ins>") >= 0 
+				|| s.indexOf("</w:del>") >= 0);
+    }
+    
+    public final static org.docx4j.wml.SdtBlock markupDifference(
+    	org.docx4j.wml.SdtBlock leftSdt, 
+    	org.docx4j.wml.SdtBlock rightSdt,
+    	Changeset changeset) throws Exception {
+    	
+    	org.docx4j.wml.SdtBlock theSdt = ObjectFactory.createSdtBlock();
+    	theSdt.setSdtPr(
+    		(org.docx4j.wml.SdtPr) XmlUtils.deepCopy(leftSdt.getSdtPr()));
+    	
+		javax.xml.bind.util.JAXBResult result = 
+			new javax.xml.bind.util.JAXBResult(
+				org.docx4j.jaxb.Context.jc);
+
+		Calendar changeDate = Calendar.getInstance();
+		changeDate.setTime(RFC3339_FORMAT.parse(changeset.getDate()));
+		
+		ParagraphDifferencer.diff(
+			leftSdt.getSdtContent(), 
+			rightSdt.getSdtContent(), 
+			result,
+			changeset.getModifier(),
+			changeDate);
+
+		SdtContentBlock markedUpContent = (SdtContentBlock) result.getResult();
+		// Now put into resulting sdt.
+		theSdt.setSdtContent(markedUpContent);
+		return theSdt;
+    }
+    
+	public final static org.docx4j.wml.SdtBlock markupAsDeletion(
+		org.docx4j.wml.SdtBlock sdt,
+		Map<String, Object> xsltParameters) throws Exception {
+		String xml = XmlUtils.marshaltoString(sdt, false);
+		return markupAsDeletion(xml, xsltParameters);
+	}
+
+	public final static org.docx4j.wml.SdtBlock markupAsDeletion(
+		String sdtXmlString,
+		Map<String, Object> xsltParameters) throws Exception {
+		
+		StreamSource src = new StreamSource(new StringReader(sdtXmlString));
+
+		javax.xml.bind.util.JAXBResult result = 
+			new javax.xml.bind.util.JAXBResult(
+				org.docx4j.jaxb.Context.jc);
+		
+		java.io.InputStream xslt = org.docx4j.utils.ResourceUtils
+					.getResource("org/plutext/client/wrappedTransforms/MarkupAsDeletion.xslt");
+		org.docx4j.XmlUtils.transform(src, xslt, null, result);
+
+		org.docx4j.wml.SdtBlock newSdt = (org.docx4j.wml.SdtBlock) result.getResult();
+		
+		return newSdt;
+	}
+
+	public final static org.docx4j.wml.SdtBlock markupAsInsertion(
+		org.docx4j.wml.SdtBlock sdt,
+		Map<String, Object> xsltParameters) throws Exception {
+		
+		String xml = XmlUtils.marshaltoString(sdt, false);
+		return markupAsInsertion(xml, xsltParameters);
+	}
+
+	public final static org.docx4j.wml.SdtBlock markupAsInsertion(
+		String sdtXmlString,
+		Map<String, Object> xsltParameters) throws Exception {
+		
+		StreamSource src = new StreamSource(new StringReader(sdtXmlString));
+
+		javax.xml.bind.util.JAXBResult result = 
+			new javax.xml.bind.util.JAXBResult(
+				org.docx4j.jaxb.Context.jc);
+		
+		java.io.InputStream xslt = org.docx4j.utils.ResourceUtils
+					.getResource("org/plutext/client/wrappedTransforms/MarkupAsInsertion.xslt");
+		org.docx4j.XmlUtils.transform(src, xslt, xsltParameters, result);
+
+		org.docx4j.wml.SdtBlock newSdt = (org.docx4j.wml.SdtBlock) result.getResult();
+		
+		return newSdt;		
+	}
+	
 	private XmlUtil() {
 		;//uninstantiable
 	}
