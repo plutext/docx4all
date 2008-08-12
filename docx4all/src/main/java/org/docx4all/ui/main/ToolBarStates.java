@@ -57,6 +57,7 @@ import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLStyleConstants;
 import org.docx4all.util.DocUtil;
 import org.docx4all.util.SwingUtil;
+import org.docx4all.util.XmlUtil;
 import org.plutext.client.Mediator;
 
 /**
@@ -889,11 +890,9 @@ public class ToolBarStates extends InternalFrameAdapter
     			doc.getParagraphMLElement(
     				editor.getCaretPosition(), 
     				false);
-		String temp = 
-			org.docx4j.XmlUtils.marshaltoString(
-				elem.getElementML().getDocxObject(), 
-				false);
-		boolean hasRemoteRevision = (temp.indexOf("</w:ins>") != -1);
+    	boolean hasRemoteRevision = 
+    		XmlUtil.containsTrackedChanges(
+    				elem.getElementML().getDocxObject());
 	    setRemoteRevisionInPara(hasRemoteRevision);
 
 	    Mediator client = editor.getWordMLEditorKit().getPlutextClient();
