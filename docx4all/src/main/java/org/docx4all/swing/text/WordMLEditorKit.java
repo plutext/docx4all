@@ -904,7 +904,11 @@ public class WordMLEditorKit extends DefaultEditorKit {
                     			ElementML newSdt = 
                     				new SdtBlockML(
                     					(org.docx4j.wml.SdtBlock) result.getResult());
-                    			sdt.addSibling(newSdt, true);
+                    			boolean notEmpty = 
+                    				(XmlUtil.getLastRunContentML(newSdt) != null);
+                    			if (notEmpty) {
+                        			sdt.addSibling(newSdt, true);                    				
+                    			}
                     			sdt.delete();
                     			
                     			int end = doc.getLength() - elem.getEndOffset();
@@ -912,8 +916,6 @@ public class WordMLEditorKit extends DefaultEditorKit {
                     			caretPos = doc.getLength() - end;
                     		}
                     	}//for (id) loop
-                		
-                		plutextClient.setHasNonConflictingChanges(false);
                 		
                 	} catch (Exception exc) {
                 		this.exc = exc;
@@ -927,6 +929,8 @@ public class WordMLEditorKit extends DefaultEditorKit {
                     		+ " NO plutextClient NOR non-conflicting changes");
         		} //if (plutextClient != null && plutextClient.hasNonConflictingChanges())
         	} //if (editor != null)
+        	
+        	
         } //actionPerformed()
         
         public Exception getThrownException() {
@@ -985,7 +989,11 @@ public class WordMLEditorKit extends DefaultEditorKit {
                     			ElementML newSdt = 
                     				new SdtBlockML(
                     					(org.docx4j.wml.SdtBlock) result.getResult());
-                    			sdt.addSibling(newSdt, true);
+                    			boolean notEmpty = 
+                    				(XmlUtil.getLastRunContentML(newSdt) != null);
+                    			if (notEmpty) {
+                        			sdt.addSibling(newSdt, true);                    				
+                    			}
                     			sdt.delete();
                     			
                     			int end = doc.getLength() - elem.getEndOffset();
@@ -993,8 +1001,6 @@ public class WordMLEditorKit extends DefaultEditorKit {
                     			caretPos = doc.getLength() - end;
                     		}
                     	}//for (id) loop
-                		
-                		plutextClient.setHasNonConflictingChanges(false);
                 		
                 	} catch (Exception exc) {
                 		this.exc = exc;
@@ -1057,15 +1063,12 @@ public class WordMLEditorKit extends DefaultEditorKit {
         				Mediator client = editor.getWordMLEditorKit().getPlutextClient();
         				if (client != null) {
         					elem = (DocumentElement) doc.getSdtBlockMLElement(start);
-        					SdtBlockML sdt = (SdtBlockML) elem.getElementML();
-        					String s = 
-        						org.docx4j.XmlUtils.marshaltoString(
-        							sdt.getDocxObject(), 
-        							false);
-        					if (s.indexOf("</w:ins>") == -1
-        						&& s.indexOf("</w:del>") == -1) {
-        						s = sdt.getSdtProperties().getIdValue().toString();
-        						client.removeTrackedChangeType(s);
+        					if (elem != null) {
+        						SdtBlockML sdt = (SdtBlockML) elem.getElementML();
+        						if (!XmlUtil.containsTrackedChanges(sdt.getDocxObject())) {
+            						String id = sdt.getSdtProperties().getIdValue().toString();
+            						client.removeTrackedChangeType(id);
+        						}
         					}
         				}
 
@@ -1117,15 +1120,12 @@ public class WordMLEditorKit extends DefaultEditorKit {
         				Mediator client = editor.getWordMLEditorKit().getPlutextClient();
         				if (client != null) {
         					elem = (DocumentElement) doc.getSdtBlockMLElement(start);
-        					SdtBlockML sdt = (SdtBlockML) elem.getElementML();
-        					String s = 
-        						org.docx4j.XmlUtils.marshaltoString(
-        							sdt.getDocxObject(), 
-        							false);
-        					if (s.indexOf("</w:ins>") == -1
-        						&& s.indexOf("</w:del>") == -1) {
-        						s = sdt.getSdtProperties().getIdValue().toString();
-        						client.removeTrackedChangeType(s);
+        					if (elem != null) {
+        						SdtBlockML sdt = (SdtBlockML) elem.getElementML();
+        						if (!XmlUtil.containsTrackedChanges(sdt.getDocxObject())) {
+            						String id = sdt.getSdtProperties().getIdValue().toString();
+            						client.removeTrackedChangeType(id);
+        						}
         					}
         				}
         				
@@ -1165,15 +1165,20 @@ public class WordMLEditorKit extends DefaultEditorKit {
             		int pos = editor.getCaretPosition();
             		DocumentElement elem =
             			(DocumentElement) doc.getParagraphMLElement(pos, false);
+            		ElementML oldPara = elem.getElementML();
             		
             		int start = editor.getSelectionStart();
             		int end = editor.getSelectionEnd();
             		if (elem.getStartOffset() <= start
-            			&& end <= elem.getEndOffset()) {
-            			ElementML oldPara = elem.getElementML();
+            			&& end <= elem.getEndOffset()
+            			&& XmlUtil.containsTrackedChanges(oldPara.getDocxObject())) {
+            			
+            			DocumentElement sdtElem = 
+            				(DocumentElement) doc.getSdtBlockMLElement(pos);
+            			
             			String temp = 
             				org.docx4j.XmlUtils.marshaltoString(
-            					elem.getElementML().getDocxObject(), 
+            					oldPara.getDocxObject(), 
             					false);
 
             			StreamSource src = new StreamSource(new StringReader(temp));
@@ -1183,12 +1188,30 @@ public class WordMLEditorKit extends DefaultEditorKit {
             			
             			temp = result.getOutputStream().toString();
             			
-            			ElementML parent = oldPara.getParent();
-            			int idx = parent.getChildIndex(oldPara);
-            			oldPara.delete();
             			ElementML newPara = 
             				new ParagraphML(org.docx4j.XmlUtils.unmarshalString(temp));
-            			parent.addChild(idx, newPara);
+            			boolean notEmpty = 
+            				(XmlUtil.getLastRunContentML(newPara) != null);
+            			if (notEmpty) {
+            				oldPara.addSibling(newPara, true);                    				
+            			}
+            			oldPara.delete();
+            			
+            			if (sdtElem != null) {
+            				//if paragraph is in content control
+            				SdtBlockML sdt = (SdtBlockML) sdtElem.getElementML();
+            				Mediator client = editor.getWordMLEditorKit().getPlutextClient();
+            				if (client != null
+            					&& !XmlUtil.containsTrackedChanges(sdt.getDocxObject())) {
+            					temp = sdt.getSdtProperties().getIdValue().toString();
+            					client.removeTrackedChangeType(temp);
+            				}
+
+            				notEmpty = (XmlUtil.getLastRunContentML(sdt) != null);
+            				if (!notEmpty) {
+            					sdt.delete();
+            				}
+            			}
             			
             			end = doc.getLength() - elem.getEndOffset();
             			doc.refreshParagraphs(pos, 0);
@@ -1228,15 +1251,20 @@ public class WordMLEditorKit extends DefaultEditorKit {
             		int pos = editor.getCaretPosition();
             		DocumentElement elem =
             			(DocumentElement) doc.getParagraphMLElement(pos, false);
+            		ElementML oldPara = elem.getElementML();
             		
             		int start = editor.getSelectionStart();
             		int end = editor.getSelectionEnd();
             		if (elem.getStartOffset() <= start
-            			&& end <= elem.getEndOffset()) {
-            			ElementML oldPara = elem.getElementML();
+            			&& end <= elem.getEndOffset()
+            			&& XmlUtil.containsTrackedChanges(oldPara.getDocxObject())) {
+            			
+            			DocumentElement sdtElem = 
+            				(DocumentElement) doc.getSdtBlockMLElement(pos);
+            			
             			String temp = 
             				org.docx4j.XmlUtils.marshaltoString(
-            					elem.getElementML().getDocxObject(), 
+            					oldPara.getDocxObject(), 
             					false);
 
             			StreamSource src = new StreamSource(new StringReader(temp));
@@ -1246,12 +1274,30 @@ public class WordMLEditorKit extends DefaultEditorKit {
             			
             			temp = result.getOutputStream().toString();
             			
-            			ElementML parent = oldPara.getParent();
-            			int idx = parent.getChildIndex(oldPara);
-            			oldPara.delete();
             			ElementML newPara = 
             				new ParagraphML(org.docx4j.XmlUtils.unmarshalString(temp));
-            			parent.addChild(idx, newPara);
+            			boolean notEmpty = 
+            				(XmlUtil.getLastRunContentML(newPara) != null);
+            			if (notEmpty) {
+            				oldPara.addSibling(newPara, true);                    				
+            			}
+            			oldPara.delete();
+            			
+            			if (sdtElem != null) {
+            				//if paragraph is in content control
+            				SdtBlockML sdt = (SdtBlockML) sdtElem.getElementML();
+            				Mediator client = editor.getWordMLEditorKit().getPlutextClient();
+            				if (client != null
+            					&& !XmlUtil.containsTrackedChanges(sdt.getDocxObject())) {
+            					temp = sdt.getSdtProperties().getIdValue().toString();
+            					client.removeTrackedChangeType(temp);
+            				}
+
+            				notEmpty = (XmlUtil.getLastRunContentML(sdt) != null);
+            				if (!notEmpty) {
+            					sdt.delete();
+            				}
+            			}
             			
             			end = doc.getLength() - elem.getEndOffset();
             			doc.refreshParagraphs(pos, 0);
@@ -1263,7 +1309,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
     			}
             }
         }
-        
+                
         public boolean success() {
         	return success;
         }
