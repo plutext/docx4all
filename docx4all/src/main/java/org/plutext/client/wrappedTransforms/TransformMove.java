@@ -29,6 +29,7 @@ import org.docx4all.xml.SdtBlockML;
 import org.plutext.client.Mediator;
 import org.plutext.client.Util;
 import org.plutext.client.state.StateChunk;
+import org.plutext.transforms.Changesets.Changeset;
 import org.plutext.transforms.Transforms.T;
 
 public class TransformMove extends TransformAbstract {
@@ -38,16 +39,20 @@ public class TransformMove extends TransformAbstract {
 		super(t);
 	}
 
+	 /* Compare the updated sdt to the original, replacing the
+     * updated one with containing w:ins and w:del */
+	@Override
+    public String markupChanges(String original, Changeset changeset) {
+        // Do nothing.
+        // How best to indicate to the user that something
+        // has moved?  Just in a dialog box?
+		return null;
+    }
+
 	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
 		String idStr = getId().getVal().toString();
 
 		log.debug("apply(): Moving SdtBlock = " + getSdt() + " - ID=" + idStr);
-
-		if (stateChunks.get(idStr) == null) {
-			log.error("apply(): Could not find SDT Id=" + idStr + " snapshot.");
-			// TODO - throw error
-			return -1;
-		}
 
 		Long moveToIndex = null;
 		if (this.t.getPosition() == null || this.t.getPosition() < 0) {
@@ -71,15 +76,6 @@ public class TransformMove extends TransformAbstract {
 			return -1;
 		}
 
-		// Semantics of move are
-		// 1 remove existing element
-		// 2 insert new element
-
-		// So
-		mediator.getDivergences().delete(idStr);
-		mediator.getDivergences().insert(idStr, moveToIndex);
-
-		
 		WordMLDocument doc = 
 			(WordMLDocument) mediator.getWordMLTextPane().getDocument();
 		DocumentElement elem = Util.getDocumentElement(doc, idStr);
@@ -115,49 +111,33 @@ public class TransformMove extends TransformAbstract {
 			}
 		}
 		
+		// Semantics of move are
+		// 1 remove existing element
+		// 2 insert new element
+
+		// So
+		mediator.getDivergences().delete(idStr);
+		mediator.getDivergences().insert(idStr, moveToIndex);
+
 		//Move SdtBlock by first deleting the block.
 		SdtBlockML copy = (SdtBlockML) elem.getElementML().clone();
 		elem.getElementML().delete();
-
-		//Record the update range in document.
-		int offset = mediator.getUpdateStartOffset();
-		offset = Math.min(offset, elem.getStartOffset());
-		mediator.setUpdateStartOffset(offset);
-
-		offset = mediator.getUpdateEndOffset();
-		offset = Math.max(offset, elem.getEndOffset());
-		mediator.setUpdateEndOffset(offset);
+		updateRefreshOffsets(mediator, elem.getStartOffset(), elem.getEndOffset());
 
 		//Insert the deleted block into new position.
 		elemMLAtMoveToIndex.addSibling(copy, false);
 		
-		//Record the update range for the insertion just done.
-		elem = null;
-		for (int i = 0; (elem == null && i < root.getElementCount() - 1); i++) {
-			elem = (DocumentElement) root.getElement(i);
-			if (elem.getElementML() != elemMLAtMoveToIndex) {
-				elem = null;
-			}
-		}
-
-		if (elem == null) {
-			//should not happen.
-			//If it does happen then refresh the whole document.
-			mediator.setUpdateStartOffset(0);
-			mediator.setUpdateEndOffset(doc.getLength());
-			
+		//Record the offset range for the insertion just done.
+		elem = (DocumentElement) root.getElement(idx);
+		if (elem.getElementML() != elemMLAtMoveToIndex) {
+			updateRefreshOffsets(mediator, 0, doc.getLength());
 		} else {
-			offset = mediator.getUpdateStartOffset();
-			offset = Math.min(offset, elem.getStartOffset());
-			mediator.setUpdateStartOffset(offset);
-
-			offset = mediator.getUpdateEndOffset();
-			offset = Math.max(offset, elem.getEndOffset());
-			mediator.setUpdateEndOffset(offset);
+			updateRefreshOffsets(mediator, elem.getStartOffset(), elem.getEndOffset());			
 		}
-		
+
 		return sequenceNumber;
 	}
+
 
 }// TransformMove class
 

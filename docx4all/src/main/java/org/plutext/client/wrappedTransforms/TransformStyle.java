@@ -24,6 +24,7 @@ import java.util.HashMap;
 import org.apache.log4j.Logger;
 import org.plutext.client.Mediator;
 import org.plutext.client.state.StateChunk;
+import org.plutext.transforms.Changesets.Changeset;
 import org.plutext.transforms.Transforms.T;
 
 
@@ -36,6 +37,16 @@ public class TransformStyle extends TransformAbstract
     	super(t);
     }
     
+	 /* Compare the updated sdt to the original, replacing the
+     * updated one with containing w:ins and w:del */
+	@Override
+    public String markupChanges(String original, Changeset changeset) {
+        // Do nothing.
+        // How best to indicate to the user that something
+        // has moved?  Just in a dialog box?
+		return null;
+    }
+
 
     public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks)
     {

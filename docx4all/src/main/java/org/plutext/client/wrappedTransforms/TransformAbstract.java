@@ -28,6 +28,7 @@ import org.docx4j.wml.SdtBlock;
 import org.docx4j.wml.Tag;
 import org.plutext.client.Mediator;
 import org.plutext.client.state.StateChunk;
+import org.plutext.transforms.Changesets.Changeset;
 import org.plutext.transforms.Transforms.T;
 
 public abstract class TransformAbstract {
@@ -35,7 +36,8 @@ public abstract class TransformAbstract {
 	private static Logger log = Logger.getLogger(TransformAbstract.class);
 
 	protected SdtBlock sdt = null;
-
+	protected org.docx4j.wml.SdtBlock markedUpSdt = null;
+	
 	public SdtBlock getSdt() {
 		return sdt;
 	}
@@ -49,7 +51,8 @@ public abstract class TransformAbstract {
 		this.t = t;
 
 		sequenceNumber = t.getSnum();
-
+		changesetNumber = t.getChangeset();
+		
 		sdt = t.getSdt();
 
 		if (t.getIdref() != null) {
@@ -133,9 +136,63 @@ public abstract class TransformAbstract {
 	public void setSequenceNumber(long sequenceNumber) {
 		this.sequenceNumber = sequenceNumber;
 	}
+	
+	protected long changesetNumber = 0;
+	public long getChangesetNumber() {
+		return changesetNumber;
+	}
+
+	public void setChangesetNumber(long number) {
+		this.changesetNumber = number;
+	}
 
 	/* Code to apply the transform */
 	public abstract long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks);
 
+	public abstract String markupChanges(String original, Changeset changeset);
+	
+	public org.docx4j.wml.SdtBlock getMarkedUpSdt() {
+		return this.markedUpSdt;
+	}
 
-}
+    protected void updateRefreshOffsets(Mediator mediator, int start, int end) {
+		int offset = mediator.getUpdateStartOffset();
+		offset = Math.min(offset, start);
+		mediator.setUpdateStartOffset(offset);
+
+		offset = mediator.getUpdateEndOffset();
+		offset = Math.max(offset, end);
+		mediator.setUpdateEndOffset(offset);
+    }
+
+}// TransformAbstract class
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

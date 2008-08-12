@@ -21,18 +21,16 @@ package org.plutext.client.wrappedTransforms;
 
 import java.util.HashMap;
 
-import javax.xml.bind.JAXBException;
-
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
+import org.docx4all.util.XmlUtil;
 import org.docx4all.xml.SdtBlockML;
-import org.docx4j.diff.ParagraphDifferencer;
-import org.docx4j.wml.SdtBlock;
-import org.docx4j.wml.SdtContentBlock;
+import org.docx4j.XmlUtils;
 import org.plutext.client.Mediator;
 import org.plutext.client.Util;
 import org.plutext.client.state.StateChunk;
+import org.plutext.transforms.Changesets.Changeset;
 import org.plutext.transforms.Transforms.T;
 
 public class TransformUpdate extends TransformAbstract {
@@ -43,30 +41,41 @@ public class TransformUpdate extends TransformAbstract {
 		super(t);
 	}
 
-	/*
-	 * Compare the updated sdt to the original, replacing the updated one with
-	 * containing w:ins and w:del
-	 */
-	public void markupChanges(SdtBlock local) {
-		SdtContentBlock markedUpContent;
-		try {
-			javax.xml.bind.util.JAXBResult result = new javax.xml.bind.util.JAXBResult(
-					org.docx4j.jaxb.Context.jc);
-
-			ParagraphDifferencer.diff(getSdt().getSdtContent(), local
-					.getSdtContent(), result);
-
-			markedUpContent = (SdtContentBlock) result.getResult();
-		} catch (JAXBException e) {
-			log.error("markupChanges(): JAXBException caught.", e);
-			// Oh well, we'll display it without changes marked up
-			return;
+	/* Compare the updated sdt to the original, replacing the
+     * updated one with containing w:ins and w:del 
+     */
+	@Override
+    public String markupChanges(String original, Changeset changeset) {
+		log.debug("markupChanges(): Marking up SdtBlock = " 
+			+ getSdt() 
+			+ " - ID="
+			+ getId().getVal().toString());
+		log.debug("markupChanges(): 'original' param = " + original);
+		
+    	try {
+    		if (original == null) {
+    			this.markedUpSdt = XmlUtil.markupAsInsertion(getSdt(), null);
+    		} else {
+    			org.docx4j.wml.SdtBlock origSdt = 
+    				(org.docx4j.wml.SdtBlock) XmlUtils.unmarshalString(original);
+    			this.markedUpSdt = XmlUtil.markupDifference(getSdt(), origSdt, changeset);
+    		}
+		} catch (Exception exc) {
+			log.error("markupChanges(): Exception caught during marking up:");
+			exc.printStackTrace();
+			this.markedUpSdt = null;
 		}
 
-		// Now replace the content of sdt
-		getSdt().setSdtContent(markedUpContent);
-	}
-
+		String result = null;
+		if (this.markedUpSdt != null) {
+			result = XmlUtils.marshaltoString(this.markedUpSdt, true);
+		}
+		
+        log.debug("markupChanges(): Result = " + result);
+        
+        return result;
+    }
+    
 	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
 		String idStr = getId().getVal().toString();
 
@@ -79,8 +88,8 @@ public class TransformUpdate extends TransformAbstract {
 			return -1;
 		}
 
-		WordMLDocument doc = (WordMLDocument) mediator.getWordMLTextPane()
-				.getDocument();
+		WordMLDocument doc = 
+			(WordMLDocument) mediator.getWordMLTextPane().getDocument();
 		DocumentElement elem = Util.getDocumentElement(doc, idStr);
 		if (elem == null) {
 			// should not happen.
@@ -89,19 +98,13 @@ public class TransformUpdate extends TransformAbstract {
 			return -1;
 		}
 
-		SdtBlockML newSdt = new SdtBlockML(getSdt());
+		SdtBlockML newSdt = new SdtBlockML(this.markedUpSdt);
 		elem.getElementML().addSibling(newSdt, false);
 		elem.getElementML().delete();
 
-		int offset = mediator.getUpdateStartOffset();
-		offset = Math.min(offset, elem.getStartOffset());
-		mediator.setUpdateStartOffset(offset);
+		updateRefreshOffsets(mediator, elem.getStartOffset(), elem.getEndOffset());
 
-		offset = mediator.getUpdateEndOffset();
-		offset = Math.max(offset, elem.getEndOffset());
-		mediator.setUpdateEndOffset(offset);
-
-		stateChunks.put(idStr, new StateChunk(getSdt()));
+		stateChunks.put(idStr, new StateChunk(this.markedUpSdt));
 
 		// Fourth, if we haven't thrown an exception, return the sequence number
 		return sequenceNumber;

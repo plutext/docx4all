@@ -24,26 +24,97 @@ import java.util.HashMap;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
+import org.docx4all.util.XmlUtil;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.SdtBlockML;
+import org.docx4j.XmlUtils;
 import org.plutext.client.Mediator;
+import org.plutext.client.Util;
 import org.plutext.client.state.StateChunk;
+import org.plutext.transforms.Changesets.Changeset;
 import org.plutext.transforms.Transforms.T;
 
 public class TransformInsert extends TransformAbstract {
 
 	private static Logger log = Logger.getLogger(TransformInsert.class);
-
+	
 	public TransformInsert(T t) {
 		super(t);
 	}
 
-	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
+	/* Markup the existing sdt with one containing w:ins or w:del*/
+	@Override
+    public String markupChanges(String original, Changeset changeset) {
+		log.debug("markupChanges(): Marking up SdtBlock = " 
+			+ getSdt() 
+			+ " - ID="
+			+ getId().getVal().toString());
+		log.debug("markupChanges(): 'original' param = " + original);
+		
+    	try {
+    		if (original == null) {
+    			this.markedUpSdt = XmlUtil.markupAsInsertion(getSdt(), null);
+    		} else {
+    			org.docx4j.wml.SdtBlock origSdt = 
+    				(org.docx4j.wml.SdtBlock) XmlUtils.unmarshalString(original);
+    			this.markedUpSdt = XmlUtil.markupDifference(getSdt(), origSdt, changeset);
+    		}
+		} catch (Exception exc) {
+			log.error("markupChanges(): Exception caught during marking up:");
+			exc.printStackTrace();
+			this.markedUpSdt = null;
+		}
+
+		String result = null;
+		if (this.markedUpSdt != null) {
+			result = XmlUtils.marshaltoString(this.markedUpSdt, true);
+		}
+		
+        log.debug("markupChanges(): Result = " + result);
+        
+        return result;
+    }
+    
+    public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
 		String idStr = getId().getVal().toString();
 
 		log.debug("apply(): Inserting SdtBlock = " + getSdt() + " - ID="
 				+ idStr);
 
+    	if (this.markedUpSdt == null) {
+    		//Sdt has not been marked up or there was an error during marking up.
+    		//See: markupChanges().
+    		//Silently ignore.
+    		log.error("apply(): No marked up Sdt.");
+    		return -1;
+    	}
+    	
+    	// If a Delete is followed by Insert (reinstate),
+        // the server will not transmit the Delete.
+        // So here we test whether the sdt is already present
+        /* Testing this case requires three clients:
+         * 
+         * Client 1, 2, 3 all open.
+         * 
+         * Client 1 deletes an sdt; transmits
+         * 
+         * Client 2 fetches; rejects change (and optionally moves or edits); transmits
+         * 
+         * Client 3 fetches
+         * 
+         */
+		WordMLDocument doc = 
+			(WordMLDocument) mediator.getWordMLTextPane().getDocument();
+		DocumentElement elem = Util.getDocumentElement(doc, idStr);
+		if (elem != null) {
+			//Treat this element as being moved.
+            log.debug("apply(): Detected reinstatement.");
+            log.debug("apply(): Document element=" + elem + " is deleted.");
+			elem.getElementML().delete();
+			updateRefreshOffsets(mediator, elem.getStartOffset(), elem.getEndOffset());
+			mediator.getDivergences().delete(idStr);
+		}
+    	    	
 		// Plutext server is trying to use absolute index position for
 		// locating the insert positon.
 		Long insertAtIndex = null;
@@ -68,8 +139,6 @@ public class TransformInsert extends TransformAbstract {
 			return -1;
 		}
 
-		WordMLDocument doc = (WordMLDocument) mediator.getWordMLTextPane()
-				.getDocument();
 		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
 
 		ElementML bodyML = root.getElementML().getChild(0);
@@ -79,40 +148,60 @@ public class TransformInsert extends TransformAbstract {
 		log.debug("apply(): SdtBlock will be inserted at idx=" + idx);
 
 		ElementML ml = bodyML.getChild(idx);
+		
 		log.debug("apply(): Currently, ElementML at idx=" + idx + " is " + ml);
 
-		ml.addSibling(new SdtBlockML(getSdt()), false);
+		SdtBlockML markedUpML = 
+			new SdtBlockML(
+				(org.docx4j.wml.SdtBlock) 
+				XmlUtils.deepCopy(this.markedUpSdt));
+		ml.addSibling(markedUpML, false);
 
-		DocumentElement elem = null;
-		for (int i = 0; (elem == null && i < root.getElementCount() - 1); i++) {
-			elem = (DocumentElement) root.getElement(i);
-			if (elem.getElementML() != ml) {
-				elem = null;
-			}
-		}
-
-		if (elem == null) {
-			//should not happen.
-			//If it does happen then refresh the whole document.
-			mediator.setUpdateStartOffset(0);
-			mediator.setUpdateEndOffset(doc.getLength());
-			
+		elem = (DocumentElement) root.getElement(idx);
+		if (elem.getElementML() != ml) {
+			//Just in case.
+			//hint to refresh the whole document.
+			updateRefreshOffsets(mediator, 0, doc.getLength());			
 		} else {
-			int offset = mediator.getUpdateStartOffset();
-			offset = Math.min(offset, elem.getStartOffset());
-			mediator.setUpdateStartOffset(offset);
-
-			offset = mediator.getUpdateEndOffset();
-			offset = Math.max(offset, elem.getEndOffset());
-			mediator.setUpdateEndOffset(offset);
+			updateRefreshOffsets(mediator, elem.getStartOffset(), elem.getEndOffset());
 		}
 
-		StateChunk sc = new StateChunk(getSdt());
-		stateChunks.put(sc.getIdAsString(), sc);
+        //What goes in stateChunks is the *non-marked up* 
+		//sdt that we got from the server.
+        StateChunk sc = new StateChunk(getSdt());
+        stateChunks.put(sc.getIdAsString(), sc);
+
+        // But also record the marked up version
+        sc.setMarkedUpSdt(XmlUtils.marshaltoString(this.markedUpSdt, true));
+
 		mediator.getDivergences().insert(idStr, Long.valueOf(idx));
 		
 		return sequenceNumber;
 	}
 
 } // TransformInsert class
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
