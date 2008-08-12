@@ -152,6 +152,9 @@ public class Mediator
 			
         } catch (AuthenticationFault exc) {
         	throw new ServiceException("Authentication failure.", exc);
+		} catch ( org.alfresco.webservice.util.WebServiceException wse) {
+			log.error("Wrong endpoint set in src/main/resources/alfresco/webserviceclient.properties?", wse);
+        	throw new ServiceException("Authentication failure.", wse);			
 		}
     }
     
