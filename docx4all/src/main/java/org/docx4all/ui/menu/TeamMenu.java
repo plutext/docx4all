@@ -124,18 +124,25 @@ public class TeamMenu extends UIMenu {
 			new WordMLEditorKit.FetchRemoteEditsAction();
 		action.actionPerformed(evt);
 		
+		WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+    	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
+        String title = 
+        	rm.getString(FETCH_REMOTE_EDITS_ACTION_NAME + ".Action.text");
+        
 		if (!action.success()) {
             Exception exc = action.getThrownException();
-            exc.printStackTrace();
-            
-			WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
-        	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
-            String title = 
-            	rm.getString(FETCH_REMOTE_EDITS_ACTION_NAME + ".Action.text");
-            
-            String message = rm.getString(
-            		FETCH_REMOTE_EDITS_ACTION_NAME + ".Action.errorMessage");
-			wmlEditor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);	
+            if (exc instanceof ClientException) {
+            	String message = 
+            		rm.getString(
+            			FETCH_REMOTE_EDITS_ACTION_NAME + ".Action.conflictExistenceMessage");
+    			wmlEditor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);	
+            } else {
+                exc.printStackTrace();
+                String message = 
+            		rm.getString(
+            			FETCH_REMOTE_EDITS_ACTION_NAME + ".Action.errorMessage");
+    			wmlEditor.showMessageDialog(title, message, JOptionPane.ERROR_MESSAGE);	
+            }
 		}
 	}
 	
