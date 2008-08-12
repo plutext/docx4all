@@ -80,6 +80,16 @@ public class StateChunk
             
 //            set { xml = value; }
 //        }
+    
+    private String markedUpSdt = null;
+    public String getMarkedUpSdt() {
+    	return markedUpSdt;
+    }
+    
+    public void setMarkedUpSdt(String s) {
+    	markedUpSdt = s;
+    }
+    
 	/*
 	 * cc.Range.WordOpenXML returns an XML document which contains all
 	 * associates Parts eg style.xml etc. But all we want is the XML for the
