@@ -37,7 +37,9 @@ import javax.swing.text.Document;
 import javax.swing.text.EditorKit;
 
 import net.sf.vfsjfilechooser.VFSJFileChooser;
-import net.sf.vfsjfilechooser.acessories.DefaultAccessoriesPanel;
+import net.sf.vfsjfilechooser.VFSJFileChooser.RETURN_TYPE;
+import net.sf.vfsjfilechooser.VFSJFileChooser.SELECTION_MODE;
+import net.sf.vfsjfilechooser.accessories.DefaultAccessoriesPanel;
 import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.commons.vfs.FileObject;
@@ -287,13 +289,13 @@ public class FileMenu extends UIMenu {
 	        	DocumentML docML = (DocumentML) root.getElementML();
 	        	WordprocessingMLPackage wmlPackage = docML.getWordprocessingMLPackage();
 	        	XmlUtil.setSharedDocumentProperties(wmlPackage, d);
-	        	int val = 
+	        	RETURN_TYPE val = 
 	        		saveAsFile(SAVE_AS_SHARED_DOC_ACTION_NAME, actionEvent, Constants.DOCX_STRING);
 	        	
         		Cursor origCursor = wmlTextPane.getCursor();
         		wmlTextPane.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         		
-	        	if (val != JFileChooser.APPROVE_OPTION) {
+	        	if (val != RETURN_TYPE.APPROVE) {
 	        		//Cancelled or Error
 	        		XmlUtil.removeSharedDocumentProperties(wmlPackage);
 	        		
@@ -351,8 +353,9 @@ public class FileMenu extends UIMenu {
     	ResourceMap rm = editor.getContext().getResourceMap(WordMLEditor.class);
         VFSJFileChooser chooser = createFileChooser(rm, dir, Constants.DOCX_STRING);
         
-        int returnVal = chooser.showOpenDialog((Component) actionEvent.getSource());
-        if (returnVal == JFileChooser.APPROVE_OPTION) {
+        RETURN_TYPE returnVal = chooser.showOpenDialog((Component) actionEvent.getSource());
+        
+        if (returnVal == RETURN_TYPE.APPROVE) {
 			FileObject file = getSelectedFile(chooser, Constants.DOCX_STRING);
 			if (file != null) {
 				lastFileUri = file.getName().getURI();
@@ -390,7 +393,7 @@ public class FileMenu extends UIMenu {
     	saveAsFile(SAVE_AS_DOCX_ACTION_NAME, actionEvent, Constants.DOCX_STRING);
     }
     
-    private int saveAsFile(String callerActionName, ActionEvent actionEvent, String fileType) {
+    private RETURN_TYPE saveAsFile(String callerActionName, ActionEvent actionEvent, String fileType) {
         Preferences prefs = Preferences.userNodeForPackage( getClass() );
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
     	ResourceMap rm = editor.getContext().getResourceMap(getClass());
@@ -410,8 +413,8 @@ public class FileMenu extends UIMenu {
 
         VFSJFileChooser chooser = createFileChooser(rm, dir, fileType);
         
-        int returnVal = chooser.showSaveDialog((Component) actionEvent.getSource());
-        if (returnVal == JFileChooser.APPROVE_OPTION) {
+        RETURN_TYPE returnVal = chooser.showSaveDialog((Component) actionEvent.getSource());
+        if (returnVal == RETURN_TYPE.APPROVE) {
 			FileObject selectedFile = getSelectedFile(chooser, fileType);
 			
 			//Check selectedFile's existence and ask user confirmation when needed.
@@ -644,7 +647,7 @@ public class FileMenu extends UIMenu {
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         editor.exit();
     }
-    
+        
     private VFSJFileChooser createFileChooser(
     	ResourceMap resourceMap, 
     	FileObject showedDir,
@@ -654,7 +657,8 @@ public class FileMenu extends UIMenu {
         chooser.setAccessory(new DefaultAccessoriesPanel(chooser));
         chooser.setFileHidingEnabled(false);
         chooser.setMultiSelectionEnabled(false);
-        chooser.setFileSelectionMode(VFSJFileChooser.FILES_ONLY);
+        
+        chooser.setFileSelectionMode(SELECTION_MODE.FILES_ONLY);
         
         String desc = null;
         if (Constants.HTML_STRING.equals(filteredFileExtension)) {

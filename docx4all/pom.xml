@@ -125,6 +125,7 @@
   		<artifactId>commons-io</artifactId>
   		<version>1.3.1</version>
   	</dependency>
+<!--   	
   	<dependency>
   		<groupId>commons-httpclient</groupId>
   		<artifactId>commons-httpclient</artifactId>
@@ -135,7 +136,7 @@
   				<groupId>commons-logging</groupId>
   			</exclusion>
   		</exclusions>
-  	</dependency>
+  	</dependency>  -->
   	<dependency>
   		<groupId>axis</groupId>
   		<artifactId>axis</artifactId>
@@ -180,7 +181,7 @@
 
  mvn deploy:deploy-file -f wagon-svn-pom.xml -Dfile=lib/alfresco-web-service-client.jar -DgroupId=alfresco.community -DartifactId=alfresco-web-service-client-patched -Dversion=2.9.1 -Dpackaging=jar -DrepositoryId=docx4all -Durl=svn:http://dev.plutext.org/svn/docx4all/trunk/docx4all/m2
 
-			or (for docx4j.jar)www  
+			or (for docx4j.jar) 
 						
 			mvn deploy:deploy-file -f wagon-svn-pom.xml -Dfile=dist/docx4j.jar -DpomFile=pom.xml  -Dpackaging=jar -DrepositoryId=docx4all -Durl=svn:http://dev.plutext.org/svn/docx4all/trunk/docx4all/m2
 
@@ -190,7 +191,17 @@
 <dependency>
   <groupId>org.docx4j</groupId>
   <artifactId>docx4j</artifactId>
-  <version>2.0.0</version> 
+  <version>2.0.1</version> 
+  		<exclusions>
+  			<exclusion>
+  				<artifactId>webdavclient4j-vfs</artifactId>
+  				<groupId>webdavclient4j</groupId>
+  			</exclusion>
+  			<exclusion>
+  				<artifactId>webdavclient4j-core</artifactId>
+  				<groupId>webdavclient4j</groupId>
+  			</exclusion>
+  		</exclusions>  
 </dependency>
   	
 
@@ -220,12 +231,14 @@
   <version>0.9</version>
 </dependency>
 
+<!-- 
 <dependency>
   <groupId>net.sf.vfsjfilechooser</groupId>
   <artifactId>vfsjfilechooser</artifactId>
   <version>0.0.2</version>
 </dependency>
-
+ -->
+ 
 <dependency>
   <groupId>xml-security</groupId>
   <artifactId>xmlsec</artifactId>
@@ -257,12 +270,14 @@
 			<version>1.0</version>
 		</dependency>
 
+<!-- 
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-vfs-patched</artifactId>
 			<version>1.1a</version>
 		</dependency>
-
+ -->
+ 
 		<dependency>
 			<groupId>pdf-renderer</groupId>
 			<artifactId>pdf-renderer</artifactId>

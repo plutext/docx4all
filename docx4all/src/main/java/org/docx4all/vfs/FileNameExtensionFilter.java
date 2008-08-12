@@ -21,7 +21,7 @@ package org.docx4all.vfs;
 
 import javax.swing.filechooser.FileView;
 
-import net.sf.vfsjfilechooser.filechooser.VFSFileFilter;
+import net.sf.vfsjfilechooser.filechooser.AbstractVFSFileFilter;
 import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.commons.vfs.FileObject;
@@ -29,7 +29,7 @@ import org.apache.commons.vfs.FileObject;
 /**
  *	@author Jojada Tirtowidjojo - 25/03/2008
  */
-public class FileNameExtensionFilter extends VFSFileFilter {
+public class FileNameExtensionFilter extends AbstractVFSFileFilter {
 	private final String filterDesc;
 	private final String[] filteredFileExtensions;
 	
