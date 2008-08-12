@@ -61,8 +61,11 @@ public class Skeleton implements IDiffList<TextLine> {
 	}
 
     // Constructor - make object from string
-    public Skeleton(String skeletonStr)
-    {
+    public Skeleton(String skeletonStr) {
+    	this(skeletonStr, -1);
+    }
+    
+	public Skeleton(String skeletonStr, long tSequenceNumberHighestFetched) {
         /*
          * <dst:transitions>
          *   <dst:ribs>
@@ -79,31 +82,64 @@ public class Skeleton implements IDiffList<TextLine> {
 				(org.plutext.server.transitions.Transitions) u
 					.unmarshal(new javax.xml.transform.stream.StreamSource(
 							new java.io.StringReader(skeletonStr)));
-			init(transitions);
+			init(transitions, tSequenceNumberHighestFetched);
 		} catch (JAXBException exc) {
 			exc.printStackTrace(); //should not happen
 		}
-    }
-    
+	}
+	
 	public Skeleton(Transitions t) {
 		/*
 		 * <dst:transitions> <dst:ribs> <dst:rib id="54989358" /> <dst:rib
 		 * id="1447653797" /> : </dst:transitions>
 		 * 
 		 */
-		init(t);
+		init(t, -1);
 	}
+	
+	public Skeleton(Transitions t, long tSequenceNumberHighestFetched) {
+		init(t, tSequenceNumberHighestFetched);
+	}
+	
+	private void init(Transitions t, long tSequenceNumberHighestFetched) {
+        // if tSequenceNumberHighestFetched > -1, 
+        // we return prematurely, with value false,
+        // if an @snum > tSequenceNumberHighestFetched is found
 
-	private void init(Transitions t) {
-		for (Transitions.Ribs.Rib r : t.getRibs().getRib()) {
+		for (Transitions.Ribs.Rib r: t.getRibs().getRib()) {
+            if (tSequenceNumberHighestFetched > -1) {
+            	for (Transitions.Ribs.Rib.T ribT: r.getT()) {
+            		String op = ribT.getOp();
+
+                    if (op.equals("insert")
+                        || op.equals("move")
+                        || op.equals("delete")) // a structural transform
+                    {
+
+                    	long thisSequenceNumber = ribT.getSnum();
+
+                        if (thisSequenceNumber > tSequenceNumberHighestFetched)
+                        {
+                            log.debug("found transform snum " + thisSequenceNumber + " > " + tSequenceNumberHighestFetched);
+                            hasStructuralTransform = true;
+                        }
+                    }
+                }
+            }
+
 			if (r.isDeleted() != null && r.isDeleted()) {
                 log.debug("Rib " + r.getId() + " deleted, so ignoring.");				
 			} else {
                 log.debug("Added Rib " + r.getId());
 				ribs.add(new TextLine(Long.toString(r.getId())));
 			}
-		}
+			
+		}// for (r) loop
+	}// init()
 	
+	private boolean hasStructuralTransform = false;
+	public boolean hasStructuralTransform() {
+		return hasStructuralTransform;
 	}
 	
 	public ArrayList<TextLine> getRibs() {
@@ -120,6 +156,10 @@ public class Skeleton implements IDiffList<TextLine> {
 
 	public Comparable<TextLine> getByIndex(int index) {
 		return ribs.get(index);
+	}
+	
+	public boolean removeRib(TextLine rib) {
+		return ribs.remove(rib);
 	}
 
 }// Skeleton class
