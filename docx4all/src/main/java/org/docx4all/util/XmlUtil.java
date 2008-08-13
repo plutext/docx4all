@@ -25,6 +25,7 @@ import java.io.StringReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -548,8 +549,9 @@ public class XmlUtil {
 			new javax.xml.bind.util.JAXBResult(
 				org.docx4j.jaxb.Context.jc);
 
-		Calendar changeDate = Calendar.getInstance();
-		changeDate.setTime(RFC3339_FORMAT.parse(changeset.getDate()));
+		//Calendar changeDate = Calendar.getInstance();
+		//changeDate.setTime(RFC3339_FORMAT.parse(changeset.getDate()));
+		Calendar changeDate = null;
 		
 		ParagraphDifferencer.diff(
 			leftSdt.getSdtContent(), 
@@ -564,6 +566,16 @@ public class XmlUtil {
 		return theSdt;
     }
     
+	public final static org.docx4j.wml.SdtBlock markupAsDeletion(
+		org.docx4j.wml.SdtBlock sdt,
+		Changeset changeset) throws Exception {
+		
+		Map<String, Object> params = new HashMap<String, Object>(1);
+		params.put("author", changeset.getModifier());
+		
+		return markupAsDeletion(sdt, params);
+	}
+
 	public final static org.docx4j.wml.SdtBlock markupAsDeletion(
 		org.docx4j.wml.SdtBlock sdt,
 		Map<String, Object> xsltParameters) throws Exception {
@@ -582,12 +594,22 @@ public class XmlUtil {
 				org.docx4j.jaxb.Context.jc);
 		
 		java.io.InputStream xslt = org.docx4j.utils.ResourceUtils
-					.getResource("org/plutext/client/wrappedTransforms/MarkupAsDeletion.xslt");
-		org.docx4j.XmlUtils.transform(src, xslt, null, result);
+					.getResource("org/docx4all/util/MarkupAsDeletion.xslt");
+		org.docx4j.XmlUtils.transform(src, xslt, xsltParameters, result);
 
 		org.docx4j.wml.SdtBlock newSdt = (org.docx4j.wml.SdtBlock) result.getResult();
 		
 		return newSdt;
+	}
+
+	public final static org.docx4j.wml.SdtBlock markupAsInsertion(
+		org.docx4j.wml.SdtBlock sdt,
+		Changeset changeset) throws Exception {
+			
+		Map<String, Object> params = new HashMap<String, Object>(1);
+		params.put("author", changeset.getModifier());
+			
+		return markupAsInsertion(sdt, params);
 	}
 
 	public final static org.docx4j.wml.SdtBlock markupAsInsertion(
@@ -609,7 +631,7 @@ public class XmlUtil {
 				org.docx4j.jaxb.Context.jc);
 		
 		java.io.InputStream xslt = org.docx4j.utils.ResourceUtils
-					.getResource("org/plutext/client/wrappedTransforms/MarkupAsInsertion.xslt");
+					.getResource("org/docx4all/util/MarkupAsInsertion.xslt");
 		org.docx4j.XmlUtils.transform(src, xslt, xsltParameters, result);
 
 		org.docx4j.wml.SdtBlock newSdt = (org.docx4j.wml.SdtBlock) result.getResult();
