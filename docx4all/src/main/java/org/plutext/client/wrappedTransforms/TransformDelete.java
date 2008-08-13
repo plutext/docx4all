@@ -20,6 +20,7 @@
 package org.plutext.client.wrappedTransforms;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.DocumentElement;
@@ -58,7 +59,7 @@ public class TransformDelete extends TransformAbstract {
 		try {
 			org.docx4j.wml.SdtBlock temp = 
 				(org.docx4j.wml.SdtBlock) XmlUtils.unmarshalString(sdtParam);
-			this.markedUpSdt = XmlUtil.markupAsDeletion(temp, null);
+			this.markedUpSdt = XmlUtil.markupAsDeletion(temp, changeset);
 		} catch (Exception exc) {
 			log.error("markupChanges(): Exception caught during marking up:");
 			exc.printStackTrace();
