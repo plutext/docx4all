@@ -54,7 +54,7 @@ public class TransformUpdate extends TransformAbstract {
 		
     	try {
     		if (original == null) {
-    			this.markedUpSdt = XmlUtil.markupAsInsertion(getSdt(), null);
+    			this.markedUpSdt = XmlUtil.markupAsInsertion(getSdt(), changeset);
     		} else {
     			org.docx4j.wml.SdtBlock origSdt = 
     				(org.docx4j.wml.SdtBlock) XmlUtils.unmarshalString(original);
@@ -98,6 +98,14 @@ public class TransformUpdate extends TransformAbstract {
 			return -1;
 		}
 
+    	if (this.markedUpSdt == null) {
+    		//Sdt has not been marked up or there was an error during marking up.
+    		//See: markupChanges().
+    		//Silently ignore.
+    		log.error("apply(): No marked up Sdt.");
+    		return -1;
+    	}
+    	
 		SdtBlockML newSdt = new SdtBlockML(this.markedUpSdt);
 		elem.getElementML().addSibling(newSdt, false);
 		elem.getElementML().delete();
