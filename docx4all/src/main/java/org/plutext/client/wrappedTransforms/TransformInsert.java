@@ -53,7 +53,7 @@ public class TransformInsert extends TransformAbstract {
 		
     	try {
     		if (original == null) {
-    			this.markedUpSdt = XmlUtil.markupAsInsertion(getSdt(), null);
+    			this.markedUpSdt = XmlUtil.markupAsInsertion(getSdt(), changeset);
     		} else {
     			org.docx4j.wml.SdtBlock origSdt = 
     				(org.docx4j.wml.SdtBlock) XmlUtils.unmarshalString(original);
