@@ -82,6 +82,12 @@ public interface Constants {
 	public final static String SOURCE_VIEW_TAB_TITLE = "source.view.tab.title";
 	public final static String SOURCE_VIEW_FONT_FAMILY_NAME = "source.view.font.family.name";
 	public final static String SOURCE_VIEW_FONT_SIZE = "source.view.font.size";
+	
+	public final static String PLUTEXT_WEBDAV_SERVER_LOCATION = "plutext.webdav.server.location";
+	public final static String PLUTEXT_WEBDAV_USER_HOME_ROOT = "plutext.webdav.user.home.root";
+	public final static String PLUTEXT_WEBDAV_USER_USERNAME = "plutext.webdav.user.username";
+	public final static String PLUTEXT_WEBDAV_USER_PASSWORD = "plutext.webdav.user.password";
+	
 }// Constants interface
 
 
