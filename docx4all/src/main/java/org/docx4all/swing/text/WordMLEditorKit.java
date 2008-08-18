@@ -81,6 +81,8 @@ import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.ParagraphML;
+import org.docx4all.xml.RunDelML;
+import org.docx4all.xml.RunInsML;
 import org.docx4all.xml.SdtBlockML;
 import org.plutext.client.Mediator;
 import org.plutext.client.Util;
@@ -497,34 +499,104 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	    
 	    public void mouseMoved(MouseEvent e){
 	    	WordMLTextPane editor = (WordMLTextPane) e.getSource();
-	    	WordMLDocument doc = (WordMLDocument) editor.getDocument();
 	    	BasicTextUI ui = (BasicTextUI) editor.getUI();
 	    	
 	    	Point pt = new Point(e.getX(), e.getY());
 	    	Position.Bias[] biasRet = new Position.Bias[1];
 	    	int pos = ui.viewToModel(editor, pt, biasRet);
 
-	    	if (lastHighlightedE != null 
-		    	&& lastHighlightedE.getStartOffset() == lastHighlightedE.getEndOffset()) {
-		    	//invalid Element. This may happen when the Element
-		    	//has been removed from the document structure.
-	    		lastHighlightedE = null;
-		    }
-	    	
-	    	if (lastHighlightedE != null 
-	    		&& (lastHighlightedE.getStartOffset() <= pos
-	    				&& pos <= lastHighlightedE.getEndOffset())) {
-	    		;//do nothing
-	    	} else {
-				clearLastHighlight(editor);
-	    		DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
-	    		elem = (DocumentElement) elem.getElement(elem.getElementIndex(pos));
-				if (elem.getElementML() instanceof SdtBlockML
-					&& !WordMLStyleConstants.getBorderVisible(elem.getAttributes())) {
-					highlight(editor, elem);
+	    	highlight(editor, pos);
+	    	trackAuthorTooltip(editor, pos);
+	    }
+	    
+	    private void trackAuthorTooltip(WordMLTextPane editor, int pos) {
+			WordMLDocument doc = (WordMLDocument) editor.getDocument();
+			DocumentElement elem = 
+				(DocumentElement) doc.getRunMLElement(pos);
+			ElementML parent = elem.getElementML().getParent();
+			StringBuilder tipText = null;
+			if (parent instanceof RunDelML) {
+				String author = ((RunDelML) parent).getAuthor();
+				String text = getText(doc, elem);
+				if (author != null && author.length() > 0 
+					&& text != null && text.length() > 0) {
+					tipText = new StringBuilder("<html><p><b>");
+					tipText.append(author.substring(0, 1).toUpperCase());
+					tipText.append(author.substring(1));
+					tipText.append(" deleted:</b></p><p>");
+					tipText.append(text);
+					tipText.append("</p></html>");
+				}
+			} else if (parent instanceof RunInsML) {
+				String author = ((RunInsML) parent).getAuthor();
+				String text = getText(doc, elem);
+				if (author != null && author.length() > 0 
+					&& text != null && text.length() > 0) {
+					tipText = new StringBuilder("<html><p><b>");
+					tipText.append(author.substring(0, 1).toUpperCase());
+					tipText.append(author.substring(1));
+					tipText.append(" inserted:</b></p><p>");
+					tipText.append(text);
+					tipText.append("</p></html>");
 				}
 			}
+			
+			if (tipText == null || tipText.length() == 0) {
+				editor.setToolTipText(null);
+			} else {
+				editor.setToolTipText(tipText.toString());
+			}
 	    }
+	    
+	    private String getText(WordMLDocument doc, DocumentElement elem) {
+	    	String text = null;
+	    	
+	    	int start = elem.getStartOffset();
+	    	int length = elem.getEndOffset() - start;
+	    	try {
+	    		text = doc.getText(start, length);
+	    	} catch (BadLocationException exc) {
+	    		;//should not happen
+	    	}
+	    	
+	    	return text;
+	    }
+	    
+	    private void highlight(WordMLTextPane editor, int pos) {
+			WordMLDocument doc = (WordMLDocument) editor.getDocument();
+			if (lastHighlightedE != null
+					&& lastHighlightedE.getStartOffset() == lastHighlightedE
+							.getEndOffset()) {
+				// invalid Element. This may happen when the Element
+				// has been removed from the document structure.
+				lastHighlightedE = null;
+			}
+
+			if (lastHighlightedE != null
+				&& (lastHighlightedE.getStartOffset() <= pos 
+					&& pos <= lastHighlightedE.getEndOffset())) {
+				;// do nothing
+			} else {
+				clearLastHighlight(editor);
+				DocumentElement elem = 
+					(DocumentElement) doc.getSdtBlockMLElement(pos);
+				if (elem != null
+					&& !WordMLStyleConstants.getBorderVisible(
+							elem.getAttributes())) {
+					try {
+						Highlighter hl = editor.getHighlighter();
+						lastHighlight = 
+							hl.addHighlight(
+								elem.getStartOffset(), 
+								elem.getEndOffset(),
+								SDT_BACKGROUND_PAINTER);
+						lastHighlightedE = elem;
+					} catch (BadLocationException exc) {
+						;// should not happen
+					}
+				}
+			}
+		}
 	    
 	    private void clearLastHighlight(WordMLTextPane editor) {
 			Highlighter hl = editor.getHighlighter();
@@ -532,20 +604,6 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				hl.removeHighlight(lastHighlight);
 			}
 			lastHighlightedE = null;
-	    }
-	    
-	    private void highlight(WordMLTextPane editor, DocumentElement elem) {
-			try {
-				Highlighter hl = editor.getHighlighter();
-				lastHighlight = 
-					hl.addHighlight(
-						elem.getStartOffset(), 
-						elem.getEndOffset(),
-						SDT_BACKGROUND_PAINTER);
-				lastHighlightedE = elem;
-			} catch (BadLocationException exc) {
-				;// should not happen
-			}
 	    }
 	    
 	}// MouseListener inner class
