@@ -97,12 +97,6 @@ public class Mediator {
 
 	private static Logger log = Logger.getLogger(Mediator.class);
 
-	// TEMP values for testing purposes
-	// Ultimately, username and password will be the same as used
-	// for the Webdav connection.
-	public static final String USERNAME = "admin";
-	public static final String PASSWORD = "admin";
-
 	private static final Long CANT_OVERWRITE = Long.valueOf(0);
 
 	private StateDocx stateDocx;
@@ -117,6 +111,10 @@ public class Mediator {
 		return textPane;
 	}
 
+	private WordMLDocument getWordMLDocument() {
+		return (WordMLDocument) textPane.getDocument();
+	}
+	
 	public Mediator(WordMLTextPane textPane) {
 		WordMLDocument doc = (WordMLDocument) textPane.getDocument();
 		if (!DocUtil.isSharedDocument(doc)) {
@@ -132,11 +130,23 @@ public class Mediator {
 	private Skeleton currentClientSkeleleton = null;
 
 	/***************************************************************************
-	 * SESSION MANAGEMENT *****************************************************
+	 * SESSION MANAGEMENT 
+	 ******************************************************
 	 */
 	public void startSession() throws ServiceException {
 		try {
-			AuthenticationUtils.startSession(USERNAME, PASSWORD);
+			WordMLDocument doc = getWordMLDocument();
+			String uri = 
+				(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
+		    //The VFS Webdav Uri format is as follows:
+		    //webdav://[ username [: password ]@] hostname [: port ][ absolute-path ]
+			int colon = uri.indexOf(':', 9);
+			String username = uri.substring(9, colon);
+			int at = uri.indexOf('@');
+			String password = uri.substring(colon + 1, at);
+			
+			AuthenticationUtils.startSession(username, password);
+			
 			PlutextService_ServiceLocator locator = new PlutextService_ServiceLocator(
 					AuthenticationUtils.getEngineConfiguration());
 			locator
@@ -145,8 +155,6 @@ public class Mediator {
 							+ "/" + locator.getPlutextServiceWSDDServiceName());
 			ws = locator.getPlutextService();
 
-			WordMLDocument doc = (WordMLDocument) getWordMLTextPane()
-					.getDocument();
 			this.updateStartOffset = doc.getLength();
 			this.updateEndOffset = 0;
 
@@ -439,8 +447,8 @@ public class Mediator {
 	}
 
 	private void identifyMarkedUpSdts() {
-		WordMLDocument doc = (WordMLDocument) getWordMLTextPane().getDocument();
-		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+		DocumentElement root = 
+			(DocumentElement) getWordMLDocument().getDefaultRootElement();
 
 		for (int idx = 0; idx < root.getElementCount(); idx++) {
 			DocumentElement elem = (DocumentElement) root.getElement(idx);
@@ -534,8 +542,8 @@ public class Mediator {
 
 		String idStr = t.getId().getVal().toString();
 
-		WordMLDocument doc = (WordMLDocument) getWordMLTextPane().getDocument();
-		StateChunk currentChunk = Util.getStateChunk(doc, idStr);
+		StateChunk currentChunk = 
+			Util.getStateChunk(getWordMLDocument(), idStr);
 		boolean virgin = (currentChunk == null);
 
 		Changeset changeset =
@@ -905,7 +913,7 @@ public class Mediator {
 	     * 
 	     * So we need a dictionary of the undead, which we process here.
 	     */
-	    WordMLDocument doc = (WordMLDocument) getWordMLTextPane().getDocument();
+	    WordMLDocument doc = getWordMLDocument();
 	    
 	    List<String> bornAgain = new ArrayList<String>();
 	    
@@ -980,8 +988,7 @@ public class Mediator {
 		org.plutext.transforms.ObjectFactory transformsFactory = 
 			new org.plutext.transforms.ObjectFactory();
 
-		WordMLDocument wordMLDoc = (WordMLDocument) getWordMLTextPane()
-				.getDocument();
+		WordMLDocument wordMLDoc = getWordMLDocument();
 		DocumentElement root = (DocumentElement) wordMLDoc
 				.getDefaultRootElement();
 
@@ -1291,8 +1298,7 @@ public class Mediator {
 
 						divergences.debugInferred();
 
-						WordMLDocument doc = (WordMLDocument) getWordMLTextPane()
-								.getDocument();
+						WordMLDocument doc = getWordMLDocument();
 						StateChunk sc = Util.getStateChunk(doc, insertionId);
 						//Mediator.cs needs to call sc.setNew(true)
 						//because when pasting MS-Word UI preserves 
@@ -1371,8 +1377,7 @@ public class Mediator {
 						log.debug("<transform op=move id=" + insertionId
 								+ "  pos=" + adjPos);
 
-						WordMLDocument doc = (WordMLDocument) getWordMLTextPane()
-								.getDocument();
+						WordMLDocument doc = getWordMLDocument();
 						StateChunk sc = Util.getStateChunk(doc, insertionId);
 
 						// TransformMove tm = new TransformMove();
@@ -1496,7 +1501,7 @@ public class Mediator {
 	}
 
 	private void updateLocalContentControlTag(String sdtId, Tag tag) {
-		WordMLDocument doc = (WordMLDocument) this.textPane.getDocument();
+		WordMLDocument doc = getWordMLDocument();
 		DocumentElement elem = Util.getDocumentElement(doc, sdtId);
 
 		log.debug("updateLocalContentControlTag(): elem=" + elem);
