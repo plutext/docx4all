@@ -59,6 +59,14 @@ public class RunDelML extends ElementML {
 		((org.docx4j.wml.RunDel) this.docxObject).setDate(date);
 	}
 	
+	public String getAuthor() {
+		return ((org.docx4j.wml.RunDel) this.docxObject).getAuthor();
+	}
+	
+	public void setAuthor(String author) {
+		((org.docx4j.wml.RunDel) this.docxObject).setAuthor(author);
+	}
+	
 	public boolean canAddSibling(ElementML elem, boolean after) {
 		boolean canAdd = false;
 		
