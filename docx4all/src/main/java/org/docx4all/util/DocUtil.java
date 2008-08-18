@@ -40,6 +40,8 @@ import javax.swing.text.Position;
 import javax.swing.text.Segment;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
+import net.sf.vfsjfilechooser.utils.VFSUtils;
+
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.BadSelectionException;
@@ -50,6 +52,7 @@ import org.docx4all.swing.text.TextSelector;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLStyleConstants;
 import org.docx4all.ui.main.Constants;
+import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
@@ -76,14 +79,13 @@ public class DocUtil {
 	public final static boolean isSharedDocument(WordMLDocument doc) {
 		boolean isShared = false;
 		
+		WordMLEditor resource = (WordMLEditor) WordMLEditor.getInstance();
+		String plutextWebdav = resource.getPlutextWebdavServerLocation();
 		String uri = 
 			(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
-		if (uri != null) {
-	    	int idx = uri.indexOf("/alfresco/"); 
-	    	if (idx > 0) {
-	    		//temporary checking
-	    		//TODO: Has to check whether fileUri's protocol is webdav
-	    		//and its context is correct.
+		if (uri != null && plutextWebdav != null) {
+			uri = VFSUtils.getFriendlyName(uri);
+			if (uri.startsWith(plutextWebdav)) {
 	    		DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
 	    		DocumentML docML = (DocumentML) elem.getElementML();
 				WordprocessingMLPackage wmlPackage = docML.getWordprocessingMLPackage();
