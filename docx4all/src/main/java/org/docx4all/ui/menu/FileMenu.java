@@ -28,7 +28,6 @@ import java.io.OutputStream;
 import java.util.prefs.Preferences;
 
 import javax.swing.JEditorPane;
-import javax.swing.JFileChooser;
 import javax.swing.JInternalFrame;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
@@ -339,6 +338,7 @@ public class FileMenu extends UIMenu {
     @Action public void openFile(ActionEvent actionEvent) {
         Preferences prefs = Preferences.userNodeForPackage( getClass() );
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+    	ResourceMap rm = editor.getContext().getResourceMap(WordMLEditor.class);
         
         String lastFileUri = prefs.get(Constants.LAST_OPENED_FILE, Constants.EMPTY_STRING);
         FileObject dir = null;
@@ -348,9 +348,18 @@ public class FileMenu extends UIMenu {
         	} catch (FileSystemException exc) {
         		dir = null;
         	}
+        } else if (editor.getPlutextWebdavServerLocation() != null) {
+        	String home = editor.getPlutextWebdavUserHomeVFSUri();
+        	if (home != null) {
+        		try {
+        			dir = VFS.getManager().resolveFile(home);
+            		lastFileUri = home;
+        		} catch (FileSystemException exc) {
+        			dir = null;
+        		}
+        	}
         }
         
-    	ResourceMap rm = editor.getContext().getResourceMap(WordMLEditor.class);
         VFSJFileChooser chooser = createFileChooser(rm, dir, Constants.DOCX_STRING);
         
         RETURN_TYPE returnVal = chooser.showOpenDialog((Component) actionEvent.getSource());
