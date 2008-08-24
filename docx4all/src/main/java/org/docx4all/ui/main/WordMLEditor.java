@@ -66,7 +66,6 @@ import javax.swing.text.StyleConstants;
 import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.commons.vfs.FileObject;
-import org.apache.commons.vfs.provider.UriParser;
 import org.apache.log4j.Logger;
 import org.bounce.text.xml.XMLDocument;
 import org.bounce.text.xml.XMLEditorKit;
@@ -278,6 +277,11 @@ public class WordMLEditor extends SingleFrameApplication {
     	}    	
     }
     
+    public String getPlutextWebdavUrlKeyword() {
+        ResourceMap rm = getContext().getResourceMap(WordMLEditor.class);
+        return rm.getString(Constants.PLUTEXT_WEBDAV_URL_KEYWORD);
+    }
+    
     public JDesktopPane getDesktopPane() {
     	return _desktop;
     }
@@ -315,78 +319,6 @@ public class WordMLEditor extends SingleFrameApplication {
         	filename = "Untitled";
         }
         return filename;
-    }
-    
-    /**
-     * Returns the uri, in VFS Webdav Uri format, of user home root directory 
-     * in Plutext Webdav repository that is defined in WordMLEditor.properties
-     * file.
-     * 
-     * The VFS Webdav Uri format is as follows:
-     * webdav://[ username [: password ]@] hostname [: port ][ absolute-path ]
-     * 
-     * @return uri
-     */
-    public String getPlutextWebdavUserHomeVFSUri() {
-    	String theUri = null;
-    	
-        ResourceMap rm = getContext().getResourceMap(WordMLEditor.class);
-        
-        String server = rm.getString(Constants.PLUTEXT_WEBDAV_SERVER_LOCATION);
-        String home = rm.getString(Constants.PLUTEXT_WEBDAV_USER_HOME_ROOT);
-        String user = rm.getString(Constants.PLUTEXT_WEBDAV_USER_USERNAME);
-        String pwd = rm.getString(Constants.PLUTEXT_WEBDAV_USER_PASSWORD);
-        
-    	if (server != null && server.startsWith("webdav://")
-    		&& user != null && user.length() > 0
-    		&& pwd != null && pwd.length() > 0) {
-    		server = server.trim();
-    		home = home.trim();
-    		user = user.trim();
-    		pwd = pwd.trim();
-    		
-    		StringBuilder sb = new StringBuilder(server);
-    		sb.insert(9, pwd);
-    		sb.insert(9, ":");
-    		sb.insert(9, user);
-    		
-    		if (!server.endsWith("/")) {
-    			sb.append("/");
-    		}
-    		if (home != null && home.length() > 0) {
-    			sb.append(home);
-    			if (!home.endsWith("/")) {
-    				sb.append("/");
-    			}
-    		}
-    		sb.append(user);
-    		sb.append("/");
-    		
-    		theUri = UriParser.encode(sb.toString());
-    	}
-    	
-    	return theUri;
-    }
-    
-    public String getPlutextWebdavUsername() {
-        ResourceMap rm = getContext().getResourceMap(WordMLEditor.class);
-        String user = rm.getString(Constants.PLUTEXT_WEBDAV_USER_USERNAME);
-    	return user;
-    }
-    
-    public String getPlutextWebdavPassword() {
-        ResourceMap rm = getContext().getResourceMap(WordMLEditor.class);
-        String pwd = rm.getString(Constants.PLUTEXT_WEBDAV_USER_PASSWORD);
-    	return pwd;
-    }
-    
-    public String getPlutextWebdavServerLocation() {
-        ResourceMap rm = getContext().getResourceMap(WordMLEditor.class);
-        String server = rm.getString(Constants.PLUTEXT_WEBDAV_SERVER_LOCATION);
-        if (server != null && !server.startsWith("webdav://")) {
-        	server = null;
-        }
-    	return server;
     }
     
     public int showConfirmDialog(
