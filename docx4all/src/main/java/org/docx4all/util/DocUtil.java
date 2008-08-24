@@ -40,8 +40,6 @@ import javax.swing.text.Position;
 import javax.swing.text.Segment;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
-import net.sf.vfsjfilechooser.utils.VFSUtils;
-
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.BadSelectionException;
@@ -80,27 +78,28 @@ public class DocUtil {
 		boolean isShared = false;
 		
 		WordMLEditor resource = (WordMLEditor) WordMLEditor.getInstance();
-		String plutextWebdav = resource.getPlutextWebdavServerLocation();
+		StringBuilder plutextWebdav = new StringBuilder();
+		plutextWebdav.append("/");
+		plutextWebdav.append(resource.getPlutextWebdavUrlKeyword());
+		plutextWebdav.append("/");
+		
 		String uri = 
 			(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
-		if (uri != null && plutextWebdav != null) {
-			uri = VFSUtils.getFriendlyName(uri);
-			if (uri.startsWith(plutextWebdav)) {
-	    		DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
-	    		DocumentML docML = (DocumentML) elem.getElementML();
-				WordprocessingMLPackage wmlPackage = docML.getWordprocessingMLPackage();
-				if (wmlPackage != null) {
-					org.docx4j.docProps.custom.Properties.Property groupingProp =
-						XmlUtil.getCustomProperty(
-								wmlPackage, 
-								Constants.PLUTEXT_GROUPING_PROPERTY_NAME);
-					org.docx4j.docProps.custom.Properties.Property checkinProp =
-						XmlUtil.getCustomProperty(
-								wmlPackage, 
-								Constants.PLUTEXT_CHECKIN_MESSAGE_ENABLED_PROPERTY_NAME);
-					isShared = (groupingProp != null && checkinProp != null);
-				}
-	    	}
+		if (uri != null && uri.indexOf(plutextWebdav.toString()) > -1) {
+	    	DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
+	    	DocumentML docML = (DocumentML) elem.getElementML();
+			WordprocessingMLPackage wmlPackage = docML.getWordprocessingMLPackage();
+			if (wmlPackage != null) {
+				org.docx4j.docProps.custom.Properties.Property groupingProp =
+					XmlUtil.getCustomProperty(
+							wmlPackage, 
+							Constants.PLUTEXT_GROUPING_PROPERTY_NAME);
+				org.docx4j.docProps.custom.Properties.Property checkinProp =
+					XmlUtil.getCustomProperty(
+							wmlPackage, 
+							Constants.PLUTEXT_CHECKIN_MESSAGE_ENABLED_PROPERTY_NAME);
+				isShared = (groupingProp != null && checkinProp != null);
+			}
 		}
 		
 		return isShared;
