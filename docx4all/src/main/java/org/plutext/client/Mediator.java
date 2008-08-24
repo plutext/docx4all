@@ -37,6 +37,7 @@ import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.util.DocUtil;
+import org.docx4all.vfs.WebdavUri;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.SdtBlockML;
 import org.docx4j.XmlUtils;
@@ -134,26 +135,33 @@ public class Mediator {
 	 ******************************************************
 	 */
 	public void startSession() throws ServiceException {
-		try {
+        try {
 			WordMLDocument doc = getWordMLDocument();
-			String uri = 
-				(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
-		    //The VFS Webdav Uri format is as follows:
-		    //webdav://[ username [: password ]@] hostname [: port ][ absolute-path ]
-			int colon = uri.indexOf(':', 9);
-			String username = uri.substring(9, colon);
-			int at = uri.indexOf('@');
-			String password = uri.substring(colon + 1, at);
+			WebdavUri uri =
+				new WebdavUri(
+				(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY));
 			
-			AuthenticationUtils.startSession(username, password);
-			
-			PlutextService_ServiceLocator locator = new PlutextService_ServiceLocator(
-					AuthenticationUtils.getEngineConfiguration());
-			locator
-					.setPlutextServiceEndpointAddress(org.alfresco.webservice.util.WebServiceFactory
-							.getEndpointAddress()
-							+ "/" + locator.getPlutextServiceWSDDServiceName());
-			ws = locator.getPlutextService();
+		    StringBuilder endPointAddress = new StringBuilder("http://");
+		    endPointAddress.append(uri.getHost());
+		    if (uri.getPort() != null) {
+		    	endPointAddress.append(":");
+		    	endPointAddress.append(uri.getPort());
+		    }
+		    endPointAddress.append("/alfresco/api");
+		    			
+            org.alfresco.webservice.util.WebServiceFactory.setEndpointAddress(
+            		endPointAddress.toString());
+            
+            AuthenticationUtils.startSession(uri.getUsername(), uri.getPassword());
+		      
+            PlutextService_ServiceLocator locator = 
+            	new PlutextService_ServiceLocator(
+            			AuthenticationUtils.getEngineConfiguration());
+            
+            locator.setPlutextServiceEndpointAddress(
+            	endPointAddress + "/" + locator.getPlutextServiceWSDDServiceName());
+
+            ws = locator.getPlutextService();
 
 			this.updateStartOffset = doc.getLength();
 			this.updateEndOffset = 0;
@@ -174,10 +182,9 @@ public class Mediator {
 			}
 
 		} catch (AuthenticationFault exc) {
-			throw new ServiceException("Authentication failure.", exc);
+			throw new ServiceException("Service Connection failure.", exc);
 		} catch ( org.alfresco.webservice.util.WebServiceException wse) {
-			log.error("Wrong endpoint set in src/main/resources/alfresco/webserviceclient.properties?", wse);
-        	throw new ServiceException("Authentication failure.", wse);			
+        	throw new ServiceException("Service Connection failure.", wse);			
 		}
 	}
 
