@@ -348,16 +348,6 @@ public class FileMenu extends UIMenu {
         	} catch (FileSystemException exc) {
         		dir = null;
         	}
-        } else if (editor.getPlutextWebdavServerLocation() != null) {
-        	String home = editor.getPlutextWebdavUserHomeVFSUri();
-        	if (home != null) {
-        		try {
-        			dir = VFS.getManager().resolveFile(home);
-            		lastFileUri = home;
-        		} catch (FileSystemException exc) {
-        			dir = null;
-        		}
-        	}
         }
         
         VFSJFileChooser chooser = createFileChooser(rm, dir, Constants.DOCX_STRING);
