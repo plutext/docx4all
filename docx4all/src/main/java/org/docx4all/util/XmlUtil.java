@@ -36,6 +36,7 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.namespace.QName;
 import javax.xml.transform.stream.StreamSource;
 
+import org.apache.log4j.Logger;
 import org.docx4all.swing.NewShareDialog;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.xml.ElementML;
@@ -64,6 +65,9 @@ public class XmlUtil {
     private final static SimpleDateFormat RFC3339_FORMAT = 
     	new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 	
+    
+	protected static Logger log = Logger.getLogger(XmlUtil.class);
+    
 	/**
 	 * Serialise the WordprocessingMLPackage in pkg:package format
 	 * 
@@ -545,9 +549,15 @@ public class XmlUtil {
     	theSdt.setSdtPr(
     		(org.docx4j.wml.SdtPr) XmlUtils.deepCopy(leftSdt.getSdtPr()));
     	
-		javax.xml.bind.util.JAXBResult result = 
-			new javax.xml.bind.util.JAXBResult(
-				org.docx4j.jaxb.Context.jc);
+//		javax.xml.bind.util.JAXBResult result = 
+//			new javax.xml.bind.util.JAXBResult(
+//				org.docx4j.jaxb.Context.jc);
+		
+		
+		java.io.StringWriter sw = new java.io.StringWriter();
+		javax.xml.transform.stream.StreamResult result = 
+			new javax.xml.transform.stream.StreamResult(sw);
+		
 
 		//Calendar changeDate = Calendar.getInstance();
 		//changeDate.setTime(RFC3339_FORMAT.parse(changeset.getDate()));
@@ -560,7 +570,13 @@ public class XmlUtil {
 			changeset.getModifier(),
 			changeDate);
 
-		SdtContentBlock markedUpContent = (SdtContentBlock) result.getResult();
+		//SdtContentBlock markedUpContent = (SdtContentBlock) result.getResult();
+		
+		String contentStr = sw.toString();
+		log.error("Transform: " + contentStr);
+		SdtContentBlock markedUpContent = (SdtContentBlock)org.docx4j.XmlUtils.unmarshalString(contentStr);
+		
+		
 		// Now put into resulting sdt.
 		theSdt.setSdtContent(markedUpContent);
 		return theSdt;
