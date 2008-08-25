@@ -912,7 +912,22 @@ public class ToolBarStates extends InternalFrameAdapter
     		log.debug("focusGained(): evt.getSource = " + e.getSource());
     		log.debug("focusGained(): _currentEditor = " + _currentEditor);
     	}
-    	setCurrentEditor((JEditorPane) e.getSource());
+    	
+    	if (getCurrentEditor() == e.getSource()) {
+ 			//Current editor may just simply change its document.
+			//If this happens then we need to check whether its
+    		//document is a shared document.
+			boolean isShared = false;
+    		if (e.getSource() instanceof WordMLTextPane) {
+    		    WordMLTextPane textpane = (WordMLTextPane) e.getSource();
+    			WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+    		    isShared = DocUtil.isSharedDocument(doc);
+    		}
+			setDocumentShared(isShared);
+    	} else {
+    		setCurrentEditor((JEditorPane) e.getSource());
+    	}
+    	
     }
 
     /**
