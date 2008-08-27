@@ -21,10 +21,10 @@ package org.docx4all.swing.text;
 
 import java.awt.Color;
 
-import javax.swing.text.AttributeSet;
 import javax.swing.text.Element;
 
 import org.docx4all.xml.ElementML;
+import org.docx4all.xml.RunDelML;
 import org.docx4all.xml.RunInsML;
 import org.docx4all.xml.RunML;
 
@@ -33,6 +33,7 @@ import org.docx4all.xml.RunML;
  */
 public class LabelView extends javax.swing.text.LabelView {
 	private boolean impliedUnderline;
+	private boolean impliedStrikethrough;
 	
     public LabelView(Element elem) {
     	super(elem);
@@ -42,20 +43,35 @@ public class LabelView extends javax.swing.text.LabelView {
     	impliedUnderline = 
     		(parent instanceof RunML)
     		&& (parent.getParent() instanceof RunInsML);
+    	impliedStrikethrough = 
+    		(parent instanceof RunML)
+    		&& (parent.getParent() instanceof RunDelML);
+    		
     }
 
     public boolean isImpliedUnderline() {
     	return impliedUnderline;
     }
     
+    public boolean isImpliedStrikethrough() {
+    	return impliedStrikethrough;
+    }
+    
     public Color getForeground() {
-    	return isImpliedUnderline() ? Color.RED : super.getForeground();
+    	Color c =
+    		(isImpliedUnderline() || isImpliedStrikethrough())
+    			? Color.RED 
+    			: super.getForeground();
+    	return c;
     }
     
     protected void setPropertiesFromAttributes() {
     	super.setPropertiesFromAttributes();
     	if (isImpliedUnderline()) {
     		setUnderline(true);
+    	}
+    	if (isImpliedStrikethrough()) {
+    		setStrikeThrough(true);
     	}
     }
     
