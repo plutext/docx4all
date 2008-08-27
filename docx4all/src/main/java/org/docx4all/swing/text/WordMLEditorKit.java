@@ -1109,12 +1109,16 @@ public class WordMLEditorKit extends DefaultEditorKit {
             			&& end == DocUtil.getRevisionEnd(doc, start, SwingConstants.NEXT)) {
 
             			DocumentElement elem = (DocumentElement) doc.getRunMLElement(start);
-        				ElementML insOrDel = elem.getElementML().getParent();
-        				for (ElementML run: insOrDel.getChildren()) {
-        					ElementML copy = (ElementML) run.clone();
-        					insOrDel.addSibling(copy, false);
+        				ElementML parent = elem.getElementML().getParent();
+        				if (parent instanceof RunInsML) {
+        					for (ElementML run: parent.getChildren()) {
+        						ElementML copy = (ElementML) run.clone();
+        						parent.addSibling(copy, false);
+        					}
+        					parent.delete();
+        				} else if (parent instanceof RunDelML) {
+        					parent.delete();
         				}
-        				insOrDel.delete();
         				
         				doc.refreshParagraphs(start, 0);
         				
@@ -1170,8 +1174,16 @@ public class WordMLEditorKit extends DefaultEditorKit {
                 		&& end == DocUtil.getRevisionEnd(doc, start, SwingConstants.NEXT)) {
 
         				DocumentElement elem = (DocumentElement) doc.getRunMLElement(start);
-        				ElementML insOrDel = elem.getElementML().getParent();
-        				insOrDel.delete();
+        				ElementML parent = elem.getElementML().getParent();
+        				if (parent instanceof RunDelML) {
+        					for (ElementML run: parent.getChildren()) {
+        						ElementML copy = (ElementML) run.clone();
+        						parent.addSibling(copy, false);
+        					}
+        					parent.delete();
+        				} else if (parent instanceof RunInsML) {
+        					parent.delete();
+        				}
         				
         				doc.refreshParagraphs(start, 0);
         				
