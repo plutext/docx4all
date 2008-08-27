@@ -104,7 +104,7 @@ public class TransformMove extends TransformAbstract {
 
 		if (elemMLAtMoveToIndex instanceof SdtBlockML) {
 			SdtBlockML sdtML = (SdtBlockML) elemMLAtMoveToIndex;
-			if (sdtML.getSdtProperties().getIdValue() == getId().getVal()) {
+			if (sdtML.getSdtProperties().getIdValue().equals(getId().getVal())) {
 				log.debug("apply(): Need not to move."
 						+ " moveToIndex == currentIndex == " + idx);
 				return sequenceNumber;				
