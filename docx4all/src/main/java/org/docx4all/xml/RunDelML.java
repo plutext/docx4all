@@ -19,13 +19,10 @@
 
 package org.docx4all.xml;
 
-import java.awt.Color;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.docx4j.XmlUtils;
@@ -152,15 +149,9 @@ public class RunDelML extends ElementML {
 		
 		List<Object> pKids = del.getCustomXmlOrSmartTagOrSdt();
 		if (!pKids.isEmpty()) {
-			SimpleAttributeSet strikethrough = new SimpleAttributeSet();
-			StyleConstants.setStrikeThrough(strikethrough, true);
-			StyleConstants.setForeground(strikethrough, Color.RED);
-			
 			this.children = new ArrayList<ElementML>(pKids.size());
 			for (Object o : pKids) {
 				RunML run = new RunML(o, this.isDummy);
-				
-				run.addAttributes(strikethrough, false);
 				run.setParent(RunDelML.this);
 				this.children.add(run);				
 			}
