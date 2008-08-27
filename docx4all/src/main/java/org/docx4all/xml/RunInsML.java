@@ -19,13 +19,10 @@
 
 package org.docx4all.xml;
 
-import java.awt.Color;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.docx4j.XmlUtils;
@@ -153,15 +150,9 @@ public class RunInsML extends ElementML {
 		
 		List<Object> pKids = ins.getCustomXmlOrSmartTagOrSdt();
 		if (!pKids.isEmpty()) {
-			SimpleAttributeSet underline = new SimpleAttributeSet();
-			StyleConstants.setUnderline(underline, true);
-			StyleConstants.setForeground(underline, Color.RED);
-
 			this.children = new ArrayList<ElementML>(pKids.size());
 			for (Object o : pKids) {
 				RunML run = new RunML(o, this.isDummy);
-				
-				run.addAttributes(underline, false);
 				run.setParent(RunInsML.this);
 				this.children.add(run);				
 			}
