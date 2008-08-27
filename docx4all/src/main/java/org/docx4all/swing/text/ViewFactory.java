@@ -22,7 +22,6 @@ package org.docx4all.swing.text;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BoxView;
 import javax.swing.text.Element;
-import javax.swing.text.LabelView;
 import javax.swing.text.View;
 
 import org.apache.log4j.Logger;
