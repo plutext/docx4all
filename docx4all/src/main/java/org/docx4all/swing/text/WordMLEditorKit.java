@@ -1107,8 +1107,12 @@ public class WordMLEditorKit extends DefaultEditorKit {
             		if (start < end 
             			&& start == DocUtil.getRevisionStart(doc, start, SwingConstants.NEXT)
             			&& end == DocUtil.getRevisionEnd(doc, start, SwingConstants.NEXT)) {
-
+            			
             			DocumentElement elem = (DocumentElement) doc.getRunMLElement(start);
+
+    					//new caret position is calculated from end of document
+            			end = doc.getLength() - elem.getEndOffset();
+            			
         				ElementML parent = elem.getElementML().getParent();
         				if (parent instanceof RunInsML) {
         					for (ElementML run: parent.getChildren()) {
@@ -1120,21 +1124,28 @@ public class WordMLEditorKit extends DefaultEditorKit {
         					parent.delete();
         				}
         				
-        				doc.refreshParagraphs(start, 0);
-        				
-        				Mediator client = editor.getWordMLEditorKit().getPlutextClient();
-        				if (client != null) {
-        					elem = (DocumentElement) doc.getSdtBlockMLElement(start);
-        					if (elem != null) {
-        						SdtBlockML sdt = (SdtBlockML) elem.getElementML();
-        						if (!XmlUtil.containsTrackedChanges(sdt.getDocxObject())) {
-            						String id = sdt.getSdtProperties().getIdValue().toString();
-            						client.removeTrackedChangeType(id);
-        						}
-        					}
-        				}
+        				elem = (DocumentElement) doc.getSdtBlockMLElement(start);
+        				if (elem != null) {
+        					//if revision is in content control
+            				SdtBlockML sdt = (SdtBlockML) elem.getElementML();
+            				Mediator client = editor.getWordMLEditorKit().getPlutextClient();
+            				if (client != null
+            					&& !XmlUtil.containsTrackedChanges(sdt.getDocxObject())) {
+            					String id = sdt.getSdtProperties().getIdValue().toString();
+            					client.removeTrackedChangeType(id);
+            				}
 
-        				editor.setCaretPosition(end);
+            				boolean isEmpty = (XmlUtil.getLastRunContentML(sdt) == null);
+            				if (isEmpty) {
+            					sdt.delete();
+            					
+            					//new caret position is calculated from end of document
+                    			end = doc.getLength() - elem.getEndOffset();
+            				}
+            			}
+            			
+            			doc.refreshParagraphs(start, 0);
+            			editor.setCaretPosition(doc.getLength() - end);
         				success = Boolean.TRUE;
             		}
     			} finally {
@@ -1174,6 +1185,10 @@ public class WordMLEditorKit extends DefaultEditorKit {
                 		&& end == DocUtil.getRevisionEnd(doc, start, SwingConstants.NEXT)) {
 
         				DocumentElement elem = (DocumentElement) doc.getRunMLElement(start);
+
+        				//new caret position is calculated from end of document
+            			end = doc.getLength() - elem.getEndOffset();
+            			
         				ElementML parent = elem.getElementML().getParent();
         				if (parent instanceof RunDelML) {
         					for (ElementML run: parent.getChildren()) {
@@ -1185,21 +1200,28 @@ public class WordMLEditorKit extends DefaultEditorKit {
         					parent.delete();
         				}
         				
-        				doc.refreshParagraphs(start, 0);
-        				
-        				Mediator client = editor.getWordMLEditorKit().getPlutextClient();
-        				if (client != null) {
-        					elem = (DocumentElement) doc.getSdtBlockMLElement(start);
-        					if (elem != null) {
-        						SdtBlockML sdt = (SdtBlockML) elem.getElementML();
-        						if (!XmlUtil.containsTrackedChanges(sdt.getDocxObject())) {
-            						String id = sdt.getSdtProperties().getIdValue().toString();
-            						client.removeTrackedChangeType(id);
-        						}
-        					}
-        				}
-        				
-        				editor.setCaretPosition(start);
+        				elem = (DocumentElement) doc.getSdtBlockMLElement(start);
+        				if (elem != null) {
+        					//if revision is in content control
+            				SdtBlockML sdt = (SdtBlockML) elem.getElementML();
+            				Mediator client = editor.getWordMLEditorKit().getPlutextClient();
+            				if (client != null
+            					&& !XmlUtil.containsTrackedChanges(sdt.getDocxObject())) {
+            					String id = sdt.getSdtProperties().getIdValue().toString();
+            					client.removeTrackedChangeType(id);
+            				}
+
+            				boolean isEmpty = (XmlUtil.getLastRunContentML(sdt) == null);
+            				if (isEmpty) {
+            					sdt.delete();
+            					
+            					//new caret position is calculated from end of document
+                    			end = doc.getLength() - elem.getEndOffset();
+            				}
+            			}
+            			
+            			doc.refreshParagraphs(start, 0);
+            			editor.setCaretPosition(doc.getLength() - end);
         				success = Boolean.TRUE;
                 	}
     			} finally {
