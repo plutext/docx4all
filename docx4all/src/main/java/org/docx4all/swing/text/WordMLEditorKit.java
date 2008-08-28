@@ -941,12 +941,18 @@ public class WordMLEditorKit extends DefaultEditorKit {
                 		doc.lockWrite();
                 		
                 		editor.saveCaretText();
+                		
+                		int refreshStart = doc.getLength();
+                		int refreshEnd = -1;
+                		
                 		for (String id: plutextClient.getIdsOfNonConflictingChanges()) {
                     		plutextClient.removeTrackedChangeType(id);
                     		
                     		DocumentElement elem = Util.getDocumentElement(doc, id);
                     		if (elem != null) {
-                        		
+                    			refreshStart = Math.min(refreshStart, elem.getStartOffset());
+                    			refreshEnd = Math.max(refreshEnd, elem.getEndOffset());
+                    			
                         		ElementML sdt = elem.getElementML();
                     			String temp = 
                     				org.docx4j.XmlUtils.marshaltoString(
@@ -968,12 +974,14 @@ public class WordMLEditorKit extends DefaultEditorKit {
                         			sdt.addSibling(newSdt, true);                    				
                     			}
                     			sdt.delete();
-                    			
-                    			int end = doc.getLength() - elem.getEndOffset();
-                    			doc.refreshParagraphs(elem.getStartOffset(), 0);
-                    			caretPos = doc.getLength() - end;
                     		}
                     	}//for (id) loop
+                		
+                		if (refreshStart < refreshEnd) {
+                			caretPos = doc.getLength() - refreshEnd;
+                			doc.refreshParagraphs(refreshStart, (refreshEnd-refreshStart));
+                			caretPos = doc.getLength() - caretPos;
+                		}
                 		
                 	} catch (Exception exc) {
                 		this.exc = exc;
@@ -1027,11 +1035,18 @@ public class WordMLEditorKit extends DefaultEditorKit {
                 		doc.lockWrite();
                 		
                 		editor.saveCaretText();
+                		
+                		int refreshStart = doc.getLength();
+                		int refreshEnd = -1;
+                		
                 		for (String id: plutextClient.getIdsOfNonConflictingChanges()) {
                     		plutextClient.removeTrackedChangeType(id);
                     		
                     		DocumentElement elem = Util.getDocumentElement(doc, id);
                     		if (elem != null) {
+                    			refreshStart = Math.min(refreshStart, elem.getStartOffset());
+                    			refreshEnd = Math.max(refreshEnd, elem.getEndOffset());
+                    			
                         		ElementML sdt = elem.getElementML();
                     			String temp = 
                     				org.docx4j.XmlUtils.marshaltoString(
@@ -1053,14 +1068,16 @@ public class WordMLEditorKit extends DefaultEditorKit {
                         			sdt.addSibling(newSdt, true);                    				
                     			}
                     			sdt.delete();
-                    			
-                    			int end = doc.getLength() - elem.getEndOffset();
-                    			doc.refreshParagraphs(elem.getStartOffset(), 0);
-                    			caretPos = doc.getLength() - end;
                     		}
                     	}//for (id) loop
                 		
-                	} catch (Exception exc) {
+                		if (refreshStart < refreshEnd) {
+                			caretPos = doc.getLength() - refreshEnd;
+                			doc.refreshParagraphs(refreshStart, (refreshEnd-refreshStart));
+                			caretPos = doc.getLength() - caretPos;
+                		}
+                		
+               	} catch (Exception exc) {
                 		this.exc = exc;
                 		
                 	} finally {
