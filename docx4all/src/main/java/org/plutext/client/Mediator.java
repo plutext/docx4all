@@ -411,6 +411,14 @@ public class Mediator {
 		// DateTime startTime = DateTime.Now;
 		// log.debug(startTime);
 
+		if (this.oldServer == null || this.changeSets == null) {
+			//applyRemoteChanges() is preceded with fetchUpdates().
+			//If fetchUpdates() ends up with error or does not
+			//fetch any new transform then nothing to be applied
+			//in this method.
+			return;
+		}
+		
 		/*
 		 * Create a DiffReport object, which tells us the difference between
 		 * what Sdts are actually in the document, and what its state should be,
@@ -449,32 +457,7 @@ public class Mediator {
 		applyUpdates();
 
 		this.oldServer = null;
-
-		identifyMarkedUpSdts();
 	}
-
-	private void identifyMarkedUpSdts() {
-		DocumentElement root = 
-			(DocumentElement) getWordMLDocument().getDefaultRootElement();
-
-		for (int idx = 0; idx < root.getElementCount(); idx++) {
-			DocumentElement elem = (DocumentElement) root.getElement(idx);
-			ElementML ml = elem.getElementML();
-			if (ml instanceof SdtBlockML) {
-				org.docx4j.wml.SdtBlock sdt = (org.docx4j.wml.SdtBlock) ml
-						.getDocxObject();
-				StateChunk sc = new StateChunk(sdt);
-				TrackedChangeType type = getTrackedChangeType(sc
-						.getIdAsString());
-				if (sc.containsTrackedChanges()
-						&& type != TrackedChangeType.Conflict) {
-					StateChunk stateDocxChunk = stateDocx.getStateChunks().get(
-							sc.getIdAsString());
-					stateDocxChunk.setMarkedUpSdt(sc.getXml());
-				}
-			}
-		}
-	}// identifyMarkedUpSdts()
 
 	/* Apply registered transforms. */
 	public void applyUpdates() throws ClientException {
@@ -780,22 +763,15 @@ public class Mediator {
 	private boolean matchedOnMarkedUpVersion(StateChunk currentStateChunk,
 			StateChunk stateDocxSC) {
 
-		boolean conflict = !(currentStateChunk.getXml().equals(stateDocxSC
-				.getXml()));
+		boolean matched = currentStateChunk.getXml().equals(stateDocxSC.getMarkedUpSdt());
 
-		if (conflict) {
-			log.debug("different!");
-			log.debug("stateDocx : " + stateDocxSC.getXml());
-			log.debug("current : " + currentStateChunk.getXml());
-
-			if (currentStateChunk.getXml().equals(stateDocxSC.getMarkedUpSdt())) {
-				return true;
-			} else {
-				return false;
-			}
-		} else {
-			return false;
-		}
+		log.debug("matchedOnMarkedUpVersion(): currentStateChunk = " 
+			+ currentStateChunk.getXml());
+		log.debug("matchedOnMarkedUpVersion(): stateDocxSC.getMarkedUpSdt() = "
+			+ stateDocxSC.getMarkedUpSdt());
+		log.debug("matchedOnMarkedUpVersion(): matched = " + matched);
+		
+		return matched;
 	}
 
 	private int updateStartOffset;
