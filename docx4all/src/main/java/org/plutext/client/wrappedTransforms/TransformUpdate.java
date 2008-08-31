@@ -112,7 +112,12 @@ public class TransformUpdate extends TransformAbstract {
 
 		updateRefreshOffsets(mediator, elem.getStartOffset(), elem.getEndOffset());
 
-		stateChunks.put(idStr, new StateChunk(this.markedUpSdt));
+        //What goes in stateChunks is the *non-marked up* 
+		//sdt that we got from the server.
+		StateChunk newsc = new StateChunk(getSdt());
+        // But also record the marked up version
+		newsc.setMarkedUpSdt(XmlUtils.marshaltoString(this.markedUpSdt, true));
+		stateChunks.put(idStr, newsc);
 
 		// Fourth, if we haven't thrown an exception, return the sequence number
 		return sequenceNumber;
