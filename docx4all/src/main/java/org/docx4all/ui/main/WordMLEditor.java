@@ -548,6 +548,9 @@ public class WordMLEditor extends SingleFrameApplication {
 					FileMenu.SAVE_FILE_ACTION_NAME);
 			if (success) {
 				getToolbarStates().setDocumentDirty(iframe, false);
+				getToolbarStates().setLocalEditsEnabled(iframe, false);
+			} else {
+				answer = JOptionPane.CANCEL_OPTION;
 			}
 		} else {
 			//getToolbarStates().setDocumentDirty(iframe, false);
