@@ -21,8 +21,10 @@ package org.docx4all.ui.menu;
 
 import java.awt.event.ActionEvent;
 
+import javax.swing.JInternalFrame;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.WordMLEditorKit;
@@ -120,15 +122,15 @@ public class TeamMenu extends UIMenu {
     }
     
 	@Action public void fetchRemoteEdits(ActionEvent evt) {
-		WordMLEditorKit.FetchRemoteEditsAction action = 
-			new WordMLEditorKit.FetchRemoteEditsAction();
-		action.actionPerformed(evt);
-		
 		WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
     	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
         String title = 
         	rm.getString(FETCH_REMOTE_EDITS_ACTION_NAME + ".Action.text");
         
+		WordMLEditorKit.FetchRemoteEditsAction action = 
+			new WordMLEditorKit.FetchRemoteEditsAction();
+		action.actionPerformed(evt);
+		
 		if (!action.success()) {
             Exception exc = action.getThrownException();
             if (exc instanceof ClientException) {
@@ -147,45 +149,47 @@ public class TeamMenu extends UIMenu {
 	}
 	
 	@Action public void commitLocalEdits(ActionEvent evt) {
-		WordMLEditorKit.CommitLocalEditsAction action = 
-			new WordMLEditorKit.CommitLocalEditsAction();
-		action.actionPerformed(evt);
-		
 		WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
     	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
         String title = 
         	rm.getString(COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.text");
-        
+        WordMLTextPane textpane = (WordMLTextPane) wmlEditor.getCurrentEditor();
+		
+        WordMLEditorKit.CommitLocalEditsAction action = 
+			new WordMLEditorKit.CommitLocalEditsAction();
+		action.actionPerformed(evt);
+			
 		if (action.success()) {
 			String message = 
-        		rm.getString(
-                		COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.successMessage");
+	       		rm.getString(
+	               		COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.successMessage");
 			wmlEditor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);	
+
+			wmlEditor.getToolbarStates().setDocumentDirty(textpane, false);
 			
-			if (evt.getSource() instanceof WordMLTextPane) {
-				WordMLTextPane textpane = (WordMLTextPane) evt.getSource();
-				wmlEditor.getToolbarStates().setLocalEditsEnabled(textpane, false);
-			} else if (wmlEditor.getCurrentEditor() instanceof WordMLTextPane) {
-				WordMLTextPane textpane = (WordMLTextPane) wmlEditor.getCurrentEditor();
-				wmlEditor.getToolbarStates().setLocalEditsEnabled(textpane, false);
-			}
+			JInternalFrame iframe = 
+				(JInternalFrame) 
+					SwingUtilities.getAncestorOfClass(
+							JInternalFrame.class, 
+							textpane);
+			wmlEditor.getToolbarStates().setLocalEditsEnabled(iframe, false);
 		} else {
-            Exception exc = action.getThrownException();
-            
-            String message = null;
-            if (exc instanceof ClientException) {
-            	message = 
-            		rm.getString(
-                		COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.conflictExistenceMessage");
-            } else {
-                exc.printStackTrace();
-            	message = 
-            		rm.getString(
-            			COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.errorMessage");
-            }
+	        Exception exc = action.getThrownException();
+	            
+	        String message = null;
+	        if (exc instanceof ClientException) {
+	          	message = 
+	           		rm.getString(
+	               		COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.conflictExistenceMessage");
+	        } else {
+	            exc.printStackTrace();
+	          	message = 
+	           		rm.getString(
+	           			COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.errorMessage");
+	        }
 			wmlEditor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);	
-		}
-	}
+        }
+ 	}
 	
 }// TeamMenu class
 
