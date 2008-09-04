@@ -1032,6 +1032,10 @@ public class Mediator {
 	    
 	    if (transformsToSend.isEmpty()) {
 	    	log.debug("Nothing to send.");
+	    	
+			if (someConflicted) {
+				throw new ClientException("There was one or more conflicts.");
+			}
 	    	return;
 	    }
 	    
