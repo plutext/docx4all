@@ -107,7 +107,7 @@ public class ToolBarStates extends InternalFrameAdapter
 	public final static String REMOTE_REVISION_IN_PARA_PROPERTY_NAME = "remoteRevisionInPara";
 	
 	private final Hashtable<JInternalFrame, Boolean> _dirtyTable;
-	private final Hashtable<WordMLTextPane, Boolean> _localEditsTable;
+	private final Hashtable<JEditorPane, Boolean> _localEditsTable;
 	
 	private volatile JEditorPane _currentEditor;
 	private volatile String _fontFamily;
@@ -131,7 +131,7 @@ public class ToolBarStates extends InternalFrameAdapter
 	
 	public ToolBarStates() {
 		_dirtyTable = new Hashtable<JInternalFrame, Boolean>(5);
-		_localEditsTable = new Hashtable<WordMLTextPane, Boolean>(5);
+		_localEditsTable = new Hashtable<JEditorPane, Boolean>(5);
 		_fontBold = false;
 		_fontItalic = false;
 		_fontUnderlined = false;
@@ -264,13 +264,12 @@ public class ToolBarStates extends InternalFrameAdapter
 	}
 	
 	public void setLocalEditsEnabled(boolean enabled) {
-		if (getCurrentEditor() instanceof WordMLTextPane) {
-			WordMLTextPane editorView = (WordMLTextPane) getCurrentEditor();
-			setLocalEditsEnabled(editorView, enabled);
+		if (getCurrentEditor() != null) {
+			setLocalEditsEnabled(getCurrentEditor(), enabled);
 		}
 	}
 	
-	public void setLocalEditsEnabled(WordMLTextPane editor, boolean enabled) {
+	public void setLocalEditsEnabled(JEditorPane editor, boolean enabled) {
 		Boolean isEnabled = Boolean.valueOf(isLocalEditsEnabled()); 		
 		if (log.isDebugEnabled()) {
 			log.debug("setLocalEditsEnabled():"
@@ -292,6 +291,18 @@ public class ToolBarStates extends InternalFrameAdapter
 		
 		if (editor == getCurrentEditor()) {
 			firePropertyChange(LOCAL_EDITS_ENABLED_PROPERTY_NAME, isEnabled, newEnabled);
+		}
+	}
+	
+	public void setLocalEditsEnabled(JInternalFrame iframe, boolean enabled) {
+		JEditorPane view = SwingUtil.getWordMLTextPane(iframe);
+		if (view != null) {
+			setLocalEditsEnabled(view, enabled);
+		}
+		
+		view = SwingUtil.getSourceEditor(iframe);
+		if (view != null) {
+			setLocalEditsEnabled(view, enabled);
 		}
 	}
 	
@@ -639,17 +650,14 @@ public class ToolBarStates extends InternalFrameAdapter
     	setCopyEnabled(b);
     	setCutEnabled(b);
     	
-    	boolean isShared = false;
     	if (editor instanceof WordMLTextPane) {
     		WordMLTextPane textpane = (WordMLTextPane) editor;
-    		b = textpane.isFilterApplied();
-    		isShared = DocUtil.isSharedDocument((WordMLDocument) editor.getDocument());
+    		setFilterApplied(textpane.isFilterApplied());
+    		
+    		boolean isShared = (textpane.getWordMLEditorKit().getPlutextClient() != null);
+    		setDocumentShared(isShared);
+    		
         	setRemoteRevision(textpane);
-        	
-        	Boolean newEnabled = _localEditsTable.get(textpane);
-        	if (newEnabled == null) {
-        		newEnabled = Boolean.FALSE;
-        	}
         	
         	//In here, _currentEditor value has been replaced.
         	//Therefore, currentLocalEditsEnabled belongs to previous editor.
@@ -657,13 +665,15 @@ public class ToolBarStates extends InternalFrameAdapter
         	//in _localEditsTable we satisfy the precondition of 
         	//setLocalEditsEnabled() method.
         	_localEditsTable.put(textpane, currentLocalEditsEnabled);
-        	setLocalEditsEnabled(textpane, (isShared && newEnabled));
+        	setLocalEditsEnabled(textpane, (isShared && newDirty));
+        	
     	} else {
-    		b = false;
+    		setFilterApplied(false);
+    		setDocumentShared(false);
+    		
+        	_localEditsTable.put(editor, currentLocalEditsEnabled);
+        	setLocalEditsEnabled(editor, false);
     	}
-    	setFilterApplied(b);
-    	
-    	setDocumentShared(isShared);
 	}	
 	
     /**
@@ -963,13 +973,14 @@ public class ToolBarStates extends InternalFrameAdapter
     			if (editorView.isInContentControlEdit()) {
     				//Ignore this changedUpdate event.
     			} else {
-    				WordMLDocument doc = (WordMLDocument) editorView.getDocument();
-    				boolean isShared = DocUtil.isSharedDocument(doc);
-    				setLocalEditsEnabled(editorView, isShared);
+    				boolean isShared = 
+    					(editorView.getWordMLEditorKit().getPlutextClient() != null);
+    				setLocalEditsEnabled(_currentEditor, isShared);
             		setDocumentDirty(_currentEditor, true);
     			}
     		} else {
         		setDocumentDirty(_currentEditor, true);
+        		setLocalEditsEnabled(_currentEditor, false);
     		}
     	}
     }
@@ -995,13 +1006,14 @@ public class ToolBarStates extends InternalFrameAdapter
     			if (editorView.isInContentControlEdit()) {
     				//Ignore this changedUpdate event.
     			} else {
-    				WordMLDocument doc = (WordMLDocument) editorView.getDocument();
-    				boolean isShared = DocUtil.isSharedDocument(doc);
-    				setLocalEditsEnabled(editorView, isShared);
+    				boolean isShared = 
+    					(editorView.getWordMLEditorKit().getPlutextClient() != null);
+    				setLocalEditsEnabled(_currentEditor, isShared);
             		setDocumentDirty(_currentEditor, true);
     			}
     		} else {
         		setDocumentDirty(_currentEditor, true);
+        		setLocalEditsEnabled(_currentEditor, false);
     		}
     	}
     }
@@ -1025,13 +1037,14 @@ public class ToolBarStates extends InternalFrameAdapter
     			if (editorView.isInContentControlEdit()) {
     				//Ignore this changedUpdate event.
     			} else {
-    				WordMLDocument doc = (WordMLDocument) editorView.getDocument();
-    				boolean isShared = DocUtil.isSharedDocument(doc);
-    				setLocalEditsEnabled(editorView, isShared);
+    				boolean isShared = 
+    					(editorView.getWordMLEditorKit().getPlutextClient() != null);
+    				setLocalEditsEnabled(_currentEditor, isShared);
             		setDocumentDirty(_currentEditor, true);
     			}
     		} else {
         		setDocumentDirty(_currentEditor, true);
+        		setLocalEditsEnabled(_currentEditor, false);
     		}
     	}
 	}
@@ -1058,15 +1071,7 @@ public class ToolBarStates extends InternalFrameAdapter
     	setDocumentDirty(iframe, false);
 		_dirtyTable.remove(iframe);
     	
-		WordMLTextPane editorView = SwingUtil.getWordMLTextPane(iframe);
-		if (editorView != null) {
-			setLocalEditsEnabled(editorView, false);
-			//This removal of editorView entry is optional
-			//because setLocalEditsEnabled() method does it
-			//when entry value is false.
-			//See: setLocalEditsEnabled()
-			//_localEditsTable.remove(editorView);
-		}
+		setLocalEditsEnabled(iframe, false);
 		
     	Integer oldNumbers = new Integer(_iframeNumbers);
     	Integer newNumbers = new Integer(--_iframeNumbers);
