@@ -43,7 +43,6 @@ import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.commons.vfs.FileObject;
 import org.apache.commons.vfs.FileSystemException;
-import org.apache.commons.vfs.VFS;
 import org.apache.commons.vfs.provider.UriParser;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.NewShareDialog;
@@ -66,6 +65,8 @@ import org.docx4j.openpackaging.io.SaveToVFSZipFile;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.jdesktop.application.Action;
 import org.jdesktop.application.ResourceMap;
+import org.plutext.client.ClientException;
+import org.plutext.client.Mediator;
 
 /**
  *	@author Jojada Tirtowidjojo - 27/11/2007
@@ -203,8 +204,7 @@ public class FileMenu extends UIMenu {
         ToolBarStates toolbarStates = editor.getToolbarStates();
         
     	if (SAVE_FILE_ACTION_NAME.equals(actionName)
-    		|| SAVE_AS_DOCX_ACTION_NAME.equals(actionName)
-    		|| SAVE_AS_HTML_ACTION_NAME.equals(actionName)) {
+    		|| SAVE_AS_DOCX_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
     		toolbarStates.addPropertyChangeListener(
     				ToolBarStates.DOC_DIRTY_PROPERTY_NAME, 
@@ -223,6 +223,7 @@ public class FileMenu extends UIMenu {
     				new DisableOnEqual(theItem, Boolean.TRUE));
    	
     	} else if (PRINT_PREVIEW_ACTION_NAME.equals(actionName)
+    		|| SAVE_AS_HTML_ACTION_NAME.equals(actionName)
     		|| CLOSE_FILE_ACTION_NAME.equals(actionName)
     		|| CLOSE_ALL_FILES_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
@@ -252,10 +253,10 @@ public class FileMenu extends UIMenu {
 	        String lastFile = 
 	        	prefs.get(Constants.LAST_OPENED_LOCAL_FILE, Constants.EMPTY_STRING);
 	        if (lastFile.length() == 0) {
-	        	fo = VFS.getManager().toFileObject(
+	        	fo = VFSUtils.getFileSystemManager().toFileObject(
 	        			FileSystemView.getFileSystemView().getDefaultDirectory());
 	        } else {
-	        	fo = VFS.getManager().resolveFile(lastFile).getParent();
+	        	fo = VFSUtils.getFileSystemManager().resolveFile(lastFile).getParent();
 	        }
 			fo = fo.resolveFile(newFile.toString());
 			
@@ -288,6 +289,7 @@ public class FileMenu extends UIMenu {
 	        	DocumentML docML = (DocumentML) root.getElementML();
 	        	WordprocessingMLPackage wmlPackage = docML.getWordprocessingMLPackage();
 	        	XmlUtil.setSharedDocumentProperties(wmlPackage, d);
+	        	
 	        	RETURN_TYPE val = 
 	        		saveAsFile(SAVE_AS_SHARED_DOC_ACTION_NAME, actionEvent, Constants.DOCX_STRING);
 	        	
@@ -308,7 +310,7 @@ public class FileMenu extends UIMenu {
 	        		String filepath = 
 	        			(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
 	        		try {
-	        			FileObject fo = VFS.getManager().resolveFile(filepath);
+	        			FileObject fo = VFSUtils.getFileSystemManager().resolveFile(filepath);
             			doc = wmlTextPane.getWordMLEditorKit().read(fo);
             			
             			doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, filepath);
@@ -344,7 +346,7 @@ public class FileMenu extends UIMenu {
         FileObject dir = null;
         if (lastFileUri.length() > 0) {
         	try {
-        		dir = VFS.getManager().resolveFile(lastFileUri).getParent();
+        		dir = VFSUtils.getFileSystemManager().resolveFile(lastFileUri).getParent();
         	} catch (FileSystemException exc) {
         		dir = null;
         	}
@@ -374,12 +376,26 @@ public class FileMenu extends UIMenu {
         	JInternalFrame iframe = editor.getCurrentInternalFrame();
         	if (iframe.getTitle().startsWith(editor.getUntitledFileName())) {
         		saveAsDocx(actionEvent);
+        	
         	} else {
-				boolean success = save(iframe, null, SAVE_FILE_ACTION_NAME);
-				if (success) {
-					editor.getToolbarStates().setDocumentDirty(iframe, false);
-					editor.getToolbarStates().setLocalEditsEnabled(false);
-				}
+            	WordMLTextPane textPane = SwingUtil.getWordMLTextPane(iframe);
+            	if (textPane != null
+            		&& textPane.getWordMLEditorKit().getPlutextClient() != null
+            		&& editor.getCurrentEditor() != textPane) {
+            		
+    		    	ResourceMap rm = editor.getContext().getResourceMap(getClass());
+		            String title = rm.getString("saveFile.Action.text");
+		            String message = rm.getString("saveFile.Action.goto.editorView.infoMessage");
+	            	editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
+	            	
+		            return;
+            	}
+            	
+       			boolean success = save(iframe, null, SAVE_FILE_ACTION_NAME);
+       			if (success) {
+       				editor.getToolbarStates().setDocumentDirty(iframe, false);
+       				editor.getToolbarStates().setLocalEditsEnabled(iframe, false);
+       			}
 			}
 		}
     }
@@ -404,7 +420,7 @@ public class FileMenu extends UIMenu {
         FileObject file = null;
         FileObject dir = null;
         try {
-        	file = VFS.getManager().resolveFile(filePath);
+        	file = VFSUtils.getFileSystemManager().resolveFile(filePath);
         	dir = file.getParent();
         } catch (FileSystemException exc) {
         	;//ignore
@@ -415,6 +431,9 @@ public class FileMenu extends UIMenu {
         RETURN_TYPE returnVal = chooser.showSaveDialog((Component) actionEvent.getSource());
         if (returnVal == RETURN_TYPE.APPROVE) {
 			FileObject selectedFile = getSelectedFile(chooser, fileType);
+			
+			boolean error = false;
+			boolean newlyCreatedFile = false;
 			
 			//Check selectedFile's existence and ask user confirmation when needed.
 			if (selectedFile != null) {
@@ -438,6 +457,7 @@ public class FileMenu extends UIMenu {
 						}
 						
 						selectedFile.createFile();
+						newlyCreatedFile = true;
 						
 					} else if (!selectedFile.getName().getURI().equalsIgnoreCase(filePath)) {
 			            String title = 
@@ -455,13 +475,14 @@ public class FileMenu extends UIMenu {
 			            if (answer != JOptionPane.YES_OPTION) {
 			            	selectedFile = null;
 			            }
-					}// if (file.exists())
+					}// if (!selectedFileExists)
 					
 				} catch (FileSystemException exc) {
 					exc.printStackTrace();//ignore
 					log.error("Couldn't create new file or assure file existence. File = " 
 						+ selectedFile.getName().getURI());
 					selectedFile = null;
+					error = true;
 				}
 			}
 			
@@ -486,7 +507,7 @@ public class FileMenu extends UIMenu {
 		       			//If saving as .docx then update the document dirty flag 
 		       			//of toolbar states as well as internal frame title
 		       			editor.getToolbarStates().setDocumentDirty(iframe, false);
-		       			editor.getToolbarStates().setLocalEditsEnabled(false);
+		       			editor.getToolbarStates().setLocalEditsEnabled(iframe, false);
 		       			editor.updateInternalFrame(file, selectedFile);
 		       		} else {
 		       			//Because document dirty flag is not cleared
@@ -500,8 +521,15 @@ public class FileMenu extends UIMenu {
 			            	+ rm.getString(callerActionName + ".Action.successMessage");
 		            	editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
 		       		}
-				}				
-			} else {
+				} else if (newlyCreatedFile) {
+					try {
+						selectedFile.delete();
+					} catch (FileSystemException exc) {
+						log.error("saveAsFile(): Saving failure and cannot remove the newly created file = " + selectedPath);
+						exc.printStackTrace();
+					}
+				}
+			} else if (error) {
 				log.error("saveAsFile(): selectedFile = NULL"); 
 	            String title = 
 	            	rm.getString(callerActionName + ".Action.text");
@@ -539,7 +567,7 @@ public class FileMenu extends UIMenu {
 		uri.append(desiredFileType);
 		
 		try {
-			theFile = VFS.getManager().resolveFile(uri.toString());
+			theFile = VFSUtils.getFileSystemManager().resolveFile(uri.toString());
 		} catch (FileSystemException exc) {
 			exc.printStackTrace();
 			theFile = null;
@@ -554,10 +582,7 @@ public class FileMenu extends UIMenu {
 			if (wmlEditor.getToolbarStates().isDocumentDirty(iframe)
 					&& save(iframe, null, SAVE_ALL_FILES_ACTION_NAME)) {
 				wmlEditor.getToolbarStates().setDocumentDirty(iframe, false);
-				WordMLTextPane editorView = SwingUtil.getWordMLTextPane(iframe);
-				if (editorView != null) {
-					wmlEditor.getToolbarStates().setLocalEditsEnabled(editorView, false);
-				}
+				wmlEditor.getToolbarStates().setLocalEditsEnabled(iframe, false);
 			}
 		}
     }
@@ -702,43 +727,78 @@ public class FileMenu extends UIMenu {
 				(String) iframe.getClientProperty(WordMLDocument.FILE_PATH_PROPERTY);
 		}
 		
-    	JEditorPane editor = SwingUtil.getSourceEditor(iframe);
-    	if (editor != null
-        	&& !((Boolean) editor.getClientProperty(Constants.LOCAL_VIEWS_SYNCHRONIZED_FLAG)).booleanValue()) {
+		if (log.isDebugEnabled()) {
+			log.debug("save(): filePath=" + VFSUtils.getFriendlyName(saveAsFilePath));
+		}
+		
+    	WordMLTextPane editorView = SwingUtil.getWordMLTextPane(iframe);
+    	JEditorPane sourceView = SwingUtil.getSourceEditor(iframe);
+ 
+    	if (sourceView != null
+        	&& !((Boolean) sourceView.getClientProperty(
+        			Constants.LOCAL_VIEWS_SYNCHRONIZED_FLAG)).booleanValue()) {
     		//signifies that Source View is not synchronised with Editor View yet.
     		//Therefore, it is dirty and has to be saved.
-    		
-    		EditorKit kit = editor.getEditorKit();
-    		Document doc = editor.getDocument();
-			WordprocessingMLPackage wmlPackage =
-				(WordprocessingMLPackage) doc.getProperty(
+    		if (editorView != null
+    			&& editorView.getWordMLEditorKit().getPlutextClient() != null) {
+    			//Document has to be saved from editor view 
+    			//by committing local edits
+    			success = false;
+    		} else {
+    			EditorKit kit = sourceView.getEditorKit();
+    			Document doc = sourceView.getDocument();
+    			WordprocessingMLPackage wmlPackage =
+    				(WordprocessingMLPackage) doc.getProperty(
 						WordMLDocument.WML_PACKAGE_PROPERTY);
 			
-    		DocUtil.write(kit, doc, wmlPackage);
-			success = save(wmlPackage, saveAsFilePath, callerActionName);
+    			DocUtil.write(kit, doc, wmlPackage);
+    			success = save(wmlPackage, saveAsFilePath, callerActionName);
 
-			if (success) {
-				if (saveAsFilePath.endsWith(Constants.DOCX_STRING)) {
-					doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY,
+    			if (success) {
+    				if (saveAsFilePath.endsWith(Constants.DOCX_STRING)) {
+    					doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY,
 							saveAsFilePath);
-					iframe.putClientProperty(WordMLDocument.FILE_PATH_PROPERTY,
+    					iframe.putClientProperty(WordMLDocument.FILE_PATH_PROPERTY,
 							saveAsFilePath);
-				}
-			}
-
-			if (log.isDebugEnabled()) {
-				log.debug("save(): filePath=" + VFSUtils.getFriendlyName(saveAsFilePath));
-				DocUtil.displayXml(doc);
-			}
+    				}
+    			}
+    		}
 			return success;
     	}
+    	sourceView = null;
     	
-    	editor = SwingUtil.getWordMLTextPane(iframe);
-    	if (editor != null) {
-        	WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
+    	if (editorView == null) {
+    		;//pass
+    		
+    	} else if (editorView.getWordMLEditorKit().getPlutextClient() != null) {
+    		if (saveAsFilePath.equals(
+    				editorView.getDocument().getProperty(
+    						WordMLDocument.FILE_PATH_PROPERTY))) {
+    			success = commitLocalChanges(editorView, callerActionName);
+    			
+    		} else {
+    			//TODO: Enable saving Plutext document as a new file.
+        		WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+            	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
+                String title = 
+                	rm.getString(callerActionName + ".Action.text");
+              	StringBuilder message = new StringBuilder();
+              	message.append("File ");
+              	message.append(saveAsFilePath);
+              	message.append(Constants.NEWLINE);
+               	message.append(
+               		rm.getString(
+               			callerActionName + ".Action.wrong.fileName.infoMessage"));
+              	wmlEditor.showMessageDialog(
+              		title, message.toString(), JOptionPane.INFORMATION_MESSAGE);
+    			
+    			success = false;
+    		}
+    	} else {
+        	WordMLEditorKit kit = (WordMLEditorKit) editorView.getEditorKit();
         	kit.saveCaretText();
         	
-        	Document doc = editor.getDocument();
+        	Document doc = editorView.getDocument();
             DocumentElement elem = (DocumentElement) doc.getDefaultRootElement();
     		DocumentML rootML = (DocumentML) elem.getElementML();
 
@@ -759,14 +819,57 @@ public class FileMenu extends UIMenu {
 	        		doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, saveAsFilePath);
 	        		iframe.putClientProperty(WordMLDocument.FILE_PATH_PROPERTY, saveAsFilePath);
 	        	}
-	        }
-	        
-	        if (log.isDebugEnabled()) {
-				log.debug("save(): filePath=" + VFSUtils.getFriendlyName(saveAsFilePath));
-	        	DocUtil.displayXml(doc);
-	        }    		
+	        }	        
     	}
 
+    	return success;
+    }
+    
+    private boolean commitLocalChanges(WordMLTextPane editor, String callerActionName) {
+    	boolean success = false;
+    	
+    	Mediator plutextClient = editor.getWordMLEditorKit().getPlutextClient();
+    	WordMLDocument doc = (WordMLDocument) editor.getDocument();
+    	
+    	try {
+    		doc.lockWrite();
+    		
+    		editor.saveCaretText();
+    		
+    		plutextClient.startSession();
+    		plutextClient.transmitLocalChanges();
+    		
+    		success = true;
+    		
+    	} catch (ClientException exc) {
+    		
+    		WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+        	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
+            String title = 
+            	rm.getString(callerActionName + ".Action.text");
+            rm = wmlEditor.getContext().getResourceMap(TeamMenu.class);
+            
+          	StringBuilder message = new StringBuilder();
+          	message.append("File ");
+          	message.append(
+          		editor.getDocument().getProperty(
+					WordMLDocument.FILE_PATH_PROPERTY));
+          	message.append(Constants.NEWLINE);
+           	message.append(
+           		rm.getString(
+               		TeamMenu.COMMIT_LOCAL_EDITS_ACTION_NAME 
+               		+ ".Action.conflictExistenceMessage"));
+          	wmlEditor.showMessageDialog(
+          		title, message.toString(), JOptionPane.INFORMATION_MESSAGE);
+    		
+    	} catch (Exception exc) {
+    		exc.printStackTrace();
+    		
+    	} finally {
+    		plutextClient.endSession();
+    		doc.unlockWrite();
+    	}
+    	
     	return success;
     }
     
@@ -778,7 +881,7 @@ public class FileMenu extends UIMenu {
        			saver.save(saveAsFilePath);
        			
        		} else if (saveAsFilePath.endsWith(Constants.HTML_STRING)) {
-       			FileObject fo = VFS.getManager().resolveFile(saveAsFilePath);
+       			FileObject fo = VFSUtils.getFileSystemManager().resolveFile(saveAsFilePath);
        			OutputStream fos = fo.getContent().getOutputStream();
        			javax.xml.transform.stream.StreamResult result = 
 					new javax.xml.transform.stream.StreamResult(fos);
