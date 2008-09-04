@@ -848,7 +848,9 @@ public class WordMLEditorKit extends DefaultEditorKit {
                 		WordMLDocument doc = (WordMLDocument) editor.getDocument();
                 		int start = plutextClient.getUpdateStartOffset();
                 		int end = plutextClient.getUpdateEndOffset();
-                		doc.refreshParagraphs(start, end);
+                		if (start <= end) {
+                			doc.refreshParagraphs(start, end);
+                		}
                 		
                 	} catch (Exception exc) {
                 		this.exc = exc;
