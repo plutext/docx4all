@@ -44,7 +44,7 @@ public class NewShareDialog extends JDialog implements PropertyChangeListener {
 	//These names are used for detecting answers given by user to dialog panel.
 	private final static String GROUP_ON_PARAGRAPH_ACTION_COMMAND = "groupOnParagraph";
 	private final static String GROUP_ON_HEADING1_ACTION_COMMAND = "groupOnHeading1";
-	private final static String PROMPT_CHECKIN_COMMENT_ACTION_COMMAND = "promptCheckinComment";
+	private final static String COMMENT_ON_EVERY_CHANGE_ACTION_COMMAND = "commentOnEveryChange";
 	
     public final static String NEXT_BUTTON_TEXT = "Next";
     public final static String CANCEL_BUTTON_TEXT = "Cancel";
@@ -52,7 +52,7 @@ public class NewShareDialog extends JDialog implements PropertyChangeListener {
     private JOptionPane optionPane;
     
     private ButtonGroup contentGroupOptions;
-    private JCheckBox promptCheckin;
+    private JCheckBox commentOnEveryChange;
     
     private Object value;
     
@@ -62,7 +62,7 @@ public class NewShareDialog extends JDialog implements PropertyChangeListener {
 		setTitle("New Share");
 		
 		JPanel contentGroupPanel = createContentGroupPanel();
-		JPanel saveOptionsPanel = createSaveOptionsPanel();
+		JPanel saveOptionsPanel = createAuditTrailOptionsPanel();
 		
 		Object[] options = {NEXT_BUTTON_TEXT, CANCEL_BUTTON_TEXT};
 		Object[] array = {contentGroupPanel, saveOptionsPanel};
@@ -104,8 +104,8 @@ public class NewShareDialog extends JDialog implements PropertyChangeListener {
 			== contentGroupOptions.getSelection().getActionCommand());
 	}
 	
-	public boolean isPromptForCheckinComment() {
-		return promptCheckin.isSelected();
+	public boolean isCommentOnEveryChange() {
+		return commentOnEveryChange.isSelected();
 	}
 	
     public Object getValue() {
@@ -167,16 +167,16 @@ public class NewShareDialog extends JDialog implements PropertyChangeListener {
 		return thePanel;
 	}
 	
-	private JPanel createSaveOptionsPanel() {
-		//Save Options Panel with its check box
+	private JPanel createAuditTrailOptionsPanel() {
+		//Audit Trail Options Panel with its check box
 		JPanel thePanel = new JPanel();
-		thePanel.setBorder(BorderFactory.createTitledBorder("Save Options"));
+		thePanel.setBorder(BorderFactory.createTitledBorder("Audit Trail"));
 		thePanel.setLayout(new BoxLayout(thePanel, BoxLayout.Y_AXIS));
 		
-		this.promptCheckin = new JCheckBox("Prompt for Checkin Comment");
-		this.promptCheckin.setActionCommand(PROMPT_CHECKIN_COMMENT_ACTION_COMMAND);
+		this.commentOnEveryChange = new JCheckBox("Comment on every change");
+		this.commentOnEveryChange.setActionCommand(COMMENT_ON_EVERY_CHANGE_ACTION_COMMAND);
 		
-		thePanel.add(this.promptCheckin);
+		thePanel.add(this.commentOnEveryChange);
 		return thePanel;
 	}
 	
