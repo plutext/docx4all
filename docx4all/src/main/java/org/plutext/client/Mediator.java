@@ -19,6 +19,7 @@
 
 package org.plutext.client;
 
+import java.awt.Dimension;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.swing.SwingUtilities;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.rpc.ServiceException;
@@ -33,6 +35,7 @@ import javax.xml.rpc.ServiceException;
 import org.alfresco.webservice.authentication.AuthenticationFault;
 import org.alfresco.webservice.util.AuthenticationUtils;
 import org.apache.log4j.Logger;
+import org.docx4all.swing.CheckinCommentDialog;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
@@ -1041,19 +1044,15 @@ public class Mediator {
 	    
 		String checkinComment = null;
         if (stateDocx.getPromptForCheckinMessage()) {
-           // NB with this model, we are no longer applying a 
-           // comment to a single paragraph.  The server will stick
-           // the comment on each affected rib.
+        	java.awt.Frame frame = 
+        		(java.awt.Frame)
+        			SwingUtilities.getWindowAncestor(getWordMLTextPane());
+			CheckinCommentDialog d = new CheckinCommentDialog(frame);
+			d.pack();
+			d.setLocationRelativeTo(frame);
+			d.setVisible(true);
 
-           //formCheckin form = new formCheckin();
-           //form.Text = "Changes ";
-                //using (form)
-                //{
-                //    if (form.ShowDialog() == DialogResult.OK)
-                //    {
-                //        checkinComment = form.textBoxChange.Text;
-                //    }
-                //}
+			checkinComment = d.getTextComment();
         } else {
             checkinComment = "edited";
         }
