@@ -341,7 +341,7 @@ public class XmlUtil {
     		tempProp.setPid(customProps.getNextId()); 
     		customProps.getProperty().add(tempProp);
     	}
-    	if (dialog.isPromptForCheckinComment()) {
+    	if (dialog.isCommentOnEveryChange()) {
     		tempProp.setLpwstr(Boolean.TRUE.toString());
     	} else {
     		tempProp.setLpwstr(Boolean.FALSE.toString());
@@ -541,47 +541,42 @@ public class XmlUtil {
     }
     
     public final static org.docx4j.wml.SdtBlock markupDifference(
-    	org.docx4j.wml.SdtBlock leftSdt, 
-    	org.docx4j.wml.SdtBlock rightSdt,
-    	Changeset changeset) throws Exception {
-    	
-    	org.docx4j.wml.SdtBlock theSdt = ObjectFactory.createSdtBlock();
-    	theSdt.setSdtPr(
-    		(org.docx4j.wml.SdtPr) XmlUtils.deepCopy(leftSdt.getSdtPr()));
-    	
-//		javax.xml.bind.util.JAXBResult result = 
-//			new javax.xml.bind.util.JAXBResult(
-//				org.docx4j.jaxb.Context.jc);
-		
-		
+		org.docx4j.wml.SdtBlock leftSdt, 
+		org.docx4j.wml.SdtBlock rightSdt,
+		Changeset changeset) throws Exception {
+
+		org.docx4j.wml.SdtBlock theSdt = ObjectFactory.createSdtBlock();
+		theSdt.setSdtPr((org.docx4j.wml.SdtPr) XmlUtils.deepCopy(leftSdt
+				.getSdtPr()));
+
+		// javax.xml.bind.util.JAXBResult result =
+		// new javax.xml.bind.util.JAXBResult(
+		// org.docx4j.jaxb.Context.jc);
+
 		java.io.StringWriter sw = new java.io.StringWriter();
-		javax.xml.transform.stream.StreamResult result = 
-			new javax.xml.transform.stream.StreamResult(sw);
-		
+		javax.xml.transform.stream.StreamResult result = new javax.xml.transform.stream.StreamResult(
+				sw);
 
-		//Calendar changeDate = Calendar.getInstance();
-		//changeDate.setTime(RFC3339_FORMAT.parse(changeset.getDate()));
+		// Calendar changeDate = Calendar.getInstance();
+		// changeDate.setTime(RFC3339_FORMAT.parse(changeset.getDate()));
 		Calendar changeDate = null;
-		
-		ParagraphDifferencer.diff(
-			leftSdt.getSdtContent(), 
-			rightSdt.getSdtContent(), 
-			result,
-			changeset.getModifier(),
-			changeDate);
 
-		//SdtContentBlock markedUpContent = (SdtContentBlock) result.getResult();
-		
+		ParagraphDifferencer.diff(leftSdt.getSdtContent(), rightSdt
+				.getSdtContent(), result, changeset.getModifier(), changeDate);
+
+		// SdtContentBlock markedUpContent = (SdtContentBlock)
+		// result.getResult();
+
 		String contentStr = sw.toString();
 		log.error("Transform: " + contentStr);
-		SdtContentBlock markedUpContent = (SdtContentBlock)org.docx4j.XmlUtils.unmarshalString(contentStr);
-		
-		
+		SdtContentBlock markedUpContent = (SdtContentBlock) org.docx4j.XmlUtils
+				.unmarshalString(contentStr);
+
 		// Now put into resulting sdt.
 		theSdt.setSdtContent(markedUpContent);
 		return theSdt;
-    }
-    
+	}
+        
 	public final static org.docx4j.wml.SdtBlock markupAsDeletion(
 		org.docx4j.wml.SdtBlock sdt,
 		Changeset changeset) throws Exception {
