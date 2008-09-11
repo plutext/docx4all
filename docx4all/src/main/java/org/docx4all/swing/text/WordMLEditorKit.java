@@ -106,10 +106,6 @@ public class WordMLEditorKit extends DefaultEditorKit {
     
     public static final String fontUnderlineAction = "font-underline";
 
-    public static final String fetchRemoteEditsAction = "fetch-remote-edits";
-    
-    public static final String commitLocalEditsAction = "commit-local-edits";
-
     public static final String acceptRevisionAction = "accept-revision";
     
     public static final String acceptNonConflictingRevisionsAction = "accept-non-conflicting-revisions";
@@ -821,102 +817,6 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	    
 	}// CaretListener inner class
 	
-    public static class FetchRemoteEditsAction extends TextAction {
-    	private Exception exc;
-    	   	
-    	public FetchRemoteEditsAction() {
-            super(fetchRemoteEditsAction);
-            exc = null;
-        }
-
-        /** The operation to perform when this action is triggered. */
-        public void actionPerformed(ActionEvent e) {
-        	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
-        	if (editor != null) {
-        		Mediator plutextClient = editor.getWordMLEditorKit().getPlutextClient();
-        		if (plutextClient != null) {
-                	log.debug("FetchRemoteEditsAction.actionPerformed():...");
-                	
-                	try {
-                		editor.saveCaretText();
-                		
-                		editor.beginContentControlEdit();
-                		plutextClient.startSession();
-                		plutextClient.fetchUpdates();
-                		plutextClient.applyRemoteChanges();
-                		
-                		WordMLDocument doc = (WordMLDocument) editor.getDocument();
-                		int start = plutextClient.getUpdateStartOffset();
-                		int end = plutextClient.getUpdateEndOffset();
-                		if (start <= end) {
-                			doc.refreshParagraphs(start, end);
-                		}
-                		
-                	} catch (Exception exc) {
-                		this.exc = exc;
-                	} finally {
-                		plutextClient.endSession();
-                		editor.endContentControlEdit();
-                	}
-        		}
-        	}
-        }
-        
-        public Exception getThrownException() {
-        	return exc;
-        }
-        
-        public boolean success() {
-        	return (exc == null);
-        }
-        
-    }// FetchRemoteEditsAction inner class
-    
-    public static class CommitLocalEditsAction extends TextAction {
-    	private Exception exc;
-    	
-    	public CommitLocalEditsAction() {
-            super(commitLocalEditsAction);
-            exc = null;
-        }
-
-        /** The operation to perform when this action is triggered. */
-        public void actionPerformed(ActionEvent e) {
-        	WordMLTextPane editor = (WordMLTextPane) getTextComponent(e);
-        	if (editor != null) {
-        		WordMLDocument doc = (WordMLDocument) editor.getDocument();
-        		Mediator plutextClient = editor.getWordMLEditorKit().getPlutextClient();
-        		if (plutextClient != null) {
-                	log.debug("CommitLocalEditsAction.actionPerformed():...");
-                	try {
-                		doc.lockWrite();
-                		
-                		editor.saveCaretText();
-                		
-                		plutextClient.startSession();
-                		plutextClient.transmitLocalChanges();
-                		
-                	} catch (Exception exc) {
-                		this.exc = exc;
-                		
-                	} finally {
-                		plutextClient.endSession();
-                		doc.unlockWrite();
-                	}
-        		}
-        	}
-        }
-        
-        public Exception getThrownException() {
-        	return exc;
-        }
-        
-        public boolean success() {
-        	return (exc == null);
-        }
-        
-    }// CommitLocalEditsAction inner class
-    
     public static class AcceptNonConflictingRevisionsAction extends TextAction {
     	private Exception exc;
     	
