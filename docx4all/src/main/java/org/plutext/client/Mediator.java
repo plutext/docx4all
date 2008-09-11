@@ -19,7 +19,6 @@
 
 package org.plutext.client;
 
-import java.awt.Dimension;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,7 +35,11 @@ import org.alfresco.webservice.authentication.AuthenticationFault;
 import org.alfresco.webservice.util.AuthenticationUtils;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.CheckinCommentDialog;
+import org.docx4all.swing.FetchRemoteEditsWorker;
+import org.docx4all.swing.TransmitLocalEditsWorker;
 import org.docx4all.swing.WordMLTextPane;
+import org.docx4all.swing.FetchRemoteEditsWorker.FetchProgress;
+import org.docx4all.swing.TransmitLocalEditsWorker.TransmitProgress;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.util.DocUtil;
@@ -205,7 +208,10 @@ public class Mediator {
 
 	private Skeleton oldServer;
 
-	public void fetchUpdates() throws RemoteException {
+	public void fetchUpdates(FetchRemoteEditsWorker worker) throws RemoteException {
+		
+		worker.setProgress(FetchProgress.START_FETCHING, "Fetch updates");
+		
 		log.debug(".. .. fetchUpdates, from "
 				+ stateDocx.getTransforms().getTSequenceNumberHighestFetched());
 
@@ -239,6 +245,8 @@ public class Mediator {
             
 			if (Integer.parseInt(updates[0]) > stateDocx.getTransforms()
 					.getTSequenceNumberHighestFetched()) {
+                worker.setProgress(FetchProgress.REGISTERING_UPDATES, "Registering updates");
+                
 				stateDocx.getTransforms().setTSequenceNumberHighestFetched(
 						Integer.parseInt(updates[0]));
 				Boolean appliedFalse = false;
@@ -250,17 +258,21 @@ public class Mediator {
 						appliedFalse, 
 						localFalse, 
 						updateHighestFetchedTrue);
-			} else {
-				// Globals.ThisAddIn.Application.StatusBar = "No remote
-				// updates";
-			}
-			
-			if (needToFetchSkel || oldServer == null) {
-				String serverSkeletonStr = ws.getSkeletonDocument(stateDocx
-						.getDocID());
-				oldServer = new Skeleton(serverSkeletonStr);
-			}
+				
+				if (needToFetchSkel || oldServer == null) {
+                    worker.setProgress(
+                    	FetchProgress.FETCHING_REMOTE_DOC_STRUCTURE, 
+                    	"Fetching remote document structure");
 
+					String serverSkeletonStr = ws.getSkeletonDocument(stateDocx
+							.getDocID());
+					oldServer = new Skeleton(serverSkeletonStr);
+					
+				}
+				worker.setProgress(FetchProgress.FETCHING_DONE, "About to apply remote edits to local document");
+			} else {
+				worker.setProgress(FetchProgress.FETCHING_DONE, "No remote updates");
+			}	
 		}
 	}
 	
@@ -408,17 +420,18 @@ public class Mediator {
 		// set { divergences = value; }
 	}
 
-	public void applyRemoteChanges() throws ClientException {
+	public void applyRemoteChanges(FetchRemoteEditsWorker worker) {
 		// TODO: grey out if there are no remote updates to apply
 
-		// DateTime startTime = DateTime.Now;
-		// log.debug(startTime);
+		//Too close to the next message. Therefore, comment this.
+		//worker.setProgress(FetchProgress.START_APPLYING_UPDATES, "Start to apply remote edits");
 
 		if (this.oldServer == null || this.changeSets == null) {
 			//applyRemoteChanges() is preceded with fetchUpdates().
 			//If fetchUpdates() ends up with error or does not
 			//fetch any new transform then nothing to be applied
 			//in this method.
+			worker.setProgress(FetchProgress.DONE, "No remote updates");
 			return;
 		}
 		
@@ -443,6 +456,10 @@ public class Mediator {
 		// if the updates include insertions, so look at them first
 		// if (updatesIncludeInsertions)
 		// {
+		
+		worker.setProgress(
+			FetchProgress.COMPARING_DOC_STRUCTURES, 
+			"Making allowances for local differences");
 		DiffEngine drift = new DiffEngine();
 		drift.processDiff(this.oldServer, this.currentClientSkeleleton);
 		divergences = new Divergences(drift);
@@ -457,13 +474,14 @@ public class Mediator {
 
 		// }
 
-		applyUpdates();
+		worker.setProgress(FetchProgress.APPLYING_UPDATES, "Applying updates");
+		applyUpdates(worker);
 
 		this.oldServer = null;
 	}
 
 	/* Apply registered transforms. */
-	public void applyUpdates() throws ClientException {
+	public void applyUpdates(FetchRemoteEditsWorker worker) {
 		/*
 		 * Note well that it is important to the correct functioning that the
 		 * updates are applied IN ORDER.
@@ -477,11 +495,18 @@ public class Mediator {
 		
 		boolean cantOverwrite = false;
 		// loop through and apply
+		int total = transformsBySeqNum.size();
+		int i = 1;
+		long changeset = transformsBySeqNum.get(0).getChangesetNumber();
+		
 		for (TransformAbstract t : transformsBySeqNum) {
 			// OPTIMISATION: could do the most recent only for each cc
 			// (ie reverse order), except for MOVES and INSERTS, which need to
 			// be done in order.
 
+            worker.setProgress(
+            	FetchProgress.APPLYING_UPDATES, 
+            	"Update " + (i++) + " of " + total);
 			if (t.getApplied()) // then it shouldn't be in the list ?!
 			{
 				if (stateDocx.getTransforms()
@@ -492,6 +517,11 @@ public class Mediator {
 				continue;
 			}
 
+			if (changeset != t.getChangesetNumber()) {
+				changeset = t.getChangesetNumber();
+				refreshLocalDocument();
+			}
+			
 			log.debug(".. applying " + t.getSequenceNumber());
 
 			long resultCode = applyUpdate(t);
@@ -513,7 +543,6 @@ public class Mediator {
 				log.debug("Failed to apply transformation "
 						+ t.getSequenceNumber());
 			}
-
 		}
 
 		// Now remove the discards
@@ -521,8 +550,14 @@ public class Mediator {
 			transformsBySeqNum.remove(ta);
 		}
 
+		refreshLocalDocument();
+		
 		if (cantOverwrite) {
-			throw new ClientException("Cannot overwrite.");
+			worker.setProgress(
+				FetchProgress.APPLYING_DONE, 
+				"You need to accept/reject revisions before all remote changes can be applied.  Please do so, then hit the button again.");
+		} else {
+			worker.setProgress(FetchProgress.APPLYING_DONE, "Changesets applied");
 		}
 	}
 
@@ -839,19 +874,17 @@ public class Mediator {
 	 * TRANSMIT LOCAL CHANGES
 	 * ****************************************************************************************
 	 */
-	public void transmitLocalChanges() throws RemoteException, ClientException {
+	public boolean transmitLocalChanges(TransmitLocalEditsWorker worker) throws RemoteException, ClientException {
 		// Look for local modifications
 		// - commit any which are non-conflicting (send these as TRANSFORMS)
-		transmitContentUpdates();
+		boolean success = transmitContentUpdates(worker);
 
 		// transmitStyleUpdates();
 
-		// Globals.ThisAddIn.Application.StatusBar = "Local changes
-		// transmitted";
+		return success;
 	}
 
-    void transmitContentUpdates() throws RemoteException, ClientException {
-	
+    boolean transmitContentUpdates(TransmitLocalEditsWorker worker) throws RemoteException {
 		log.debug(stateDocx.getDocID() + ".. .. transmitContentUpdates");
 	
 		// The list of transforms to be transmitted
@@ -899,6 +932,11 @@ public class Mediator {
 	     * 
 	     * So we need a dictionary of the undead, which we process here.
 	     */
+		
+		worker.setProgress(
+			TransmitProgress.INSPECTING_LOCAL_DOC_STRUCTURE, 
+			"Inspecting local document structure");
+		
 	    WordMLDocument doc = getWordMLDocument();
 	    
 	    List<String> bornAgain = new ArrayList<String>();
@@ -954,10 +992,18 @@ public class Mediator {
 	        528989532   528989532 (no change)
 	     */
 	
+        worker.setProgress(
+        	TransmitProgress.FETCHING_REMOTE_DOC_STRUCTURE, 
+        	"Fetching remote document structure");
+        
 	    String serverSkeletonStr = ws.getSkeletonDocument(stateDocx.getDocID());
 	    Skeleton serverSkeleton = new Skeleton(serverSkeletonStr);
 	
 	    // OK, compare the inferredSkeleton to serverSkeleton
+        worker.setProgress(
+        	TransmitProgress.IDENTIFYING_STRUCTURAL_CHANGES,
+        	"Identifying structural changes in document");
+        
 	    createTransformsForStructuralChanges(
 	    	transformsToSend,
 	        this.currentClientSkeleleton, 
@@ -969,6 +1015,7 @@ public class Mediator {
 	    // One way around this would be to require that all remote moves
 	    // have been applied, before any local changes can be transmitted.
 	
+	    Boolean someTransmitted = false;
 	    Boolean someConflicted = false;
 	
 		org.plutext.transforms.ObjectFactory transformsFactory = 
@@ -978,196 +1025,259 @@ public class Mediator {
 		DocumentElement root = (DocumentElement) wordMLDoc
 				.getDefaultRootElement();
 
-		for (int idx = 0; idx < root.getElementCount(); idx++) {
-			DocumentElement elem = (DocumentElement) root.getElement(idx);
-			ElementML ml = elem.getElementML();
-			if (ml instanceof SdtBlockML) {
-				org.docx4j.wml.SdtBlock sdt = (org.docx4j.wml.SdtBlock) ml
-						.getDocxObject();
-				StateChunk chunkCurrent = new StateChunk(sdt);
-				String sdtId = chunkCurrent.getIdAsString();
+		try {
+			worker.setProgress(
+					TransmitProgress.IDENTIFYING_UPDATED_TEXT, 
+        		"Identifying updated text");
+        
+			for (int idx = 0; idx < root.getElementCount(); idx++) {
+				DocumentElement elem = (DocumentElement) root.getElement(idx);
+				ElementML ml = elem.getElementML();
+				if (ml instanceof SdtBlockML) {
+					org.docx4j.wml.SdtBlock sdt = 
+						(org.docx4j.wml.SdtBlock) ml.getDocxObject();
+					StateChunk chunkCurrent = new StateChunk(sdt);
+					String sdtId = chunkCurrent.getIdAsString();
 
-				StateChunk chunkOlder = stateDocx.getStateChunks().get(sdtId);
+					StateChunk chunkOlder = stateDocx.getStateChunks().get(sdtId);
 
-				if (chunkOlder == null) {
-					log.debug("Couldn't find " + sdtId + " .. Shouldn't happen!?");
-					continue;
+					if (chunkOlder == null) {
+						log.debug("Couldn't find " + sdtId + " .. Shouldn't happen!?");
+						continue;
 					
-				} else if (chunkCurrent.getXml().equals(chunkOlder.getXml())
+					} else if (chunkCurrent.getXml().equals(chunkOlder.getXml())
 							|| chunkCurrent.getXml().equals(chunkOlder.getMarkedUpSdt())) {
-					continue;
-				}
+						continue;
+					}
 
-				log.debug("textChanged:");
-				log.debug("FROM " + chunkOlder.getXml());
-				log.debug("");
-				log.debug("TO   " + chunkCurrent.getXml());
-				log.debug("");
+					log.debug("textChanged:");
+					log.debug("FROM " + chunkOlder.getXml());
+					log.debug("");
+					log.debug("TO   " + chunkCurrent.getXml());
+					log.debug("");
 				
-	            // If we get this far, it is an update
-	            // We don't need to worry about the possibility that it has
-	            // changed remotely, since we checked all updates
-	            // on server had been applied before entering this method.
+					// If we get this far, it is an update
+					// We don't need to worry about the possibility that it has
+					// changed remotely, since we checked all updates
+					// on server had been applied before entering this method.
 	
-	            if (chunkCurrent.containsTrackedChanges())
-	            {
-	                // This is a conflicting update, so don't transmit ours.
-	                // Keep a copy of what this user did in StateChunk
-	                // (so that 
+					if (chunkCurrent.containsTrackedChanges())
+					{
+						// This is a conflicting update, so don't transmit ours.
+						// Keep a copy of what this user did in StateChunk
+						// (so that 
 	
-	                log.debug("Conflict! Local edit " + sdtId + " not committed.");
-	                someConflicted = true;
-	                continue;
-	            }
+						log.debug("Conflict! Local edit " + sdtId + " not committed.");
+						someConflicted = true;
+						continue;
+					}
 			
-				// TransformUpdate tu = new TransformUpdate();
-				// tu.attachSdt(chunkCurrent.getXml() );
-				// tu.setId( chunkCurrent.getId() );
-				// transformsToSend.add(tu);
+					// TransformUpdate tu = new TransformUpdate();
+					// tu.attachSdt(chunkCurrent.getXml() );
+					// tu.setId( chunkCurrent.getId() );
+					// transformsToSend.add(tu);
 
-				T t = transformsFactory.createTransformsT();
-				t.setOp("update");
-				t.setIdref(chunkCurrent.getId().getVal().longValue());
-				t.setSdt(chunkCurrent.getSdt());
-				transformsToSend.add(t);
-			}
-		}// for (idx) loop
-	    
-	    if (transformsToSend.isEmpty()) {
-	    	log.debug("Nothing to send.");
-	    	
-			if (someConflicted) {
-				throw new ClientException("There was one or more conflicts.");
-			}
-	    	return;
-	    }
-	    
-		String checkinComment = null;
-        if (stateDocx.getPromptForCheckinMessage()) {
-        	java.awt.Frame frame = 
-        		(java.awt.Frame)
-        			SwingUtilities.getWindowAncestor(getWordMLTextPane());
-			CheckinCommentDialog d = new CheckinCommentDialog(frame);
-			d.pack();
-			d.setLocationRelativeTo(frame);
-			d.setVisible(true);
-
-			checkinComment = d.getTextComment();
-        } else {
-            checkinComment = "edited";
-        }
-
-		// Ok, now send what we have
-		Transforms transforms = transformsFactory.createTransforms();
-		transforms.getT().addAll(transformsToSend);
-		boolean suppressDeclaration = true;
-		boolean prettyprint = false;
-		String transformsString = org.docx4j.XmlUtils.marshaltoString(
-				transforms, suppressDeclaration, prettyprint,
-				org.plutext.Context.jcTransforms);
-
-		log.debug("TRANSMITTING " + transformsString);
-
-		String[] result = ws.transform(stateDocx.getDocID(), transformsString,
-				checkinComment);
-
-		log.debug("Checkin also returned results");
-
-		// We do what is necessary to in effect apply the changes immediately,
-		// so there is no issue with the user making changes before it
-		// is applied, and those changes getting lost
-		// In strict theory, we shouldn't do this, because they'll end
-		// up in the list in the wrong order.
-		// But we actually know there are no conflicting transforms with
-		// lower snums, so it isn't a problem.
-		// Remember the indocument controls still have the dodgy StyleSeparator,
-		// so we will have to make allowance for that later
-		// (that is, until we're able to transform them away ...)
-		Boolean appliedTrue = true;
-		Boolean localTrue = true; // means it wouldn't be treated as a conflict
-		Boolean updateHighestFetchedFalse = false;
-
-		// Handle each result appropriately
-		int i = 0;
-		for (T t : transformsToSend) {
-			log.debug(t.getIdref() + " " + t.getOp() + " result " + result[i]);
-
-			// Primarily, we're expecting sequence numbers
-
-			// At present, op="update" returns a transform
-			// but it should be no different to what we sent
-			// except that its tag is updated
-			/*
-			 * When registering these transforms, don't update highest fetched,
-			 * because other clients could have transmitted changes to the
-			 * server while this method was running, and we wouldn't want to
-			 * miss those changes.
-			 */
-			
-			if (result[i].contains("xmlns")) {
-				StringBuffer sb = new StringBuffer();
-				sb.append("<p:transforms xmlns:p='");
-				sb.append(Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE);
-				sb.append("'>");
-				sb.append(result[i]);
-				sb.append("</p:transforms>");
-
-				// getContentControlWithId(ta.getId().getVal().toString() ).Tag
-				// = ta.getTag();
-				org.plutext.transforms.Transforms transformsObj = null;
-				try {
-					Unmarshaller u = Context.jcTransforms.createUnmarshaller();
-					u
-							.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());
-					transformsObj = (org.plutext.transforms.Transforms) u
-							.unmarshal(new java.io.StringReader(sb.toString()));
-				} catch (JAXBException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					T t = transformsFactory.createTransformsT();
+					t.setOp("update");
+					t.setIdref(chunkCurrent.getId().getVal().longValue());
+					t.setSdt(chunkCurrent.getSdt());
+					transformsToSend.add(t);
 				}
+			}// for (idx) loop
+	    
+			if (transformsToSend.isEmpty()) {
+				boolean success = false;
+				
+				if (someConflicted) {
+					log.debug("There was one or more conflicts");
+					worker.setProgress(
+							TransmitProgress.DONE, 
+                		"There was one or more conflicts");
+				} else {
+					log.debug("Nothing to send.");
+					worker.setProgress(
+							TransmitProgress.DONE, 
+                		"Nothing to send.");
+					success = true;
+				}
+				
+				return success;
+			}
+	    
+			String checkinComment = null;
+			if (stateDocx.getPromptForCheckinMessage()) {
+				java.awt.Frame frame = 
+					(java.awt.Frame)
+        				SwingUtilities.getWindowAncestor(getWordMLTextPane());
+				CheckinCommentDialog d = new CheckinCommentDialog(frame);
+				d.pack();
+				d.setLocationRelativeTo(frame);
+				d.setVisible(true);
 
-				for (T tmp : transformsObj.getT()) {
-					TransformAbstract ta = TransformHelper.construct(tmp);
-					if (ta instanceof TransformUpdate) {
-						// Set the in-document tag to match the one we got back
-						// ?? the actual sdt or the state chunk?
-						updateLocalContentControlTag(ta.getId().getVal()
+				checkinComment = d.getTextComment();
+			} else {
+				checkinComment = "edited";
+			}
+
+			// Ok, now send what we have
+			worker.setProgress(
+            	TransmitProgress.TRANSMITTING_MESSAGE, 
+            	"Preparing and transmitting message");
+            
+			Transforms transforms = transformsFactory.createTransforms();
+			transforms.getT().addAll(transformsToSend);
+			boolean suppressDeclaration = true;
+			boolean prettyprint = false;
+			String transformsString = 
+				org.docx4j.XmlUtils.marshaltoString(
+					transforms, 
+					suppressDeclaration, 
+					prettyprint,
+					org.plutext.Context.jcTransforms);
+
+			log.debug("TRANSMITTING " + transformsString);
+
+			String[] result = 
+				ws.transform(
+					stateDocx.getDocID(), 
+					transformsString,
+					checkinComment);
+
+			worker.setProgress(
+				TransmitProgress.INTERPRETING_TRANSMISSION_RESULT, 
+        		"Response received. Interpreting...");
+        
+			log.debug("Checkin also returned results");
+
+			// We do what is necessary to in effect apply the changes immediately,
+			// so there is no issue with the user making changes before it
+			// is applied, and those changes getting lost
+			// In strict theory, we shouldn't do this, because they'll end
+			// up in the list in the wrong order.
+			// But we actually know there are no conflicting transforms with
+			// lower snums, so it isn't a problem.
+			// Remember the indocument controls still have the dodgy StyleSeparator,
+			// so we will have to make allowance for that later
+			// (that is, until we're able to transform them away ...)
+			Boolean appliedTrue = true;
+			Boolean localTrue = true; // means it wouldn't be treated as a conflict
+			Boolean updateHighestFetchedFalse = false;
+
+			// Handle each result appropriately
+			int i = 0;
+			for (T t : transformsToSend) {
+				log.debug(t.getIdref() + " " + t.getOp() + " result " + result[i]);
+
+				// Primarily, we're expecting sequence numbers
+
+				// At present, op="update" returns a transform
+				// but it should be no different to what we sent
+				// except that its tag is updated
+				/*
+				 * When registering these transforms, don't update highest fetched,
+				 * because other clients could have transmitted changes to the
+				 * server while this method was running, and we wouldn't want to
+				 * miss those changes.
+				 */
+			
+				if (result[i].contains("xmlns")) {
+					StringBuffer sb = new StringBuffer();
+					sb.append("<p:transforms xmlns:p='");
+					sb.append(Namespaces.PLUTEXT_TRANSFORMS_NAMESPACE);
+					sb.append("'>");
+					sb.append(result[i]);
+					sb.append("</p:transforms>");
+
+					// getContentControlWithId(ta.getId().getVal().toString() ).Tag
+					// = ta.getTag();
+					org.plutext.transforms.Transforms transformsObj = null;
+					try {
+						Unmarshaller u = 
+							Context.jcTransforms.createUnmarshaller();
+						u.setEventHandler(
+							new org.docx4j.jaxb.JaxbValidationEventHandler());
+						transformsObj = 
+							(org.plutext.transforms.Transforms) 
+							u.unmarshal(new java.io.StringReader(sb.toString()));
+					} catch (JAXBException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+
+					for (T tmp : transformsObj.getT()) {
+						TransformAbstract ta = TransformHelper.construct(tmp);
+						if (ta instanceof TransformUpdate) {
+							// Set the in-document tag to match the one we got back
+							// ?? the actual sdt or the state chunk?
+							updateLocalContentControlTag(ta.getId().getVal()
 								.toString(), ta.getTag());
-						this.stateDocx.getStateChunks().put(
+							this.stateDocx.getStateChunks().put(
 								ta.getId().getVal().toString(),
 								new StateChunk(ta.getSdt()));
-					} else {
-						// Assumption is that chunking is done locally,
-						// and we won't get eg an Insert back
-						log.error("Not handled: " + ta.getClass().getName());
+						} else {
+							// Assumption is that chunking is done locally,
+							// and we won't get eg an Insert back
+							log.error("Not handled: " + ta.getClass().getName());
+						}
 					}
+
+					registerTransforms(transformsObj, appliedTrue, localTrue,
+						updateHighestFetchedFalse);
+
+				} else if (Integer.parseInt(result[i]) > 0) {
+					TransformAbstract ta = 
+						org.plutext.client.wrappedTransforms.TransformHelper.construct(t);
+					ta.setSequenceNumber(Integer.parseInt(result[i]));
+					registerTransform(ta, appliedTrue, localTrue,
+						updateHighestFetchedFalse);
+				} else {
+					// If result was 0, the server has decided
+					// this transform is redundant, and thus discarded
+					// (and not allocated a sequence number).
+					// This happens with a Move to the same position.
+
+					// Do nothing.
 				}
 
-				registerTransforms(transformsObj, appliedTrue, localTrue,
-						updateHighestFetchedFalse);
-
-			} else if (Integer.parseInt(result[i]) > 0) {
-				TransformAbstract ta = 
-					org.plutext.client.wrappedTransforms.TransformHelper.construct(t);
-				ta.setSequenceNumber(Integer.parseInt(result[i]));
-				registerTransform(ta, appliedTrue, localTrue,
-						updateHighestFetchedFalse);
-			} else {
-                // If result was 0, the server has decided
-                // this transform is redundant, and thus discarded
-                // (and not allocated a sequence number).
-                // This happens with a Move to the same position.
-
-                // Do nothing.
+				i++;
 			}
-
-			i++;
+			
+			someTransmitted = true;
+			
+		} catch (Exception exc) {
+			exc.printStackTrace();
+			someTransmitted = false;
 		}
+		
+		boolean success = true;
+        StringBuilder checkinResult = new StringBuilder();
+        if (someTransmitted)
+        {
+            checkinResult.append("Done - Your changes were transmitted successfully.");
+            if (someConflicted)
+            {
+            	checkinResult.append(" But there were one or more conflicts.");
+            	success = false;
+            }
+        }
+        else
+        {
+        	success = false;
+            checkinResult.append("Some of your changes were NOT transmitted.");
+            if (someConflicted) // TODO - revisit!
+            {
+                checkinResult.append(" This is because there were conflicts.");
+            }
+            else
+            {
+            	checkinResult.append(" Fetch remote updates and try again.");
+            }
+        }
 
-		if (someConflicted) {
-			throw new ClientException("There was one or more conflicts.");
-		}
-	
+        worker.setProgress(
+            	TransmitProgress.DONE, 
+            	checkinResult.toString());
+        return success;
 	}
 
 	void createTransformsForStructuralChanges(
@@ -1497,6 +1607,16 @@ public class Mediator {
 		ml.getSdtProperties().setTagValue(tag.getVal());
 	}
 
+	private void refreshLocalDocument() {
+    	WordMLDocument doc = getWordMLDocument();
+		int start = getUpdateStartOffset();
+		int end = getUpdateEndOffset();
+		if (start <= end) {
+			doc.refreshParagraphs(start, end);
+			setUpdateStartOffset(doc.getLength());
+			setUpdateEndOffset(0);
+		}
+	}
 	
 }// Mediator class
 
