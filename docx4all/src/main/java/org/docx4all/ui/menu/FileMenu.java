@@ -826,51 +826,7 @@ public class FileMenu extends UIMenu {
     }
     
     private boolean commitLocalChanges(WordMLTextPane editor, String callerActionName) {
-    	boolean success = false;
-    	
-    	Mediator plutextClient = editor.getWordMLEditorKit().getPlutextClient();
-    	WordMLDocument doc = (WordMLDocument) editor.getDocument();
-    	
-    	try {
-    		doc.lockWrite();
-    		
-    		editor.saveCaretText();
-    		
-    		plutextClient.startSession();
-    		plutextClient.transmitLocalChanges();
-    		
-    		success = true;
-    		
-    	} catch (ClientException exc) {
-    		
-    		WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
-        	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
-            String title = 
-            	rm.getString(callerActionName + ".Action.text");
-            rm = wmlEditor.getContext().getResourceMap(TeamMenu.class);
-            
-          	StringBuilder message = new StringBuilder();
-          	message.append("File ");
-          	message.append(
-          		editor.getDocument().getProperty(
-					WordMLDocument.FILE_PATH_PROPERTY));
-          	message.append(Constants.NEWLINE);
-           	message.append(
-           		rm.getString(
-               		TeamMenu.COMMIT_LOCAL_EDITS_ACTION_NAME 
-               		+ ".Action.conflictExistenceMessage"));
-          	wmlEditor.showMessageDialog(
-          		title, message.toString(), JOptionPane.INFORMATION_MESSAGE);
-    		
-    	} catch (Exception exc) {
-    		exc.printStackTrace();
-    		
-    	} finally {
-    		plutextClient.endSession();
-    		doc.unlockWrite();
-    	}
-    	
-    	return success;
+    	return TeamMenu.getInstance().commitLocalEdits(editor, callerActionName);
     }
     
     private boolean save(WordprocessingMLPackage wmlPackage, String saveAsFilePath, String callerActionName) {
