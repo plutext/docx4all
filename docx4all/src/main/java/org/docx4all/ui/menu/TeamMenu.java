@@ -19,25 +19,30 @@
 
 package org.docx4all.ui.menu;
 
-import java.awt.event.ActionEvent;
-
 import javax.swing.JInternalFrame;
 import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
+import net.sf.vfsjfilechooser.utils.VFSUtils;
+
+import org.apache.log4j.Logger;
+import org.docx4all.swing.FetchRemoteEditsWorker;
+import org.docx4all.swing.ProgressBarDialog;
+import org.docx4all.swing.TransmitLocalEditsWorker;
 import org.docx4all.swing.WordMLTextPane;
-import org.docx4all.swing.text.WordMLEditorKit;
+import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
 import org.jdesktop.application.Action;
 import org.jdesktop.application.ResourceMap;
-import org.plutext.client.ClientException;
+import org.plutext.client.Mediator;
 
 /**
  * @author Jojada Tirtowidjojo - 10/07/2008
  */
 public class TeamMenu extends UIMenu {
+	private static Logger log = Logger.getLogger(TeamMenu.class);
+	
 	private final static TeamMenu _instance = new TeamMenu();
 
 	/**
@@ -121,74 +126,107 @@ public class TeamMenu extends UIMenu {
 		return theItem;
     }
     
-	@Action public void fetchRemoteEdits(ActionEvent evt) {
-		WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
-    	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
-        String title = 
-        	rm.getString(FETCH_REMOTE_EDITS_ACTION_NAME + ".Action.text");
-        
-		WordMLEditorKit.FetchRemoteEditsAction action = 
-			new WordMLEditorKit.FetchRemoteEditsAction();
-		action.actionPerformed(evt);
+	@Action public void fetchRemoteEdits() {		
+		log.debug("fetchRemoteEdits(): Starting...");
 		
-		if (!action.success()) {
-            Exception exc = action.getThrownException();
-            if (exc instanceof ClientException) {
-            	String message = 
-            		rm.getString(
-            			FETCH_REMOTE_EDITS_ACTION_NAME + ".Action.conflictExistenceMessage");
-    			wmlEditor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);	
-            } else {
-                exc.printStackTrace();
-                String message = 
-            		rm.getString(
-            			FETCH_REMOTE_EDITS_ACTION_NAME + ".Action.errorMessage");
-    			wmlEditor.showMessageDialog(title, message, JOptionPane.ERROR_MESSAGE);	
-            }
-		}
+		WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+        WordMLTextPane textpane = (WordMLTextPane) wmlEditor.getCurrentEditor();
+    	if (textpane != null) {
+    		Mediator plutextClient = textpane.getWordMLEditorKit().getPlutextClient();
+    		if (plutextClient != null) {
+            	
+            	textpane.saveCaretText();
+            	
+                String temp = 
+                	(String) textpane.getDocument().getProperty(
+                				WordMLDocument.FILE_PATH_PROPERTY);
+                temp = VFSUtils.getFriendlyName(temp);
+                int colon = temp.indexOf(':');
+                temp = temp.substring(colon + 1);
+                
+            	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
+                StringBuilder title = new StringBuilder();
+                title.append(
+                	rm.getString(FETCH_REMOTE_EDITS_ACTION_NAME + ".Action.text")
+                );
+                title.append("-");
+                title.append(temp);
+                
+    			ProgressBarDialog d = 
+    				new ProgressBarDialog(wmlEditor.getMainFrame(), title.toString());
+    			d.setModalityType(java.awt.Dialog.ModalityType.MODELESS);
+    			d.pack();
+    			d.setLocationRelativeTo(wmlEditor.getMainFrame());
+    			d.setVisible(true);
+    			       			
+       			FetchRemoteEditsWorker task = 
+        			new FetchRemoteEditsWorker(plutextClient, wmlEditor);
+                task.addPropertyChangeListener(d);
+                task.execute();
+    		}
+    	}
 	}
 	
-	@Action public void commitLocalEdits(ActionEvent evt) {
+	@Action public boolean commitLocalEdits() {
 		WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
-    	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
-        String title = 
-        	rm.getString(COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.text");
         WordMLTextPane textpane = (WordMLTextPane) wmlEditor.getCurrentEditor();
+		return commitLocalEdits(textpane, COMMIT_LOCAL_EDITS_ACTION_NAME);
+	}
+	
+	boolean commitLocalEdits(WordMLTextPane textpane, String callerActionName) {
+		Boolean success = false;
 		
-        WordMLEditorKit.CommitLocalEditsAction action = 
-			new WordMLEditorKit.CommitLocalEditsAction();
-		action.actionPerformed(evt);
-			
-		if (action.success()) {
-			String message = 
-	       		rm.getString(
-	               		COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.successMessage");
-			wmlEditor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);	
+		log.debug("commitLocalEdits(): Starting...");
+		
+    	if (textpane != null) {
+    		Mediator plutextClient = textpane.getWordMLEditorKit().getPlutextClient();
+    		if (plutextClient != null) {
+            	
+            	textpane.saveCaretText();
+            	
+                String temp = 
+                	(String) textpane.getDocument().getProperty(
+                				WordMLDocument.FILE_PATH_PROPERTY);
+                temp = VFSUtils.getFriendlyName(temp);
+                int colon = temp.indexOf(':');
+                temp = temp.substring(colon + 1);
+                
+        		WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+            	ResourceMap rm = wmlEditor.getContext().getResourceMap(getClass());
+                StringBuilder title = new StringBuilder();
+                title.append(
+                	rm.getString(callerActionName + ".Action.text")
+                );
+                title.append("-");
+                title.append(temp);
 
-			wmlEditor.getToolbarStates().setDocumentDirty(textpane, false);
-			
-			JInternalFrame iframe = 
-				(JInternalFrame) 
-					SwingUtilities.getAncestorOfClass(
-							JInternalFrame.class, 
-							textpane);
-			wmlEditor.getToolbarStates().setLocalEditsEnabled(iframe, false);
-		} else {
-	        Exception exc = action.getThrownException();
-	            
-	        String message = null;
-	        if (exc instanceof ClientException) {
-	          	message = 
-	           		rm.getString(
-	               		COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.conflictExistenceMessage");
-	        } else {
-	            exc.printStackTrace();
-	          	message = 
-	           		rm.getString(
-	           			COMMIT_LOCAL_EDITS_ACTION_NAME + ".Action.errorMessage");
-	        }
-			wmlEditor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);	
-        }
+    			ProgressBarDialog d = 
+    				new ProgressBarDialog(wmlEditor.getMainFrame(), title.toString());
+    			d.pack();
+    			d.setLocationRelativeTo(wmlEditor.getMainFrame());
+    			
+       			TransmitLocalEditsWorker task = 
+        			new TransmitLocalEditsWorker(plutextClient, wmlEditor);
+                task.addPropertyChangeListener(d);
+                task.execute();
+                
+    			d.setVisible(true);
+    			
+    			success = (Boolean) d.getEndResult();
+    			if (success) {
+        			wmlEditor.getToolbarStates().setDocumentDirty(textpane, false);
+    			
+        			JInternalFrame iframe = 
+        				(JInternalFrame) 
+    						SwingUtilities.getAncestorOfClass(
+    							JInternalFrame.class, 
+    							textpane);
+        			wmlEditor.getToolbarStates().setLocalEditsEnabled(iframe, false);
+        		}    		
+    		}
+    	}
+    	
+    	return success.booleanValue();
  	}
 	
 }// TeamMenu class
