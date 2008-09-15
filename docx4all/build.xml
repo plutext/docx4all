@@ -64,9 +64,16 @@
         <pathelement location="${m2Repository}/alfresco/community/alfresco-web-service-client-patched/2.9.1/alfresco-web-service-client-patched-2.9.1.jar"/>
         <pathelement location="${m2Repository}/net/java/dev/openjfx/javafxrt/1.0/javafxrt-1.0.jar"/>
         <pathelement location="${m2Repository}/org/bounce/bounce/0.9/bounce-0.9.jar"/>
+<!--         
         <pathelement location="${m2Repository}/net/sf/vfsjfilechooser/vfsjfilechooser-patched/0.0.1/vfsjfilechooser-patched-0.0.1.jar"/>
+         -->
+        <pathelement location="../VFSJFileChooser-branch-jdk5/dist/VFSJFileChooser-0.0.3.jar"/>
         <pathelement location="${m2Repository}/xml-security/xmlsec/1.4.1/xmlsec-1.4.1.jar"/>
         <pathelement location="${m2Repository}/bouncycastle/bcprov-jdk16-unsigned/136/bcprov-jdk16-unsigned-136.jar"/>
+        
+        <pathelement location="${m2Repository}/com/topologi/diffx/0.61/diffx-0.61.jar"/>
+        
+        
     </path>
 	
     <path id="docx4all.classpath">
