@@ -65,8 +65,6 @@ import org.docx4j.openpackaging.io.SaveToVFSZipFile;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.jdesktop.application.Action;
 import org.jdesktop.application.ResourceMap;
-import org.plutext.client.ClientException;
-import org.plutext.client.Mediator;
 
 /**
  *	@author Jojada Tirtowidjojo - 27/11/2007
@@ -124,19 +122,24 @@ public class FileMenu extends UIMenu {
 	public final static String SAVE_AS_DOCX_ACTION_NAME = "saveAsDocx";
 	
 	/**
-	 * The action name of Save As Html menu
-	 */
-	public final static String SAVE_AS_HTML_ACTION_NAME = "saveAsHtml";
-	
-	/**
 	 * The action name of Save As file menu
 	 */
 	public final static String SAVE_ALL_FILES_ACTION_NAME = "saveAllFiles";
 	
 	/**
+	 * The action name of Export As Html menu
+	 */
+	public final static String EXPORT_AS_HTML_ACTION_NAME = "exportAsHtml";
+	
+	/**
 	 * The action name of Save As Shared Document menu
 	 */
-	public final static String SAVE_AS_SHARED_DOC_ACTION_NAME = "saveAsSharedDoc";
+	public final static String EXPORT_AS_SHARED_DOC_ACTION_NAME = "exportAsSharedDoc";
+	
+	/**
+	 * The action name of Export As Non Shared Document menu
+	 */
+	public final static String EXPORT_AS_NON_SHARED_DOC_ACTION_NAME = "exportAsNonSharedDoc";
 	
 	/**
 	 * The action name of Print Preview menu
@@ -164,10 +167,11 @@ public class FileMenu extends UIMenu {
 		SEPARATOR_CODE,		
 		SAVE_FILE_ACTION_NAME,
 		SAVE_AS_DOCX_ACTION_NAME,
-		SAVE_AS_HTML_ACTION_NAME,
 		SAVE_ALL_FILES_ACTION_NAME,
 		SEPARATOR_CODE,
-		SAVE_AS_SHARED_DOC_ACTION_NAME,
+		EXPORT_AS_HTML_ACTION_NAME,
+		EXPORT_AS_SHARED_DOC_ACTION_NAME,
+		EXPORT_AS_NON_SHARED_DOC_ACTION_NAME,
 		SEPARATOR_CODE,
 		PRINT_PREVIEW_ACTION_NAME,
 		SEPARATOR_CODE,
@@ -216,14 +220,20 @@ public class FileMenu extends UIMenu {
     				ToolBarStates.ANY_DOC_DIRTY_PROPERTY_NAME, 
     				new EnableOnEqual(theItem, Boolean.TRUE));
     		
-    	} else if (SAVE_AS_SHARED_DOC_ACTION_NAME.equals(actionName)) {
+    	} else if (EXPORT_AS_SHARED_DOC_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
     		toolbarStates.addPropertyChangeListener(
     				ToolBarStates.DOC_SHARED_PROPERTY_NAME, 
     				new DisableOnEqual(theItem, Boolean.TRUE));
    	
+    	} else if (EXPORT_AS_NON_SHARED_DOC_ACTION_NAME.equals(actionName)) {
+    		theItem.setEnabled(false);
+    		toolbarStates.addPropertyChangeListener(
+    				ToolBarStates.DOC_SHARED_PROPERTY_NAME, 
+    				new EnableOnEqual(theItem, Boolean.TRUE));
+   	
     	} else if (PRINT_PREVIEW_ACTION_NAME.equals(actionName)
-    		|| SAVE_AS_HTML_ACTION_NAME.equals(actionName)
+    		|| EXPORT_AS_HTML_ACTION_NAME.equals(actionName)
     		|| CLOSE_FILE_ACTION_NAME.equals(actionName)
     		|| CLOSE_ALL_FILES_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
@@ -274,7 +284,7 @@ public class FileMenu extends UIMenu {
 		editor.createInternalFrame(fo);
 	}
 	
-	@Action public void saveAsSharedDoc(ActionEvent actionEvent) {
+	@Action public void exportAsSharedDoc(ActionEvent actionEvent) {
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         JEditorPane view = editor.getCurrentEditor();
         if (view instanceof WordMLTextPane) {
@@ -291,7 +301,7 @@ public class FileMenu extends UIMenu {
 	        	XmlUtil.setSharedDocumentProperties(wmlPackage, d);
 	        	
 	        	RETURN_TYPE val = 
-	        		saveAsFile(SAVE_AS_SHARED_DOC_ACTION_NAME, actionEvent, Constants.DOCX_STRING);
+	        		saveAsFile(EXPORT_AS_SHARED_DOC_ACTION_NAME, actionEvent, Constants.DOCX_STRING);
 	        	
         		Cursor origCursor = wmlTextPane.getCursor();
         		wmlTextPane.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
@@ -337,6 +347,22 @@ public class FileMenu extends UIMenu {
 		}
 	}
 		
+	@Action public void exportAsNonSharedDoc(ActionEvent actionEvent) {
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        JEditorPane view = editor.getCurrentEditor();
+        if (view instanceof WordMLTextPane) {
+        	WordMLTextPane textpane = (WordMLTextPane) view;
+        	WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+        	if (DocUtil.isSharedDocument(doc)) {
+        		textpane.saveCaretText();
+        		saveAsFile(
+        			EXPORT_AS_NON_SHARED_DOC_ACTION_NAME, 
+        			actionEvent, 
+        			Constants.DOCX_STRING);
+        	}
+        }
+	}
+	
     @Action public void openFile(ActionEvent actionEvent) {
         Preferences prefs = Preferences.userNodeForPackage( getClass() );
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
@@ -400,8 +426,8 @@ public class FileMenu extends UIMenu {
 		}
     }
 
-    @Action public void saveAsHtml(ActionEvent actionEvent) {
-    	saveAsFile(SAVE_AS_HTML_ACTION_NAME, actionEvent, Constants.HTML_STRING);
+    @Action public void exportAsHtml(ActionEvent actionEvent) {
+    	saveAsFile(EXPORT_AS_HTML_ACTION_NAME, actionEvent, Constants.HTML_STRING);
     }
     
     @Action public void saveAsDocx(ActionEvent actionEvent) {
@@ -501,27 +527,44 @@ public class FileMenu extends UIMenu {
 					prefs.put(Constants.LAST_OPENED_LOCAL_FILE, selectedPath);
 				}
 				
-				boolean success = save(iframe, selectedPath, callerActionName);
-				if (success) {
-		       		if (Constants.DOCX_STRING.equals(fileType)) {
-		       			//If saving as .docx then update the document dirty flag 
-		       			//of toolbar states as well as internal frame title
-		       			editor.getToolbarStates().setDocumentDirty(iframe, false);
-		       			editor.getToolbarStates().setLocalEditsEnabled(iframe, false);
-		       			editor.updateInternalFrame(file, selectedFile);
-		       		} else {
-		       			//Because document dirty flag is not cleared
-		       			//and internal frame title is not changed,
-		       			//we present a success message.
-			            String title = 
-			            	rm.getString(callerActionName + ".Action.text");
-			            String message =
-			            	VFSUtils.getFriendlyName(selectedPath)
-			            	+ "\n"
-			            	+ rm.getString(callerActionName + ".Action.successMessage");
-		            	editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
-		       		}
-				} else if (newlyCreatedFile) {
+				boolean success = false;
+				if (EXPORT_AS_NON_SHARED_DOC_ACTION_NAME.equals(callerActionName)) {
+					log.info("saveAsFile(): Exporting as non shared document to " 
+						+ VFSUtils.getFriendlyName(selectedPath));
+					success = export(iframe, selectedPath, callerActionName);
+					if (success) {
+						prefs.put(Constants.LAST_OPENED_FILE, selectedPath);
+						if (selectedPath.startsWith("file:")) {
+							prefs.put(Constants.LAST_OPENED_LOCAL_FILE, selectedPath);
+						}
+						log.info("saveAsFile(): Opening " + VFSUtils.getFriendlyName(selectedPath));
+						editor.createInternalFrame(selectedFile);
+					}
+				} else {
+					success = save(iframe, selectedPath, callerActionName);
+					if (success) {
+						if (Constants.DOCX_STRING.equals(fileType)) {
+							//If saving as .docx then update the document dirty flag 
+							//of toolbar states as well as internal frame title
+							editor.getToolbarStates().setDocumentDirty(iframe, false);
+							editor.getToolbarStates().setLocalEditsEnabled(iframe, false);
+							editor.updateInternalFrame(file, selectedFile);
+						} else {
+							//Because document dirty flag is not cleared
+							//and internal frame title is not changed,
+							//we present a success message.
+							String title = 
+								rm.getString(callerActionName + ".Action.text");
+							String message =
+								VFSUtils.getFriendlyName(selectedPath)
+								+ "\n"
+								+ rm.getString(callerActionName + ".Action.successMessage");
+							editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
+						}
+					}
+				}
+				
+				if (!success && newlyCreatedFile) {
 					try {
 						selectedFile.delete();
 					} catch (FileSystemException exc) {
@@ -871,6 +914,43 @@ public class FileMenu extends UIMenu {
         return success;
     }
 
+    public boolean export(JInternalFrame iframe, String saveAsFilePath, String callerActionName) {
+		log.debug("export(): filePath=" + VFSUtils.getFriendlyName(saveAsFilePath));
+		
+		WordprocessingMLPackage srcPackage = null;
+		
+		WordMLTextPane editorView = SwingUtil.getWordMLTextPane(iframe);
+    	JEditorPane sourceView = SwingUtil.getSourceEditor(iframe);
+ 
+    	if (sourceView != null
+        	&& !((Boolean) sourceView.getClientProperty(
+        			Constants.LOCAL_VIEWS_SYNCHRONIZED_FLAG)).booleanValue()) {
+    		//signifies that Source View is not synchronised with Editor View yet.
+    		//Therefore, export from Source View.
+			EditorKit kit = sourceView.getEditorKit();
+			Document doc = sourceView.getDocument();
+			srcPackage = DocUtil.write(kit, doc, null);
+			editorView = null;
+    	}
+    	sourceView = null;
+    	
+    	if (editorView == null) {
+    		;//pass
+    	} else {
+        	WordMLDocument doc = (WordMLDocument) editorView.getDocument();
+        	DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+        	DocumentML docML = (DocumentML) root.getElementML();
+        	srcPackage = docML.getWordprocessingMLPackage();
+    	}
+		
+    	boolean success = 
+    		save(XmlUtil.export(srcPackage), saveAsFilePath, callerActionName);
+    	
+		log.debug("export(): success=" + success + " filePath=" + VFSUtils.getFriendlyName(saveAsFilePath));
+
+    	return success;
+    }
+    
 }// FileMenu class
 
 
