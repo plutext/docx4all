@@ -49,8 +49,10 @@ import org.docx4all.xml.RunML;
 import org.docx4j.XmlUtils;
 import org.docx4j.diff.ParagraphDifferencer;
 import org.docx4j.jaxb.Context;
+import org.docx4j.openpackaging.exceptions.InvalidFormatException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.DocPropsCustomPart;
+import org.docx4j.openpackaging.parts.JaxbXmlPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.wml.SdtBlock;
 import org.docx4j.wml.SdtContentBlock;
@@ -288,6 +290,43 @@ public class XmlUtil {
 		return theProp;
 	}
 
+	public final static WordprocessingMLPackage createNewPackage(WordprocessingMLPackage source) 
+		throws InvalidFormatException {
+		
+		// Create a package
+		WordprocessingMLPackage thePack = new WordprocessingMLPackage();
+
+		//Check for source's document part
+		org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart
+			srcDocumentPart = source.getMainDocumentPart();
+		
+		if (srcDocumentPart == null) {
+			log.warn("createNewPackage(): Main document part missing!");
+		} else {
+			// Create main document part
+			org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart 
+				documentPart = new org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart();
+			documentPart.setJaxbElement(org.docx4j.XmlUtils.deepCopy(srcDocumentPart.getJaxbElement()));
+		
+			thePack.addTargetPart(documentPart);
+			
+			//Check for source's styles part
+			JaxbXmlPart srcStylesPart = srcDocumentPart.getStyleDefinitionsPart();
+			if (srcStylesPart == null) {
+				log.warn("createNewPackage(): Style definitions part missing!");
+			} else  {
+				// Create a styles part
+				JaxbXmlPart stylesPart = new org.docx4j.openpackaging.parts.WordprocessingML.StyleDefinitionsPart();
+				stylesPart.setJaxbElement(org.docx4j.XmlUtils.deepCopy(srcStylesPart.getJaxbElement()));
+				// Add the styles part to the main document part relationships
+				// (creating it if necessary)
+				documentPart.addTargetPart(stylesPart); // NB - add it to main doc part, not package!
+			}
+		}
+		
+		return thePack;
+	}
+	
 	public final static void removeSharedDocumentProperties(WordprocessingMLPackage wmlPackage) {
 		DocPropsCustomPart docPropsCustomPart = wmlPackage.getDocPropsCustomPart();
 		org.docx4j.docProps.custom.Properties customProps = 
@@ -500,7 +539,24 @@ public class XmlUtil {
 		}
 	}
 	
-    /* Split a control containing n paragraphs
+	public final static WordprocessingMLPackage export(WordprocessingMLPackage source) {
+		WordprocessingMLPackage theResult = null;
+		
+		try {
+			theResult = createNewPackage(source);
+			java.io.InputStream xslt = org.docx4j.utils.ResourceUtils
+					.getResource("org/docx4all/util/Export.xslt");
+			theResult.transform(xslt, null);
+			
+		} catch (Exception exc) {
+			exc.printStackTrace();
+			theResult = null;
+		}
+		
+		return theResult;
+	}
+
+   /* Split a control containing n paragraphs
      * into n controls.  
      * 
      * The ID of the first control remains the same.
