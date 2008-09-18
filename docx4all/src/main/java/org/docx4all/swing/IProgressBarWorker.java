@@ -19,13 +19,14 @@
 
 package org.docx4all.swing;
 
+import javax.swing.JComponent;
+
 /**
  *	@author Jojada Tirtowidjojo - 12/09/2008
  */
 public interface IProgressBarWorker {
-    
 	String getProgressMessage(Integer progressValue);
-    
+    JComponent getInsertedEndMessage();
 }// IProgressBarWorker class
 
 

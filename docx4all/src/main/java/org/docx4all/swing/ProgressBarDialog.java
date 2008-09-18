@@ -35,10 +35,12 @@ import java.beans.PropertyChangeListener;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 
 /**
@@ -46,6 +48,7 @@ import javax.swing.WindowConstants;
  */
 public class ProgressBarDialog extends JDialog implements PropertyChangeListener {
     private JLabel message;
+    private JPanel extraMessage;
     private JProgressBar progressBar;
     private JButton ok_button;
     private Object endResult;
@@ -68,30 +71,28 @@ public class ProgressBarDialog extends JDialog implements PropertyChangeListener
                 final Integer progress = (Integer) e.getNewValue();
                 progressBar.setValue(progress.intValue());
                 
-                if (e.getSource() instanceof IProgressBarWorker) {
-        			Rectangle bound = ProgressBarDialog.this.getBounds();
-        			
-                	IProgressBarWorker worker = (IProgressBarWorker) e.getSource();
-                	String s = worker.getProgressMessage(progress);
-                	message.setText(s);
-        			
-        			FontMetrics fm = message.getFontMetrics(message.getFont());
-        			TextLayout tl = new TextLayout(s, message.getFont(), fm.getFontRenderContext());
-        			int w = (int) tl.getBounds().getWidth();
-        			w = Math.max(ProgressBarDialog.this.getWidth(), w + 100);
-
-        			bound.x += (bound.width - w) / 2;
-        			bound.width = w;
-        			ProgressBarDialog.this.setBounds(bound);
-                }
-                
+               	IProgressBarWorker worker = (IProgressBarWorker) e.getSource();
+               	String s = worker.getProgressMessage(progress);
+               	message.setText(s);
+        		message.invalidate();
+        		
                 if (progress == progressBar.getMaximum()) {
                 	setVisible(false);
                 	setModalityType(java.awt.Dialog.ModalityType.APPLICATION_MODAL);
                 	ok_button.setEnabled(true);
-                	setVisible(true);
-                }                
-               	
+                	
+                	if (worker.getInsertedEndMessage() != null) {
+                		JComponent c = worker.getInsertedEndMessage();
+                		extraMessage.setVisible(true);
+                		extraMessage.add(c);
+                		extraMessage.invalidate();
+                	}
+                }       
+                
+                validate();
+                pack();
+               	setVisible(true);                		                		
+                               	
         	} else if ("endResult".equals(e.getPropertyName())) {
         		endResult = e.getNewValue();
         	}
@@ -114,12 +115,15 @@ public class ProgressBarDialog extends JDialog implements PropertyChangeListener
 		message.setText("Initialising...");
 		message.setAlignmentX(CENTER_ALIGNMENT);
 		
+		extraMessage = new JPanel();
+		extraMessage.setVisible(false);
+		//extraMessage.setEnabled(false);
+		
 		progressBar = new JProgressBar(0, 100);
         progressBar.setValue(0);
         progressBar.setStringPainted(true);
         progressBar.setAlignmentX(CENTER_ALIGNMENT);
         progressBar.setPreferredSize(new Dimension(400, 30));
-        
         
         ok_button = new JButton("OK");
         ok_button.setEnabled(false);
@@ -140,6 +144,8 @@ public class ProgressBarDialog extends JDialog implements PropertyChangeListener
        
 		thePanel.add(Box.createRigidArea(new Dimension(20, 20)));
 		thePanel.add(message);
+		thePanel.add(Box.createRigidArea(new Dimension(20, 10)));
+		thePanel.add(extraMessage);
 		thePanel.add(Box.createRigidArea(new Dimension(20, 10)));
 		thePanel.add(progressPanel);
 		thePanel.add(Box.createRigidArea(new Dimension(20, 20)));

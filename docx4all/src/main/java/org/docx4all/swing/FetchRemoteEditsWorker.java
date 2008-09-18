@@ -19,13 +19,29 @@
 
 package org.docx4all.swing;
 
+import java.awt.BorderLayout;
 import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingWorker;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableModel;
 
 import org.docx4all.ui.main.WordMLEditor;
 import org.plutext.client.Mediator;
+import org.plutext.transforms.Changesets.Changeset;
 
 /**
  *	@author Jojada Tirtowidjojo - 09/09/2008
@@ -37,6 +53,7 @@ public class FetchRemoteEditsWorker extends SwingWorker<Void, Void> implements I
 	
 	private Cursor origCursor;	
 	private Exception exc;
+	private JComponent insertedEndMessage;
 	
 	public FetchRemoteEditsWorker(Mediator plutextClient, WordMLEditor wmlEditor) {
 		this.wmlEditor = wmlEditor;
@@ -100,6 +117,11 @@ public class FetchRemoteEditsWorker extends SwingWorker<Void, Void> implements I
     		
     		plutextClient.applyRemoteChanges(this);
     		
+    		if (plutextClient.getChangeSets() != null
+    			&& !plutextClient.getChangeSets().isEmpty()) {
+    			createChangesetsTable(plutextClient.getChangeSets());
+    		}
+    		
     		//Complete the overall progress but
     		//retain the last message posted by FetchProgress.APPLYING_DONE.
     		//This is because the last message is meaningful to user.
@@ -132,8 +154,38 @@ public class FetchRemoteEditsWorker extends SwingWorker<Void, Void> implements I
     	return this.messageTable.get(progressValue);
     }
     
-    public void setChangeSetsDisplay(Object obj) {
-    	firePropertyChange("changesets", null, obj);
+    public JComponent getInsertedEndMessage() {
+    	return this.insertedEndMessage;
+    }
+    
+    private void createChangesetsTable(Map<String, Changeset> changesets) {
+    	TableModel model = new ChangesetsTableModel(changesets);
+    	JTable table = new JTable(model);
+    	
+    	Font font = table.getTableHeader().getFont();
+    	font = font.deriveFont(Font.BOLD, 14);
+    	table.getTableHeader().setFont(font);
+    	
+    	font = table.getFont();
+    	font = font.deriveFont(14);
+    	table.setFont(font);
+    	
+    	table.getTableHeader().setResizingAllowed(true);
+    	table.setIntercellSpacing(new Dimension(5,5));
+    	
+    	if (model.getRowCount() > 5) {
+    		JScrollPane sp = new JScrollPane(table);
+    		sp.setHorizontalScrollBarPolicy(
+    				ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+    		table.setPreferredScrollableViewportSize(new Dimension(550, 120));
+    		this.insertedEndMessage = sp;
+    	} else {
+    		JPanel p = new JPanel();
+    		p.setLayout(new BorderLayout());
+    		p.add(table.getTableHeader(), BorderLayout.PAGE_START);
+    		p.add(table, BorderLayout.CENTER);
+    		this.insertedEndMessage = p;
+    	}
     }
     
     public enum FetchProgress {
@@ -157,6 +209,92 @@ public class FetchRemoteEditsWorker extends SwingWorker<Void, Void> implements I
     		return value;
     	}
     }
+    
+	private final static String[] COLUMN_HEADERS = new String[] {
+		"#",
+		"Id",
+		"Author",
+		"Date",
+		"Message"
+	};
+	
+	private final static int ROW_COLUMN = 0;
+	private final static int ID_COLUMN = 1;
+	private final static int AUTHOR_COLUMN = 2;
+	private final static int DATE_COLUMN = 3;
+	private final static int MESSAGE_COLUMN = 4;
+	
+    private class ChangesetsTableModel extends AbstractTableModel {
+    	private List<Changeset> changesets;
+    	ChangesetsTableModel(Map<String, Changeset> changesets) {
+    		this.changesets = new ArrayList<Changeset>(changesets.values());
+    		Collections.sort(this.changesets, new ChangesetComparator());
+    	}
+    	
+        public int getRowCount() {
+        	return changesets.size();
+        }
+
+        public int getColumnCount() {
+        	return COLUMN_HEADERS.length;
+        }
+
+        public String getColumnName(int columnIndex) {
+        	if (0 <= columnIndex && columnIndex < getColumnCount()) {
+        		return COLUMN_HEADERS[columnIndex];
+        	}
+        	throw new IndexOutOfBoundsException("columnIndex=" + columnIndex);
+        }
+
+        public Class<?> getColumnClass(int columnIndex) {
+        	return String.class;
+        }
+
+        public boolean isCellEditable(int rowIndex, int columnIndex) {
+        	return false;
+        }
+        
+        public Object getValueAt(int rowIndex, int columnIndex) {
+        	if ((0 <= rowIndex && rowIndex < getRowCount())
+        		&& (0 <= columnIndex && columnIndex < getColumnCount())) {
+        		String value = null;
+        		Changeset cs = changesets.get(rowIndex);
+        		
+        		switch (columnIndex) {
+        		case ROW_COLUMN:
+        			value = Integer.toString(rowIndex + 1);
+        			break;
+        		case ID_COLUMN: 
+        			value = Long.toString(cs.getNumber());
+        			break;
+        		case AUTHOR_COLUMN: 
+        			value = cs.getModifier();
+        			break;
+        		case DATE_COLUMN: 
+        			value = cs.getDate();
+        			break;
+        		case MESSAGE_COLUMN: 
+        			value = cs.getValue();
+        		}
+        		return value;
+        	}
+        	throw new IndexOutOfBoundsException(
+        			"rowIndex=" 
+        			+ rowIndex
+        			+ ", columnIndex=" 
+        			+ columnIndex);
+        }
+
+    }// ChangesetsTableModel inner class
+    
+    public class ChangesetComparator implements Comparator<Changeset> {
+        public int compare(Changeset c1, Changeset c2) {
+        	Long sn1 = Long.valueOf(c1.getNumber());
+        	Long sn2 = Long.valueOf(c2.getNumber());
+        	return sn1.compareTo(sn2);
+        }
+    }// TransformComparator class
+    
 }// FetchRemoteEditsWorker class
 
 

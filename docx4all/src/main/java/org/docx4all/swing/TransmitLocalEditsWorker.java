@@ -22,6 +22,7 @@ package org.docx4all.swing;
 import java.awt.Cursor;
 import java.util.Hashtable;
 
+import javax.swing.JComponent;
 import javax.swing.SwingWorker;
 
 import org.docx4all.swing.text.WordMLDocument;
@@ -107,6 +108,10 @@ public class TransmitLocalEditsWorker extends SwingWorker<Boolean, Void> impleme
     
     public String getProgressMessage(Integer progressValue) {
     	return this.messageTable.get(progressValue);
+    }
+    
+    public JComponent getInsertedEndMessage() {
+    	return null;
     }
     
     public enum TransmitProgress {
