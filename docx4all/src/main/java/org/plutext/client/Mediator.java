@@ -408,6 +408,10 @@ public class Mediator {
 
 	private Map<String, Changeset> changeSets = null;
 	
+	public Map<String, Changeset> getChangeSets() {
+		return changeSets;
+	}
+	
 	/***************************************************************************
 	 * APPLY REMOTE UPDATES
 	 * ****************************************************************************************
@@ -426,12 +430,14 @@ public class Mediator {
 		//Too close to the next message. Therefore, comment this.
 		//worker.setProgress(FetchProgress.START_APPLYING_UPDATES, "Start to apply remote edits");
 
-		if (this.oldServer == null || this.changeSets == null) {
+		if (this.oldServer == null 
+			|| this.changeSets == null
+			|| this.changeSets.isEmpty()) {
 			//applyRemoteChanges() is preceded with fetchUpdates().
 			//If fetchUpdates() ends up with error or does not
 			//fetch any new transform then nothing to be applied
 			//in this method.
-			worker.setProgress(FetchProgress.DONE, "No remote updates");
+			worker.setProgress(FetchProgress.APPLYING_DONE, "No remote updates");
 			return;
 		}
 		
