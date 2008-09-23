@@ -21,6 +21,7 @@ package org.docx4all.ui.main;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -39,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.swing.Box;
+import javax.swing.JApplet;
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 import javax.swing.JEditorPane;
@@ -106,13 +108,28 @@ public class WordMLEditor extends SingleFrameApplication {
 	private InternalFrameListener _internalFrameListener;
 	private MouseMotionListener _titleBarMouseListener;
 	private ToolBarStates _toolbarStates;
+	private JApplet _applet;
 	
 	public static void main(String[] args) {
         launch(WordMLEditor.class, args);
 	}
 
     @Override protected void startup() {
-    	log.info("");
+    	log.info("preStartup()...");
+    	preStartup(null);
+    	
+    	log.info("setting up createMenuBar");    	
+    	getMainFrame().setJMenuBar(createMenuBar());
+    	
+    	log.info("setting up createMainPanel");    	
+        show(createMainPanel());
+    	log.info("startup() complete.");
+    	
+    }
+    
+    void preStartup(JApplet applet) {
+    	_applet = applet;
+    	
     	_iframeMap = new HashMap<String, JInternalFrame>();
     	
     	log.info("setting up InternalFrameListener");
@@ -136,14 +153,6 @@ public class WordMLEditor extends SingleFrameApplication {
     	
     	log.info("setting up WmlExitListener");
     	addExitListener(new WmlExitListener());
-
-    	log.info("setting up createMenuBar");    	
-    	getMainFrame().setJMenuBar(createMenuBar());
-    	
-    	log.info("setting up createMainPanel");    	
-        show(createMainPanel());
-    	log.info("startup() complete.");
-    	
     }
     
     public void closeAllInternalFrames() { 
@@ -321,13 +330,17 @@ public class WordMLEditor extends SingleFrameApplication {
         return filename;
     }
     
+    private Component getApplicationFrame() {
+    	return (_applet == null) ? getMainFrame() : _applet;
+    }
+    
     public int showConfirmDialog(
     	String title, 
     	String message, 
     	int optionType, 
     	int messageType) {
     	return JOptionPane.showConfirmDialog(
-    			getMainFrame(), message, title, optionType, messageType);
+    			getApplicationFrame(), message, title, optionType, messageType);
     }
     
     public int showConfirmDialog(
@@ -339,12 +352,12 @@ public class WordMLEditor extends SingleFrameApplication {
     	Object initialValue) {
     		
     	return JOptionPane.showOptionDialog(
-    			getMainFrame(), message, title, optionType, messageType,
+    			getApplicationFrame(), message, title, optionType, messageType,
                 null, options, initialValue);
     }
             
     public void showMessageDialog(String title, String message, int optionType) {
-    	JOptionPane.showMessageDialog(getMainFrame(), message, title, optionType);
+    	JOptionPane.showMessageDialog(getApplicationFrame(), message, title, optionType);
     }
     
     public void createSourceViewTab() {
@@ -499,7 +512,7 @@ public class WordMLEditor extends SingleFrameApplication {
     	return editorView;
     }
     
-    private JComponent createMainPanel() {
+    JComponent createMainPanel() {
     	_desktop = new JDesktopPane();
     	_desktop.setDragMode(JDesktopPane.OUTLINE_DRAG_MODE);
     	_desktop.setBackground(Color.LIGHT_GRAY);
@@ -559,7 +572,7 @@ public class WordMLEditor extends SingleFrameApplication {
 		return answer;
     }
     
-    private JMenuBar createMenuBar() {
+    JMenuBar createMenuBar() {
     	JMenuBar menubar = new JMenuBar();
     	
     	JMenu fileMenu = FileMenu.getInstance().createJMenu();
