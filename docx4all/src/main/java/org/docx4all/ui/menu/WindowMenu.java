@@ -147,7 +147,7 @@ public class WindowMenu extends UIMenu implements PropertyChangeListener {
 
 	private JMenu getWindowJMenu() {
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-		JMenuBar menubar = editor.getMainFrame().getJMenuBar();
+		JMenuBar menubar = editor.getJMenuBar();
 		return SwingUtil.getJMenu(menubar, WindowMenu.getInstance().getMenuName());
 	}
 	
