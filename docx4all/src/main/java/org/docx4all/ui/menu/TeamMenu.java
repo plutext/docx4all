@@ -153,10 +153,10 @@ public class TeamMenu extends UIMenu {
                 title.append(temp);
                 
     			ProgressBarDialog d = 
-    				new ProgressBarDialog(wmlEditor.getMainFrame(), title.toString());
+    				new ProgressBarDialog(wmlEditor.getWindowFrame(), title.toString());
     			d.setModalityType(java.awt.Dialog.ModalityType.MODELESS);
     			d.pack();
-    			d.setLocationRelativeTo(wmlEditor.getMainFrame());
+    			d.setLocationRelativeTo(wmlEditor.getWindowFrame());
     			d.setVisible(true);
     			       			
        			FetchRemoteEditsWorker task = 
@@ -201,9 +201,9 @@ public class TeamMenu extends UIMenu {
                 title.append(temp);
 
     			ProgressBarDialog d = 
-    				new ProgressBarDialog(wmlEditor.getMainFrame(), title.toString());
+    				new ProgressBarDialog(wmlEditor.getWindowFrame(), title.toString());
     			d.pack();
-    			d.setLocationRelativeTo(wmlEditor.getMainFrame());
+    			d.setLocationRelativeTo(wmlEditor.getWindowFrame());
     			
        			TransmitLocalEditsWorker task = 
         			new TransmitLocalEditsWorker(plutextClient, wmlEditor);
