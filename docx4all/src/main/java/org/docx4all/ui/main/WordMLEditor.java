@@ -26,6 +26,7 @@ import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
+import java.awt.Frame;
 import java.awt.Rectangle;
 import java.awt.datatransfer.Clipboard;
 import java.awt.event.MouseEvent;
@@ -330,8 +331,24 @@ public class WordMLEditor extends SingleFrameApplication {
         return filename;
     }
     
-    private Component getApplicationFrame() {
-    	return (_applet == null) ? getMainFrame() : _applet;
+    public Frame getWindowFrame() {
+    	if (_applet == null) {
+    		return getMainFrame();
+    	}
+    	
+    	Component c = _applet;
+    	while (c != null && !(c instanceof Frame)) {
+    		c = c.getParent();
+    	}
+    	
+    	return (Frame) c;
+    }
+    
+    public JMenuBar getJMenuBar() {
+    	if (_applet == null) {
+    		return getMainFrame().getJMenuBar();
+    	}
+    	return _applet.getJMenuBar();
     }
     
     public int showConfirmDialog(
@@ -340,7 +357,7 @@ public class WordMLEditor extends SingleFrameApplication {
     	int optionType, 
     	int messageType) {
     	return JOptionPane.showConfirmDialog(
-    			getApplicationFrame(), message, title, optionType, messageType);
+    			getWindowFrame(), message, title, optionType, messageType);
     }
     
     public int showConfirmDialog(
@@ -352,12 +369,12 @@ public class WordMLEditor extends SingleFrameApplication {
     	Object initialValue) {
     		
     	return JOptionPane.showOptionDialog(
-    			getApplicationFrame(), message, title, optionType, messageType,
+    			getWindowFrame(), message, title, optionType, messageType,
                 null, options, initialValue);
     }
             
     public void showMessageDialog(String title, String message, int optionType) {
-    	JOptionPane.showMessageDialog(getApplicationFrame(), message, title, optionType);
+    	JOptionPane.showMessageDialog(getWindowFrame(), message, title, optionType);
     }
     
     public void createSourceViewTab() {
@@ -855,7 +872,6 @@ public class WordMLEditor extends SingleFrameApplication {
     		;//not implemented
     	}	
     }//WMLExitListener inner class
-    
 }// WordMLEditor class
 
 
