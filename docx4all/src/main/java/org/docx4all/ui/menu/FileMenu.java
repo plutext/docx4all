@@ -289,9 +289,9 @@ public class FileMenu extends UIMenu {
         JEditorPane view = editor.getCurrentEditor();
         if (view instanceof WordMLTextPane) {
         	WordMLTextPane wmlTextPane = (WordMLTextPane) view;
-			NewShareDialog d = new NewShareDialog(editor.getMainFrame());
+			NewShareDialog d = new NewShareDialog(editor.getWindowFrame());
 			d.pack();
-			d.setLocationRelativeTo(editor.getMainFrame());
+			d.setLocationRelativeTo(editor.getWindowFrame());
 			d.setVisible(true);
 			if (d.getValue() == NewShareDialog.NEXT_BUTTON_TEXT) {
 	        	WordMLDocument doc = (WordMLDocument) wmlTextPane.getDocument();
