@@ -73,6 +73,16 @@ public abstract class ElementML implements Cloneable {
 	protected abstract void init(Object docxObject);
 	protected abstract List<Object> getDocxChildren();
 	
+	/**
+	 * The real (direct) parent of those docx children 
+	 * listed in getDocxChildren().
+	 * 
+	 * @return docxObject
+	 */
+	protected Object getDocxChildParent() {
+		return getDocxObject();
+	}
+	
 	public void setDocxParent(Object docxParent) {
 		if (this.docxObject == null) {
 			;//do nothing
@@ -174,11 +184,11 @@ public abstract class ElementML implements Cloneable {
 					child.setParent(ElementML.this);
 
 					// Add to Docx structure
-					if (getDocxObject() != null
+					if (getDocxChildParent() != null
 							&& child.getDocxObject() != null) {
 						List<Object> list = getDocxChildren();
 						list.add(child.getDocxObject());
-						child.setDocxParent(getDocxObject());
+						child.setDocxParent(getDocxChildParent());
 					}
 				}
 			} else {
@@ -193,7 +203,7 @@ public abstract class ElementML implements Cloneable {
 				child.setParent(ElementML.this);
 
 				// Add to Docx structure
-				if (getDocxObject() != null && child.getDocxObject() != null) {
+				if (getDocxChildParent() != null && child.getDocxObject() != null) {
 					List<Object> list = getDocxChildren();
 
 					// The index position in the Docx structure may
@@ -213,7 +223,7 @@ public abstract class ElementML implements Cloneable {
 
 					if (siblingIndex > -1) {
 						list.add(siblingIndex + 1, child.getDocxObject());
-						child.setDocxParent(getDocxObject());
+						child.setDocxParent(getDocxChildParent());
 
 					} else if (idx < this.children.size() - 1) {
 						// Browse younger siblings for index position
@@ -226,14 +236,14 @@ public abstract class ElementML implements Cloneable {
 
 						if (siblingIndex > -1) {
 							list.add(siblingIndex, child.getDocxObject());
-							child.setDocxParent(getDocxObject());
+							child.setDocxParent(getDocxChildParent());
 						}
 					}
 
 					if (siblingIndex == -1) {
 						// Add child anyway
 						list.add(child.getDocxObject());
-						child.setDocxParent(getDocxObject());
+						child.setDocxParent(getDocxChildParent());
 					}
 				}
 			} //if (adopt)
