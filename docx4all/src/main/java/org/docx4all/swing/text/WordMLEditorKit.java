@@ -122,6 +122,10 @@ public class WordMLEditorKit extends DefaultEditorKit {
     
     public static final String selectPrevRevision = "select-prev-revision";
     
+    public static final String mergeSdtAction = "merge-sdt";
+    
+    public static final String splitSdtAction = "split-sdt";
+
 	private static final Cursor MoveCursor = Cursor
 			.getPredefinedCursor(Cursor.HAND_CURSOR);
 	private static final Cursor DefaultCursor = Cursor
@@ -1905,6 +1909,144 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		}//actionPerformed()
 		
 	}//DeletePrevCharAction()
+
+    public static class MergeSdtAction extends StyledTextAction {
+
+		/* Create this object with the appropriate identifier. */
+    	public MergeSdtAction() {
+			super(mergeSdtAction);
+		}
+
+		/** The operation to perform when this action is triggered. */
+		public void actionPerformed(ActionEvent e) {
+			final JEditorPane editor = getEditor(e);
+			if (editor instanceof WordMLTextPane) {
+				int start = editor.getSelectionStart();
+				int end = editor.getSelectionEnd();
+				
+				if (!editor.isEditable() 
+					|| !editor.isEnabled()
+					|| start == end) {
+				    UIManager.getLookAndFeel().provideErrorFeedback(editor);
+				    return;
+				}
+				
+				WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
+				kit.saveCaretText();
+				
+				final WordMLDocument doc = (WordMLDocument) editor.getDocument();
+				final DocumentElement root =
+					(DocumentElement) doc.getDefaultRootElement();
+				
+				try {
+					doc.lockWrite();
+				
+					if (DocUtil.canMergeSdt(doc, start, (end - start))) {
+						DocumentElement sdtBlockE = 
+							(DocumentElement) doc.getSdtBlockMLElement(start);
+						//Grab the last child of sdtBlockE
+						int idx = sdtBlockE.getElementCount() - 1;
+						DocumentElement elem =
+							(DocumentElement) sdtBlockE.getElement(idx);
+						ElementML lastChild = elem.getElementML();
+					
+						//for each selected element below sdtBlockE
+						//paste its content to 'lastChild'
+						int startIdx = root.getElementIndex(sdtBlockE.getEndOffset());
+						int endIdx = root.getElementIndex(end - 1);
+						while (startIdx <= endIdx) {
+							elem = (DocumentElement) root.getElement(endIdx);
+							ElementML ml = elem.getElementML();
+							ml.delete();
+						
+							if (ml instanceof SdtBlockML) {
+								for (int i=elem.getElementCount()-1; 0 <= i; i--) {
+									DocumentElement temp = 
+										(DocumentElement) elem.getElement(i);
+									ml = temp.getElementML();
+									ml.delete();
+									lastChild.addSibling(ml, true);
+								}
+							} else {
+								lastChild.addSibling(ml, true);
+							}
+							endIdx--;
+						}//while (startIdx <= endIdx)
+					
+						doc.refreshParagraphs(start, (end-start));
+					}
+				} finally {
+					doc.unlockWrite();
+					DocumentElement sdtBlockE = 
+						(DocumentElement) doc.getSdtBlockMLElement(start);
+					if (sdtBlockE != null) {
+						start = sdtBlockE.getStartOffset();
+						end = sdtBlockE.getEndOffset();
+						editor.setCaretPosition(start);
+						editor.moveCaretPosition(end);
+					}
+				}
+			} //if (editor instanceof WordMLTextPane)
+		} //actionPerformed()
+    } //MergeSdtAction()
+
+    public static class SplitSdtAction extends StyledTextAction {
+
+		/* Create this object with the appropriate identifier. */
+    	public SplitSdtAction() {
+			super(splitSdtAction);
+		}
+
+		/** The operation to perform when this action is triggered. */
+		public void actionPerformed(ActionEvent e) {
+			final JEditorPane editor = getEditor(e);
+			if (editor instanceof WordMLTextPane) {
+				if (!editor.isEditable() || !editor.isEnabled()) {
+				    UIManager.getLookAndFeel().provideErrorFeedback(editor);
+				    return;
+				}
+				
+				WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
+				kit.saveCaretText();
+				
+				final WordMLDocument doc = (WordMLDocument) editor.getDocument();
+				try {
+					doc.lockWrite();
+				
+					int start = editor.getSelectionStart();
+					int end = editor.getSelectionEnd();
+					
+					if (DocUtil.canSplitSdt(doc, start, (end-start))) {
+						DocumentElement sdtBlockE = 
+							(DocumentElement) doc.getSdtBlockMLElement(start);
+						start = sdtBlockE.getStartOffset();
+						end = sdtBlockE.getEndOffset();
+						
+						ElementML sdt = sdtBlockE.getElementML();
+						int i = sdtBlockE.getElementCount() - 1;
+						for (; i >= 0 ; i--) {
+							DocumentElement temp =
+								(DocumentElement) sdtBlockE.getElement(i);
+							ElementML ml = temp.getElementML();
+							ml.delete();
+							
+							ElementML newSdt = ElementMLFactory.createSdtBlockML();
+							newSdt.addChild(ml);
+							sdt.addSibling(newSdt, true);
+						}
+						
+						int pos = doc.getLength() - end;
+						
+						doc.refreshParagraphs(start, (end-start));
+						
+						editor.setCaretPosition(doc.getLength() - pos);
+					}
+				} finally {
+					doc.unlockWrite();
+				}
+			}
+		}
+    } //SplitSdtAction()
 
 }// WordMLEditorKit class
 
