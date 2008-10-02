@@ -143,6 +143,22 @@ public class SdtBlockML extends ElementML {
 		return sb.toString();
 	}
 	
+	/**
+	 * The real (direct) parent of those docx children 
+	 * listed in getDocxChildren().
+	 * 
+	 * @return docxObject
+	 */
+	public Object getDocxChildParent() {
+		if (this.docxObject == null) {
+			return null;
+		}
+		
+		org.docx4j.wml.SdtBlock sdtBlock = 
+			(org.docx4j.wml.SdtBlock) JAXBIntrospector.getValue(this.docxObject);
+		return sdtBlock.getSdtContent();
+	}
+	
 	protected List<Object> getDocxChildren() {
 		List<Object> theChildren = null;
 
