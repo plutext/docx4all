@@ -106,6 +106,9 @@ public class ToolBarStates extends InternalFrameAdapter
 	public final static String REVISION_SELECTED_PROPERTY_NAME = "revisionSelected";
 	public final static String REMOTE_REVISION_IN_PARA_PROPERTY_NAME = "remoteRevisionInPara";
 	
+	public final static String MERGE_SDT_ENABLED_PROPERTY_NAME = "mergeSdtEnabled";
+	public final static String SPLIT_SDT_ENABLED_PROPERTY_NAME = "splitSdtEnabled";
+	
 	private final Hashtable<JInternalFrame, Boolean> _dirtyTable;
 	private final Hashtable<JEditorPane, Boolean> _localEditsTable;
 	
@@ -114,6 +117,7 @@ public class ToolBarStates extends InternalFrameAdapter
 	private volatile int _fontSize;
 	private volatile boolean _fontBold, _fontItalic, _fontUnderlined;
 	private volatile boolean _isCutEnabled, _isCopyEnabled, _isPasteEnabled;
+	private volatile boolean _isMergeSdtEnabled, _isSplitSdtEnabled;
 	private volatile boolean _filterApplied;
 	private volatile Boolean _isDocumentShared;
 	private volatile boolean _isRevisionSelected;
@@ -138,6 +142,8 @@ public class ToolBarStates extends InternalFrameAdapter
 		_isCutEnabled = false;
 		_isCopyEnabled = false;
 		_isPasteEnabled = false;
+		_isMergeSdtEnabled = false;
+		_isSplitSdtEnabled = false;
 		_filterApplied = true;
 		_isDocumentShared = null;
 		_hasNonConflictingChanges = null;
@@ -438,6 +444,52 @@ public class ToolBarStates extends InternalFrameAdapter
 			Boolean.valueOf(enabled));
 	}
 	
+	public boolean isMergeSdtEnabled() {
+		return _isMergeSdtEnabled;
+	}
+	
+	public void setMergeSdtEnabled(boolean enabled) {
+		if (log.isDebugEnabled()) {
+			log.debug("setMergeSdtEnabled(): _isMergeSdtEnabled = " 
+				+ _isMergeSdtEnabled + " enabled param = " + enabled);
+		}
+	
+		if (_isMergeSdtEnabled == enabled) {
+			return;
+		}
+		
+		boolean oldValue = _isMergeSdtEnabled;
+		_isMergeSdtEnabled = enabled;
+		
+		firePropertyChange(
+			MERGE_SDT_ENABLED_PROPERTY_NAME, 
+			Boolean.valueOf(oldValue), 
+			Boolean.valueOf(enabled));
+	}
+	
+	public boolean isSplitSdtEnabled() {
+		return _isSplitSdtEnabled;
+	}
+	
+	public void setSplitSdtEnabled(boolean enabled) {
+		if (log.isDebugEnabled()) {
+			log.debug("setSplitSdtEnabled(): _isSplitSdtEnabled = " 
+				+ _isSplitSdtEnabled + " enabled param = " + enabled);
+		}
+	
+		if (_isSplitSdtEnabled == enabled) {
+			return;
+		}
+		
+		boolean oldValue = _isSplitSdtEnabled;
+		_isSplitSdtEnabled = enabled;
+		
+		firePropertyChange(
+			SPLIT_SDT_ENABLED_PROPERTY_NAME, 
+			Boolean.valueOf(oldValue), 
+			Boolean.valueOf(enabled));
+	}
+	
 	public boolean isRevisionSelected() {
 		return _isRevisionSelected;
 	}
@@ -646,9 +698,10 @@ public class ToolBarStates extends InternalFrameAdapter
 		
     	setFormatInfo(editor);
     	
-    	boolean b = (editor.getSelectionStart() < editor.getSelectionEnd());
-    	setCopyEnabled(b);
-    	setCutEnabled(b);
+    	int start = editor.getSelectionStart();
+    	int end = editor.getSelectionEnd();
+    	setCopyEnabled(start < end);
+    	setCutEnabled(start < end);
     	
     	if (editor instanceof WordMLTextPane) {
     		WordMLTextPane textpane = (WordMLTextPane) editor;
@@ -667,12 +720,19 @@ public class ToolBarStates extends InternalFrameAdapter
         	_localEditsTable.put(textpane, currentLocalEditsEnabled);
         	setLocalEditsEnabled(textpane, (isShared && newDirty));
         	
+        	WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+        	setMergeSdtEnabled(DocUtil.canMergeSdt(doc, start, (end-start)));
+        	setSplitSdtEnabled(DocUtil.canSplitSdt(doc, start, (end-start)));
+        	
     	} else {
     		setFilterApplied(false);
     		setDocumentShared(false);
     		
         	_localEditsTable.put(editor, currentLocalEditsEnabled);
         	setLocalEditsEnabled(editor, false);
+        	
+        	setMergeSdtEnabled(false);
+        	setSplitSdtEnabled(false);
     	}
 	}	
 	
@@ -1123,6 +1183,9 @@ public class ToolBarStates extends InternalFrameAdapter
         	
         	if (_currentEditor instanceof WordMLTextPane) {
         		WordMLDocument doc = (WordMLDocument) _currentEditor.getDocument();
+       			setMergeSdtEnabled(DocUtil.canMergeSdt(doc, start, (end-start)));
+       			setSplitSdtEnabled(DocUtil.canSplitSdt(doc, start, (end-start)));
+      		
         		hasSelection = 
         			hasSelection
         				&& start == DocUtil.getRevisionStart(doc, start, SwingConstants.NEXT)
@@ -1131,6 +1194,8 @@ public class ToolBarStates extends InternalFrameAdapter
             	
             	setRemoteRevision((WordMLTextPane) _currentEditor);
         	} else {
+        		setMergeSdtEnabled(false);
+        		setSplitSdtEnabled(false);
             	setRevisionSelected(Boolean.FALSE);	    
         	}
         	
