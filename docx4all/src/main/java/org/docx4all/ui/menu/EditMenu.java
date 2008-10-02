@@ -24,6 +24,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.JMenuItem;
 import javax.swing.text.DefaultEditorKit;
 
+import org.docx4all.swing.text.WordMLEditorKit;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
 import org.jdesktop.application.Action;
@@ -62,6 +63,16 @@ public class EditMenu extends UIMenu {
 	//Spring Application Framework
 	
 	/**
+	 * The action name of Merge Sdt edit menu
+	 */
+	public final static String MERGE_SDT_ACTION_NAME = "mergeSdt";
+	
+	/**
+	 * The action name of Split Sdt edit menu
+	 */
+	public final static String SPLIT_SDT_ACTION_NAME = "splitSdt";
+	
+	/**
 	 * The action name of Cut edit menu
 	 */
 	public final static String CUT_ACTION_NAME = "cut";
@@ -77,6 +88,9 @@ public class EditMenu extends UIMenu {
 	public final static String PASTE_ACTION_NAME = "paste";
 	
 	private static final String[] _menuItemActionNames = {
+		MERGE_SDT_ACTION_NAME,
+		SPLIT_SDT_ACTION_NAME,
+		SEPARATOR_CODE,
 		CUT_ACTION_NAME,
 		COPY_ACTION_NAME,
 		PASTE_ACTION_NAME
@@ -105,7 +119,18 @@ public class EditMenu extends UIMenu {
     	
 		WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
 		ToolBarStates toolbarStates = editor.getToolbarStates();
-    	if (CUT_ACTION_NAME.equals(actionName)) {
+		
+		if (MERGE_SDT_ACTION_NAME.equals(actionName)) {
+			theItem.setEnabled(toolbarStates.isMergeSdtEnabled());
+			toolbarStates.addPropertyChangeListener(
+				ToolBarStates.MERGE_SDT_ENABLED_PROPERTY_NAME, 
+				new EnableOnEqual(theItem, Boolean.TRUE));
+		} else if (SPLIT_SDT_ACTION_NAME.equals(actionName)) {
+			theItem.setEnabled(toolbarStates.isSplitSdtEnabled());
+			toolbarStates.addPropertyChangeListener(
+				ToolBarStates.SPLIT_SDT_ENABLED_PROPERTY_NAME, 
+				new EnableOnEqual(theItem, Boolean.TRUE));
+		} else if (CUT_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(toolbarStates.isCutEnabled());
 			toolbarStates.addPropertyChangeListener(
 				ToolBarStates.CUT_ENABLED_PROPERTY_NAME, 
@@ -125,6 +150,18 @@ public class EditMenu extends UIMenu {
 		return theItem;
     }
     
+	@Action public void mergeSdt(ActionEvent evt) {
+		WordMLEditorKit.MergeSdtAction action = 
+			new WordMLEditorKit.MergeSdtAction();
+		action.actionPerformed(evt);
+	}
+    
+	@Action public void splitSdt(ActionEvent evt) {
+		WordMLEditorKit.SplitSdtAction action = 
+			new WordMLEditorKit.SplitSdtAction();
+		action.actionPerformed(evt);
+	}
+	
 	@Action public void cut(ActionEvent evt) {
 		DefaultEditorKit.CutAction action = 
 			new DefaultEditorKit.CutAction();
