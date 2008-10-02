@@ -308,6 +308,41 @@ public class DocUtil {
 		}
 	}
 	
+	public static final boolean canMergeSdt(WordMLDocument doc, int offs, int length) {
+		boolean canMerge = false;
+		
+		try {
+			doc.readLock();
+			
+			DocumentElement sdt = (DocumentElement) doc.getSdtBlockMLElement(offs);
+			canMerge = (sdt != null	&& sdt.getEndOffset() < (offs + length));
+			
+		} finally {
+			doc.readUnlock();
+		}
+		
+		return canMerge;
+	}
+	
+	public static final boolean canSplitSdt(WordMLDocument doc, int offs, int length) {
+		boolean canSplit = false;
+		
+		try {
+			doc.readLock();
+			
+			DocumentElement sdt = (DocumentElement) doc.getSdtBlockMLElement(offs);
+			canSplit = 
+				(sdt != null 
+					&& sdt.getElementCount() > 1
+					&& (offs + length) <= sdt.getEndOffset());
+			
+		} finally {
+			doc.readUnlock();
+		}
+		
+		return canSplit;		
+	}
+	
     public static final int getRevisionStart(WordMLDocument doc, int offs, int direction) {
 		if (offs < 0 || offs >= doc.getLength()) {
 			throw new IllegalArgumentException(
