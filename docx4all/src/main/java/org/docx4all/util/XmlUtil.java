@@ -37,7 +37,6 @@ import javax.xml.namespace.QName;
 import javax.xml.transform.stream.StreamSource;
 
 import org.apache.log4j.Logger;
-import org.docx4all.swing.NewShareDialog;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLIterator;
@@ -327,39 +326,9 @@ public class XmlUtil {
 		return thePack;
 	}
 	
-	public final static void removeSharedDocumentProperties(WordprocessingMLPackage wmlPackage) {
-		DocPropsCustomPart docPropsCustomPart = wmlPackage.getDocPropsCustomPart();
-		org.docx4j.docProps.custom.Properties customProps = 
-			(org.docx4j.docProps.custom.Properties) docPropsCustomPart.getJaxbElement();
-		List<org.docx4j.docProps.custom.Properties.Property> list = customProps.getProperty();
-		if (list != null) {
-			org.docx4j.docProps.custom.Properties.Property groupingProp = null;
-			org.docx4j.docProps.custom.Properties.Property checkinProp = null;
-			
-			for (org.docx4j.docProps.custom.Properties.Property temp: list) {
-				String s = temp.getName();
-				if (Constants.PLUTEXT_GROUPING_PROPERTY_NAME.equals(s)) {
-					groupingProp = temp;
-				} else if (Constants.PLUTEXT_CHECKIN_MESSAGE_ENABLED_PROPERTY_NAME.equals(s)) {
-					checkinProp = temp;
-				}
-				if (groupingProp != null && checkinProp != null) {
-					break;
-				}
-			}
-			
-			if (groupingProp != null) {
-				list.remove(groupingProp);
-			}
-			if (checkinProp != null) {
-				list.remove(checkinProp);
-			}
-		}
-	}
-
-	public final static void setSharedDocumentProperties(
+	public final static void setPlutextGroupingProperty(
 		WordprocessingMLPackage wmlPackage,
-		NewShareDialog dialog) {
+		String value) {
 		
 		org.docx4j.openpackaging.parts.DocPropsCustomPart docPropsCustomPart = 
 			wmlPackage.getDocPropsCustomPart();
@@ -369,40 +338,85 @@ public class XmlUtil {
 			new org.docx4j.docProps.custom.ObjectFactory();
 
 		//Set plutext:Grouping property
-    	org.docx4j.docProps.custom.Properties.Property tempProp =
+    	org.docx4j.docProps.custom.Properties.Property groupingProp =
     		XmlUtil.getCustomProperty(
     			wmlPackage, Constants.PLUTEXT_GROUPING_PROPERTY_NAME);
-    	if (tempProp == null) {
-    		tempProp = factory.createPropertiesProperty();
-    		tempProp.setName(Constants.PLUTEXT_GROUPING_PROPERTY_NAME);
-    		tempProp.setFmtid(
+    	if (groupingProp == null) {
+    		groupingProp = factory.createPropertiesProperty();
+    		groupingProp.setName(Constants.PLUTEXT_GROUPING_PROPERTY_NAME);
+    		groupingProp.setFmtid(
     			org.docx4j.openpackaging.parts.DocPropsCustomPart.fmtidValLpwstr); // Magic string
-    		tempProp.setPid(customProps.getNextId()); 
-    		customProps.getProperty().add(tempProp);
+    		groupingProp.setPid(customProps.getNextId()); 
+    		customProps.getProperty().add(groupingProp);
     	}
-    	if (dialog.isGroupOnEachParagraph()) {
-    		tempProp.setLpwstr("EachBlock");
-    	} else {
-    		tempProp.setLpwstr("Heading1");
-    	}
-    	
-		//Set plutext:CheckinMessageEnabled property
-    	tempProp =
+		groupingProp.setLpwstr(value);
+	}
+	
+	public final static void setPlutextCheckinMessageEnabledProperty(
+		WordprocessingMLPackage wmlPackage,
+		boolean enabled) {
+		
+		org.docx4j.openpackaging.parts.DocPropsCustomPart docPropsCustomPart = 
+			wmlPackage.getDocPropsCustomPart();
+		org.docx4j.docProps.custom.Properties customProps = 
+			(org.docx4j.docProps.custom.Properties) docPropsCustomPart.getJaxbElement();
+		org.docx4j.docProps.custom.ObjectFactory factory = 
+			new org.docx4j.docProps.custom.ObjectFactory();
+
+		org.docx4j.docProps.custom.Properties.Property checkinProp =
     		XmlUtil.getCustomProperty(
     			wmlPackage, Constants.PLUTEXT_CHECKIN_MESSAGE_ENABLED_PROPERTY_NAME);
-    	if (tempProp == null) {
-    		tempProp = factory.createPropertiesProperty();
-    		tempProp.setName(Constants.PLUTEXT_CHECKIN_MESSAGE_ENABLED_PROPERTY_NAME);
-    		tempProp.setFmtid(
+    	if (checkinProp == null) {
+    		checkinProp = factory.createPropertiesProperty();
+    		checkinProp.setName(Constants.PLUTEXT_CHECKIN_MESSAGE_ENABLED_PROPERTY_NAME);
+    		checkinProp.setFmtid(
     			org.docx4j.openpackaging.parts.DocPropsCustomPart.fmtidValLpwstr); // Magic string
-    		tempProp.setPid(customProps.getNextId()); 
-    		customProps.getProperty().add(tempProp);
+    		checkinProp.setPid(customProps.getNextId()); 
+    		customProps.getProperty().add(checkinProp);
     	}
-    	if (dialog.isCommentOnEveryChange()) {
-    		tempProp.setLpwstr(Boolean.TRUE.toString());
+    	if (enabled) {
+    		checkinProp.setLpwstr(Boolean.TRUE.toString());
     	} else {
-    		tempProp.setLpwstr(Boolean.FALSE.toString());
+    		checkinProp.setLpwstr(Boolean.FALSE.toString());
     	}
+	}
+	
+	public final static void removePlutextProperty(
+		WordprocessingMLPackage wmlPackage,
+		String propertyName) {
+		List<String> names = new ArrayList<String>(1);
+		names.add(propertyName);
+		removePlutextProperties(wmlPackage, names);
+	}
+	
+	public final static void removePlutextProperties(
+		WordprocessingMLPackage wmlPackage,
+		List<String> propertyNames) {
+		
+		DocPropsCustomPart docPropsCustomPart = wmlPackage.getDocPropsCustomPart();
+		org.docx4j.docProps.custom.Properties customProps = 
+			(org.docx4j.docProps.custom.Properties) docPropsCustomPart.getJaxbElement();
+		List<org.docx4j.docProps.custom.Properties.Property> list = customProps.getProperty();
+		if (list != null) {
+			List<Integer> indexes = new ArrayList<Integer>();
+			for (int i=0; i < list.size(); i++) {
+				org.docx4j.docProps.custom.Properties.Property prop = list.get(i);
+				if (propertyNames.contains(prop.getName())) {
+					indexes.add(Integer.valueOf(i));
+				}					
+			}
+			
+			for (Integer i: indexes) {
+				list.remove(i.intValue());
+			}
+		}
+	}
+
+	public final static void removeSharedDocumentProperties(WordprocessingMLPackage wmlPackage) {
+		List<String> names = new ArrayList<String>(2);
+		names.add(Constants.PLUTEXT_GROUPING_PROPERTY_NAME);
+		names.add(Constants.PLUTEXT_CHECKIN_MESSAGE_ENABLED_PROPERTY_NAME);
+		removePlutextProperties(wmlPackage, names);
 	}
 	
 	/**
@@ -417,6 +431,23 @@ public class XmlUtil {
 			elem.delete();
 		}
 		return children;
+	}
+	
+	public final static RunContentML getFirstRunContentML(ElementML root) {
+		RunContentML theElem = null;
+		
+		if (root.getChildrenCount() > 0) {
+			ElementML lastChild = root.getChild(0);
+			if (lastChild instanceof RunContentML) {
+				theElem = (RunContentML) lastChild;
+			} else {
+				theElem = getFirstRunContentML(lastChild);
+			}
+		} else if (root instanceof RunContentML) {
+			theElem = (RunContentML) root;
+		}
+		
+		return theElem;
 	}
 	
 	public final static RunContentML getLastRunContentML(ElementML root) {
