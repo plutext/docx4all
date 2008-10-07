@@ -289,16 +289,23 @@ public class FileMenu extends UIMenu {
         JEditorPane view = editor.getCurrentEditor();
         if (view instanceof WordMLTextPane) {
         	WordMLTextPane wmlTextPane = (WordMLTextPane) view;
+        	WordMLDocument doc = (WordMLDocument) wmlTextPane.getDocument();
+        	if (DocUtil.getChunkingStrategy(doc) == null) {
+        		displaySetupFirstMessage();
+        		return;
+        	}
+        	        	
 			NewShareDialog d = new NewShareDialog(editor.getWindowFrame());
 			d.pack();
 			d.setLocationRelativeTo(editor.getWindowFrame());
 			d.setVisible(true);
 			if (d.getValue() == NewShareDialog.NEXT_BUTTON_TEXT) {
-	        	WordMLDocument doc = (WordMLDocument) wmlTextPane.getDocument();
 	        	DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
 	        	DocumentML docML = (DocumentML) root.getElementML();
 	        	WordprocessingMLPackage wmlPackage = docML.getWordprocessingMLPackage();
-	        	XmlUtil.setSharedDocumentProperties(wmlPackage, d);
+	        	XmlUtil.setPlutextCheckinMessageEnabledProperty(
+	        		wmlPackage, 
+	        		d.isCommentOnEveryChange());
 	        	
 	        	RETURN_TYPE val = 
 	        		saveAsFile(EXPORT_AS_SHARED_DOC_ACTION_NAME, actionEvent, Constants.DOCX_STRING);
@@ -308,7 +315,9 @@ public class FileMenu extends UIMenu {
         		
 	        	if (val != RETURN_TYPE.APPROVE) {
 	        		//Cancelled or Error
-	        		XmlUtil.removeSharedDocumentProperties(wmlPackage);
+	        		XmlUtil.removePlutextProperty(
+	        			wmlPackage, 
+	        			Constants.PLUTEXT_CHECKIN_MESSAGE_ENABLED_PROPERTY_NAME);
 	        		
 	        	} else if (!DocUtil.isSharedDocument(doc)) {
 	        		//Because user has saved to places other than predefined server.
@@ -345,6 +354,14 @@ public class FileMenu extends UIMenu {
 			}
 			d.dispose();
 		}
+	}
+	
+	private void displaySetupFirstMessage() {
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+    	ResourceMap rm = editor.getContext().getResourceMap(getClass());
+        String title = rm.getString("exportAsSharedDoc.Action.text");
+        String message = rm.getString("exportAsSharedDoc.Action.setupFirstMessage");
+    	editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
 	}
 		
 	@Action public void exportAsNonSharedDoc(ActionEvent actionEvent) {
