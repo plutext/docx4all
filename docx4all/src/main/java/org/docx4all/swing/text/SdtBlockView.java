@@ -82,8 +82,11 @@ public class SdtBlockView extends BoxView {
 	 * The polygon is a union of the border of each paragraph line inside this
 	 * view. If a paragraph is left justified, this method aims to construct a
 	 * polygon that has six vertices and looks like the following:
-	 * <1>------------------------------<2> | Left justified paragraph line1 | |
-	 * <4>---------------------<3> | line 2 | <6>-----<5>
+	 * <1>------------------------------<2> 
+	 *  | Left justified paragraph line1 | 
+	 *  |       <4>---------------------<3>
+	 *  | line 2 | 
+	 *  <6>-----<5>
 	 * 
 	 * For other types of paragraph alignment, the polygon will be simply a
 	 * rectangle.
