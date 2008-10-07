@@ -57,6 +57,9 @@ public interface Constants {
 	public final static String PLUTEXT_CHECKIN_MESSAGE_ENABLED_PROPERTY_NAME = 
 		"plutext:CheckinMessageEnabled";
 	
+	public final static String EACH_BLOCK_GROUPING_STRATEGY = "EachBlock";
+	public final static String OTHER_GROUPING_STRATEGY = "Other";
+	
 	//=====================
 	//Resource property keys
 	//=====================
