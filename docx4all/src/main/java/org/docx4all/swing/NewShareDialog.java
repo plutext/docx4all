@@ -32,7 +32,6 @@ import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JRadioButton;
 
 /**
  *	@author Jojada Tirtowidjojo - 01/05/2008
@@ -61,11 +60,10 @@ public class NewShareDialog extends JDialog implements PropertyChangeListener {
 		this.value = CANCEL_BUTTON_TEXT;
 		setTitle("New Share");
 		
-		JPanel contentGroupPanel = createContentGroupPanel();
 		JPanel saveOptionsPanel = createAuditTrailOptionsPanel();
 		
 		Object[] options = {NEXT_BUTTON_TEXT, CANCEL_BUTTON_TEXT};
-		Object[] array = {contentGroupPanel, saveOptionsPanel};
+		Object[] array = {saveOptionsPanel};
 		this.optionPane = 
 			new JOptionPane(
 				  array,
@@ -92,16 +90,6 @@ public class NewShareDialog extends JDialog implements PropertyChangeListener {
         
         //Register an event handler that reacts to option pane state changes.
         this.optionPane.addPropertyChangeListener(this);
-	}
-	
-	public boolean isGroupOnEachParagraph() {
-		return (GROUP_ON_PARAGRAPH_ACTION_COMMAND 
-			== contentGroupOptions.getSelection().getActionCommand());
-	}
-	
-	public boolean isGroupOnHeading1() {
-		return (GROUP_ON_HEADING1_ACTION_COMMAND
-			== contentGroupOptions.getSelection().getActionCommand());
 	}
 	
 	public boolean isCommentOnEveryChange() {
@@ -145,28 +133,6 @@ public class NewShareDialog extends JDialog implements PropertyChangeListener {
         }
     }
 
-	private JPanel createContentGroupPanel() {
-		// Content Groups Panel with its all radio buttons
-		JPanel thePanel = new JPanel();
-		thePanel.setBorder(BorderFactory.createTitledBorder("Content Groups"));
-		thePanel.setLayout(new BoxLayout(thePanel, BoxLayout.Y_AXIS));
-		
-		JRadioButton paragraphRadio = new JRadioButton("Group on each paragraph");
-		paragraphRadio.setActionCommand(GROUP_ON_PARAGRAPH_ACTION_COMMAND);
-		
-		JRadioButton heading1Radio = new JRadioButton("Group on Heading 1");
-		heading1Radio.setActionCommand(GROUP_ON_HEADING1_ACTION_COMMAND);
-		
-		this.contentGroupOptions = new ButtonGroup();
-		this.contentGroupOptions.add(paragraphRadio);
-		this.contentGroupOptions.add(heading1Radio);
-		paragraphRadio.setSelected(true);
-		
-		thePanel.add(paragraphRadio);
-		thePanel.add(heading1Radio);
-		return thePanel;
-	}
-	
 	private JPanel createAuditTrailOptionsPanel() {
 		//Audit Trail Options Panel with its check box
 		JPanel thePanel = new JPanel();
