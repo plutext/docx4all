@@ -25,9 +25,12 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.text.BreakIterator;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.JEditorPane;
 import javax.swing.SwingConstants;
@@ -38,6 +41,7 @@ import javax.swing.text.EditorKit;
 import javax.swing.text.Element;
 import javax.swing.text.Position;
 import javax.swing.text.Segment;
+import javax.swing.text.Style;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
 import org.apache.log4j.Logger;
@@ -46,6 +50,7 @@ import org.docx4all.swing.text.BadSelectionException;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.ElementMLIteratorCallback;
 import org.docx4all.swing.text.SdtBlockInfo;
+import org.docx4all.swing.text.StyleSheet;
 import org.docx4all.swing.text.TextSelector;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLStyleConstants;
@@ -692,6 +697,77 @@ public class DocUtil {
 		return (DocumentElement) temp;
 	}
 	
+	/**
+	 * Returns a list of style names defined in document paragraphs and tables.
+	 * 
+	 * @param doc
+	 * @return a list of style IDs.
+	 */
+	public final static List<String> getDefinedParagraphStyles(WordMLDocument doc) {
+		Set<String> styles = new HashSet<String>();
+		
+		try {
+			doc.readLock();
+			
+			//Default paragraph style
+			AttributeSet attrs = 
+				doc.getStyleSheet().getStyle(StyleSheet.DEFAULT_STYLE);
+			String styleName = 
+				(String) attrs.getAttribute(
+							WordMLStyleConstants.DefaultParagraphStyleNameAttribute);
+			styles.add(styleName);
+			
+			DocumentElement root =
+				(DocumentElement) doc.getDefaultRootElement();
+			
+			DocumentElement paraE = 
+				(DocumentElement) doc.getParagraphMLElement(0, false);
+			while (paraE.getStartOffset() < doc.getLength()) {
+				DocumentElement elem = paraE;
+				
+				while (elem != root) {
+					attrs = elem.getAttributes();
+					
+					String styleID = null;
+					if (attrs.isDefined(WordMLStyleConstants.PStyleAttribute)) {
+						styleID = 
+							(String) attrs.getAttribute(
+										WordMLStyleConstants.PStyleAttribute);
+					}
+					if (attrs.isDefined(WordMLStyleConstants.TblStyleAttribute)) {
+						styleID = 
+							(String) attrs.getAttribute(
+										WordMLStyleConstants.TblStyleAttribute);
+					}
+					
+					if (styleID != null) {
+						//Search for style name
+						Style temp = doc.getStyleSheet().getIDStyle(styleID);
+						if (temp != null) {
+							styleName = 
+								(String) temp.getAttribute(WordMLStyleConstants.StyleUINameAttribute);
+							if (styleName != null) {
+								styles.add(styleName);
+							}
+						}
+					}
+					
+					elem = (DocumentElement) elem.getParentElement();
+				} //while (elem != root)
+				
+				paraE = (DocumentElement) doc.getParagraphMLElement(paraE.getEndOffset(), false);
+			} //while (pos)
+		} finally {
+			doc.readUnlock();
+		}
+		
+		List<String> list = new ArrayList<String>(styles.size());
+		list.addAll(styles);		
+		Collections.sort(list);
+		
+		return list;
+	}
+
 	public final static void displayXml(Document doc) {
 		org.docx4j.wml.Document jaxbDoc = null;
 	
