@@ -21,10 +21,11 @@ package org.docx4all.swing.text;
 
 import javax.swing.text.AttributeSet;
 import javax.swing.text.MutableAttributeSet;
-import javax.swing.text.StyleContext;
 
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.WordML;
+import org.docx4all.xml.type.CTBorder;
+import org.docx4all.xml.type.TblBorders;
 
 public class WordMLStyleConstants {
     /**
@@ -46,11 +47,17 @@ public class WordMLStyleConstants {
 	
 	public static final Object QFormatAttribute = new WordMLStyleConstants("qformat");
 	
+	public static final Object TblStyleAttribute = new WordMLStyleConstants("tblStyle");
+	
 	public static final Object PStyleAttribute = new WordMLStyleConstants("pStyle");
 	
 	public static final Object RStyleAttribute = new WordMLStyleConstants("rStyle");
 	
 	public static final Object BorderVisibleAttribute = new WordMLStyleConstants("borderVisible");
+	
+	public static final Object CTBorderAttribute = new WordMLStyleConstants("ctborder");
+	
+	public static final Object TblBordersAttribute = new WordMLStyleConstants("tblBorders");
 	
     public static final Object DefaultParagraphStyleNameAttribute = 
     	new WordMLStyleConstants("defaultParagraphStyleName");
@@ -59,11 +66,12 @@ public class WordMLStyleConstants {
     	ElementMLAttribute, WordMLTagAttribute, DocxObjectAttribute,
     	StyleIdAttribute, StyleUINameAttribute, StyleTypeAttribute,
     	UiPriorityAttribute, QFormatAttribute,
-    	PStyleAttribute, RStyleAttribute,
-    	BorderVisibleAttribute,
+    	TblStyleAttribute, PStyleAttribute, RStyleAttribute,
+    	BorderVisibleAttribute, CTBorderAttribute, TblBordersAttribute,
     	DefaultParagraphStyleNameAttribute
     };
 
+    /*
     static {
 		try {
 			int n = keys.length;
@@ -73,7 +81,7 @@ public class WordMLStyleConstants {
 		} catch (Throwable e) {
 			e.printStackTrace();
 		}
-	}
+	}*/
 
     /**
 	 * Gets the ElementML setting from the attribute list.
@@ -107,6 +115,46 @@ public class WordMLStyleConstants {
     }
 
     /**
+     * Sets the CTBorder attribute.
+     *
+     * @param a the attribute set
+     * @param border the CTBorder
+     */
+    public static void setCTBorder(MutableAttributeSet a, CTBorder border) {
+        a.addAttribute(CTBorderAttribute, border);
+    }
+
+    /**
+	 * Gets the CTBorder setting from the attribute list.
+	 * 
+	 * @param a the attribute set
+	 * @return the CTBorder attribute
+	 */
+    public static CTBorder getCTBorder(AttributeSet a) {
+    	return (CTBorder) a.getAttribute(CTBorderAttribute);
+    }
+
+    /**
+     * Sets the TblBorders attribute.
+     *
+     * @param a the attribute set
+     * @param border the TblBorders
+     */
+    public static void setTblBorders(MutableAttributeSet a, TblBorders border) {
+        a.addAttribute(TblBordersAttribute, border);
+    }
+
+    /**
+	 * Gets the TblBorders setting from the attribute list.
+	 * 
+	 * @param a the attribute set
+	 * @return the TblBorders attribute
+	 */
+    public static TblBorders getTblBorders(AttributeSet a) {
+    	return (TblBorders) a.getAttribute(TblBordersAttribute);
+    }
+
+   /**
      * Sets the ElementML attribute.
      *
      * @param a the attribute set
