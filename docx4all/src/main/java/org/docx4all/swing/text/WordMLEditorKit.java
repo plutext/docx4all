@@ -35,6 +35,7 @@ import java.io.Reader;
 import java.io.Serializable;
 import java.io.StringReader;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.Action;
@@ -55,6 +56,7 @@ import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.DefaultHighlighter;
 import javax.swing.text.Document;
 import javax.swing.text.Highlighter;
+import javax.swing.text.JTextComponent;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.Position;
 import javax.swing.text.SimpleAttributeSet;
@@ -81,9 +83,11 @@ import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.ParagraphML;
+import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunDelML;
 import org.docx4all.xml.RunInsML;
 import org.docx4all.xml.SdtBlockML;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.plutext.client.Mediator;
 import org.plutext.client.Util;
 
@@ -126,6 +130,12 @@ public class WordMLEditorKit extends DefaultEditorKit {
     
     public static final String splitSdtAction = "split-sdt";
 
+    public static final String createSdtOnEachParaAction = "create-sdt-on-each-para";
+    
+    public static final String createSdtOnStylesAction = "create-sdt-on-styles";
+    
+    public static final String createSdtOnSignedParaAction = "create-sdt-on-signed-para";
+    
 	private static final Cursor MoveCursor = Cursor
 			.getPredefinedCursor(Cursor.HAND_CURSOR);
 	private static final Cursor DefaultCursor = Cursor
@@ -1910,7 +1920,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		
 	}//DeletePrevCharAction()
 
-    public static class MergeSdtAction extends StyledTextAction {
+    public static class MergeSdtAction extends TextAction {
 
 		/* Create this object with the appropriate identifier. */
     	public MergeSdtAction() {
@@ -1919,7 +1929,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 
 		/** The operation to perform when this action is triggered. */
 		public void actionPerformed(ActionEvent e) {
-			final JEditorPane editor = getEditor(e);
+			final JTextComponent editor = getTextComponent(e);
 			if (editor instanceof WordMLTextPane) {
 				int start = editor.getSelectionStart();
 				int end = editor.getSelectionEnd();
@@ -1931,10 +1941,12 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				    return;
 				}
 				
-				WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
+				WordMLTextPane textpane = (WordMLTextPane) editor;
+				WordMLEditorKit kit = 
+					(WordMLEditorKit) textpane.getEditorKit();
 				kit.saveCaretText();
 				
-				final WordMLDocument doc = (WordMLDocument) editor.getDocument();
+				final WordMLDocument doc = (WordMLDocument) textpane.getDocument();
 				final DocumentElement root =
 					(DocumentElement) doc.getDefaultRootElement();
 				
@@ -1982,15 +1994,15 @@ public class WordMLEditorKit extends DefaultEditorKit {
 					if (sdtBlockE != null) {
 						start = sdtBlockE.getStartOffset();
 						end = sdtBlockE.getEndOffset();
-						editor.setCaretPosition(start);
-						editor.moveCaretPosition(end);
+						textpane.setCaretPosition(start);
+						textpane.moveCaretPosition(end);
 					}
 				}
 			} //if (editor instanceof WordMLTextPane)
 		} //actionPerformed()
     } //MergeSdtAction()
 
-    public static class SplitSdtAction extends StyledTextAction {
+    public static class SplitSdtAction extends TextAction {
 
 		/* Create this object with the appropriate identifier. */
     	public SplitSdtAction() {
@@ -1999,22 +2011,24 @@ public class WordMLEditorKit extends DefaultEditorKit {
 
 		/** The operation to perform when this action is triggered. */
 		public void actionPerformed(ActionEvent e) {
-			final JEditorPane editor = getEditor(e);
+			final JTextComponent editor = getTextComponent(e);
 			if (editor instanceof WordMLTextPane) {
 				if (!editor.isEditable() || !editor.isEnabled()) {
 				    UIManager.getLookAndFeel().provideErrorFeedback(editor);
 				    return;
 				}
 				
-				WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
+				WordMLTextPane textpane = (WordMLTextPane) editor;
+				WordMLEditorKit kit = 
+					(WordMLEditorKit) textpane.getEditorKit();
 				kit.saveCaretText();
 				
-				final WordMLDocument doc = (WordMLDocument) editor.getDocument();
+				final WordMLDocument doc = (WordMLDocument) textpane.getDocument();
 				try {
 					doc.lockWrite();
 				
-					int start = editor.getSelectionStart();
-					int end = editor.getSelectionEnd();
+					int start = textpane.getSelectionStart();
+					int end = textpane.getSelectionEnd();
 					
 					if (DocUtil.canSplitSdt(doc, start, (end-start))) {
 						DocumentElement sdtBlockE = 
@@ -2039,7 +2053,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 						
 						doc.refreshParagraphs(start, (end-start));
 						
-						editor.setCaretPosition(doc.getLength() - pos);
+						textpane.setCaretPosition(doc.getLength() - pos);
 					}
 				} finally {
 					doc.unlockWrite();
@@ -2047,6 +2061,344 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			}
 		}
     } //SplitSdtAction()
+
+    public static class CreateSdtOnEachParaAction extends TextAction {
+
+		/* Create this object with the appropriate identifier. */
+    	public CreateSdtOnEachParaAction() {
+			super(createSdtOnEachParaAction);
+		}
+
+		/** The operation to perform when this action is triggered. */
+		public void actionPerformed(ActionEvent e) {
+			final JTextComponent editor = getTextComponent(e);
+			if (editor instanceof WordMLTextPane) {
+				if (!editor.isEditable() || !editor.isEnabled()) {
+				    UIManager.getLookAndFeel().provideErrorFeedback(editor);
+				    return;
+				}
+				
+				WordMLTextPane textpane = (WordMLTextPane) editor;
+				((WordMLEditorKit) textpane.getEditorKit()).saveCaretText();
+				
+				final WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+				
+				try {
+					doc.lockWrite();
+					
+					boolean refresh = false;
+					SdtBlockML sdt = ElementMLFactory.createSdtBlockML();
+					
+					DocumentElement root =
+						(DocumentElement) doc.getDefaultRootElement();
+		        	DocumentML docML = (DocumentML) root.getElementML();
+		        	WordprocessingMLPackage wmlPackage = docML.getWordprocessingMLPackage();
+		        	XmlUtil.setPlutextGroupingProperty(
+		        		wmlPackage, 
+		        		Constants.EACH_BLOCK_GROUPING_STRATEGY);
+		        	
+					for (int i=0; i < root.getElementCount() - 1; i++) {
+						DocumentElement elem =
+							(DocumentElement) root.getElement(i);
+						ElementML ml = elem.getElementML();
+						ElementML parent = ml.getParent();
+						int idx = parent.getChildIndex(ml);
+
+						if (parent.canAddChild(sdt)) {
+							ml.delete();
+							if (sdt.canAddChild(ml)) {
+								sdt.addChild(ml);
+								ml = sdt;
+								refresh = true;
+								sdt = ElementMLFactory.createSdtBlockML();
+							}
+							parent.addChild(idx, ml);
+						}
+					}//for (i)
+					
+					if (refresh) {
+						doc.refreshParagraphs(0, doc.getLength());
+					}
+				} finally {
+					doc.unlockWrite();
+				}
+			}
+		}
+    } //CreateSdtOnEachParaAction()
+    
+    public static class CreateSdtOnStylesAction extends TextAction {
+    	private List<String> styles;
+    	private boolean mergeSingleParas;
+    	private List<DocumentElement> sdtContentCandidates;
+    	private List<ParagraphML> singleParas;
+    	
+		/* Create this object with the appropriate identifier. */
+    	public CreateSdtOnStylesAction(List<String> styles, boolean mergeSingleParas) {
+			super(createSdtOnStylesAction);
+			this.styles = styles;
+			this.mergeSingleParas = mergeSingleParas;
+		}
+
+		/** The operation to perform when this action is triggered. */
+		public void actionPerformed(ActionEvent e) {
+			final JTextComponent editor = getTextComponent(e);
+			if (editor instanceof WordMLTextPane) {
+				if (!editor.isEditable() || !editor.isEnabled()) {
+				    UIManager.getLookAndFeel().provideErrorFeedback(editor);
+				    return;
+				}
+				
+				WordMLTextPane textpane = (WordMLTextPane) editor;
+				((WordMLEditorKit) textpane.getEditorKit()).saveCaretText();
+				
+				final WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+				
+				try {
+					doc.lockWrite();
+					
+					prepare(doc);
+					
+					boolean refresh = false;
+					if (!this.sdtContentCandidates.isEmpty()) {
+						SdtBlockML sdt = ElementMLFactory.createSdtBlockML();
+						
+						for (DocumentElement elem: sdtContentCandidates) {
+							ElementML ml = elem.getElementML();
+							ElementML parent = ml.getParent();
+							int idx = parent.getChildIndex(ml);
+
+							if (parent.canAddChild(idx, sdt)) {
+								ml.delete();
+								if (sdt.canAddChild(ml)) {
+									sdt.addChild(ml);
+									ml = sdt;
+									refresh = true;
+									sdt = ElementMLFactory.createSdtBlockML();
+								}
+								
+								parent.addChild(idx, ml);							
+							}
+						} //for (elem)
+					}
+					
+					if (this.mergeSingleParas && !this.singleParas.isEmpty()) {
+						ElementML failParent = null;
+						
+						//singleParas may consist of paras that are not siblings.
+						for (int i=this.singleParas.size() - 1; 0 <= i; i--) {
+							ElementML para = this.singleParas.get(i);
+							ElementML parent = para.getParent();
+							if (parent == failParent) {
+								continue;
+							}
+							
+							failParent = null; //reset
+							int idx = parent.getChildIndex(para);
+							
+							ElementML siblingSdt = null;
+							for (int k=idx+1
+								; k < parent.getChildrenCount() && siblingSdt == null
+								; k++) {
+								ElementML ml = parent.getChild(k);
+								if (ml instanceof SdtBlockML) {
+									siblingSdt = ml;
+								}
+							}
+							
+							if (siblingSdt != null) {
+								para.delete();
+								if (siblingSdt.canAddChild(para)) {
+									siblingSdt.addChild(0, para);
+									refresh = true;
+								} else {
+									parent.addChild(idx, para);
+									//Note parent as 'failParent'
+									//so that para's siblings can
+									//be skipped.
+									failParent = parent;
+								}
+							}
+						} //for (i)
+					}
+					
+					if (refresh) {
+						doc.refreshParagraphs(0, doc.getLength());
+					}
+				} finally {
+					doc.unlockWrite();
+				}
+			}
+		}
+		
+		private void prepare(WordMLDocument doc) {
+			this.sdtContentCandidates = new ArrayList<DocumentElement>();
+			this.singleParas = new ArrayList<ParagraphML>();
+			
+			Style defaultStyle = 
+				doc.getStyleSheet().getStyle(StyleSheet.DEFAULT_STYLE);
+			String defaultPStyle = 
+				(String) defaultStyle.getAttribute(
+							WordMLStyleConstants.DefaultParagraphStyleNameAttribute);
+			boolean includeDefaultPStyle = this.styles.contains(defaultPStyle);
+			
+			DocumentElement root =
+				(DocumentElement) doc.getDefaultRootElement();
+			
+        	DocumentML docML = (DocumentML) root.getElementML();
+        	WordprocessingMLPackage wmlPackage = docML.getWordprocessingMLPackage();
+        	XmlUtil.setPlutextGroupingProperty(
+        		wmlPackage, 
+        		Constants.OTHER_GROUPING_STRATEGY);
+        	
+			DocumentElement paraE = 
+				(DocumentElement) doc.getParagraphMLElement(0, false);
+			while (paraE.getStartOffset() < doc.getLength()) {
+				boolean styleNotFound = true;
+				DocumentElement elem = paraE;
+								
+				while (elem != root) {
+					AttributeSet attrs = elem.getAttributes();
+					
+					String styleID = null;
+					if (attrs.isDefined(WordMLStyleConstants.PStyleAttribute)) {
+						styleID = 
+							(String) attrs.getAttribute(
+										WordMLStyleConstants.PStyleAttribute);
+					}
+					if (attrs.isDefined(WordMLStyleConstants.TblStyleAttribute)) {
+						styleID = 
+							(String) attrs.getAttribute(
+										WordMLStyleConstants.TblStyleAttribute);
+					}
+					
+					if (styleID != null) {
+						styleNotFound = false;
+						
+						//Get style name
+						Style temp = doc.getStyleSheet().getIDStyle(styleID);
+						if (temp != null) {
+							String styleName = 
+								(String) temp.getAttribute(
+											WordMLStyleConstants.StyleUINameAttribute);
+							if (styleName != null 
+								&& this.styles.contains(styleName)) {
+								//if style name is registered, put 'elem' in the list
+								this.sdtContentCandidates.add(elem);
+							}
+						}
+					}
+					
+					elem = (DocumentElement) elem.getParentElement();
+				} //while (elem != root)
+				
+				if (styleNotFound) {
+					if (includeDefaultPStyle) {
+						this.sdtContentCandidates.add(paraE);
+					} else if (this.mergeSingleParas) {
+						this.singleParas.add((ParagraphML) paraE.getElementML());
+					}
+				}
+				
+				paraE = (DocumentElement) doc.getParagraphMLElement(paraE.getEndOffset(), false);
+			} //while (paraE.getStartOffset() < doc.getLength())
+		} //prepare()
+		
+    } //CreateSdtOnStylesAction()
+    
+    public static class CreateSdtOnSignedParaAction extends TextAction {
+    	private List<DocumentElement> sdtContentCandidates;
+    	
+		/* Create this object with the appropriate identifier. */
+    	public CreateSdtOnSignedParaAction() {
+			super(createSdtOnSignedParaAction);
+		}
+
+		/** The operation to perform when this action is triggered. */
+		public void actionPerformed(ActionEvent e) {
+			final JTextComponent editor = getTextComponent(e);
+			if (editor instanceof WordMLTextPane) {
+				if (!editor.isEditable() || !editor.isEnabled()) {
+				    UIManager.getLookAndFeel().provideErrorFeedback(editor);
+				    return;
+				}
+				
+				WordMLTextPane textpane = (WordMLTextPane) editor;
+				WordMLEditorKit kit = 
+					(WordMLEditorKit) textpane.getEditorKit();
+				kit.saveCaretText();
+				
+				final WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+				try {
+					doc.lockWrite();
+					
+					prepare(doc);
+					
+					if (!this.sdtContentCandidates.isEmpty()) {
+						boolean refresh = false;
+						SdtBlockML sdt = ElementMLFactory.createSdtBlockML();
+						
+						for (DocumentElement elem: this.sdtContentCandidates) {
+							ElementML ml = elem.getElementML();
+							ElementML parent = ml.getParent();
+							int idx = parent.getChildIndex(ml);
+
+							if (parent.canAddChild(idx, sdt)) {
+								ml.delete();
+								if (sdt.canAddChild(ml)) {
+									//Remove the signature characters
+									RunContentML run = XmlUtil.getFirstRunContentML(ml);
+									String text = run.getTextContent().substring(2);
+									run.setTextContent(text);
+									
+									//put in sdt
+									sdt.addChild(ml);
+									ml = sdt;
+									refresh = true;
+									
+									//prepare a new one
+									sdt = ElementMLFactory.createSdtBlockML();
+								}
+								
+								parent.addChild(idx, ml);							
+							}
+						} //for (elem)
+						
+						if (refresh) {
+							doc.refreshParagraphs(0, doc.getLength());
+						}
+					}
+				} finally {
+					doc.unlockWrite();
+				}
+			}
+		}
+		
+		private void prepare(WordMLDocument doc) {
+			this.sdtContentCandidates = new ArrayList<DocumentElement>();
+			
+			DocumentElement root =
+				(DocumentElement) doc.getDefaultRootElement();
+        	DocumentML docML = (DocumentML) root.getElementML();
+        	WordprocessingMLPackage wmlPackage = docML.getWordprocessingMLPackage();
+        	XmlUtil.setPlutextGroupingProperty(
+        		wmlPackage, 
+        		Constants.OTHER_GROUPING_STRATEGY);
+        	
+			DocumentElement paraE = 
+				(DocumentElement) doc.getParagraphMLElement(0, false);
+			while (paraE.getStartOffset() < doc.getLength()) {
+				try {
+					String s = doc.getText(paraE.getStartOffset(), 2);
+					if (s.startsWith("<<")) {
+						this.sdtContentCandidates.add(paraE);
+					}
+				} catch (BadLocationException exc) {
+					;//should not happen
+				}
+				paraE = (DocumentElement) doc.getParagraphMLElement(paraE.getEndOffset(), false);
+			} //while (paraE.getStartOffset() < doc.getLength())
+		}
+    } //CreateSdtOnSignedParagraphAction()
 
 }// WordMLEditorKit class
 
