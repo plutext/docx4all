@@ -20,13 +20,19 @@
 package org.docx4all.ui.menu;
 
 import java.awt.event.ActionEvent;
+import java.util.List;
 
+import javax.swing.JEditorPane;
 import javax.swing.JMenuItem;
 import javax.swing.text.DefaultEditorKit;
 
+import org.docx4all.swing.ContentGroupingDialog;
+import org.docx4all.swing.WordMLTextPane;
+import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLEditorKit;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
+import org.docx4all.util.DocUtil;
 import org.jdesktop.application.Action;
 
 /**
@@ -63,6 +69,11 @@ public class EditMenu extends UIMenu {
 	//Spring Application Framework
 	
 	/**
+	 * The action name of Setup Sdt edit menu
+	 */
+	public final static String SETUP_SDT_ACTION_NAME = "setupSdt";
+	
+	/**
 	 * The action name of Merge Sdt edit menu
 	 */
 	public final static String MERGE_SDT_ACTION_NAME = "mergeSdt";
@@ -90,6 +101,8 @@ public class EditMenu extends UIMenu {
 	private static final String[] _menuItemActionNames = {
 		MERGE_SDT_ACTION_NAME,
 		SPLIT_SDT_ACTION_NAME,
+		SEPARATOR_CODE,
+		SETUP_SDT_ACTION_NAME,
 		SEPARATOR_CODE,
 		CUT_ACTION_NAME,
 		COPY_ACTION_NAME,
@@ -149,6 +162,38 @@ public class EditMenu extends UIMenu {
     	
 		return theItem;
     }
+    
+	@Action public void setupSdt(ActionEvent evt) {
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        JEditorPane view = editor.getCurrentEditor();
+        if (view instanceof WordMLTextPane) {
+        	WordMLTextPane textpane = (WordMLTextPane) view;
+        	WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+        	List<String> styles = DocUtil.getDefinedParagraphStyles(doc);
+        	
+			ContentGroupingDialog d = new ContentGroupingDialog(editor, styles);
+			d.pack();
+			d.setLocationRelativeTo(editor.getWindowFrame());
+			d.setVisible(true);
+			if (d.getValue() == ContentGroupingDialog.OK_BUTTON_TEXT) {
+				if (d.isGroupOnEachParagraph()) {
+					WordMLEditorKit.CreateSdtOnEachParaAction action =
+						new WordMLEditorKit.CreateSdtOnEachParaAction();
+					action.actionPerformed(evt);
+				} else if (d.isGroupOnStyles()) {
+					WordMLEditorKit.CreateSdtOnStylesAction action =
+						new WordMLEditorKit.CreateSdtOnStylesAction(
+							d.getSelectedStyles(),
+							d.isMergeSingleParagraphs());
+					action.actionPerformed(evt);
+				} else {
+					WordMLEditorKit.CreateSdtOnSignedParaAction action =
+						new WordMLEditorKit.CreateSdtOnSignedParaAction();
+					action.actionPerformed(evt);
+				}
+			}
+        }
+	}
     
 	@Action public void mergeSdt(ActionEvent evt) {
 		WordMLEditorKit.MergeSdtAction action = 
