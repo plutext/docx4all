@@ -19,8 +19,6 @@
 
 package org.docx4all.swing.text;
 
-import java.util.List;
-
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.MutableAttributeSet;
@@ -32,14 +30,12 @@ import javax.swing.text.DocumentFilter.FilterBypass;
 import org.apache.log4j.Logger;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.util.DocUtil;
-import org.docx4all.util.XmlUtil;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.ObjectFactory;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.ParagraphPropertiesML;
 import org.docx4all.xml.RunML;
-import org.docx4all.xml.SdtBlockML;
 
 /**
  *	@author Jojada Tirtowidjojo - 07/02/2008
@@ -213,30 +209,7 @@ public class TextInserter implements TextProcessor {
 			//Split paragraph
 			DocUtil.splitElementML(paraE, offset - paraE.getStartOffset());
 		}
-		
-		DocumentElement parentE = (DocumentElement) paraE.getParentElement();
-		
-		if (log.isDebugEnabled()) {
-			log.debug("doInsertNewlineAction(): parentE=" + parentE);
-			log.debug("doInsertNewlineAction(): isSharedDocument=" 
-				+ DocUtil.isSharedDocument(doc));
-			log.debug("doInsertNewlineAction(): chunkingStrategy=" 
-				+ DocUtil.getChunkingStrategy(doc));
-		}
-		
-		if (DocUtil.isSharedDocument(doc)
-			&& "EachBlock".equals(DocUtil.getChunkingStrategy(doc))
-			&& parentE.getElementML() instanceof SdtBlockML) {
-			SdtBlockML sdt = (SdtBlockML) parentE.getElementML();
-			List<org.docx4j.wml.SdtBlock> list = 
-				XmlUtil.chunk(
-					(org.docx4j.wml.SdtBlock) sdt.getDocxObject());
-			for (int i=list.size()-1; i >= 0; i--) {
-				SdtBlockML newSdt = new SdtBlockML(list.get(i));
-				sdt.addSibling(newSdt, true);
-			}
-			sdt.delete();
-		}
+				
 		doc.refreshParagraphs(paraE.getStartOffset(), 1);		
 	}
 
