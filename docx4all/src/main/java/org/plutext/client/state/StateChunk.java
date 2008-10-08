@@ -27,6 +27,7 @@ import org.apache.log4j.Logger;
 import org.docx4j.XmlUtils;
 import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
+import org.docx4j.wml.Tag;
 
 /* Represent the state of a chunk.
  * 
@@ -56,23 +57,22 @@ public class StateChunk
     	return cc; 
     }
     
-
 	public String getIdAsString() {
-		return cc.getSdtPr().getId().getVal().toString();
+		return getId().getVal().toString();
 	}
 	
 	public Id getId() {
 		return cc.getSdtPr().getId();
 	}
 
+	public Tag getTag() {
+		return cc.getSdtPr().getTag();
+	}
 	
-    // The tag of the wrapped SDT
-    protected String tag;
-//        public String Tag
-//        {
-//            get { return tag; }
-//        }
-
+	public String getTagAsString() {
+		return getTag().getVal();
+	}
+	
     private String xml = null;
     public String getXml() {
     	return xml; 
