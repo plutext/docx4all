@@ -20,6 +20,8 @@
 package org.plutext.client;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
@@ -50,11 +52,17 @@ public class Skeleton implements IDiffList<TextLine> {
 		}
 	}
 
-	// Version number
-	private int version;
-
 	// Ordered list of ribs
 	private ArrayList<TextLine> ribs = new ArrayList<TextLine>();
+
+    /* We also need to know the @version of each rib:
+     * 
+     *      <ns3:rib ns3:version="2" ns3:id="1773260365">
+     * 
+     * so, client-side, we can detect whether the server
+     * copy is newer.
+     */
+    private Map<String, Long> versions = new HashMap<String, Long>();
 
 	public Skeleton() {
 		;// do nothing
@@ -132,6 +140,8 @@ public class Skeleton implements IDiffList<TextLine> {
 			} else {
                 log.debug("Added Rib " + r.getId());
 				ribs.add(new TextLine(Long.toString(r.getId())));
+				
+				versions.put(Long.toString(r.getId()), Long.valueOf(r.getVersion()));
 			}
 			
 		}// for (r) loop
@@ -161,6 +171,12 @@ public class Skeleton implements IDiffList<TextLine> {
 	public boolean removeRib(TextLine rib) {
 		return ribs.remove(rib);
 	}
+
+    public Long getVersion(String ribId) {
+        return versions.get(ribId);
+    }
+
+
 
 }// Skeleton class
 
