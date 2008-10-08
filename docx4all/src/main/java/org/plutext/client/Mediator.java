@@ -996,7 +996,11 @@ public class Mediator {
 	        --- 293467343 not at this location in source  <---- if user deletes
 	        884169107   884169107 (no change)
 	        528989532   528989532 (no change)
-	     */
+         * 
+         * Note that we need to ensure that we are working against
+         * the latest server skeleton, so that the positions we
+         * send for moves and inserts correspond to the server's state.
+         */
 	
         worker.setProgress(
         	TransmitProgress.FETCHING_REMOTE_DOC_STRUCTURE, 
@@ -1015,15 +1019,14 @@ public class Mediator {
 	        this.currentClientSkeleleton, 
 	        serverSkeleton);
 	
-	    // Hmm, what if something is only detected as moved, because a
-	    // recent remote change has not been applied?  Then we will
-	    // be moving it back to where it was before!
-	    // One way around this would be to require that all remote moves
-	    // have been applied, before any local changes can be transmitted.
-	
 	    Boolean someTransmitted = false;
+        // Whether an sdt on the server is newer than the local version
 	    Boolean someConflicted = false;
 	
+        // Whether the local sdt contains tracked changes
+        // (which must be resolved before it can be transmitted)
+        Boolean someTrackedConflicts = false;
+
 		org.plutext.transforms.ObjectFactory transformsFactory = 
 			new org.plutext.transforms.ObjectFactory();
 
@@ -1062,21 +1065,51 @@ public class Mediator {
 					log.debug("TO   " + chunkCurrent.getXml());
 					log.debug("");
 				
-					// If we get this far, it is an update
-					// We don't need to worry about the possibility that it has
-					// changed remotely, since we checked all updates
-					// on server had been applied before entering this method.
-	
-					if (chunkCurrent.containsTrackedChanges())
-					{
-						// This is a conflicting update, so don't transmit ours.
-						// Keep a copy of what this user did in StateChunk
-						// (so that 
-	
-						log.debug("Conflict! Local edit " + sdtId + " not committed.");
-						someConflicted = true;
-						continue;
+                    // If we get this far, it is an update
+                    // However, we need to worry about the possibility that it has
+                    // changed remotely, since we HAVE NOT checked all updates
+                    // on server had been applied 
+
+                    // 2 possible approaches:
+
+                    // 1: optimistic checkin, which the server is
+                    // supposed to reject [need to look at 409 conflict
+                    // bit again - workaround for case where version 
+                    // changed already in given changeset].  User 
+                    // then has to manually fetch updates.
+
+                    // This was the approach until 2008 09 08
+
+                    // 2:  we have the server skeleton document;
+					// That tells us whether the server
+                    // version is newer:
+                    // <ns3:rib ns3:version="2" ns3:id="1773260365">
+					Long localVersionNumber = Long.valueOf(chunkCurrent.getTag().getVal());
+					if (serverSkeleton.getVersion(sdtId) == null) {
+                        // Shouldn't need to worry about the std not being
+                        // present in the skeleton, since:
+                        // 1. we don't get this far if the object has been 
+                        //    deleted on the server
+                        // 2. this loop has already exited for new objects on the client 
+
+                        // so this is an error.
+
+                        log.error("Couldn't find key " + sdtId);						
+                        
+					} else if (localVersionNumber.longValue() < serverSkeleton.getVersion(sdtId).longValue()) {
+                        log.debug("Conflict (old local version) ! Local edit " + sdtId + " not committed.");
+                        someConflicted = true;
+                        continue;
 					}
+					
+                    if ( chunkCurrent.containsTrackedChanges()) {
+                        // This is a conflicting update, so don't transmit ours.
+                        // Keep a copy of what this user did in StateChunk
+                        // (so that 
+                        log.debug("Unresolved tracked change! Local edit " + sdtId + " not committed.");
+                        someTrackedConflicts = true;
+                        continue;
+                    }
 			
 					// TransformUpdate tu = new TransformUpdate();
 					// tu.attachSdt(chunkCurrent.getXml() );
@@ -1093,20 +1126,18 @@ public class Mediator {
 	    
 			if (transformsToSend.isEmpty()) {
 				boolean success = false;
-				
 				if (someConflicted) {
-					log.debug("There was one or more conflicts");
-					worker.setProgress(
-							TransmitProgress.DONE, 
-                		"There was one or more conflicts");
+					String message = 
+						"Done - Conflict warning: Fetch updates then accept/reject changes before trying again.";
+					worker.setProgress(TransmitProgress.DONE, message);					
+				} else if (someTrackedConflicts) {
+					String message =
+						"Done - Conflict warning: Accept/Reject changes before trying again.";
+					worker.setProgress(TransmitProgress.DONE, message);
 				} else {
-					log.debug("Nothing to send.");
-					worker.setProgress(
-							TransmitProgress.DONE, 
-                		"Nothing to send.");
+					worker.setProgress(TransmitProgress.DONE, "Nothing to send.");
 					success = true;
 				}
-				
 				return success;
 			}
 	    
@@ -1255,35 +1286,28 @@ public class Mediator {
 			someTransmitted = false;
 		}
 		
-		boolean success = true;
-        StringBuilder checkinResult = new StringBuilder();
-        if (someTransmitted)
-        {
-            checkinResult.append("Done - Your changes were transmitted successfully.");
-            if (someConflicted)
-            {
-            	checkinResult.append(" But there were one or more conflicts.");
-            	success = false;
-            }
+		boolean success = false;
+        String checkinResult = null;
+        
+        if (someConflicted) {
+        	checkinResult = 
+        		"Done - Conflict warning: Fetch updates then accept/reject changes before trying again.";
+        	
+        } else if (someTrackedConflicts) {
+        	checkinResult =
+        		"Done - Conflict warning: Accept/Reject changes before trying again."; 
+        	
+        } else if (someTransmitted) {
+        	checkinResult =
+        		"Done - Your changes were transmitted successfully.";
+        	success = true;
+        	
+        } else {
+        	checkinResult = "Your changes were NOT transmitted.";
         }
-        else
-        {
-        	success = false;
-            checkinResult.append("Some of your changes were NOT transmitted.");
-            if (someConflicted) // TODO - revisit!
-            {
-                checkinResult.append(" This is because there were conflicts.");
-            }
-            else
-            {
-            	checkinResult.append(" Fetch remote updates and try again.");
-            }
-        }
-
-        worker.setProgress(
-            	TransmitProgress.DONE, 
-            	checkinResult.toString());
-        return success;
+    	
+        worker.setProgress(TransmitProgress.DONE, checkinResult);
+    	return success;
 	}
 
 	void createTransformsForStructuralChanges(
