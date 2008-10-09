@@ -313,6 +313,26 @@ public class DocUtil {
 		}
 	}
 	
+	public static final boolean canInsertNewSdt(WordMLDocument doc, int offs) {
+		boolean canInsert = false;
+		
+		try {
+			doc.readLock();
+			
+			if (0 <= offs && offs <= doc.getLength()) {
+				DocumentElement paraE = 
+					(DocumentElement) doc.getParagraphMLElement(offs, false);
+				ElementML paraML = paraE.getElementML();
+				SdtBlockML sdt = ElementMLFactory.createSdtBlockML();
+				canInsert = paraML.canAddSibling(sdt, true);
+			}
+		} finally {
+			doc.readUnlock();
+		}
+		
+		return canInsert;
+	}
+	
 	public static final boolean canMergeSdt(WordMLDocument doc, int offs, int length) {
 		boolean canMerge = false;
 		
@@ -329,6 +349,23 @@ public class DocUtil {
 		return canMerge;
 	}
 	
+	/**
+	 * When an Sdt is split by WordMLEditorKit.SplitSdtAction,
+	 * each of its child element will be pulled out and moved
+	 * into a newly created Sdt. Therefore, an Sdt can be split 
+	 * if it has more than one child element.
+	 * 
+	 * This method determines whether the position range 
+	 * [offs, offs + length] defined by its parameters is 
+	 * hosted by an Sdt and the Sdt has more than one child
+	 * element.
+	 * 
+	 * @param doc
+	 * @param offs
+	 * @param length
+	 * @return true if there is a hosting Sdt and it can be split;
+	 *         false, otherwise.
+	 */
 	public static final boolean canSplitSdt(WordMLDocument doc, int offs, int length) {
 		boolean canSplit = false;
 		
@@ -533,28 +570,67 @@ public class DocUtil {
 		return offs;
 	}
 
-	public final static ElementML splitElementML(DocumentElement elem, int atIndex) {
-    	ElementML elemML = elem.getElementML();		
-		if (elem.getStartOffset() == elem.getEndOffset()
-			|| elemML.isImplied()
-			|| elem.getParentElement() == null
-			|| !(elemML instanceof ParagraphML
-				|| elemML instanceof RunML
-				|| elemML instanceof RunContentML)) {
-			throw new IllegalArgumentException("Invalid elem=" + elem);
-		}
-		
-		WordMLDocument doc = (WordMLDocument) elem.getDocument();
-		int offset = elem.getStartOffset() + atIndex;
+    /**
+     * To determine whether DocumentElement's ElementML can be split into two
+     * at 'atIndex' offset position.
+     * 
+     * @param elem
+     * @param atIndex
+     * @return true if ElementML can be split;
+     *         false, otherwise
+     */
+    public final static boolean canSplitElementML(DocumentElement elem, int atIndex) {
+    	if (elem.getStartOffset() == elem.getEndOffset()
+    		|| elem.getParentElement() == null) {
+    		throw new IllegalArgumentException("Invalid elem=" + elem);
+    	}
+    	
+    	int offset = elem.getStartOffset() + atIndex;
 		if (offset <= elem.getStartOffset()
 			|| elem.getEndOffset() <= offset) {
 			throw new IllegalArgumentException("Invalid atIndex=" + atIndex);
 		}
-		
-		int length = elem.getEndOffset() - offset;
+    	
+    	boolean canSplit = false;
+    	
+    	ElementML elemML = elem.getElementML();
+    	if (!elemML.isImplied()
+    		&& (elemML instanceof SdtBlockML
+    			|| elemML instanceof ParagraphML
+    			|| elemML instanceof RunML
+    			|| elemML instanceof RunContentML)) {
+    		
+    		WordMLDocument doc = (WordMLDocument) elem.getDocument();
+    		try {
+    			new TextSelector(doc, offset, elem.getEndOffset() - offset);
+    			canSplit = true;
+    		} catch (BadSelectionException exc) {
+    			//Leaf element at 'offset' position
+    			//may be not editable.
+    		}   		
+    	}
+    	
+    	return canSplit;
+    }
+    
+    /**
+     * Splits DocumentElement's ElementML into two at 'atIndex' offset position.
+     * These two resulting ElementML(s) will become siblings.
+     * One is the existing one and the other is newly created.
+     * 
+     * Please note that user is expected to call canSplitElementML() method 
+     * before executing this method.
+     * 
+     * @param elem
+     * @param atIndex
+     * @return the newly created sibling of DocumentElement's ElementML.
+     */
+	public final static ElementML splitElementML(DocumentElement elem, int atIndex) {
+		WordMLDocument doc = (WordMLDocument) elem.getDocument();
+		int offset = elem.getStartOffset() + atIndex;		
 		TextSelector ts = null;
 		try {
-			ts = new TextSelector(doc, offset, length);
+			ts = new TextSelector(doc, offset, elem.getEndOffset() - offset);
 		} catch (BadSelectionException exc) {
 			throw new IllegalArgumentException("Unable to split elem=" + elem);
 		}
@@ -572,7 +648,7 @@ public class DocUtil {
     		if (!leftML.isDummy()) {
 				try {
 					int start = tempE.getStartOffset();
-					length = tempE.getEndOffset() - start;
+					int length = tempE.getEndOffset() - start;
 					String text = doc.getText(start, length);
 					String left = text.substring(0, offset - start);
 					String right = text.substring(offset - start);
@@ -594,6 +670,7 @@ public class DocUtil {
 		}
     	list = null;
     	
+    	ElementML elemML = elem.getElementML();		
     	ElementML newSibling = null;
     	
     	if (elemML instanceof ParagraphML) {
