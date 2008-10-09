@@ -73,6 +73,10 @@ public class ElementMLFactory {
 		return docML;
 	}
 	
+	public final static ParagraphML createEmptyParagraphML() {
+		return createParagraphML(null, null, null);
+	}
+	
 	/**
 	 * Creates a ParagraphML whose children are specified in 'contents' param.
 	 * 
