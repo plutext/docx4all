@@ -339,9 +339,11 @@ public class DocUtil {
 		try {
 			doc.readLock();
 			
-			DocumentElement sdt = (DocumentElement) doc.getSdtBlockMLElement(offs);
-			canMerge = (sdt != null	&& sdt.getEndOffset() < (offs + length));
-			
+			Element elem = doc.getSdtBlockMLElement(offs);
+			if (elem != null && elem.getEndOffset() < (offs + length)) {
+				elem = elem.getParentElement();
+				canMerge = (offs + length) <= elem.getEndOffset();
+			}
 		} finally {
 			doc.readUnlock();
 		}
