@@ -186,12 +186,17 @@ public class WordMLDocument extends DefaultStyledDocument {
 				DocumentElement runE = (DocumentElement) getRunMLElement(pos);
 				RunML runML = (RunML) runE.getElementML();
 				
-				if (offset <= runE.getStartOffset()
+				if (!runE.isEditable()) {
+					;//pass
+					
+				} else if (offset <= runE.getStartOffset()
 					&& runE.getEndOffset() <= offset + length) {
 					runML.addAttributes(attrs, replace);
 					
 				} else if (runE.getStartOffset() < offset
-							&& offset + length < runE.getEndOffset()) {
+						&& offset + length < runE.getEndOffset()
+						&& DocUtil.canSplitElementML(runE, offset - runE.getStartOffset())
+						&& DocUtil.canSplitElementML(runE, (offset+length) - runE.getStartOffset())) {
 					try {
 						//Firstly, make a copy of RunML that spans from
 						//(offset+length) to runE.getEndOffset().
@@ -223,17 +228,21 @@ public class WordMLDocument extends DefaultStyledDocument {
 						;//ignore
 					}
 					
-				} else if (runE.getStartOffset() < offset) {
+				} else if (runE.getStartOffset() < offset
+						&& DocUtil.canSplitElementML(runE, offset - runE.getStartOffset())) {
 					int idx = offset - runE.getStartOffset();
 					RunML newSibling = 
 						(RunML) DocUtil.splitElementML(runE, idx);
 					newSibling.addAttributes(attrs, replace);
 					
-				} else {
+				} else if (DocUtil.canSplitElementML(runE, (offset+length) - runE.getStartOffset())) {
 					//ie: offset + length < runE.getEndOffset()
 					int idx = (offset + length) - runE.getStartOffset();
 					DocUtil.splitElementML(runE, idx);
 					runML.addAttributes(attrs, replace);
+					
+				} else {
+					;//pass
 				}
 				
 				lastEnd = runE.getEndOffset();
@@ -481,12 +490,17 @@ public class WordMLDocument extends DefaultStyledDocument {
 					DocumentElement runE = (DocumentElement) getRunMLElement(pos);
 					RunML runML = (RunML) runE.getElementML();
 
-					if (offset <= runE.getStartOffset()
+					if (!runE.isEditable()) {
+						;//pass
+						
+					} else if (offset <= runE.getStartOffset()
 							&& runE.getEndOffset() <= offset + length) {
 						runML.addAttributes(newAttrs, true);
 
 					} else if (runE.getStartOffset() < offset
-							&& offset + length < runE.getEndOffset()) {
+							&& offset + length < runE.getEndOffset()
+							&& DocUtil.canSplitElementML(runE, offset - runE.getStartOffset())
+							&& DocUtil.canSplitElementML(runE, (offset+length) - runE.getStartOffset())) {
 						try {
 							// Firstly, make a copy of RunML that spans from
 							// (offset+length) to runE.getEndOffset().
@@ -521,17 +535,21 @@ public class WordMLDocument extends DefaultStyledDocument {
 							;// ignore
 						}
 
-					} else if (runE.getStartOffset() < offset) {
+					} else if (runE.getStartOffset() < offset
+							&& DocUtil.canSplitElementML(runE, offset - runE.getStartOffset())) {
 						int idx = offset - runE.getStartOffset();
 						RunML newSibling = (RunML) DocUtil.splitElementML(runE,
 								idx);
 						newSibling.addAttributes(newAttrs, true);
 
-					} else {
+					} else if (DocUtil.canSplitElementML(runE, (offset+length) - runE.getStartOffset())) {
 						// ie: offset + length < runE.getEndOffset()
 						int idx = (offset + length) - runE.getStartOffset();
 						DocUtil.splitElementML(runE, idx);
 						runML.addAttributes(newAttrs, true);
+						
+					} else {
+						;//pass
 					}
 
 					lastEnd = runE.getEndOffset();
@@ -713,11 +731,15 @@ public class WordMLDocument extends DefaultStyledDocument {
 					//textE is a text element at Math.max(offset - 1, 0).
 					pasteRecordsBefore((RunML) runE.getElementML(), paraContentRecords);
 					
-				} else {
+				} else if (DocUtil.canSplitElementML(runE, offset - runE.getStartOffset())) {
 					//paste at somewhere inside runE.
 					//This necessitates splitting runE.
 					DocUtil.splitElementML(runE, offset	- runE.getStartOffset());
 					pasteRecordsAfter((RunContentML) textE.getElementML(), paraContentRecords);
+					
+				} else {
+					//Cannot paste
+					throw new BadLocationException("Cannot insert here", offset);					
 				}
 
 			} else if (paraContentRecords != null && paragraphRecords != null) {
@@ -903,6 +925,10 @@ public class WordMLDocument extends DefaultStyledDocument {
 				//paragraphRecords cannot become siblings of ParagraphML
 				throw new BadLocationException("Cannot insert here", offset);
 			}
+		}
+		
+		if (!DocUtil.canSplitElementML(paraE, offset - paraE.getStartOffset())) {
+			throw new BadLocationException("Cannot insert here", offset);
 		}
 		
 		//Split the content of 'paraE' at 'offset' position
