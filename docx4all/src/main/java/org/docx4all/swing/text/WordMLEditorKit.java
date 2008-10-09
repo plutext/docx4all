@@ -126,6 +126,8 @@ public class WordMLEditorKit extends DefaultEditorKit {
     
     public static final String selectPrevRevision = "select-prev-revision";
     
+    public static final String insertNewSdtAction = "insert-new-sdt";
+    
     public static final String mergeSdtAction = "merge-sdt";
     
     public static final String splitSdtAction = "split-sdt";
@@ -1918,8 +1920,81 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			}//if (editor != null)
 		}//actionPerformed()
 		
-	}//DeletePrevCharAction()
+	}//DeletePrevCharAction class
+    
+    public static class InsertNewSdtAction extends TextAction {
+    	private boolean success = false;
+    	
+		/* Create this object with the appropriate identifier. */
+    	public InsertNewSdtAction() {
+			super(insertNewSdtAction);
+		}
 
+		/** The operation to perform when this action is triggered. */
+		public void actionPerformed(ActionEvent e) {
+			final JTextComponent editor = getTextComponent(e);
+			if (editor instanceof WordMLTextPane) {
+				if (!editor.isEditable() 
+					|| !editor.isEnabled()
+					|| editor.getSelectionStart() < editor.getSelectionEnd()) {
+				    UIManager.getLookAndFeel().provideErrorFeedback(editor);
+				    return;
+				}
+				
+				WordMLTextPane textpane = (WordMLTextPane) editor;
+				WordMLEditorKit kit = 
+					(WordMLEditorKit) textpane.getEditorKit();
+				kit.saveCaretText();
+				
+				final WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+				int offset = textpane.getCaretPosition();
+				int pos = doc.getLength() - offset;
+								
+				try {
+					doc.lockWrite();
+					
+					if (DocUtil.canInsertNewSdt(doc, offset)) {
+						DocumentElement paraE = 
+							(DocumentElement) doc.getParagraphMLElement(offset, false);
+						ElementML paraML = paraE.getElementML();
+						SdtBlockML sdt = ElementMLFactory.createSdtBlockML();
+						sdt.addChild(ElementMLFactory.createEmptyParagraphML());
+						
+						if (offset == paraE.getStartOffset()) {
+							paraML.addSibling(sdt, false);
+							
+							doc.refreshParagraphs(offset, 1);
+							success = true;
+							
+						} else if (offset == paraE.getEndOffset() - 1) {
+							paraML.addSibling(sdt, true);
+							
+							doc.refreshParagraphs(offset, 1);
+							pos -= 1;
+							success = true;
+							
+						} else if (DocUtil.canSplitElementML(paraE, offset - paraE.getStartOffset())) {
+							DocUtil.splitElementML(paraE, (offset - paraE.getStartOffset()));
+							paraML.addSibling(sdt, true);
+							
+							doc.refreshParagraphs(offset, 1);
+							pos -= 1;
+							success = true;
+						}
+					}
+				} finally {
+					doc.unlockWrite();
+					textpane.setCaretPosition(doc.getLength() - pos);
+				}
+			}
+		}
+		
+		public boolean success() {
+			return this.success;
+		}
+		
+    } //InsertNewSdtAction class
+    
     public static class MergeSdtAction extends TextAction {
 
 		/* Create this object with the appropriate identifier. */
