@@ -48,18 +48,6 @@ public class ParagraphML extends ElementML {
 		super(docxObject, isDummy);
 	}
 	
-	public boolean canAddSibling(ElementML elem, boolean after) {
-		boolean canAdd = false;
-		
-		if (elem instanceof SdtBlockML) {
-			//TODO:Current implementation disallows this type of sibling
-		} else {
-			canAdd = super.canAddSibling(elem, after);
-		}
-		
-		return canAdd;
-	}
-	
     public void addAttributes(AttributeSet attrs, boolean replace) {
 		if (this.pPr == null) {
 			if (attrs.getAttributeCount() > 0) {
