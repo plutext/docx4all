@@ -2022,8 +2022,6 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				kit.saveCaretText();
 				
 				final WordMLDocument doc = (WordMLDocument) textpane.getDocument();
-				final DocumentElement root =
-					(DocumentElement) doc.getDefaultRootElement();
 				
 				try {
 					doc.lockWrite();
@@ -2037,12 +2035,14 @@ public class WordMLEditorKit extends DefaultEditorKit {
 							(DocumentElement) sdtBlockE.getElement(idx);
 						ElementML lastChild = elem.getElementML();
 					
-						//for each selected element below sdtBlockE
+						//for each selected sibling below sdtBlockE
 						//paste its content to 'lastChild'
-						int startIdx = root.getElementIndex(sdtBlockE.getEndOffset());
-						int endIdx = root.getElementIndex(end - 1);
+						DocumentElement parent = 
+							(DocumentElement) sdtBlockE.getParentElement();
+						int startIdx = parent.getElementIndex(sdtBlockE.getEndOffset());
+						int endIdx = parent.getElementIndex(end - 1);
 						while (startIdx <= endIdx) {
-							elem = (DocumentElement) root.getElement(endIdx);
+							elem = (DocumentElement) parent.getElement(endIdx);
 							ElementML ml = elem.getElementML();
 							ml.delete();
 						
