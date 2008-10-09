@@ -165,9 +165,11 @@ public class TextInserter implements TextProcessor {
 				newRun.addAttributes(newAttrs, true);
 				
 				if (runE.getStartOffset() < offset && offset < runE.getEndOffset()) {
-					if (elem != null && elem.isEditable()) {
+					int idx = offset - runE.getStartOffset();
+					if (elem != null 
+						&& elem.isEditable()
+						&& DocUtil.canSplitElementML(runE, idx)) {
 						//Has to be editable so that it can be split.
-						int idx = offset - runE.getStartOffset();
 						DocUtil.splitElementML(runE, idx);
 						runE.getElementML().addSibling(newRun, true);
 						
@@ -197,20 +199,23 @@ public class TextInserter implements TextProcessor {
 			throw new BadLocationException("Text is not editable.", offset);
 		}
 
-		DocumentElement paraE = (DocumentElement) doc.getParagraphMLElement(
-				offset, false);
+		DocumentElement paraE = 
+			(DocumentElement) doc.getParagraphMLElement(offset, false);
 		if (paraE.getStartOffset() == offset
 				|| offset == paraE.getEndOffset() - 1) {
 			//Create a new empty paragraph
 			boolean before = (paraE.getStartOffset() == offset);
 			insertNewEmptyParagraph(paraE, before);
-			
-		} else {
+			doc.refreshParagraphs(paraE.getStartOffset(), 1);		
+		
+		} else if (DocUtil.canSplitElementML(paraE, offset - paraE.getStartOffset())) {
 			//Split paragraph
 			DocUtil.splitElementML(paraE, offset - paraE.getStartOffset());
-		}
-				
-		doc.refreshParagraphs(paraE.getStartOffset(), 1);		
+			doc.refreshParagraphs(paraE.getStartOffset(), 1);		
+			
+		} else {
+			throw new BadLocationException("Cannot split Paragraph.", offset);
+		}		
 	}
 
 	private void insertNewEmptyParagraph(DocumentElement paraE, boolean before) {
