@@ -19,6 +19,7 @@
 
 package org.docx4all.swing.text;
 
+import java.awt.Toolkit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -34,6 +35,7 @@ import org.apache.log4j.Logger;
 import org.docx4all.xml.ObjectFactory;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.BooleanDefaultTrue;
+import org.docx4j.wml.CTBorder;
 import org.docx4j.wml.HpsMeasure;
 import org.docx4j.wml.Jc;
 import org.docx4j.wml.JcEnumeration;
@@ -41,7 +43,9 @@ import org.docx4j.wml.PPr;
 import org.docx4j.wml.RFonts;
 import org.docx4j.wml.RPr;
 import org.docx4j.wml.RStyle;
+import org.docx4j.wml.TblBorders;
 import org.docx4j.wml.TblPr;
+import org.docx4j.wml.TblWidth;
 import org.docx4j.wml.TcPr;
 import org.docx4j.wml.TrPr;
 import org.docx4j.wml.U;
@@ -64,6 +68,22 @@ public class StyleSheet extends StyleContext {
 	
     private static StyleSheet defaultStyleSheet;
     
+    public static final int toPixels(int twips) {
+    	int dpi = Toolkit.getDefaultToolkit().getScreenResolution();
+    	//one inch = 1440 twips = dpi pixels.
+    	//Therefore, one twip = dpi/1440 pixels.
+    	int conversionFactor = dpi / 1440;
+    	return twips * conversionFactor;
+    }
+    
+    public static final int toTwips(int pixels) {
+    	int dpi = Toolkit.getDefaultToolkit().getScreenResolution();
+    	//one inch = 1440 twips = dpi pixels.
+    	//Therefore, one twip = dpi/1440 pixels.
+    	int conversionFactor = 1440 / dpi;
+    	return pixels * conversionFactor;
+    }
+    
     public static final StyleSheet getDefaultStyleSheet() {
     	log.info("");
         if (defaultStyleSheet == null) {
@@ -75,8 +95,26 @@ public class StyleSheet extends StyleContext {
         return defaultStyleSheet;
     }
 
-	public final static void addAttributes(MutableAttributeSet attrs, TblPr pPr) {
-		//TODO: Put Table properties into 'attrs'
+	public final static void addAttributes(MutableAttributeSet attrs, TblPr tPr) {
+		//ALIGNMENT attribute
+		Jc jc = tPr.getJc();
+		addJc(attrs, jc);
+		jc = null;
+		
+		TblBorders tblBorders = tPr.getTblBorders();
+		if (tblBorders != null) {
+			org.docx4all.xml.type.TblBorders value = 
+				new org.docx4all.xml.type.TblBorders(tblBorders);
+			attrs.addAttribute(WordMLStyleConstants.TblBordersAttribute, value);
+		}
+		
+		TblWidth tw = tPr.getTblW();
+		if (tw != null) {
+			//tw.ge
+			//String type = 
+			
+		}
+		
 	}
 	
 	public final static void addAttributes(MutableAttributeSet attrs, TrPr pPr) {
@@ -90,25 +128,7 @@ public class StyleSheet extends StyleContext {
 	public final static void addAttributes(MutableAttributeSet attrs, PPr pPr) {
 		//ALIGNMENT attribute
 		Jc jc = pPr.getJc();
-		if (jc != null) {
-			if (jc.getVal() == JcEnumeration.LEFT) {
-				StyleConstants.setAlignment(
-						attrs,
-						StyleConstants.ALIGN_LEFT);
-			} else if (jc.getVal() == JcEnumeration.RIGHT) {
-				StyleConstants.setAlignment(
-						attrs,
-						StyleConstants.ALIGN_RIGHT);
-			} else if (jc.getVal() == JcEnumeration.CENTER) {
-				StyleConstants.setAlignment(
-						attrs,
-						StyleConstants.ALIGN_CENTER);
-			} else if (jc.getVal() == JcEnumeration.BOTH) {
-				StyleConstants.setAlignment(
-						attrs,
-						StyleConstants.ALIGN_JUSTIFIED);
-			}
-		}
+		addJc(attrs, jc);
 		
 		PStyle pStyle = pPr.getPStyle();
 		if (pStyle != null) {
@@ -174,6 +194,29 @@ public class StyleSheet extends StyleContext {
 		return hasUnderlineSet;
 	}
 
+	private final static void addJc(MutableAttributeSet attrs, Jc jc) {
+		if (jc == null) {
+			return;
+		}
+		if (jc.getVal() == JcEnumeration.LEFT) {
+			StyleConstants.setAlignment(
+					attrs,
+					StyleConstants.ALIGN_LEFT);
+		} else if (jc.getVal() == JcEnumeration.RIGHT) {
+			StyleConstants.setAlignment(
+					attrs,
+					StyleConstants.ALIGN_RIGHT);
+		} else if (jc.getVal() == JcEnumeration.CENTER) {
+			StyleConstants.setAlignment(
+					attrs,
+					StyleConstants.ALIGN_CENTER);
+		} else if (jc.getVal() == JcEnumeration.BOTH) {
+			StyleConstants.setAlignment(
+					attrs,
+					StyleConstants.ALIGN_JUSTIFIED);
+		}
+	}
+	
 	private WordprocessingMLPackage docPackage;
 	
 	public StyleSheet() {
