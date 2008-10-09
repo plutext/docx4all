@@ -24,6 +24,7 @@ import java.util.List;
 
 import javax.swing.JEditorPane;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.text.DefaultEditorKit;
 
 import org.docx4all.swing.ContentGroupingDialog;
@@ -34,6 +35,7 @@ import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.util.DocUtil;
 import org.jdesktop.application.Action;
+import org.jdesktop.application.ResourceMap;
 
 /**
  *	@author Jojada Tirtowidjojo - 28/11/2007
@@ -74,6 +76,11 @@ public class EditMenu extends UIMenu {
 	public final static String SETUP_SDT_ACTION_NAME = "setupSdt";
 	
 	/**
+	 * The action name of Insert New Sdt edit menu
+	 */
+	public final static String INSERT_NEW_SDT_ACTION_NAME = "insertNewSdt";
+	
+	/**
 	 * The action name of Merge Sdt edit menu
 	 */
 	public final static String MERGE_SDT_ACTION_NAME = "mergeSdt";
@@ -99,6 +106,7 @@ public class EditMenu extends UIMenu {
 	public final static String PASTE_ACTION_NAME = "paste";
 	
 	private static final String[] _menuItemActionNames = {
+		INSERT_NEW_SDT_ACTION_NAME,
 		MERGE_SDT_ACTION_NAME,
 		SPLIT_SDT_ACTION_NAME,
 		SEPARATOR_CODE,
@@ -143,6 +151,15 @@ public class EditMenu extends UIMenu {
 			toolbarStates.addPropertyChangeListener(
 				ToolBarStates.SPLIT_SDT_ENABLED_PROPERTY_NAME, 
 				new EnableOnEqual(theItem, Boolean.TRUE));
+		} else if (INSERT_NEW_SDT_ACTION_NAME.equals(actionName)) {
+			//This action is enabled when there's no text selection
+			//in editor. It is the opposite of Cut Action's enable state
+			//but can listen to the same ToolBarStates.CUT_ENABLED_PROPERTY_NAME
+			//property.
+			theItem.setEnabled(true);
+			toolbarStates.addPropertyChangeListener(
+					ToolBarStates.CUT_ENABLED_PROPERTY_NAME, 
+					new EnableOnEqual(theItem, Boolean.FALSE));			
 		} else if (CUT_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(toolbarStates.isCutEnabled());
 			toolbarStates.addPropertyChangeListener(
@@ -193,6 +210,21 @@ public class EditMenu extends UIMenu {
 				}
 			}
         }
+	}
+	
+	@Action public void insertNewSdt(ActionEvent evt) {
+		WordMLEditorKit.InsertNewSdtAction action =
+			new WordMLEditorKit.InsertNewSdtAction();
+		action.actionPerformed(evt);
+		if (!action.success()) {
+	        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);        
+	        ResourceMap rm = editor.getContext().getResourceMap(getClass());
+	        String title = 
+	        	rm.getString(INSERT_NEW_SDT_ACTION_NAME + ".Action.text");
+	        String message =
+	        	rm.getString(INSERT_NEW_SDT_ACTION_NAME + ".Action.failureMessage");
+	    	editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);			
+		}
 	}
     
 	@Action public void mergeSdt(ActionEvent evt) {
