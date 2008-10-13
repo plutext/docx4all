@@ -457,19 +457,10 @@ public class FileMenu extends UIMenu {
     	ResourceMap rm = editor.getContext().getResourceMap(getClass());
        
         JInternalFrame iframe = editor.getCurrentInternalFrame();
-        String filePath = 
+		String oldFilePath = 
 			(String) iframe.getClientProperty(WordMLDocument.FILE_PATH_PROPERTY);
         
-        FileObject file = null;
-        FileObject dir = null;
-        try {
-        	file = VFSUtils.getFileSystemManager().resolveFile(filePath);
-        	dir = file.getParent();
-        } catch (FileSystemException exc) {
-        	;//ignore
-        }
-
-        VFSJFileChooser chooser = createFileChooser(rm, dir, fileType);
+        VFSJFileChooser chooser = createFileChooser(rm, callerActionName, iframe, fileType);
         
         RETURN_TYPE returnVal = chooser.showSaveDialog((Component) actionEvent.getSource());
         if (returnVal == RETURN_TYPE.APPROVE) {
@@ -502,7 +493,7 @@ public class FileMenu extends UIMenu {
 						selectedFile.createFile();
 						newlyCreatedFile = true;
 						
-					} else if (!selectedFile.getName().getURI().equalsIgnoreCase(filePath)) {
+					} else if (!selectedFile.getName().getURI().equalsIgnoreCase(oldFilePath)) {
 			            String title = 
 			            	rm.getString(callerActionName + ".Action.text");
 			            String message =
@@ -562,10 +553,16 @@ public class FileMenu extends UIMenu {
 					if (success) {
 						if (Constants.DOCX_STRING.equals(fileType)) {
 							//If saving as .docx then update the document dirty flag 
-							//of toolbar states as well as internal frame title
+							//of toolbar states as well as internal frame title.
 							editor.getToolbarStates().setDocumentDirty(iframe, false);
 							editor.getToolbarStates().setLocalEditsEnabled(iframe, false);
-							editor.updateInternalFrame(file, selectedFile);
+					        FileObject file = null;
+					        try {
+					        	file = VFSUtils.getFileSystemManager().resolveFile(oldFilePath);
+								editor.updateInternalFrame(file, selectedFile);
+					        } catch (FileSystemException exc) {
+					        	;//ignore
+					        }
 						} else {
 							//Because document dirty flag is not cleared
 							//and internal frame title is not changed,
@@ -731,7 +728,34 @@ public class FileMenu extends UIMenu {
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         editor.exit();
     }
+    
+    private VFSJFileChooser createFileChooser(
+    	ResourceMap resourceMap,
+    	String callerActionName, 
+    	JInternalFrame iframe,
+    	String filteredFileExtension) {
+    	
+    	String filePath = null;
+    	if (EXPORT_AS_SHARED_DOC_ACTION_NAME.equals(callerActionName)) {
+            Preferences prefs = Preferences.userNodeForPackage( getClass() );
+            filePath = prefs.get(Constants.LAST_OPENED_FILE, Constants.EMPTY_STRING);
+    	} else {
+    		filePath = 
+    			(String) iframe.getClientProperty(WordMLDocument.FILE_PATH_PROPERTY);
+    	}
         
+        FileObject file = null;
+        FileObject dir = null;
+        try {
+        	file = VFSUtils.getFileSystemManager().resolveFile(filePath);
+        	dir = file.getParent();
+        } catch (FileSystemException exc) {
+        	;//ignore
+        }
+
+        return createFileChooser(resourceMap, dir, filteredFileExtension);
+    }
+    
     private VFSJFileChooser createFileChooser(
     	ResourceMap resourceMap, 
     	FileObject showedDir,
