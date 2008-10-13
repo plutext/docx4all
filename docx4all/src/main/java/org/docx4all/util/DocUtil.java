@@ -314,23 +314,51 @@ public class DocUtil {
 	}
 	
 	public static final boolean canInsertNewSdt(WordMLDocument doc, int offs) {
-		boolean canInsert = false;
+		SdtBlockML sdt = ElementMLFactory.createSdtBlockML();
+		boolean canInsert = (getElementToPasteAsSibling(doc, offs, sdt) != null);
+		return canInsert;
+	}
+	
+	public static final DocumentElement getElementToPasteAsSibling(
+		WordMLDocument doc, 
+		int offs, 
+		ElementML sibling) {
+		
+		DocumentElement theElem = null;
 		
 		try {
 			doc.readLock();
 			
 			if (0 <= offs && offs <= doc.getLength()) {
-				DocumentElement paraE = 
-					(DocumentElement) doc.getParagraphMLElement(offs, false);
-				ElementML paraML = paraE.getElementML();
-				SdtBlockML sdt = ElementMLFactory.createSdtBlockML();
-				canInsert = paraML.canAddSibling(sdt, true);
+				theElem = (DocumentElement) doc.getRunMLElement(offs);
+				ElementML ml = theElem.getElementML();
+				boolean canPaste = ml.canAddSibling(sibling, true);
+				
+				while (!canPaste) { 
+					//try parent element.
+					theElem = (DocumentElement) theElem.getParentElement();
+					ml = theElem.getElementML();
+					if (theElem != doc.getDefaultRootElement()) {
+						if (ml.isImplied()) {
+							//An implied ParagraphML for example.
+							//Go to next parent.
+						} else {
+							canPaste = ml.canAddSibling(sibling, true);
+						}
+					} else {
+						break;
+					}
+				}
+				
+				if (!canPaste) {
+					theElem = null;
+				}
 			}
 		} finally {
 			doc.readUnlock();
 		}
 		
-		return canInsert;
+		return theElem;
 	}
 	
 	public static final boolean canMergeSdt(WordMLDocument doc, int offs, int length) {
@@ -675,7 +703,43 @@ public class DocUtil {
     	ElementML elemML = elem.getElementML();		
     	ElementML newSibling = null;
     	
-    	if (elemML instanceof ParagraphML) {
+    	if (elemML instanceof SdtBlockML) {
+    		newSibling = ElementMLFactory.createSdtBlockML();
+    		
+    		List<ElementML> paragraphContents = new ArrayList<ElementML>();
+    		for (ElementML ml: deletedElementMLs) {
+    			if (!ml.isImplied()) {
+    				if (ml instanceof RunML
+    					|| ml instanceof RunContentML) {
+    					paragraphContents.add(ml);
+    				} else {
+    					newSibling.addChild(ml);
+    				}
+    			}
+    		}
+    		deletedElementMLs = null;
+    		
+    		if (!paragraphContents.isEmpty()) {
+        		tempE = (DocumentElement) doc.getParagraphMLElement(offset, false);
+            	ParagraphML paraML = (ParagraphML) tempE.getElementML();
+            	ParagraphPropertiesML pPr =
+            		(ParagraphPropertiesML) paraML.getParagraphProperties();
+            	if (pPr != null) {
+            		pPr = (ParagraphPropertiesML) pPr.clone();
+            	}
+            	
+            	tempE = (DocumentElement) doc.getRunMLElement(offset);
+            	RunML runML = (RunML) tempE.getElementML();
+            	RunPropertiesML rPr = 
+            		(RunPropertiesML) runML.getRunProperties();
+            	if (rPr != null) {
+            		rPr = (RunPropertiesML) rPr.clone();
+            	}
+            	ElementML newParaML = ElementMLFactory.createParagraphML(paragraphContents, pPr, rPr);
+            	newSibling.addChild(0, newParaML);
+    		}
+    		
+    	} else if (elemML instanceof ParagraphML) {
         	ParagraphML paraML = (ParagraphML) elemML;
         	ParagraphPropertiesML pPr =
         		(ParagraphPropertiesML) paraML.getParagraphProperties();
@@ -845,6 +909,36 @@ public class DocUtil {
 		Collections.sort(list);
 		
 		return list;
+	}
+	
+	public final static List<Integer> getOffsetsOfParagraphSignature(WordMLDocument doc) {
+		List<Integer> positions = new ArrayList<Integer>();
+		
+		try {
+			doc.readLock();
+			
+			String s = doc.getText(0, doc.getLength());
+			int idx = s.indexOf(Constants.GROUPING_SIGNATURE);
+			while (idx != -1) {
+				DocumentElement para =
+					(DocumentElement) doc.getParagraphMLElement(idx, false);
+				if (para.getStartOffset() == idx
+					&& para.getParentElement() == doc.getDefaultRootElement()) {
+					positions.add(Integer.valueOf(idx));
+				}
+				idx = s.indexOf(Constants.GROUPING_SIGNATURE, idx + 2);
+			}
+		} catch (BadLocationException exc) {
+			;//should not happen
+		} finally {
+			doc.readUnlock();
+		}
+		
+		if (positions.isEmpty()) {
+			positions = null;
+		}
+		
+		return positions;
 	}
 
 	public final static void displayXml(Document doc) {
