@@ -406,8 +406,8 @@ public class XmlUtil {
 				}					
 			}
 			
-			for (Integer i: indexes) {
-				list.remove(i.intValue());
+			for (int i = indexes.size()-1; 0 <= i; i--) {
+				list.remove(indexes.get(i).intValue());
 			}
 		}
 	}
