@@ -151,15 +151,16 @@ public class EditMenu extends UIMenu {
 			toolbarStates.addPropertyChangeListener(
 				ToolBarStates.SPLIT_SDT_ENABLED_PROPERTY_NAME, 
 				new EnableOnEqual(theItem, Boolean.TRUE));
-		} else if (INSERT_NEW_SDT_ACTION_NAME.equals(actionName)) {
-			//This action is enabled when there's no text selection
-			//in editor. It is the opposite of Cut Action's enable state
-			//but can listen to the same ToolBarStates.CUT_ENABLED_PROPERTY_NAME
-			//property.
-			theItem.setEnabled(true);
+		} else if (SETUP_SDT_ACTION_NAME.equals(actionName)) {
+			theItem.setEnabled(toolbarStates.isSetupSdtEnabled());
 			toolbarStates.addPropertyChangeListener(
-					ToolBarStates.CUT_ENABLED_PROPERTY_NAME, 
-					new EnableOnEqual(theItem, Boolean.FALSE));			
+				ToolBarStates.SETUP_SDT_ENABLED_PROPERTY_NAME, 
+				new EnableOnEqual(theItem, Boolean.TRUE));
+		} else if (INSERT_NEW_SDT_ACTION_NAME.equals(actionName)) {
+			theItem.setEnabled(toolbarStates.isInsertEmptySdtEnabled());
+			toolbarStates.addPropertyChangeListener(
+					ToolBarStates.INSERT_EMPTY_SDT_ENABLED_PROPERTY_NAME, 
+					new EnableOnEqual(theItem, Boolean.TRUE));			
 		} else if (CUT_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(toolbarStates.isCutEnabled());
 			toolbarStates.addPropertyChangeListener(
@@ -182,10 +183,15 @@ public class EditMenu extends UIMenu {
     
 	@Action public void setupSdt(ActionEvent evt) {
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        ResourceMap rm = editor.getContext().getResourceMap(getClass());
+        String title = 
+        	rm.getString(SETUP_SDT_ACTION_NAME + ".Action.text");
+        
         JEditorPane view = editor.getCurrentEditor();
         if (view instanceof WordMLTextPane) {
         	WordMLTextPane textpane = (WordMLTextPane) view;
         	WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+        	
         	List<String> styles = DocUtil.getDefinedParagraphStyles(doc);
         	
 			ContentGroupingDialog d = new ContentGroupingDialog(editor, styles);
@@ -204,8 +210,20 @@ public class EditMenu extends UIMenu {
 							d.isMergeSingleParagraphs());
 					action.actionPerformed(evt);
 				} else {
+					WordMLEditorKit kit = 
+						(WordMLEditorKit) textpane.getEditorKit();
+					kit.saveCaretText();
+					
+					List<Integer> positions = DocUtil.getOffsetsOfParagraphSignature(doc);
+					if (positions == null) {
+						String message =
+							rm.getString(SETUP_SDT_ACTION_NAME + ".Action.noSignatureMessage");
+						editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
+						return;
+					}
+					
 					WordMLEditorKit.CreateSdtOnSignedParaAction action =
-						new WordMLEditorKit.CreateSdtOnSignedParaAction();
+						new WordMLEditorKit.CreateSdtOnSignedParaAction(positions);
 					action.actionPerformed(evt);
 				}
 			}
