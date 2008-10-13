@@ -1953,34 +1953,36 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				try {
 					doc.lockWrite();
 					
-					if (DocUtil.canInsertNewSdt(doc, offset)) {
-						DocumentElement paraE = 
-							(DocumentElement) doc.getParagraphMLElement(offset, false);
-						ElementML paraML = paraE.getElementML();
-						SdtBlockML sdt = ElementMLFactory.createSdtBlockML();
-						sdt.addChild(ElementMLFactory.createEmptyParagraphML());
-						
-						if (offset == paraE.getStartOffset()) {
-							paraML.addSibling(sdt, false);
-							
-							doc.refreshParagraphs(offset, 1);
-							success = true;
-							
-						} else if (offset == paraE.getEndOffset() - 1) {
-							paraML.addSibling(sdt, true);
-							
-							doc.refreshParagraphs(offset, 1);
-							pos -= 1;
-							success = true;
-							
-						} else if (DocUtil.canSplitElementML(paraE, offset - paraE.getStartOffset())) {
-							DocUtil.splitElementML(paraE, (offset - paraE.getStartOffset()));
-							paraML.addSibling(sdt, true);
-							
-							doc.refreshParagraphs(offset, 1);
-							pos -= 1;
-							success = true;
-						}
+					SdtBlockML sdt = ElementMLFactory.createSdtBlockML();
+					sdt.addChild(ElementMLFactory.createEmptyParagraphML());
+
+					DocumentElement elem = 
+						DocUtil.getElementToPasteAsSibling(doc, offset, sdt);
+					if (elem == null) {
+						return;
+					}
+					
+					if (offset == elem.getStartOffset()) {
+						elem.getElementML().addSibling(sdt, false);
+
+						doc.refreshParagraphs(offset, 1);
+						pos += 1;
+						success = true;
+
+					} else if (offset == elem.getEndOffset() - 1) {
+						elem.getElementML().addSibling(sdt, true);
+
+						doc.refreshParagraphs(offset, 1);
+						success = true;
+
+					} else if (elem.getElementML() instanceof ParagraphML
+							&& DocUtil.canSplitElementML(elem, offset - elem.getStartOffset())) {
+						DocUtil.splitElementML(elem, (offset - elem.getStartOffset()));
+						elem.getElementML().addSibling(sdt, true);
+
+						doc.refreshParagraphs(offset, 1);
+						pos += 1;
+						success = true;
 					}
 				} finally {
 					doc.unlockWrite();
@@ -2381,11 +2383,17 @@ public class WordMLEditorKit extends DefaultEditorKit {
     } //CreateSdtOnStylesAction()
     
     public static class CreateSdtOnSignedParaAction extends TextAction {
-    	private List<DocumentElement> sdtContentCandidates;
+    	private List<Integer> signaturePositions;
     	
-		/* Create this object with the appropriate identifier. */
-    	public CreateSdtOnSignedParaAction() {
+    	public CreateSdtOnSignedParaAction(List<Integer> signaturePositions) {
 			super(createSdtOnSignedParaAction);
+			this.signaturePositions = signaturePositions;
+			if (this.signaturePositions.get(0).intValue() != 0) {
+				//Make this.signaturePositions always start from 0(zero)
+				//because each signature position will be a sign to 
+				//this action for creating a new Sdt.
+				this.signaturePositions.add(0, Integer.valueOf(0));
+			}
 		}
 
 		/** The operation to perform when this action is triggered. */
@@ -2406,73 +2414,65 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				try {
 					doc.lockWrite();
 					
-					prepare(doc);
+					final DocumentElement root =
+						(DocumentElement) doc.getDefaultRootElement();
+		        	DocumentML docML = (DocumentML) root.getElementML();
+		        	WordprocessingMLPackage wmlPackage = 
+		        		docML.getWordprocessingMLPackage();
+		        	XmlUtil.setPlutextGroupingProperty(
+		        		wmlPackage, 
+		        		Constants.OTHER_GROUPING_STRATEGY);
+		       
+					int listIdx = 0;
+					int elemIdx = 0;
+		        	int signedElemIdx = 
+		        		root.getElementIndex(
+							this.signaturePositions.get(0));
+					SdtBlockML sdt = null;
 					
-					if (!this.sdtContentCandidates.isEmpty()) {
-						boolean refresh = false;
-						SdtBlockML sdt = ElementMLFactory.createSdtBlockML();
+					while (elemIdx < root.getElementCount() - 1) {
+						DocumentElement elem = 
+							(DocumentElement) root.getElement(elemIdx);
+						ElementML ml = elem.getElementML();
 						
-						for (DocumentElement elem: this.sdtContentCandidates) {
-							ElementML ml = elem.getElementML();
-							ElementML parent = ml.getParent();
-							int idx = parent.getChildIndex(ml);
-
-							if (parent.canAddChild(idx, sdt)) {
-								ml.delete();
-								if (sdt.canAddChild(ml)) {
-									//Remove the signature characters
-									RunContentML run = XmlUtil.getFirstRunContentML(ml);
-									String text = run.getTextContent().substring(2);
-									run.setTextContent(text);
-									
-									//put in sdt
-									sdt.addChild(ml);
-									ml = sdt;
-									refresh = true;
-									
-									//prepare a new one
-									sdt = ElementMLFactory.createSdtBlockML();
-								}
-								
-								parent.addChild(idx, ml);							
+						if (elemIdx == signedElemIdx) {
+							//create a new sdt
+							sdt = ElementMLFactory.createSdtBlockML();
+							//Remove signature characters, if any.
+							//Note that paragraph at signedElemIdx == 0
+							//may not contain signature characters.
+							//See: this action's constructor.
+							RunContentML run = XmlUtil.getFirstRunContentML(ml);
+							String text = run.getTextContent();
+							if (text.startsWith(Constants.GROUPING_SIGNATURE)) {
+								text = text.substring(2);
+								run.setTextContent(text);
 							}
-						} //for (elem)
+							ml.addSibling(sdt, false);
 						
-						if (refresh) {
-							doc.refreshParagraphs(0, doc.getLength());
+							if (listIdx + 1 <= this.signaturePositions.size() - 1) {
+								listIdx++;
+								signedElemIdx =
+									root.getElementIndex(
+										this.signaturePositions.get(listIdx));
+							}
 						}
+						
+						ml.delete();
+						//put in sdt
+						sdt.addChild(ml);
+						
+						elemIdx++;
 					}
+						
+					doc.refreshParagraphs(0, doc.getLength());
+					
 				} finally {
 					doc.unlockWrite();
 				}
 			}
 		}
 		
-		private void prepare(WordMLDocument doc) {
-			this.sdtContentCandidates = new ArrayList<DocumentElement>();
-			
-			DocumentElement root =
-				(DocumentElement) doc.getDefaultRootElement();
-        	DocumentML docML = (DocumentML) root.getElementML();
-        	WordprocessingMLPackage wmlPackage = docML.getWordprocessingMLPackage();
-        	XmlUtil.setPlutextGroupingProperty(
-        		wmlPackage, 
-        		Constants.OTHER_GROUPING_STRATEGY);
-        	
-			DocumentElement paraE = 
-				(DocumentElement) doc.getParagraphMLElement(0, false);
-			while (paraE.getStartOffset() < doc.getLength()) {
-				try {
-					String s = doc.getText(paraE.getStartOffset(), 2);
-					if (s.startsWith("<<")) {
-						this.sdtContentCandidates.add(paraE);
-					}
-				} catch (BadLocationException exc) {
-					;//should not happen
-				}
-				paraE = (DocumentElement) doc.getParagraphMLElement(paraE.getEndOffset(), false);
-			} //while (paraE.getStartOffset() < doc.getLength())
-		}
     } //CreateSdtOnSignedParagraphAction()
 
 }// WordMLEditorKit class
