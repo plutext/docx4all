@@ -60,6 +60,8 @@ public interface Constants {
 	public final static String EACH_BLOCK_GROUPING_STRATEGY = "EachBlock";
 	public final static String OTHER_GROUPING_STRATEGY = "Other";
 	
+	public final static String GROUPING_SIGNATURE = "<<";
+	
 	//=====================
 	//Resource property keys
 	//=====================
