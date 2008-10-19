@@ -68,7 +68,7 @@ public class FxScriptUIHelper {
 
     public JPanel createEditorPanel(JEditorPane editorView) {
     	Map<String, Object> params = new HashMap<String, Object>();
-    	params.put("editorView:org.docx4all.swing.WordMLTextPane", editorView);
+    	params.put("editorView:javax.swing.JEditorPane", editorView);
     	
     	JPanel panel = (JPanel) _fxEngine.run(FxScript.CREATE_EDITOR_PANEL_FX, params);
     	return panel;
@@ -77,14 +77,14 @@ public class FxScriptUIHelper {
     public JTabbedPane createEditorTabbedPanel(
     	WordMLTextPane editorView,
     	String editorViewTabTitle,
-    	JEditorPane sourceView,
-    	String sourceViewTabTitle) {
+    	JEditorPane secondView,
+    	String secondViewTabTitle) {
     	
     	Map<String, Object> params = new HashMap<String, Object>();
-    	params.put("editorView:org.docx4all.swing.WordMLTextPane", editorView);
-    	params.put("editorViewTabTitle:java.lang.String", editorViewTabTitle);
-    	params.put("sourceView:javax.swing.JEditorPane", sourceView);
-    	params.put("sourceViewTabTitle:java.lang.String", sourceViewTabTitle);
+    	params.put("firstView:javax.swing.JEditorPane", editorView);
+    	params.put("firstViewTabTitle:java.lang.String", editorViewTabTitle);
+    	params.put("secondView:javax.swing.JEditorPane", secondView);
+    	params.put("secondViewTabTitle:java.lang.String", secondViewTabTitle);
     	
     	JTabbedPane panel = (JTabbedPane) _fxEngine.run(FxScript.CREATE_EDITOR_TABBED_PANEL_FX, params);
     	return panel;
