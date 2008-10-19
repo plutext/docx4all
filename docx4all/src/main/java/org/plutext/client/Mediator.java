@@ -19,6 +19,7 @@
 
 package org.plutext.client;
 
+import java.io.StringReader;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,9 +28,12 @@ import java.util.List;
 import java.util.Map;
 
 import javax.swing.SwingUtilities;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.rpc.ServiceException;
+import javax.xml.transform.stream.StreamSource;
 
 import org.alfresco.webservice.authentication.AuthenticationFault;
 import org.alfresco.webservice.util.AuthenticationUtils;
@@ -43,10 +47,12 @@ import org.docx4all.swing.TransmitLocalEditsWorker.TransmitProgress;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.util.DocUtil;
+import org.docx4all.util.XmlUtil;
 import org.docx4all.vfs.WebdavUri;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.SdtBlockML;
 import org.docx4j.XmlUtils;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.Tag;
 import org.plutext.Context;
 import org.plutext.client.diffengine.DiffEngine;
@@ -1626,6 +1632,73 @@ public class Mediator {
 		}
 	}
 
+	/* ****************************************************************************************
+	 *          VERSION HISTORY
+	 * **************************************************************************************** */
+	public WordprocessingMLPackage getVersionHistory(String sdtId) throws RemoteException {
+		WordprocessingMLPackage theHistory = null;
+		
+		String historyString = ws.reportVersionHistory(this.stateDocx.getDocID(), sdtId);
+		log.debug("getVersionHistory(): historyString = " + historyString);
+		
+		try {
+			JAXBContext jc = org.docx4j.jaxb.Context.jcXmlPackage;
+
+			Unmarshaller u = jc.createUnmarshaller();
+						
+			u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());
+
+			StreamSource src = new StreamSource(new StringReader(historyString));
+			Object o = u.unmarshal(src); 
+			org.docx4j.xmlPackage.Package xmlPackage 
+				= (org.docx4j.xmlPackage.Package)((JAXBElement<?>)o).getValue();
+					
+			org.docx4j.convert.in.XmlPackage inWorker = 
+				new org.docx4j.convert.in.XmlPackage(xmlPackage);
+			
+			theHistory = (WordprocessingMLPackage) inWorker.get();
+			
+		} catch (Exception exc) {
+			exc.printStackTrace();
+		}
+		
+		return theHistory;
+    }
+
+	/* ****************************************************************************************
+	 *          REPORT RECENT CHANGES
+	 * **************************************************************************************** */
+	public WordprocessingMLPackage getRecentChangesReport() throws RemoteException {
+		WordprocessingMLPackage theReport = null;
+		
+		String reportString = ws.reportRecentChanges(this.stateDocx.getDocID());
+	    log.debug("Recent changes: " + reportString);
+	    
+		try {
+			JAXBContext jc = org.docx4j.jaxb.Context.jcXmlPackage;
+
+			Unmarshaller u = jc.createUnmarshaller();
+						
+			u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());
+
+			StreamSource src = new StreamSource(new StringReader(reportString));
+			Object o = u.unmarshal(src); 
+			org.docx4j.xmlPackage.Package xmlPackage 
+				= (org.docx4j.xmlPackage.Package)((JAXBElement<?>)o).getValue();
+					
+			org.docx4j.convert.in.XmlPackage inWorker = 
+				new org.docx4j.convert.in.XmlPackage(xmlPackage);
+			
+			theReport = (WordprocessingMLPackage) inWorker.get();
+			theReport = XmlUtil.export(theReport);
+			
+		} catch (Exception exc) {
+			exc.printStackTrace();
+		}
+		
+		return theReport;
+	}
+	
 	private void updateLocalContentControlTag(String sdtId, Tag tag) {
 		WordMLDocument doc = getWordMLDocument();
 		DocumentElement elem = Util.getDocumentElement(doc, sdtId);
