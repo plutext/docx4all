@@ -26,7 +26,7 @@ import org.docx4all.script.fx.ui.widget.ScrollableEditorPane;
 
 import javafx.ui.HorizontalScrollBarPolicy;
 
-var editorView = editorView:<<org.docx4all.swing.WordMLTextPane>>;
+var editorView = editorView:<<javax.swing.JEditorPane>>;
 
 var editorPanel = EditorPanel {
     editorPane: ScrollableEditorPane {
