@@ -28,28 +28,28 @@ import javafx.ui.HorizontalScrollBarPolicy;
 import javafx.ui.Tab;
 import javafx.ui.TabbedPane;
 
-var editorView = editorView:<<org.docx4all.swing.WordMLTextPane>>;
-var editorViewTabTitle = editorViewTabTitle:<<java.lang.String>>;
-var sourceView = sourceView:<<javax.swing.JEditorPane>>;
-var sourceViewTabTitle = sourceViewTabTitle:<<java.lang.String>>;
+var firstView = firstView:<<javax.swing.JEditorPane>>;
+var firstViewTabTitle = firstViewTabTitle:<<java.lang.String>>;
+var secondView = secondView:<<javax.swing.JEditorPane>>;
+var secondViewTabTitle = secondViewTabTitle:<<java.lang.String>>;
 
 var tabbedPane = TabbedPane {
     tabs: [
         Tab {
-            var editorView = ScrollableEditorPane {
-                        editor: editorView
+            var firstViewPane = ScrollableEditorPane {
+                        editor: firstView
                         horizontalScrollBarPolicy: NEVER:HorizontalScrollBarPolicy
             }
-            content: EditorPanel {editorPane: editorView}
-            title: editorViewTabTitle
+            content: EditorPanel {editorPane: firstViewPane}
+            title: firstViewTabTitle
         },
         Tab {
-            var sourceView = ScrollableEditorPane {
-                        editor: sourceView
+            var secondViewPane = ScrollableEditorPane {
+                        editor: secondView
                         horizontalScrollBarPolicy: NEVER:HorizontalScrollBarPolicy
             }
-            content: EditorPanel {editorPane: sourceView}
-            title: sourceViewTabTitle
+            content: EditorPanel {editorPane: secondViewPane}
+            title: secondViewTabTitle
         }
     ]
 };
