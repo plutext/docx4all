@@ -81,6 +81,8 @@ public class ToolBarStates extends InternalFrameAdapter
 	
 	public final static String CURRENT_EDITOR_PROPERTY_NAME = "currentEditor";
 	
+	public final static String CARET_UPDATE_PROPERTY_NAME = "caretUpdate";
+	
 	public final static String CUT_ENABLED_PROPERTY_NAME = "cutEnabled";
 	public final static String COPY_ENABLED_PROPERTY_NAME = "copyEnabled";
 	public final static String PASTE_ENABLED_PROPERTY_NAME = "pastedEnabled";
@@ -108,7 +110,6 @@ public class ToolBarStates extends InternalFrameAdapter
 	
 	public final static String INSERT_EMPTY_SDT_ENABLED_PROPERTY_NAME = "insertEmptySdt";
 	public final static String MERGE_SDT_ENABLED_PROPERTY_NAME = "mergeSdtEnabled";
-	public final static String SPLIT_SDT_ENABLED_PROPERTY_NAME = "splitSdtEnabled";
 	public final static String SETUP_SDT_ENABLED_PROPERTY_NAME = "setupSdtEnabled";
 	
 	private final Hashtable<JInternalFrame, Boolean> _dirtyTable;
@@ -120,7 +121,7 @@ public class ToolBarStates extends InternalFrameAdapter
 	private volatile boolean _fontBold, _fontItalic, _fontUnderlined;
 	private volatile boolean _isCutEnabled, _isCopyEnabled, _isPasteEnabled;
 	private volatile boolean _isInsertEmptySdtEnabled;
-	private volatile boolean _isMergeSdtEnabled, _isSplitSdtEnabled, _isSetupSdtEnabled;
+	private volatile boolean _isMergeSdtEnabled, _isSetupSdtEnabled;
 	private volatile boolean _filterApplied;
 	private volatile Boolean _isDocumentShared;
 	private volatile boolean _isRevisionSelected;
@@ -147,7 +148,6 @@ public class ToolBarStates extends InternalFrameAdapter
 		_isPasteEnabled = false;
 		_isInsertEmptySdtEnabled = false;
 		_isMergeSdtEnabled = false;
-		_isSplitSdtEnabled = false;
 		_isSetupSdtEnabled = false;
 		_filterApplied = true;
 		_isDocumentShared = null;
@@ -495,29 +495,6 @@ public class ToolBarStates extends InternalFrameAdapter
 			Boolean.valueOf(enabled));
 	}
 	
-	public boolean isSplitSdtEnabled() {
-		return _isSplitSdtEnabled;
-	}
-	
-	public void setSplitSdtEnabled(boolean enabled) {
-		if (log.isDebugEnabled()) {
-			log.debug("setSplitSdtEnabled(): _isSplitSdtEnabled = " 
-				+ _isSplitSdtEnabled + " enabled param = " + enabled);
-		}
-	
-		if (_isSplitSdtEnabled == enabled) {
-			return;
-		}
-		
-		boolean oldValue = _isSplitSdtEnabled;
-		_isSplitSdtEnabled = enabled;
-		
-		firePropertyChange(
-			SPLIT_SDT_ENABLED_PROPERTY_NAME, 
-			Boolean.valueOf(oldValue), 
-			Boolean.valueOf(enabled));
-	}
-	
 	public boolean isSetupSdtEnabled() {
 		return _isSetupSdtEnabled;
 	}
@@ -774,7 +751,6 @@ public class ToolBarStates extends InternalFrameAdapter
         	WordMLDocument doc = (WordMLDocument) textpane.getDocument();
         	setInsertEmptySdtEnabled((start == end));
         	setMergeSdtEnabled(DocUtil.canMergeSdt(doc, start, (end-start)));
-        	setSplitSdtEnabled(DocUtil.canSplitSdt(doc, start, (end-start)));
         	setSetupSdtEnabled(DocUtil.getChunkingStrategy(doc) == null);
         	
     	} else {
@@ -786,7 +762,6 @@ public class ToolBarStates extends InternalFrameAdapter
         	
         	setInsertEmptySdtEnabled(false);
         	setMergeSdtEnabled(false);
-        	setSplitSdtEnabled(false);
         	setSetupSdtEnabled(false);
     	}
 	}	
@@ -1053,6 +1028,10 @@ public class ToolBarStates extends InternalFrameAdapter
     		setCurrentEditor((JEditorPane) e.getSource());
     	}
     	
+		firePropertyChange(
+			CARET_UPDATE_PROPERTY_NAME, 
+			null, 
+			new CaretEventImpl((JEditorPane) e.getSource()));
     }
 
     /**
@@ -1062,6 +1041,7 @@ public class ToolBarStates extends InternalFrameAdapter
     	if (log.isDebugEnabled()) {
     		log.debug("focusLost():");
     	}
+		firePropertyChange(CARET_UPDATE_PROPERTY_NAME, null, null);
     }
     
 	//===============================
@@ -1197,6 +1177,8 @@ public class ToolBarStates extends InternalFrameAdapter
         	setFormatInfo(null, null, SimpleAttributeSet.EMPTY);
         	//Bring up default setting
     		setDefaultFormatInfo();
+    		
+    		firePropertyChange(CARET_UPDATE_PROPERTY_NAME, null, null);
     	}
     }
 
@@ -1240,7 +1222,6 @@ public class ToolBarStates extends InternalFrameAdapter
         		WordMLDocument doc = (WordMLDocument) _currentEditor.getDocument();
         		setInsertEmptySdtEnabled(!hasSelection);
        			setMergeSdtEnabled(DocUtil.canMergeSdt(doc, start, (end-start)));
-       			setSplitSdtEnabled(DocUtil.canSplitSdt(doc, start, (end-start)));
        			setSetupSdtEnabled(DocUtil.getChunkingStrategy(doc) == null);
        			
         		hasSelection = 
@@ -1254,13 +1235,27 @@ public class ToolBarStates extends InternalFrameAdapter
         	} else {
         		setInsertEmptySdtEnabled(false);
         		setMergeSdtEnabled(false);
-        		setSplitSdtEnabled(false);
         		setSetupSdtEnabled(false);
             	setRevisionSelected(Boolean.FALSE);	    
         	}
         	
+    		firePropertyChange(CARET_UPDATE_PROPERTY_NAME, null, e);
     	}
 	}
+	
+	private static class CaretEventImpl extends CaretEvent {
+		CaretEventImpl(JEditorPane source) {
+			super(source);
+		}
+		
+	    public int getDot() {
+	    	return ((JEditorPane) source).getCaret().getDot();
+	    }
+		
+		public int getMark() {
+			return ((JEditorPane) source).getCaret().getMark();
+		}
+	} //CaretEventImpl inner class	
 
 }// ToolBarStates class
 
