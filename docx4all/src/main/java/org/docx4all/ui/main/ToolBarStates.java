@@ -80,6 +80,7 @@ public class ToolBarStates extends InternalFrameAdapter
 	public final static String DOC_SHARED_PROPERTY_NAME = "documentShared";
 	
 	public final static String CURRENT_EDITOR_PROPERTY_NAME = "currentEditor";
+	public final static String EDITOR_IN_FOCUS_PROPERTY_NAME = "editorInFocus";
 	
 	public final static String CARET_UPDATE_PROPERTY_NAME = "caretUpdate";
 	
@@ -108,20 +109,14 @@ public class ToolBarStates extends InternalFrameAdapter
 	public final static String REVISION_SELECTED_PROPERTY_NAME = "revisionSelected";
 	public final static String REMOTE_REVISION_IN_PARA_PROPERTY_NAME = "remoteRevisionInPara";
 	
-	public final static String INSERT_EMPTY_SDT_ENABLED_PROPERTY_NAME = "insertEmptySdt";
-	public final static String MERGE_SDT_ENABLED_PROPERTY_NAME = "mergeSdtEnabled";
-	public final static String SETUP_SDT_ENABLED_PROPERTY_NAME = "setupSdtEnabled";
-	
 	private final Hashtable<JInternalFrame, Boolean> _dirtyTable;
 	private final Hashtable<JEditorPane, Boolean> _localEditsTable;
 	
-	private volatile JEditorPane _currentEditor;
+	private volatile JEditorPane _currentEditor, _editorInFocus;
 	private volatile String _fontFamily;
 	private volatile int _fontSize;
 	private volatile boolean _fontBold, _fontItalic, _fontUnderlined;
 	private volatile boolean _isCutEnabled, _isCopyEnabled, _isPasteEnabled;
-	private volatile boolean _isInsertEmptySdtEnabled;
-	private volatile boolean _isMergeSdtEnabled, _isSetupSdtEnabled;
 	private volatile boolean _filterApplied;
 	private volatile Boolean _isDocumentShared;
 	private volatile boolean _isRevisionSelected;
@@ -146,9 +141,6 @@ public class ToolBarStates extends InternalFrameAdapter
 		_isCutEnabled = false;
 		_isCopyEnabled = false;
 		_isPasteEnabled = false;
-		_isInsertEmptySdtEnabled = false;
-		_isMergeSdtEnabled = false;
-		_isSetupSdtEnabled = false;
 		_filterApplied = true;
 		_isDocumentShared = null;
 		_hasNonConflictingChanges = null;
@@ -230,7 +222,7 @@ public class ToolBarStates extends InternalFrameAdapter
 		_dirtyTable.put(iframe, newDirty);
 		
 		if (iframe == getCurrentInternalFrame()) {
-			firePropertyChange(DOC_DIRTY_PROPERTY_NAME, Boolean.valueOf(isDirty), newDirty);
+			firePropertyChange(DOC_DIRTY_PROPERTY_NAME, isDirty, newDirty);
 		}
 
 		//Check the resulting isAnyDocumentDirty() state
@@ -449,75 +441,6 @@ public class ToolBarStates extends InternalFrameAdapter
 			Boolean.valueOf(enabled));
 	}
 	
-	public boolean isInsertEmptySdtEnabled() {
-		return _isInsertEmptySdtEnabled;
-	}
-	
-	public void setInsertEmptySdtEnabled(boolean enabled) {
-		if (log.isDebugEnabled()) {
-			log.debug("setInsertEmptySdtEnabled(): _isInsertEmptySdtEnabled = " 
-				+ _isInsertEmptySdtEnabled + " enabled param = " + enabled);
-		}
-	
-		if (_isInsertEmptySdtEnabled == enabled) {
-			return;
-		}
-		
-		boolean oldValue = _isInsertEmptySdtEnabled;
-		_isInsertEmptySdtEnabled = enabled;
-		
-		firePropertyChange(
-			INSERT_EMPTY_SDT_ENABLED_PROPERTY_NAME, 
-			Boolean.valueOf(oldValue), 
-			Boolean.valueOf(enabled));
-	}
-	
-	public boolean isMergeSdtEnabled() {
-		return _isMergeSdtEnabled;
-	}
-	
-	public void setMergeSdtEnabled(boolean enabled) {
-		if (log.isDebugEnabled()) {
-			log.debug("setMergeSdtEnabled(): _isMergeSdtEnabled = " 
-				+ _isMergeSdtEnabled + " enabled param = " + enabled);
-		}
-	
-		if (_isMergeSdtEnabled == enabled) {
-			return;
-		}
-		
-		boolean oldValue = _isMergeSdtEnabled;
-		_isMergeSdtEnabled = enabled;
-		
-		firePropertyChange(
-			MERGE_SDT_ENABLED_PROPERTY_NAME, 
-			Boolean.valueOf(oldValue), 
-			Boolean.valueOf(enabled));
-	}
-	
-	public boolean isSetupSdtEnabled() {
-		return _isSetupSdtEnabled;
-	}
-	
-	public void setSetupSdtEnabled(boolean enabled) {
-		if (log.isDebugEnabled()) {
-			log.debug("setSetupSdtEnabled(): _isSetupSdtEnabled = " 
-				+ _isSetupSdtEnabled + " enabled param = " + enabled);
-		}
-	
-		if (_isSetupSdtEnabled == enabled) {
-			return;
-		}
-		
-		boolean oldValue = _isSetupSdtEnabled;
-		_isSetupSdtEnabled = enabled;
-		
-		firePropertyChange(
-			SETUP_SDT_ENABLED_PROPERTY_NAME, 
-			Boolean.valueOf(oldValue), 
-			Boolean.valueOf(enabled));
-	}
-	
 	public boolean isRevisionSelected() {
 		return _isRevisionSelected;
 	}
@@ -695,6 +618,23 @@ public class ToolBarStates extends InternalFrameAdapter
 		return getInternalFrame(_currentEditor);
 	}
 	
+	public JEditorPane getEditorInFocus() {
+		return _editorInFocus;
+	}
+	
+	public void setEditorInFocus(JEditorPane editor) {
+		if (log.isDebugEnabled()) {
+			log.debug("setEditorInFocus(): _editorInFocus = " + _editorInFocus);
+			log.debug("setEditorInFocus(): param = " + editor);
+		}
+		if (editor == _editorInFocus) {
+			return;
+		}
+		JEditorPane old = _editorInFocus;
+		_editorInFocus = editor;
+		firePropertyChange(EDITOR_IN_FOCUS_PROPERTY_NAME, old, _editorInFocus);
+	}
+	
 	private void setCurrentEditor(JEditorPane editor) {
 		if (editor == _currentEditor) {
 			return;
@@ -748,21 +688,12 @@ public class ToolBarStates extends InternalFrameAdapter
         	_localEditsTable.put(textpane, currentLocalEditsEnabled);
         	setLocalEditsEnabled(textpane, (isShared && newDirty));
         	
-        	WordMLDocument doc = (WordMLDocument) textpane.getDocument();
-        	setInsertEmptySdtEnabled((start == end));
-        	setMergeSdtEnabled(DocUtil.canMergeSdt(doc, start, (end-start)));
-        	setSetupSdtEnabled(DocUtil.getChunkingStrategy(doc) == null);
-        	
     	} else {
     		setFilterApplied(false);
     		setDocumentShared(false);
     		
         	_localEditsTable.put(editor, currentLocalEditsEnabled);
         	setLocalEditsEnabled(editor, false);
-        	
-        	setInsertEmptySdtEnabled(false);
-        	setMergeSdtEnabled(false);
-        	setSetupSdtEnabled(false);
     	}
 	}	
 	
@@ -906,11 +837,11 @@ public class ToolBarStates extends InternalFrameAdapter
      */
     private void firePropertyChange(String propertyName, Object oldValue,
 			Object newValue) {
-		if (oldValue == newValue) {
-			return;
-		}
-		PropertyChangeSupport changeSupport = this.changeSupport;
-		if (changeSupport != null) {
+    	if (oldValue == newValue) {
+    		return;
+    	}
+    	
+		if (this.changeSupport != null) {
 			changeSupport.firePropertyChange(propertyName, oldValue, newValue);
 		}
 	}
@@ -1028,10 +959,12 @@ public class ToolBarStates extends InternalFrameAdapter
     		setCurrentEditor((JEditorPane) e.getSource());
     	}
     	
-		firePropertyChange(
-			CARET_UPDATE_PROPERTY_NAME, 
-			null, 
-			new CaretEventImpl((JEditorPane) e.getSource()));
+   		setEditorInFocus((JEditorPane) e.getSource());
+   		
+   		firePropertyChange(
+   			CARET_UPDATE_PROPERTY_NAME, 
+   			null, 
+   			new CaretEventImpl((JEditorPane) e.getSource()));
     }
 
     /**
@@ -1041,7 +974,19 @@ public class ToolBarStates extends InternalFrameAdapter
     	if (log.isDebugEnabled()) {
     		log.debug("focusLost():");
     	}
-		firePropertyChange(CARET_UPDATE_PROPERTY_NAME, null, null);
+    	
+    	if (getEditorInFocus() == e.getSource()) {
+    		setEditorInFocus(null);
+    	}
+    	
+    	//Passing an arbitrary old value so that
+    	//property change event will be fired.
+    	//A null new value is passed as an indication
+    	//that no new caret position is available.
+   		firePropertyChange(
+   			CARET_UPDATE_PROPERTY_NAME, 
+   			new CaretEventImpl((JEditorPane) e.getSource()), 
+   			null);
     }
     
 	//===============================
@@ -1178,7 +1123,14 @@ public class ToolBarStates extends InternalFrameAdapter
         	//Bring up default setting
     		setDefaultFormatInfo();
     		
-    		firePropertyChange(CARET_UPDATE_PROPERTY_NAME, null, null);
+        	//Passing an arbitrary old value so that
+        	//property change event will be fired.
+        	//A null new value is passed as an indication
+        	//that no new caret position is available.
+       		firePropertyChange(
+       	   			CARET_UPDATE_PROPERTY_NAME, 
+       	   			new CaretEventImpl((JEditorPane) e.getSource()), 
+       	   			null);
     	}
     }
 
@@ -1220,9 +1172,6 @@ public class ToolBarStates extends InternalFrameAdapter
         	
         	if (_currentEditor instanceof WordMLTextPane) {
         		WordMLDocument doc = (WordMLDocument) _currentEditor.getDocument();
-        		setInsertEmptySdtEnabled(!hasSelection);
-       			setMergeSdtEnabled(DocUtil.canMergeSdt(doc, start, (end-start)));
-       			setSetupSdtEnabled(DocUtil.getChunkingStrategy(doc) == null);
        			
         		hasSelection = 
         			hasSelection
@@ -1233,9 +1182,6 @@ public class ToolBarStates extends InternalFrameAdapter
             	setRemoteRevision((WordMLTextPane) _currentEditor);
             	
         	} else {
-        		setInsertEmptySdtEnabled(false);
-        		setMergeSdtEnabled(false);
-        		setSetupSdtEnabled(false);
             	setRevisionSelected(Boolean.FALSE);	    
         	}
         	
