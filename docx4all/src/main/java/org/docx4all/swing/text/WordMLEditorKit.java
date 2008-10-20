@@ -126,7 +126,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
     
     public static final String selectPrevRevision = "select-prev-revision";
     
-    public static final String insertNewSdtAction = "insert-new-sdt";
+    public static final String insertEmptySdtAction = "insert-empty-sdt";
     
     public static final String mergeSdtAction = "merge-sdt";
     
@@ -1922,12 +1922,12 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		
 	}//DeletePrevCharAction class
     
-    public static class InsertNewSdtAction extends TextAction {
+    public static class InsertEmptySdtAction extends TextAction {
     	private boolean success = false;
     	
 		/* Create this object with the appropriate identifier. */
-    	public InsertNewSdtAction() {
-			super(insertNewSdtAction);
+    	public InsertEmptySdtAction() {
+			super(insertEmptySdtAction);
 		}
 
 		/** The operation to perform when this action is triggered. */
