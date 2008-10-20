@@ -2104,32 +2104,43 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				try {
 					doc.lockWrite();
 				
-					int start = textpane.getSelectionStart();
-					int end = textpane.getSelectionEnd();
+					int pos = textpane.getCaretPosition();
 					
-					if (DocUtil.canSplitSdt(doc, start, (end-start))) {
+					if (DocUtil.canSplitSdt(doc, pos)) {
 						DocumentElement sdtBlockE = 
-							(DocumentElement) doc.getSdtBlockMLElement(start);
-						start = sdtBlockE.getStartOffset();
-						end = sdtBlockE.getEndOffset();
-						
+							(DocumentElement) doc.getSdtBlockMLElement(pos);
 						ElementML sdt = sdtBlockE.getElementML();
-						int i = sdtBlockE.getElementCount() - 1;
-						for (; i >= 0 ; i--) {
-							DocumentElement temp =
-								(DocumentElement) sdtBlockE.getElement(i);
-							ElementML ml = temp.getElementML();
-							ml.delete();
+						
+						SdtBlockML newSdt = ElementMLFactory.createSdtBlockML();
+
+						//Get the paragraph where the cursor is 
+						int idx = sdtBlockE.getElementIndex(pos);
+						DocumentElement temp = 
+							(DocumentElement) sdtBlockE.getElement(idx);
+						
+						//Record the actual split position.
+						//The actual split position is at the beginning of paragraph
+						//containing cursor.
+						pos = temp.getStartOffset();
+						
+						if (idx == 0) {
+							newSdt.addChild(ElementMLFactory.createEmptyParagraphML());
+							sdt.addSibling(newSdt, false);
 							
-							ElementML newSdt = ElementMLFactory.createSdtBlockML();
-							newSdt.addChild(ml);
+						} else {
 							sdt.addSibling(newSdt, true);
+							
+							for (; idx < sdtBlockE.getElementCount(); idx++) {
+								temp = (DocumentElement) sdtBlockE.getElement(idx);
+								ElementML ml = temp.getElementML();
+								ml.delete();
+								newSdt.addChild(ml);
+							}
 						}
 						
-						int pos = doc.getLength() - end;
-						
-						doc.refreshParagraphs(start, (end-start));
-						
+						//Refresh document
+						pos = doc.getLength() - pos;
+						doc.refreshParagraphs(textpane.getCaretPosition(), 1);
 						textpane.setCaretPosition(doc.getLength() - pos);
 					}
 				} finally {
