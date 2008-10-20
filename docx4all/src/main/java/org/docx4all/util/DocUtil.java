@@ -381,32 +381,26 @@ public class DocUtil {
 	
 	/**
 	 * When an Sdt is split by WordMLEditorKit.SplitSdtAction,
-	 * each of its child element will be pulled out and moved
-	 * into a newly created Sdt. Therefore, an Sdt can be split 
-	 * if it has more than one child element.
+	 * it will be split at the beginning of paragraph containing
+	 * cursor. Therefore, any Sdt can always be split by such action.
 	 * 
-	 * This method determines whether the position range 
-	 * [offs, offs + length] defined by its parameters is 
-	 * hosted by an Sdt and the Sdt has more than one child
-	 * element.
+	 * This method determines whether document 'doc' contains
+	 * an Sdt at 'offs' position. The existence of Sdt is
+	 * sufficient for determining whether an Sdt can be split.
 	 * 
 	 * @param doc
 	 * @param offs
-	 * @param length
-	 * @return true if there is a hosting Sdt and it can be split;
+	 * @return true if an Sdt at 'offs' position can be found;
 	 *         false, otherwise.
 	 */
-	public static final boolean canSplitSdt(WordMLDocument doc, int offs, int length) {
+	public static final boolean canSplitSdt(WordMLDocument doc, int offs) {
 		boolean canSplit = false;
 		
 		try {
 			doc.readLock();
 			
 			DocumentElement sdt = (DocumentElement) doc.getSdtBlockMLElement(offs);
-			canSplit = 
-				(sdt != null 
-					&& sdt.getElementCount() > 1
-					&& (offs + length) <= sdt.getEndOffset());
+			canSplit = (sdt != null);
 			
 		} finally {
 			doc.readUnlock();
