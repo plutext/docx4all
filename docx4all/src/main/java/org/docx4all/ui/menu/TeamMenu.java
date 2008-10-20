@@ -42,6 +42,7 @@ import org.docx4all.swing.text.WordMLEditorKit;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.ui.menu.enabler.CaretUpdateEnabler;
+import org.docx4all.ui.menu.enabler.CurrentEditorBasedEnabler;
 import org.docx4all.util.DocUtil;
 import org.jdesktop.application.Action;
 import org.jdesktop.application.ResourceMap;
@@ -87,9 +88,9 @@ public class TeamMenu extends UIMenu {
 	public final static String SETUP_SDT_ACTION_NAME = "setupSdt";
 	
 	/**
-	 * The action name of Insert New Sdt edit menu
+	 * The action name of Insert Empty Sdt edit menu
 	 */
-	public final static String INSERT_NEW_SDT_ACTION_NAME = "insertNewSdt";
+	public final static String INSERT_EMPTY_SDT_ACTION_NAME = "insertEmptySdt";
 	
 	/**
 	 * The action name of Merge Sdt edit menu
@@ -112,7 +113,7 @@ public class TeamMenu extends UIMenu {
 	public final static String COMMIT_LOCAL_EDITS_ACTION_NAME = "commitLocalEdits";
 
 	private static final String[] _menuItemActionNames = {
-		INSERT_NEW_SDT_ACTION_NAME,
+		INSERT_EMPTY_SDT_ACTION_NAME,
 		MERGE_SDT_ACTION_NAME,
 		SPLIT_SDT_ACTION_NAME,
 		SEPARATOR_CODE,
@@ -145,26 +146,26 @@ public class TeamMenu extends UIMenu {
     	
 		WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
 		ToolBarStates toolbarStates = editor.getToolbarStates();
-		if (INSERT_NEW_SDT_ACTION_NAME.equals(actionName)) {
-			theItem.setEnabled(toolbarStates.isInsertEmptySdtEnabled());
+		if (INSERT_EMPTY_SDT_ACTION_NAME.equals(actionName)) {
+			theItem.setEnabled(false);
 			toolbarStates.addPropertyChangeListener(
-				ToolBarStates.INSERT_EMPTY_SDT_ENABLED_PROPERTY_NAME, 
-				new EnableOnEqual(theItem, Boolean.TRUE));			
+				ToolBarStates.CARET_UPDATE_PROPERTY_NAME, 
+				new InsertEmptySdtEnabler(theItem));
 		} else if (MERGE_SDT_ACTION_NAME.equals(actionName)) {
-			theItem.setEnabled(toolbarStates.isMergeSdtEnabled());
+			theItem.setEnabled(false);
 			toolbarStates.addPropertyChangeListener(
-				ToolBarStates.MERGE_SDT_ENABLED_PROPERTY_NAME, 
-				new EnableOnEqual(theItem, Boolean.TRUE));
+				ToolBarStates.CARET_UPDATE_PROPERTY_NAME, 
+				new MergeSdtEnabler(theItem));
 		} else if (SPLIT_SDT_ACTION_NAME.equals(actionName)) {
 			theItem.setEnabled(false);
 			toolbarStates.addPropertyChangeListener(
 				ToolBarStates.CARET_UPDATE_PROPERTY_NAME, 
 				new SplitSdtEnabler(theItem));
 		} else if (SETUP_SDT_ACTION_NAME.equals(actionName)) {
-			theItem.setEnabled(toolbarStates.isSetupSdtEnabled());
+			theItem.setEnabled(false);
 			toolbarStates.addPropertyChangeListener(
-				ToolBarStates.SETUP_SDT_ENABLED_PROPERTY_NAME, 
-				new EnableOnEqual(theItem, Boolean.TRUE));
+				ToolBarStates.EDITOR_IN_FOCUS_PROPERTY_NAME, 
+				new SetupSdtEnabler(theItem));
 		} else if (FETCH_REMOTE_EDITS_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
     		toolbarStates.addPropertyChangeListener(
@@ -180,17 +181,17 @@ public class TeamMenu extends UIMenu {
 		return theItem;
     }
     
-	@Action public void insertNewSdt(ActionEvent evt) {
-		WordMLEditorKit.InsertNewSdtAction action =
-			new WordMLEditorKit.InsertNewSdtAction();
+	@Action public void insertEmptySdt(ActionEvent evt) {
+		WordMLEditorKit.InsertEmptySdtAction action =
+			new WordMLEditorKit.InsertEmptySdtAction();
 		action.actionPerformed(evt);
 		if (!action.success()) {
 	        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);        
 	        ResourceMap rm = editor.getContext().getResourceMap(getClass());
 	        String title = 
-	        	rm.getString(INSERT_NEW_SDT_ACTION_NAME + ".Action.text");
+	        	rm.getString(INSERT_EMPTY_SDT_ACTION_NAME + ".Action.text");
 	        String message =
-	        	rm.getString(INSERT_NEW_SDT_ACTION_NAME + ".Action.failureMessage");
+	        	rm.getString(INSERT_EMPTY_SDT_ACTION_NAME + ".Action.failureMessage");
 	    	editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);			
 		}
 	}
@@ -359,6 +360,52 @@ public class TeamMenu extends UIMenu {
     	return success.booleanValue();
  	}
 	
+    private static class InsertEmptySdtEnabler extends CaretUpdateEnabler {
+    	InsertEmptySdtEnabler(JMenuItem item) {
+    		super(item);
+    	}
+    	
+    	protected boolean isMenuEnabled(CaretEvent caretEvent) {
+    		boolean isEnabled = false;
+    		if (caretEvent != null) {
+    			WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+    			JEditorPane source = (JEditorPane) caretEvent.getSource();
+    			if (source != null
+    					&& source == wmlEditor.getView(wmlEditor.getEditorViewTabTitle())) {
+    				int dot = caretEvent.getDot();
+    				int mark = caretEvent.getMark();
+    				isEnabled = (dot == mark); //no selection
+    			}
+    		}
+    		return isEnabled;
+    	}
+    } //InsertEmptySdtEnabler inner class
+    
+    private static class MergeSdtEnabler extends CaretUpdateEnabler {
+    	MergeSdtEnabler(JMenuItem item) {
+    		super(item);
+    	}
+    	
+    	protected boolean isMenuEnabled(CaretEvent caretEvent) {
+    		boolean isEnabled = false;
+    		if (caretEvent != null) {
+    			WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+    			JEditorPane source = (JEditorPane) caretEvent.getSource();
+    			if (source != null
+    					&& source == wmlEditor.getView(wmlEditor.getEditorViewTabTitle())) {
+    				int start = Math.min(caretEvent.getDot(), caretEvent.getMark());
+    				int end = Math.max(caretEvent.getDot(), caretEvent.getMark());
+    				if (start < end) {
+    					//no selection
+    					WordMLDocument doc = (WordMLDocument) source.getDocument();
+    					isEnabled = DocUtil.canMergeSdt(doc, start, end-start);
+    				}
+    			}
+    		}
+    		return isEnabled;
+    	}
+    } //MergeSdtEnabler inner class
+
     private static class SplitSdtEnabler extends CaretUpdateEnabler {
     	SplitSdtEnabler(JMenuItem item) {
     		super(item);
@@ -383,6 +430,24 @@ public class TeamMenu extends UIMenu {
     		return isEnabled;
     	}
     } //SplitSdtEnabler inner class
+
+    private static class SetupSdtEnabler extends CurrentEditorBasedEnabler {
+    	SetupSdtEnabler(JMenuItem item) {
+    		super(item);
+    	}
+    	
+    	protected boolean isMenuEnabled(JEditorPane editorInFocus) {
+    		boolean isEnabled = false;
+    		
+			WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+    		if (editorInFocus != null
+    			&& editorInFocus == wmlEditor.getView(wmlEditor.getEditorViewTabTitle())) {
+    			WordMLDocument doc = (WordMLDocument) editorInFocus.getDocument();
+    			isEnabled = (DocUtil.getChunkingStrategy(doc) == null);
+    		}
+    		return isEnabled;
+    	}
+    } //SetupSdtEnabler inner class
 
 }// TeamMenu class
 
