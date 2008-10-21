@@ -37,13 +37,14 @@ import org.docx4all.swing.FetchRemoteEditsWorker;
 import org.docx4all.swing.ProgressBarDialog;
 import org.docx4all.swing.TransmitLocalEditsWorker;
 import org.docx4all.swing.WordMLTextPane;
+import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLEditorKit;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.ui.menu.enabler.CaretUpdateEnabler;
-import org.docx4all.ui.menu.enabler.CurrentEditorBasedEnabler;
 import org.docx4all.util.DocUtil;
+import org.docx4all.xml.SdtBlockML;
 import org.jdesktop.application.Action;
 import org.jdesktop.application.ResourceMap;
 import org.plutext.client.Mediator;
@@ -88,6 +89,11 @@ public class TeamMenu extends UIMenu {
 	public final static String SETUP_SDT_ACTION_NAME = "setupSdt";
 	
 	/**
+	 * The action name of Clean Sdt edit menu
+	 */
+	public final static String CLEAN_SDT_ACTION_NAME = "cleanSdt";
+	
+	/**
 	 * The action name of Insert Empty Sdt edit menu
 	 */
 	public final static String INSERT_EMPTY_SDT_ACTION_NAME = "insertEmptySdt";
@@ -118,6 +124,7 @@ public class TeamMenu extends UIMenu {
 		SPLIT_SDT_ACTION_NAME,
 		SEPARATOR_CODE,
 		SETUP_SDT_ACTION_NAME,
+		CLEAN_SDT_ACTION_NAME,
 		SEPARATOR_CODE,
 		FETCH_REMOTE_EDITS_ACTION_NAME,
 		COMMIT_LOCAL_EDITS_ACTION_NAME
@@ -164,8 +171,13 @@ public class TeamMenu extends UIMenu {
 		} else if (SETUP_SDT_ACTION_NAME.equals(actionName)) {
 			theItem.setEnabled(false);
 			toolbarStates.addPropertyChangeListener(
-				ToolBarStates.EDITOR_IN_FOCUS_PROPERTY_NAME, 
+				ToolBarStates.CARET_UPDATE_PROPERTY_NAME, 
 				new SetupSdtEnabler(theItem));
+		} else if (CLEAN_SDT_ACTION_NAME.equals(actionName)) {
+			theItem.setEnabled(false);
+			toolbarStates.addPropertyChangeListener(
+				ToolBarStates.CARET_UPDATE_PROPERTY_NAME, 
+				new CleanSdtEnabler(theItem));
 		} else if (FETCH_REMOTE_EDITS_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
     		toolbarStates.addPropertyChangeListener(
@@ -214,48 +226,63 @@ public class TeamMenu extends UIMenu {
         String title = 
         	rm.getString(SETUP_SDT_ACTION_NAME + ".Action.text");
         
-        JEditorPane view = editor.getCurrentEditor();
-        if (view instanceof WordMLTextPane) {
-        	WordMLTextPane textpane = (WordMLTextPane) view;
-        	WordMLDocument doc = (WordMLDocument) textpane.getDocument();
-        	
-        	List<String> styles = DocUtil.getDefinedParagraphStyles(doc);
-        	
-			ContentGroupingDialog d = new ContentGroupingDialog(editor, styles);
-			d.pack();
-			d.setLocationRelativeTo(editor.getWindowFrame());
-			d.setVisible(true);
-			if (d.getValue() == ContentGroupingDialog.OK_BUTTON_TEXT) {
-				if (d.isGroupOnEachParagraph()) {
-					WordMLEditorKit.CreateSdtOnEachParaAction action =
-						new WordMLEditorKit.CreateSdtOnEachParaAction();
-					action.actionPerformed(evt);
-				} else if (d.isGroupOnStyles()) {
-					WordMLEditorKit.CreateSdtOnStylesAction action =
-						new WordMLEditorKit.CreateSdtOnStylesAction(
-							d.getSelectedStyles(),
-							d.isMergeSingleParagraphs());
-					action.actionPerformed(evt);
-				} else {
-					WordMLEditorKit kit = 
-						(WordMLEditorKit) textpane.getEditorKit();
-					kit.saveCaretText();
-					
-					List<Integer> positions = DocUtil.getOffsetsOfParagraphSignature(doc);
-					if (positions == null) {
-						String message =
-							rm.getString(SETUP_SDT_ACTION_NAME + ".Action.noSignatureMessage");
-						editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
-						return;
-					}
-					
-					WordMLEditorKit.CreateSdtOnSignedParaAction action =
-						new WordMLEditorKit.CreateSdtOnSignedParaAction(positions);
-					action.actionPerformed(evt);
+       	WordMLTextPane textpane = (WordMLTextPane) editor.getCurrentEditor();
+       	WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+		textpane.getWordMLEditorKit().saveCaretText();
+			
+		ContentGroupingDialog d = 
+			new ContentGroupingDialog(
+					editor, 
+					DocUtil.getDefinedParagraphStyles(doc));
+		d.pack();
+		d.setLocationRelativeTo(editor.getWindowFrame());
+		d.setVisible(true);
+			
+		if (d.getValue() == ContentGroupingDialog.OK_BUTTON_TEXT) {
+			if (d.isGroupOnEachParagraph()) {
+				WordMLEditorKit.CreateSdtOnEachParaAction action =
+					new WordMLEditorKit.CreateSdtOnEachParaAction();
+				action.actionPerformed(evt);
+				
+			} else if (d.isGroupOnStyles()) {
+				List<Integer> positions =
+					DocUtil.getOffsetsOfStyledParagraphs(
+						doc,
+						d.getSelectedStyles());
+				if (positions == null) {
+					String message =
+						rm.getString(SETUP_SDT_ACTION_NAME + ".Action.noStylesMessage");
+					editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
+					return;
 				}
+				WordMLEditorKit.CreateSdtOnStylesAction action =
+					new WordMLEditorKit.CreateSdtOnStylesAction(
+						positions,
+						d.isMergeSingleParagraphs());
+				action.actionPerformed(evt);
+				
+			} else {
+				List<Integer> positions = DocUtil.getOffsetsOfParagraphSignature(doc);
+				if (positions == null) {
+					String message =
+						rm.getString(SETUP_SDT_ACTION_NAME + ".Action.noSignatureMessage");
+					editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
+					return;
+				}
+				WordMLEditorKit.CreateSdtOnSignedParaAction action =
+					new WordMLEditorKit.CreateSdtOnSignedParaAction(positions, false);
+				action.actionPerformed(evt);
 			}
-        }
-	}
+		}
+	} //setupSdt()
+	
+	@Action public void cleanSdt() {
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+       	WordMLTextPane textpane = (WordMLTextPane) editor.getCurrentEditor();;
+		textpane.getWordMLEditorKit().saveCaretText();
+		textpane.cleanControlUnits();
+		textpane.getDocument().addDocumentListener(editor.getToolbarStates());
+	} //cleanSdt()
 	
 	@Action public void fetchRemoteEdits() {		
 		log.debug("fetchRemoteEdits(): Starting...");
@@ -431,23 +458,75 @@ public class TeamMenu extends UIMenu {
     	}
     } //SplitSdtEnabler inner class
 
-    private static class SetupSdtEnabler extends CurrentEditorBasedEnabler {
+    private static class SetupSdtEnabler extends CaretUpdateEnabler {
     	SetupSdtEnabler(JMenuItem item) {
     		super(item);
     	}
     	
-    	protected boolean isMenuEnabled(JEditorPane editorInFocus) {
+    	protected boolean isMenuEnabled(CaretEvent caretEvent) {
     		boolean isEnabled = false;
-    		
-			WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
-    		if (editorInFocus != null
-    			&& editorInFocus == wmlEditor.getView(wmlEditor.getEditorViewTabTitle())) {
-    			WordMLDocument doc = (WordMLDocument) editorInFocus.getDocument();
-    			isEnabled = (DocUtil.getChunkingStrategy(doc) == null);
+    		log.debug("SetupSdtEnabler.isMenuEnabled(): caretEvent=" + caretEvent);
+    		if (caretEvent != null) {
+    			WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+    			JEditorPane source = (JEditorPane) caretEvent.getSource();
+    			JEditorPane editorView = 
+    				wmlEditor.getView(wmlEditor.getEditorViewTabTitle());
+        		log.debug("SetupSdtEnabler.isMenuEnabled(): source=" + source);
+        		log.debug("SetupSdtEnabler.isMenuEnabled(): EditorView=" + editorView);
+    			if (source != null	&& source == editorView) {
+    				WordMLDocument doc = (WordMLDocument) source.getDocument();
+    				isEnabled = (DocUtil.getChunkingStrategy(doc) == null);
+    			}
     		}
+    		log.debug("SetupSdtEnabler.isMenuEnabled(): isEnabled=" + isEnabled);
     		return isEnabled;
     	}
     } //SetupSdtEnabler inner class
+
+    private static class CleanSdtEnabler extends CaretUpdateEnabler {
+    	CleanSdtEnabler(JMenuItem item) {
+    		super(item);
+    	}
+    	
+    	protected boolean isMenuEnabled(CaretEvent caretEvent) {
+    		boolean isEnabled = false;
+    		if (caretEvent != null) {
+    			WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+    			JEditorPane source = (JEditorPane) caretEvent.getSource();
+    			if (source != null
+    					&& source == wmlEditor.getView(wmlEditor.getEditorViewTabTitle())) {
+    				WordMLDocument doc = (WordMLDocument) source.getDocument();
+    				final DocumentElement root = 
+    					(DocumentElement) doc.getDefaultRootElement();
+    				try {
+    					doc.readLock();
+    			
+    					int pos = 0;
+    					while (pos < doc.getLength() && !isEnabled) {
+    						DocumentElement paraE =
+    							(DocumentElement) doc.getParagraphMLElement(pos, false);
+    						DocumentElement temp = 
+    							(DocumentElement) paraE.getParentElement();
+    						while (temp != root
+    								&& !(temp.getElementML() instanceof SdtBlockML)) {
+    							temp = (DocumentElement) temp.getParentElement();
+    						}
+    						if (temp == root) {
+    							pos = paraE.getEndOffset();
+    						} else {
+    							//An SdtBlock element is found
+    							isEnabled = true;
+    						}
+    					}
+    				} finally {
+    					doc.readUnlock();
+    				}
+    			}
+    		} //if (caretEvent != null)
+    		return isEnabled;
+    	} //isMenuEnabled()
+    	
+    } //CleanSdtEnabler inner class
 
 }// TeamMenu class
 
