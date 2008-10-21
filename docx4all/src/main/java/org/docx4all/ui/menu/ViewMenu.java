@@ -24,6 +24,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.JEditorPane;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.event.CaretEvent;
 import javax.swing.text.Element;
 
 import org.apache.log4j.Logger;
@@ -31,6 +32,7 @@ import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
+import org.docx4all.ui.menu.enabler.CaretUpdateEnabler;
 import org.docx4all.ui.menu.enabler.CurrentEditorBasedEnabler;
 import org.jdesktop.application.Action;
 import org.jdesktop.application.ResourceMap;
@@ -189,7 +191,7 @@ public class ViewMenu extends UIMenu {
         if (view instanceof WordMLTextPane) {
         	WordMLTextPane tp = (WordMLTextPane) view;
         	tp.applyFilter();
-        	editor.getToolbarStates().setFilterApplied(tp.isFilterApplied());
+        	tp.getDocument().addDocumentListener(editor.getToolbarStates());
         }		
 	}
 	
@@ -249,8 +251,8 @@ public class ViewMenu extends UIMenu {
         } else if (APPLY_FILTER_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
     		toolbarStates.addPropertyChangeListener(
-        			ToolBarStates.FILTER_APPLIED_PROPERTY_NAME,
-        			new EnableOnEqual(theItem, Boolean.FALSE));
+        			ToolBarStates.CARET_UPDATE_PROPERTY_NAME,
+        			new ApplyFilterEnabler(theItem));
         }
         
 		return theItem;
@@ -299,6 +301,26 @@ public class ViewMenu extends UIMenu {
             return false;            
     	}
     } //CloseViewEnabler inner class
+
+    private static class ApplyFilterEnabler extends CaretUpdateEnabler {
+    	ApplyFilterEnabler(JMenuItem item) {
+    		super(item);
+    	}
+    	
+    	protected boolean isMenuEnabled(CaretEvent caretEvent) {
+    		boolean isEnabled = false;
+    		if (caretEvent != null) {
+    			WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+    			JEditorPane source = (JEditorPane) caretEvent.getSource();
+    			if (source != null
+    					&& source == wmlEditor.getView(wmlEditor.getEditorViewTabTitle())) {
+    				isEnabled = !((WordMLTextPane) source).isFilterApplied();
+    			}
+    		} //if (caretEvent != null)
+    		return isEnabled;
+    	} //isMenuEnabled()
+    	
+    } //ApplyFilterEnabler inner class
 
 }// ViewMenu class
 
