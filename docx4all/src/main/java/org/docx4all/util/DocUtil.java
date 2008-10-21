@@ -935,6 +935,64 @@ public class DocUtil {
 		return positions;
 	}
 
+	public final static List<Integer> getOffsetsOfStyledParagraphs(
+		WordMLDocument doc,
+		List<String> selectedStyleNames) {
+		
+		List<Integer> thePositions = new ArrayList<Integer>();
+		
+		Style defaultStyle = 
+			doc.getStyleSheet().getStyle(StyleSheet.DEFAULT_STYLE);
+		String defaultPStyle = 
+			(String) defaultStyle.getAttribute(
+						WordMLStyleConstants.DefaultParagraphStyleNameAttribute);
+		
+		final DocumentElement root =
+			(DocumentElement) doc.getDefaultRootElement();
+		for (int idx = 0; idx < root.getElementCount() - 1; idx++) {
+			DocumentElement elem = (DocumentElement) root.getElement(idx);
+			
+			AttributeSet attrs = elem.getAttributes();
+			String styleID = null;
+			if (attrs.isDefined(WordMLStyleConstants.PStyleAttribute)) {
+				styleID = 
+					(String) attrs.getAttribute(
+								WordMLStyleConstants.PStyleAttribute);
+			}
+			if (attrs.isDefined(WordMLStyleConstants.TblStyleAttribute)) {
+				styleID = 
+					(String) attrs.getAttribute(
+								WordMLStyleConstants.TblStyleAttribute);
+			}
+			
+			if (styleID != null) {
+				//Get style name
+				Style temp = doc.getStyleSheet().getIDStyle(styleID);
+				if (temp != null) {
+					String styleName = 
+						(String) temp.getAttribute(
+									WordMLStyleConstants.StyleUINameAttribute);
+					if (styleName != null 
+						&& selectedStyleNames.contains(styleName)) {
+						//if style name is registered, put elem.getStartOffset()
+						//in the returned list.
+						thePositions.add(Integer.valueOf(elem.getStartOffset()));
+					}
+				}
+			} else if (selectedStyleNames.contains(defaultPStyle)) {
+				//Put elem.getStartOffset() in the returned list
+				//because default style is listed in selectedStyleNames.
+				thePositions.add(Integer.valueOf(elem.getStartOffset()));
+			}
+		} //for (idx) loop
+		
+		if (thePositions.isEmpty()) {
+			thePositions = null;
+		}
+		
+		return thePositions;
+	}
+
 	public final static void displayXml(Document doc) {
 		org.docx4j.wml.Document jaxbDoc = null;
 	
