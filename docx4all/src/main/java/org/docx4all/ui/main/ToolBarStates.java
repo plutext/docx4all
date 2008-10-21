@@ -975,18 +975,17 @@ public class ToolBarStates extends InternalFrameAdapter
     		log.debug("focusLost():");
     	}
     	
+    	//When a Menu is clicked by user,
+    	//JEditorPane loses its focus.
+    	//We do not reset the value of _currentEditor
+    	//when this happens because Menu Action
+    	//needs it.
+    	//_editorInFocus can be used if user
+    	//needs to track editor in focus.
     	if (getEditorInFocus() == e.getSource()) {
     		setEditorInFocus(null);
     	}
     	
-    	//Passing an arbitrary old value so that
-    	//property change event will be fired.
-    	//A null new value is passed as an indication
-    	//that no new caret position is available.
-   		firePropertyChange(
-   			CARET_UPDATE_PROPERTY_NAME, 
-   			new CaretEventImpl((JEditorPane) e.getSource()), 
-   			null);
     }
     
 	//===============================
@@ -1129,7 +1128,8 @@ public class ToolBarStates extends InternalFrameAdapter
         	//that no new caret position is available.
        		firePropertyChange(
        	   			CARET_UPDATE_PROPERTY_NAME, 
-       	   			new CaretEventImpl((JEditorPane) e.getSource()), 
+       	   			new CaretEventImpl(
+       	   				SwingUtil.getWordMLTextPane(iframe)), 
        	   			null);
     	}
     }
