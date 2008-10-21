@@ -37,6 +37,7 @@ import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.util.DocUtil;
 import org.docx4all.util.XmlUtil;
 import org.docx4all.xml.DocumentML;
+import org.docx4j.XmlUtils;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.jdesktop.application.ResourceMap;
 
@@ -63,20 +64,57 @@ public class WordMLTextPane extends JEditorPane {
 		try {
 			oldDoc.readLock();
 			
-        	WordMLEditorKit kit = (WordMLEditorKit) getEditorKit();
-        	
         	DocumentElement root = (DocumentElement) oldDoc.getDefaultRootElement();
         	DocumentML docML = (DocumentML) root.getElementML();
         	
         	WordprocessingMLPackage wmlPackage = 
         		XmlUtil.applyFilter(docML.getWordprocessingMLPackage());
-        	WordMLDocument newDoc = kit.read(new DocumentML(wmlPackage));
-        	setDocument(newDoc);
+        	WordMLDocument newDoc = getWordMLEditorKit().read(new DocumentML(wmlPackage));
+        	newDoc.putProperty(
+        		WordMLDocument.FILE_PATH_PROPERTY, 
+        		oldDoc.getProperty(WordMLDocument.FILE_PATH_PROPERTY));
+        	newDoc.setDocumentFilter(oldDoc.getDocumentFilter());
 
+        	setDocument(newDoc);
+        	
     		_filterApplied = true;
 		} finally {
 			oldDoc.readUnlock();
 		}
+	}
+	
+	public void cleanControlUnits() {
+		WordMLDocument oldDoc = (WordMLDocument) getDocument();
+		try {
+			oldDoc.readLock();
+			
+        	DocumentElement root = (DocumentElement) oldDoc.getDefaultRootElement();
+        	DocumentML docML = (DocumentML) root.getElementML();
+    	
+        	WordprocessingMLPackage wmlPackage = 
+        		XmlUtil.export(docML.getWordprocessingMLPackage());
+        	WordMLDocument newDoc = getWordMLEditorKit().read(new DocumentML(wmlPackage));
+        	newDoc.putProperty(
+            		WordMLDocument.FILE_PATH_PROPERTY, 
+            		oldDoc.getProperty(WordMLDocument.FILE_PATH_PROPERTY));
+            newDoc.setDocumentFilter(oldDoc.getDocumentFilter());
+            
+            if (log.isDebugEnabled()) {
+            	log.debug("cleanControlUnits(): Resulting Structure...");
+            	DocUtil.displayStructure(newDoc);
+            	
+            	DocumentElement elem = 
+            		(DocumentElement) newDoc.getParagraphMLElement(39, false);
+            	log.debug("cleanControlUnits(): para = "
+            		+ XmlUtils.marshaltoString(elem.getElementML().getDocxObject(), true));
+            }
+
+        	setDocument(newDoc);
+        	
+		} finally {
+			oldDoc.readUnlock();
+		}
+	
 	}
 	
 	public boolean isFilterApplied() {
