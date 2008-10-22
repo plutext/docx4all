@@ -38,7 +38,7 @@ var toolBarStates = toolBarStates:<<org.docx4all.ui.main.ToolBarStates>>;
 var fileMenu = fileMenu:<<org.docx4all.ui.menu.FileMenu>>;
 var editMenu = editMenu:<<org.docx4all.ui.menu.EditMenu>>;
 var formatMenu = formatMenu:<<org.docx4all.ui.menu.FormatMenu>>;
-var teamMenu = teamMenu:<<org.docx4all.ui.menu.TeamMenu>>;
+var plutextMenu = plutextMenu:<<org.docx4all.ui.menu.PlutextMenu>>;
 var reviewMenu = reviewMenu:<<org.docx4all.ui.menu.ReviewMenu>>;
 
 //Global variables
@@ -174,13 +174,13 @@ TOOL_BAR_1:JFXToolBar = JFXToolBar {
     
     var fetchRemotEditsButton = Button {
         enabledPropertyName: toolBarStates.DOC_SHARED_PROPERTY_NAME
-        swingAction: teamMenu.getAction(teamMenu.FETCH_REMOTE_EDITS_ACTION_NAME)
+        swingAction: plutextMenu.getAction(plutextMenu.FETCH_REMOTE_EDITS_ACTION_NAME)
         enabled: toolBarStates.isDocumentShared()
     }
     
     var commitLocalEditsButton = Button {
         enabledPropertyName: toolBarStates.LOCAL_EDITS_ENABLED_PROPERTY_NAME
-        swingAction: teamMenu.getAction(teamMenu.COMMIT_LOCAL_EDITS_ACTION_NAME)
+        swingAction: plutextMenu.getAction(plutextMenu.COMMIT_LOCAL_EDITS_ACTION_NAME)
         enabled: toolBarStates.isLocalEditsEnabled()
     }
     
