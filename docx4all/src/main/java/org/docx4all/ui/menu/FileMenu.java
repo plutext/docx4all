@@ -925,7 +925,8 @@ public class FileMenu extends UIMenu {
        			OutputStream fos = fo.getContent().getOutputStream();
        			javax.xml.transform.stream.StreamResult result = 
 					new javax.xml.transform.stream.StreamResult(fos);
-       			wmlPackage.html(result);
+       			//wmlPackage.html(result);
+       			org.docx4j.convert.out.html.HtmlExporter.html(wmlPackage, result);
 				try {
 					//just in case
 					fos.close();
