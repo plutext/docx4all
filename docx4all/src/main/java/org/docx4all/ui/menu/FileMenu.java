@@ -910,7 +910,7 @@ public class FileMenu extends UIMenu {
     }
     
     private boolean commitLocalChanges(WordMLTextPane editor, String callerActionName) {
-    	return TeamMenu.getInstance().commitLocalEdits(editor, callerActionName);
+    	return PlutextMenu.getInstance().commitLocalEdits(editor, callerActionName);
     }
     
     private boolean save(WordprocessingMLPackage wmlPackage, String saveAsFilePath, String callerActionName) {
