@@ -96,7 +96,9 @@ public class SdtBlockML extends ElementML {
 	public boolean canAddSibling(ElementML elem, boolean after) {
 		boolean canAdd = false;
 		
-		if (elem instanceof SdtBlockML) {
+		if (elem instanceof SdtBlockML
+			|| elem instanceof ParagraphML
+			|| elem instanceof TableML) {
 			//TODO:Current implementation disallows other types of sibling
 			canAdd = super.canAddSibling(elem, after);
 		}
