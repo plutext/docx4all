@@ -313,10 +313,141 @@ public class DocUtil {
 		}
 	}
 	
+	public static final boolean canChangeIntoSdt(WordMLDocument doc, int offs, int length) {
+		boolean canChange = false;
+		
+		try {
+			doc.readLock();
+			
+			DocumentElement elem = (DocumentElement) doc.getSdtBlockMLElement(offs);
+			if (elem == null) {
+				SdtBlockML sdt = ElementMLFactory.createSdtBlockML();
+				elem = (DocumentElement) doc.getParagraphMLElement(offs, false);
+				if (offs == doc.getLength()) {
+					;//cannot change the last paragraph in the document
+				} else if (offs == elem.getStartOffset()
+					&& elem.getEndOffset() == offs + length) {
+					//Do not need to worry about whether 'elem' is the only child element
+					//because at least 'elem' which is a ParagraphML can be changed into Sdt.
+					//However, remember to check whether 'elem' can accept Sdt
+					//as its sibling.
+					canChange = elem.getElementML().canAddSibling(sdt, true);
+					
+				} else if (offs + length <= elem.getEndOffset()) {
+					//[offs, offs + length] is in elem's span.
+					//'elem' which is a ParagraphML can be changed into Sdt
+					//but still need to check whether 'elem' can accept Sdt
+					//as its sibling.
+					canChange = elem.getElementML().canAddSibling(sdt, true);
+					
+				} else {
+					DocumentElement parent = (DocumentElement) elem.getParentElement();
+					if (offs + length <= parent.getEndOffset()) {
+						//[offs, offs + length] has to be within parent's span.
+						int start = parent.getElementIndex(offs);
+						int end = parent.getElementIndex(offs + length - 1);
+						boolean changeable = true;
+						while (start <= end && changeable) {
+							DocumentElement temp =
+								(DocumentElement) parent.getElement(start);
+							ElementML ml = (ElementML) temp.getElementML().clone();
+							changeable = 
+								sdt.canAddChild(ml) 
+								&& temp.getElementML().canAddSibling(sdt, true);
+							start++;
+						}
+						canChange = changeable;
+					} else {
+						//consider as unchangeable
+					}
+				}
+			}
+		} finally {
+			doc.readUnlock();
+		}
+		
+		return canChange;
+	}
+	
+	public static final boolean canRemoveSdt(WordMLDocument doc, int offs, int length) {
+		boolean removable = true;
+		boolean hasSdt = false;
+		
+		try {
+			doc.readLock();
+			
+			int pos = offs;
+			while (pos <= offs + length && removable) {
+				DocumentElement elem =
+					(DocumentElement) doc.getSdtBlockMLElement(pos);
+				
+				log.debug("canRemoveSdt(): pos = " + pos + " elem = " + elem);
+				
+				if (elem != null) {
+					hasSdt = true;
+					ElementML sdt = elem.getElementML();
+					for (int i=0; i < sdt.getChildrenCount() && removable; i++) {
+						ElementML ml = (ElementML) sdt.getChild(i).clone();
+						removable = sdt.canAddSibling(ml, true);
+						log.debug("canRemoveSdt(): sibling = " + ml + " canAddSibling = " + removable);
+					}
+				} else {
+					elem = (DocumentElement) doc.getParagraphMLElement(pos, false);
+				}
+				
+				log.debug("canRemoveSdt(): removable = " + removable);
+				
+				pos = elem.getEndOffset();
+				if (pos == offs + length) {
+					//finish
+					pos += 1;
+				}
+			} //while loop
+				
+		} finally {
+			doc.readUnlock();
+		}
+		
+		return hasSdt && removable;
+	}
+	
 	public static final boolean canInsertNewSdt(WordMLDocument doc, int offs) {
 		SdtBlockML sdt = ElementMLFactory.createSdtBlockML();
 		boolean canInsert = (getElementToPasteAsSibling(doc, offs, sdt) != null);
 		return canInsert;
+	}
+	
+	public static final boolean hasSdt(WordMLDocument doc, int offs, int length) {
+		boolean hasSdt = false;
+		
+		final DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+		try {
+			doc.readLock();
+	
+			int pos = offs;
+			length = Math.max(length, 1);
+			
+			while (pos < (offs + length) && !hasSdt) {
+				DocumentElement paraE =
+					(DocumentElement) doc.getParagraphMLElement(pos, false);
+				DocumentElement temp = 
+					(DocumentElement) paraE.getParentElement();
+				while (temp != root
+						&& !(temp.getElementML() instanceof SdtBlockML)) {
+					temp = (DocumentElement) temp.getParentElement();
+				}
+				if (temp == root) {
+					pos = paraE.getEndOffset();
+				} else {
+					//An SdtBlock element is found
+					hasSdt = true;
+				}
+			}
+		} finally {
+			doc.readUnlock();
+		}
+		
+		return hasSdt;
 	}
 	
 	public static final DocumentElement getElementToPasteAsSibling(
