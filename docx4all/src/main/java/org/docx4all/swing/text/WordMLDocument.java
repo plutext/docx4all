@@ -1802,6 +1802,11 @@ public class WordMLDocument extends DefaultStyledDocument {
 			return isEditable;
 		}
 		
+		public boolean isTheOnlyChild() {
+			return (getParentElement() != null
+					&& getParentElement().getElementCount() == 1);
+		}
+		
 		public void save() {
 			;//TODO: Saving 
 			log.debug("save(): this=" + this);
@@ -1847,6 +1852,11 @@ public class WordMLDocument extends DefaultStyledDocument {
 			}
 			
 			return isEditable;
+		}
+		
+		public boolean isTheOnlyChild() {
+			return (getParentElement() != null
+					&& getParentElement().getElementCount() == 1);
 		}
 		
 		public void save() {
