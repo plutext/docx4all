@@ -35,6 +35,7 @@ import java.io.Reader;
 import java.io.Serializable;
 import java.io.StringReader;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.Action;
@@ -124,6 +125,10 @@ public class WordMLEditorKit extends DefaultEditorKit {
     public static final String selectNextRevisionAction = "select-next-revision";
     
     public static final String selectPrevRevision = "select-prev-revision";
+    
+    public static final String changeIntoSdtAction = "change-into-sdt";
+    
+    public static final String removeSdtAction = "remove-sdt";
     
     public static final String insertEmptySdtAction = "insert-empty-sdt";
     
@@ -1921,6 +1926,181 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		
 	}//DeletePrevCharAction class
     
+    public static class ChangeIntoSdtAction extends TextAction {
+		/* Create this object with the appropriate identifier. */
+    	public ChangeIntoSdtAction() {
+			super(insertEmptySdtAction);
+		}
+
+		/** 
+		 * NOTE:
+		 * The menu that is associated with this action 
+		 * should only be enabled if DocUtil.canChangeIntoSdt() returns true.
+		 * 
+		 */
+		public void actionPerformed(ActionEvent e) {
+			final JTextComponent editor = getTextComponent(e);
+			if (editor instanceof WordMLTextPane) {
+				if (!editor.isEditable() || !editor.isEnabled()) {
+				    UIManager.getLookAndFeel().provideErrorFeedback(editor);
+				    return;
+				}
+				
+				WordMLTextPane textpane = (WordMLTextPane) editor;
+				WordMLEditorKit kit = 
+					(WordMLEditorKit) textpane.getEditorKit();
+				kit.saveCaretText();
+				
+				int start = textpane.getSelectionStart();
+				int end = textpane.getSelectionEnd();
+				
+				final WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+				int pos = doc.getLength() - textpane.getCaretPosition();
+				
+				try {
+					doc.lockWrite();
+					
+					int offs = start;
+					DocumentElement elem = 
+						(DocumentElement) doc.getSdtBlockMLElement(offs);
+					//NOTE: Make sure that this Action is enabled after passing
+					//DocUtil.canChangeIntoSdt() method.
+					if (elem == null) {
+						SdtBlockML sdt = ElementMLFactory.createSdtBlockML();
+						elem = (DocumentElement) doc.getParagraphMLElement(offs, false);
+						if (offs == doc.getLength()) {
+							;//do not change the last paragraph in the document
+						} else if (offs == elem.getStartOffset()
+							&& elem.getEndOffset() == end) {
+							//Search for the highest parent element 
+							//that is NOT the only child.
+							DocumentElement parent =
+								(DocumentElement) elem.getParentElement();
+							if (elem.isTheOnlyChild()) {
+								while (parent.isTheOnlyChild()) {
+									parent = (DocumentElement) parent.getParentElement();
+								}
+							}
+							
+							//Search for parent's first descendant that
+							//can be changed into Sdt.
+							int idx = parent.getElementIndex(offs);
+							DocumentElement temp = (DocumentElement) parent.getElement(idx);
+							ElementML ml = (ElementML) temp.getElementML().clone();
+							while (!sdt.canAddChild(ml)
+									|| !temp.getElementML().canAddSibling(sdt, true)) {
+								parent = temp;
+								idx = parent.getElementIndex(offs);
+								temp = (DocumentElement) parent.getElement(idx);						
+							}
+							
+							//'temp' is the element that can be changed.
+							ml = temp.getElementML();
+							ml.addSibling(sdt, true);
+							ml.delete();
+							sdt.addChild(ml);
+							
+						} else if (end <= elem.getEndOffset()) {
+							ElementML ml = elem.getElementML();
+							ml.addSibling(sdt, true);
+							ml.delete();
+							sdt.addChild(ml);
+							
+						} else {
+							DocumentElement parent = (DocumentElement) elem.getParentElement();
+							if (end <= parent.getEndOffset()) {
+								//[offs, offs + length] has to be within parent's span.
+								int idx = parent.getElementIndex(offs);
+								int endIdx = parent.getElementIndex(end - 1);
+								while (idx <= endIdx) {
+									DocumentElement temp =
+										(DocumentElement) parent.getElement(idx);
+									ElementML ml = temp.getElementML();
+									sdt = ElementMLFactory.createSdtBlockML();
+									ml.addSibling(sdt, true);
+									ml.delete();
+									sdt.addChild(ml);
+									idx++;
+								}
+							} else {
+								//unchangeable
+							}
+						}
+					} //if (elem == null)
+				
+					doc.refreshParagraphs(start, end-start);
+					
+				} finally {
+					doc.unlockWrite();
+					textpane.setCaretPosition(doc.getLength() - pos);
+				}
+			}
+		}
+    } //ChangeIntoSdtAction class
+
+    public static class RemoveSdtAction extends TextAction {
+		/* Create this object with the appropriate identifier. */
+    	public RemoveSdtAction() {
+			super(removeSdtAction);
+		}
+
+		/** The operation to perform when this action is triggered. */
+		public void actionPerformed(ActionEvent e) {
+			final JTextComponent editor = getTextComponent(e);
+			if (editor instanceof WordMLTextPane) {
+				if (!editor.isEditable() || !editor.isEnabled()) {
+				    UIManager.getLookAndFeel().provideErrorFeedback(editor);
+				    return;
+				}
+				
+				WordMLTextPane textpane = (WordMLTextPane) editor;
+				WordMLEditorKit kit = 
+					(WordMLEditorKit) textpane.getEditorKit();
+				kit.saveCaretText();
+				
+				int start = textpane.getSelectionStart();
+				int end = textpane.getSelectionEnd();
+				
+				final WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+				int pos = doc.getLength() - textpane.getCaretPosition();
+				
+				try {
+					doc.lockWrite();
+					
+					int offset = start;
+					while (offset <= end) {
+						DocumentElement elem =
+							(DocumentElement) doc.getSdtBlockMLElement(offset);
+						if (elem != null) {
+							ElementML sdt = elem.getElementML();
+							List<ElementML> children = 
+								new ArrayList<ElementML>(sdt.getChildren());
+							for (ElementML kid: children) {
+								kid.delete();
+								sdt.addSibling(kid, false);
+							}
+							sdt.delete();
+						} else {
+							elem = (DocumentElement) doc.getParagraphMLElement(offset, false);
+						}
+						
+						offset = elem.getEndOffset();
+						if (offset == end) {
+							//finish
+							offset += 1;
+						}
+					}
+					
+					doc.refreshParagraphs(start, end-start);
+					
+				} finally {
+					doc.unlockWrite();
+					textpane.setCaretPosition(doc.getLength() - pos);
+				}
+			}
+		}
+    } //RemoveSdtAction class
+
     public static class InsertEmptySdtAction extends TextAction {
     	private boolean success = false;
     	
