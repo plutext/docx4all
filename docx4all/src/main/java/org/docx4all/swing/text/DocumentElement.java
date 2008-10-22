@@ -32,6 +32,7 @@ public interface DocumentElement extends javax.swing.text.Element {
 	public boolean isEditable();
 	public void setResolveParent(AttributeSet parent);
 	public String getStyleNameInAction();
+	public boolean isTheOnlyChild();
 }// DocumentElement class
 
 
