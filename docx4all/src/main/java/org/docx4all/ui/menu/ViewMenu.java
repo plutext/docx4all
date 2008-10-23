@@ -23,19 +23,15 @@ import java.awt.event.ActionEvent;
 
 import javax.swing.JEditorPane;
 import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
 import javax.swing.event.CaretEvent;
-import javax.swing.text.Element;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
-import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.ui.menu.enabler.CaretUpdateEnabler;
 import org.docx4all.ui.menu.enabler.CurrentEditorBasedEnabler;
 import org.jdesktop.application.Action;
-import org.jdesktop.application.ResourceMap;
 
 /**
  *	@author Jojada Tirtowidjojo - 27/02/2008
@@ -78,27 +74,15 @@ public class ViewMenu extends UIMenu {
 	
 	public final static String VIEW_EDITOR_ACTION_NAME = "viewEditor";
 	
-	public final static String VIEW_VERSION_HISTORY_ACTION_NAME = "viewVersionHistory";
-	
-	public final static String VIEW_RECENT_CHANGES_ACTION_NAME = "viewRecentChanges";
-	
 	public final static String CLOSE_SOURCE_VIEW_ACTION_NAME = "closeSourceView";
-	
-	public final static String CLOSE_VERSION_HISTORY_VIEW_ACTION_NAME = "closeVersionHistoryView";
-	
-	public final static String CLOSE_RECENT_CHANGES_VIEW_ACTION_NAME = "closeRecentChangesView";
 	
 	public final static String APPLY_FILTER_ACTION_NAME = "applyFilter";
 	
 	private static final String[] _menuItemActionNames = {
 		VIEW_EDITOR_ACTION_NAME,
 		VIEW_SOURCE_ACTION_NAME,
-		VIEW_VERSION_HISTORY_ACTION_NAME,
-		VIEW_RECENT_CHANGES_ACTION_NAME,
 		SEPARATOR_CODE,
 		CLOSE_SOURCE_VIEW_ACTION_NAME,
-		CLOSE_VERSION_HISTORY_VIEW_ACTION_NAME,
-		CLOSE_RECENT_CHANGES_VIEW_ACTION_NAME,
 		SEPARATOR_CODE,
 		APPLY_FILTER_ACTION_NAME
 	};
@@ -131,57 +115,9 @@ public class ViewMenu extends UIMenu {
         editor.showViewInTab(editor.getEditorViewTabTitle());
 	}
 
-	@Action public void viewVersionHistory() {
-        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-        WordMLTextPane editorView =
-        	(WordMLTextPane) editor.getView(editor.getEditorViewTabTitle());
-        if (editorView == null) {
-        	return;
-        }
-        
-        int pos = editorView.getCaretPosition();
-        WordMLDocument doc = (WordMLDocument) editorView.getDocument();
-        Element sdt = null;
-        try {
-        	doc.readLock();
-        	
-        	sdt = doc.getSdtBlockMLElement(pos);
-        } finally {
-        	doc.readUnlock();
-        }
-        if (sdt != null) {
-        	String title = editor.getVersionHistoryViewTabTitle();
-        	editor.showViewInTab(title);
-        } else {
-	    	ResourceMap rm = editor.getContext().getResourceMap(getClass());
-	        String title = 
-	        	rm.getString(
-	        		ViewMenu.VIEW_VERSION_HISTORY_ACTION_NAME + ".Action.text");
-	        String message =
-	        	rm.getString(
-	        		ViewMenu.VIEW_VERSION_HISTORY_ACTION_NAME + ".Action.selectSdtMessage");
-	    	editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
-        }
-	}
-	
-	@Action public void viewRecentChanges() {
-        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-        editor.showViewInTab(editor.getRecentChangesViewTabTitle());
-	}
-	
 	@Action public void closeSourceView() {
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         editor.closeViewTab(editor.getSourceViewTabTitle());
-	}
-	
-	@Action public void closeVersionHistoryView() {
-        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-        editor.closeViewTab(editor.getVersionHistoryViewTabTitle());
-	}
-	
-	@Action public void closeRecentChangesView() {
-        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-        editor.closeViewTab(editor.getRecentChangesViewTabTitle());
 	}
 	
 	@Action public void applyFilter(ActionEvent evt) {
@@ -218,35 +154,11 @@ public class ViewMenu extends UIMenu {
     			ToolBarStates.CURRENT_EDITOR_PROPERTY_NAME,
     			new OpenViewEnabler(theItem, editor.getSourceViewTabTitle()));
         	
-        } else if (VIEW_VERSION_HISTORY_ACTION_NAME.equals(actionName)) {
-    		theItem.setEnabled(false);
-    		toolbarStates.addPropertyChangeListener(
-    			ToolBarStates.CURRENT_EDITOR_PROPERTY_NAME,
-    			new OpenViewEnabler(theItem, editor.getVersionHistoryViewTabTitle()));
-        	
-        } else if (VIEW_RECENT_CHANGES_ACTION_NAME.equals(actionName)) {
-    		theItem.setEnabled(false);
-    		toolbarStates.addPropertyChangeListener(
-    			ToolBarStates.CURRENT_EDITOR_PROPERTY_NAME,
-    			new OpenViewEnabler(theItem, editor.getRecentChangesViewTabTitle()));
-        	
         } else if (CLOSE_SOURCE_VIEW_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
     		toolbarStates.addPropertyChangeListener(
         			ToolBarStates.CURRENT_EDITOR_PROPERTY_NAME,
         			new CloseViewEnabler(theItem, editor.getSourceViewTabTitle()));
-    		
-        } else if (CLOSE_VERSION_HISTORY_VIEW_ACTION_NAME.equals(actionName)) {
-    		theItem.setEnabled(false);
-    		toolbarStates.addPropertyChangeListener(
-        			ToolBarStates.CURRENT_EDITOR_PROPERTY_NAME,
-        			new CloseViewEnabler(theItem, editor.getVersionHistoryViewTabTitle()));
-    		
-        } else if (CLOSE_RECENT_CHANGES_VIEW_ACTION_NAME.equals(actionName)) {
-    		theItem.setEnabled(false);
-    		toolbarStates.addPropertyChangeListener(
-        			ToolBarStates.CURRENT_EDITOR_PROPERTY_NAME,
-        			new CloseViewEnabler(theItem, editor.getRecentChangesViewTabTitle()));
     		
         } else if (APPLY_FILTER_ACTION_NAME.equals(actionName)) {
     		theItem.setEnabled(false);
@@ -258,7 +170,7 @@ public class ViewMenu extends UIMenu {
 		return theItem;
     }
     
-    private static class OpenViewEnabler extends CurrentEditorBasedEnabler {
+    static class OpenViewEnabler extends CurrentEditorBasedEnabler {
     	protected String _openedViewTabTitle;
     	
     	OpenViewEnabler(JMenuItem item, String openedViewTabTitle) {
@@ -275,7 +187,7 @@ public class ViewMenu extends UIMenu {
             
             boolean isEnabled = true;
             if (editor.getRecentChangesViewTabTitle().equals(_openedViewTabTitle)
-            	|| editor.getVersionHistoryViewTabTitle().equals(_openedViewTabTitle)) {
+            	|| editor.getContentControlHistoryViewTabTitle().equals(_openedViewTabTitle)) {
         		WordMLTextPane editorView = 
         			(WordMLTextPane) editor.getView(editor.getEditorViewTabTitle());
                	isEnabled = 
@@ -285,7 +197,7 @@ public class ViewMenu extends UIMenu {
     	}
     } //OpenViewEnabler inner class
     
-    private static class CloseViewEnabler extends CurrentEditorBasedEnabler {
+    static class CloseViewEnabler extends CurrentEditorBasedEnabler {
     	protected String _closedViewTabTitle;
     	
     	CloseViewEnabler(JMenuItem item, String closedViewTabTitle) {
