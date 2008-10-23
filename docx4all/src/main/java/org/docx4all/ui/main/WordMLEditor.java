@@ -337,9 +337,9 @@ public class WordMLEditor extends SingleFrameApplication {
         return rm.getString(Constants.SOURCE_VIEW_TAB_TITLE);
     }
     
-    public String getVersionHistoryViewTabTitle() {
+    public String getContentControlHistoryViewTabTitle() {
     	ResourceMap rm = getContext().getResourceMap(WordMLEditor.class);
-    	return rm.getString(Constants.VERSION_HISTORY_VIEW_TAB_TITLE);
+    	return rm.getString(Constants.CONTENT_CONTROL_HISTORY_VIEW_TAB_TITLE);
     }
     
     public String getRecentChangesViewTabTitle() {
@@ -404,7 +404,12 @@ public class WordMLEditor extends SingleFrameApplication {
     
     public void showViewInTab(final String tabTitle) {
     	if (getCurrentInternalFrame() != null) {
+    		Cursor origCursor = getMainFrame().getCursor();
+    		getMainFrame().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
     		getCurrentViewManager().showViewTab(tabTitle);
+    		
+    		getMainFrame().setCursor(origCursor);
     	}
 	}
     
@@ -480,11 +485,9 @@ public class WordMLEditor extends SingleFrameApplication {
     	return sourceView;
     }
     
-    private JEditorPane createVersionHistoryView(WordMLTextPane editorView) {
+    private JEditorPane createContentControlHistoryView(WordMLTextPane editorView) {
 		WordMLTextPane theView = new WordMLTextPane();
 		
-		Cursor origCursor = getMainFrame().getCursor();
-		getMainFrame().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 		editorView.saveCaretText();
 		
        	int pos = editorView.getCaretPosition();
@@ -513,7 +516,6 @@ public class WordMLEditor extends SingleFrameApplication {
        	} finally {
        		plutextClient.endSession();
        		editorViewDoc.readUnlock();
-			getMainFrame().setCursor(origCursor);
        	}
        	
         theView.setEditable(false);
@@ -525,8 +527,6 @@ public class WordMLEditor extends SingleFrameApplication {
     private JEditorPane createRecentChangesView(WordMLTextPane editorView) {
 		WordMLTextPane theView = new WordMLTextPane();
 		
-		Cursor origCursor = getMainFrame().getCursor();
-		getMainFrame().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 		editorView.saveCaretText();		
 		
 		Mediator plutextClient = editorView.getWordMLEditorKit().getPlutextClient();
@@ -543,7 +543,6 @@ public class WordMLEditor extends SingleFrameApplication {
 			
 		} finally {
 			plutextClient.endSession();
-			getMainFrame().setCursor(origCursor);
 		}
 		
         theView.setEditable(false);
@@ -818,28 +817,28 @@ public class WordMLEditor extends SingleFrameApplication {
     		JTabbedPane pane = (JTabbedPane) event.getSource();
         	int editorViewIdx = pane.indexOfTab(getEditorViewTabTitle());
         	int sourceViewIdx = pane.indexOfTab(getSourceViewTabTitle());
-        	int versionHistoryViewIdx = pane.indexOfTab(getVersionHistoryViewTabTitle());
-        	int recentChangesViewIdx = pane.indexOfTab(getRecentChangesViewTabTitle());
+        	int historyViewIdx = pane.indexOfTab(getContentControlHistoryViewTabTitle());
+        	int recentViewIdx = pane.indexOfTab(getRecentChangesViewTabTitle());
         	
         	if (pane.getSelectedIndex() == editorViewIdx 
         		&& editorViewIdx != -1) {
-        		processSelectedEditorView(pane, editorViewIdx, sourceViewIdx);
+        		changeToEditorView(pane, editorViewIdx, sourceViewIdx);
         		
         	} else if (pane.getSelectedIndex() == sourceViewIdx
         				&& sourceViewIdx != -1 ) {
-        		processSelectedSourceView(pane, editorViewIdx, sourceViewIdx);
+        		changeToSourceView(pane, editorViewIdx, sourceViewIdx);
         		
-        	} else if (pane.getSelectedIndex() == versionHistoryViewIdx
-        				&& versionHistoryViewIdx != -1) {
-        		processSelectedVersionHistoryView(pane, editorViewIdx, versionHistoryViewIdx);
+        	} else if (pane.getSelectedIndex() == historyViewIdx
+        				&& historyViewIdx != -1) {
+        		changeToContentControlHistoryView(pane, editorViewIdx, historyViewIdx);
         		
-        	} else if (pane.getSelectedIndex() == recentChangesViewIdx
-        				&& recentChangesViewIdx != -1) {
-        		processSelectedRecentChangesView(pane, editorViewIdx, recentChangesViewIdx);
+        	} else if (pane.getSelectedIndex() == recentViewIdx
+        				&& recentViewIdx != -1) {
+        		changeToRecentChangesView(pane, editorViewIdx, recentViewIdx);
         	}
     	}
     	
-    	private void processSelectedEditorView(
+    	private void changeToEditorView(
     		JTabbedPane pane, int editorViewIdx, int sourceViewIdx) {
     		
     		if (sourceViewIdx == -1) {
@@ -847,13 +846,13 @@ public class WordMLEditor extends SingleFrameApplication {
     			return;
     		}
     		
-    		WordMLTextPane editorView = 
+    		final WordMLTextPane editorView = 
     			(WordMLTextPane)
     				SwingUtil.getDescendantOfClass(
     					WordMLTextPane.class, 
     					(Container) pane.getComponentAt(editorViewIdx), 
     					true);
-    		JEditorPane sourceView = 
+    		final JEditorPane sourceView = 
     			(JEditorPane)
     				SwingUtil.getDescendantOfClass(
     					JEditorPane.class, 
@@ -867,10 +866,15 @@ public class WordMLEditor extends SingleFrameApplication {
 				//editorView has to be synchronised with source view.
 				synchEditorView(editorView, sourceView);
 			}
-			editorView.requestFocusInWindow();
+			
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					editorView.requestFocusInWindow();
+				}
+			});
     	}
     	
-    	private void processSelectedSourceView(
+    	private void changeToSourceView(
     		JTabbedPane pane, int editorViewIdx, int sourceViewIdx) {
     		if (editorViewIdx == -1) {
     			//No Editor View.
@@ -878,13 +882,13 @@ public class WordMLEditor extends SingleFrameApplication {
     			throw new IllegalStateException("No Editor View");
     		}
     		
-    		WordMLTextPane editorView = 
+    		final WordMLTextPane editorView = 
     			(WordMLTextPane)
     				SwingUtil.getDescendantOfClass(
     					WordMLTextPane.class, 
     					(Container) pane.getComponentAt(editorViewIdx), 
     					true);
-    		JEditorPane sourceView = 
+    		final JEditorPane sourceView = 
     			(JEditorPane)
     				SwingUtil.getDescendantOfClass(
     					JEditorPane.class, 
@@ -896,53 +900,68 @@ public class WordMLEditor extends SingleFrameApplication {
 			if (!isSynched.booleanValue()) {
 				synchSourceView(sourceView, editorView);
 			}
-			sourceView.requestFocusInWindow();
+			
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					sourceView.requestFocusInWindow();
+				}
+			});
     	}
     	
-    	private void processSelectedVersionHistoryView(
+    	private void changeToContentControlHistoryView(
         	JTabbedPane pane, int editorViewIdx, int versionHistoryViewIdx) {
         	if (editorViewIdx == -1) {
         		//No Editor View.
         		//This should not happen.
         		throw new IllegalStateException("No Editor View");
         	}
-    		WordMLTextPane editorView = 
+    		final WordMLTextPane editorView = 
     			(WordMLTextPane)
     				SwingUtil.getDescendantOfClass(
     					WordMLTextPane.class, 
     					(Container) pane.getComponentAt(editorViewIdx), 
     					true);
-    		JEditorPane historyView = 
+    		final JEditorPane historyView = 
     			(JEditorPane)
     				SwingUtil.getDescendantOfClass(
     					JEditorPane.class, 
     					(Container) pane.getComponentAt(versionHistoryViewIdx), 
     					false);
-        	synchVersionHistoryView(historyView, editorView);
-        	historyView.requestFocusInWindow();
+        	synchContentControlHistoryView(historyView, editorView);
+        	
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					historyView.requestFocusInWindow();
+				}
+			});
     	}
     	
-    	private void processSelectedRecentChangesView(
+    	private void changeToRecentChangesView(
         	JTabbedPane pane, int editorViewIdx, int recentChangesViewIdx) {
         	if (editorViewIdx == -1) {
         		//No Editor View.
         		//This should not happen.
         		throw new IllegalStateException("No Editor View");
         	}
-    		WordMLTextPane editorView = 
+    		final WordMLTextPane editorView = 
     			(WordMLTextPane)
     				SwingUtil.getDescendantOfClass(
     					WordMLTextPane.class, 
     					(Container) pane.getComponentAt(editorViewIdx), 
     					true);
-    		JEditorPane recentView = 
+    		final JEditorPane recentView = 
     			(JEditorPane)
     				SwingUtil.getDescendantOfClass(
     					JEditorPane.class, 
     					(Container) pane.getComponentAt(recentChangesViewIdx), 
     					false);
         	synchRecentChangesView(recentView, editorView);
-        	recentView.requestFocusInWindow();
+        	
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					recentView.requestFocusInWindow();
+				}
+			});
     	}
     	
     	private void synchEditorView(WordMLTextPane editorView, JEditorPane sourceView) {
@@ -1009,10 +1028,10 @@ public class WordMLEditor extends SingleFrameApplication {
 			editorView.putClientProperty(Constants.LOCAL_VIEWS_SYNCHRONIZED_FLAG, Boolean.TRUE);
     	}
     	
-    	private void synchVersionHistoryView(JEditorPane historyView, WordMLTextPane editorView) {
+    	private void synchContentControlHistoryView(JEditorPane historyView, WordMLTextPane editorView) {
 			int caretPos = historyView.getCaretPosition();
 			
-			JEditorPane newView = createVersionHistoryView(editorView);
+			JEditorPane newView = createContentControlHistoryView(editorView);
 			Document newDoc = newView.getDocument();
 			
 			historyView.setDocument(newDoc);
@@ -1125,7 +1144,7 @@ public class WordMLEditor extends SingleFrameApplication {
     	
     	JEditorPane getVersionHistoryView() {
     		checkOwner();
-    		return getView(getVersionHistoryViewTabTitle());
+    		return getView(getContentControlHistoryViewTabTitle());
     	}
     	
     	JEditorPane getRecentChangesView() {
@@ -1181,8 +1200,8 @@ public class WordMLEditor extends SingleFrameApplication {
     				view = createSourceView(editorView);
         			addViewTab(view, tabTitle);
         			view.setCaretPosition(0);
-    			} else if (getVersionHistoryViewTabTitle().equals(tabTitle)) {
-    				view = createVersionHistoryView(editorView);
+    			} else if (getContentControlHistoryViewTabTitle().equals(tabTitle)) {
+    				view = createContentControlHistoryView(editorView);
         			addViewTab(view, tabTitle);
         			view.setCaretPosition(0);
     			} else if (getRecentChangesViewTabTitle().equals(tabTitle)) {
@@ -1218,7 +1237,7 @@ public class WordMLEditor extends SingleFrameApplication {
     	void removeViewTab(String tabTitle) {
     		checkOwner();
     		
-    		JTabbedPane tabbedPane = getJTabbedPane();
+    		final JTabbedPane tabbedPane = getJTabbedPane();
     		if (tabbedPane == null) {
     			return;
     		}
@@ -1233,28 +1252,63 @@ public class WordMLEditor extends SingleFrameApplication {
     			throw new IllegalStateException("No Editor View Tab");
     		}
     		
+    		//Disable tabbedPane's change listener. 
+    		//This is needed to stop the view synchronisation process in it.
+			tabbedPane.removeChangeListener(this.viewChangeListener);
+			
     		if (tabbedPane.getTabCount() > 2) {
     			idx = tabbedPane.indexOfTab(tabTitle);
     			tabbedPane.removeTabAt(idx);
     			
+				int lastTab = tabbedPane.getTabCount() - 1;
+				tabbedPane.setSelectedIndex(lastTab);
+				
+    			//Put change listener back on.
+    			tabbedPane.addChangeListener(ViewManager.this.viewChangeListener);
+    			
+    			final JEditorPane viewToFocus = 
+        			(JEditorPane)
+        				SwingUtil.getDescendantOfClass(
+        					JEditorPane.class, 
+        					(Container) tabbedPane.getComponentAt(lastTab), 
+        					false);
+    			SwingUtilities.invokeLater(new Runnable() {
+    				public void run() {
+                		viewToFocus.requestFocusInWindow();
+    				}
+    			});
+    			
     		} else if (tabbedPane.getTabCount() == 2) {
-    			//Tabbed pane consists of Editor View and the view being closed
-    			tabbedPane.removeChangeListener(this.viewChangeListener);
-        		JPanel editorViewPanel = (JPanel) tabbedPane.getComponentAt(idx); 
+    			//If Tabbed pane consists of Editor View and the view being closed
+        		JPanel viewPanel = (JPanel) tabbedPane.getComponentAt(idx); 
         		
 				Rectangle bounds = owner.getBounds();
 				owner.getContentPane().removeAll();
     			
 				//Move editorViewPanel from tabbedPane to owner's content
     	    	tabbedPane.remove(idx);
-    			owner.getContentPane().add(editorViewPanel);
+    			owner.getContentPane().add(viewPanel);
                 	
     			owner.invalidate();
     			owner.validate();
     			owner.setBounds(bounds);
+    			
+    			final JEditorPane viewToFocus = 
+        			(JEditorPane)
+        				SwingUtil.getDescendantOfClass(
+        					JEditorPane.class, 
+        					(Container) viewPanel, 
+        					false);
+    			SwingUtilities.invokeLater(new Runnable() {
+    				public void run() {
+                		viewToFocus.requestFocusInWindow();
+    				}
+    			});
+    			    			
     		} else {
     			//should never happen.
     		}
+    					
     	} //removeViewTab()
     	
     	void selectViewTab(String tabTitle) {
@@ -1287,21 +1341,26 @@ public class WordMLEditor extends SingleFrameApplication {
             	tabbedPane.addTab(getEditorViewTabTitle(), editorViewPanel);
             	tabbedPane.addTab(tabTitle, viewPanel);
             	
-            	tabbedPane.addChangeListener(this.viewChangeListener); 
-            	
             	owner.getContentPane().add(tabbedPane);
             	owner.invalidate();
             	owner.validate();
+            	
     		} else {
+    	   		//Disable tabbedPane's change listener. 
+        		//This is needed to avoid unnecessary view synchronisation 
+    			//process due to tab addition.
+    			tabbedPane.removeChangeListener(this.viewChangeListener);
+    			
    				//Add Tab
    				tabbedPane.addTab(tabTitle, viewPanel);
    				tabbedPane.invalidate();
    				tabbedPane.validate();
             }
     		
-    		int i = tabbedPane.indexOfTab(tabTitle);
-    		tabbedPane.setSelectedIndex(i);
-    		
+	    	int i = tabbedPane.indexOfTab(tabTitle);
+   	    	tabbedPane.setSelectedIndex(i);
+   	    	//Put change listener back on
+        	tabbedPane.addChangeListener(this.viewChangeListener);    		
         	owner.setBounds(bounds);
     	}
     	
