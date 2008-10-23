@@ -80,7 +80,7 @@ public class ContentGroupingDialog extends JDialog
 		}
 
 		this.value = CANCEL_BUTTON_TEXT;
-		setTitle("Setup Units");
+		setTitle("Setup Content Controls");
 		
 		JPanel contentGroupPanel = createContentGroupPanel(wmlEditor);
 		
@@ -208,7 +208,7 @@ public class ContentGroupingDialog extends JDialog
 		thePanel.setAlignmentX(LEFT_ALIGNMENT);
 		thePanel.setLayout(new BoxLayout(thePanel, BoxLayout.Y_AXIS));
 		
-		JLabel startLabel = new JLabel("Create Control Units:");
+		JLabel startLabel = new JLabel("Create Content Controls:");
 		startLabel.setAlignmentX(LEFT_ALIGNMENT);
 		
 		JRadioButton atEachParaRadio = new JRadioButton("at each paragraph");
