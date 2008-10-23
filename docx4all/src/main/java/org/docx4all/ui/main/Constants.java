@@ -88,7 +88,7 @@ public interface Constants {
 	public final static String SOURCE_VIEW_FONT_FAMILY_NAME = "source.view.font.family.name";
 	public final static String SOURCE_VIEW_FONT_SIZE = "source.view.font.size";
 	
-	public final static String VERSION_HISTORY_VIEW_TAB_TITLE = "version.history.view.tab.title";
+	public final static String CONTENT_CONTROL_HISTORY_VIEW_TAB_TITLE = "content.control.history.view.tab.title";
 	public final static String RECENT_CHANGES_VIEW_TAB_TITLE = "recent.changes.view.tab.title";
 	
 	public final static String PLUTEXT_WEBDAV_URL_KEYWORD = "plutext.webdav.url.keyword";
