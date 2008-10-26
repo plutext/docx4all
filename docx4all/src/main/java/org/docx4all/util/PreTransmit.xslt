@@ -33,6 +33,7 @@
   indent="yes"/>  
   
 <xsl:param name="chunkOnEachBlock" select="'someone'"/>
+<xsl:param name="mediator" select="'someone'"/>
 
   <!--xsl:preserve-space elements="w:t"/-->
 
@@ -179,7 +180,7 @@
         </xsl:for-each>        
       </xsl:when>
 
-      <xsl:when test="$mediator.isDeletedPermanently($id, $textContents ) and (count(w:sdtContent/w:p/w:del) + count(w:sdtContent/w:p/w:ins)=0)">
+      <xsl:when test="java:org.plutex.client.Mediator.isDeletedPermanently($mediator, $id, $textContents ) and (count(w:sdtContent/w:p/w:del) + count(w:sdtContent/w:p/w:ins)=0)">
         <!-- The count stuff is necessary, because the extension function
              only gets the text contents.  It doesn't know whether the 
              text contents is a normal run, or one in a w:del 

@@ -1721,5 +1721,22 @@ public class Mediator {
 		}
 	}
 	
+	public static String generateId() {
+		
+		// Return a random number
+		
+		return "TODO";
+		
+	}
+	
+	public static boolean isDeletedPermanently(Mediator mediator, String id, String textContents) {
+		
+		// TODO  - See equivalent method in Pkg.cs
+		
+		return false;
+		
+	}
+	
+	
 }// Mediator class
 
