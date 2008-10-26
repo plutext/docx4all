@@ -37,7 +37,10 @@ import javax.xml.namespace.QName;
 import javax.xml.transform.stream.StreamSource;
 
 import org.apache.log4j.Logger;
+import org.docx4all.swing.text.DocumentElement;
+import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.ui.main.Constants;
+import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLIterator;
 import org.docx4all.xml.ObjectFactory;
@@ -55,6 +58,7 @@ import org.docx4j.openpackaging.parts.JaxbXmlPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.wml.SdtBlock;
 import org.docx4j.wml.SdtContentBlock;
+import org.plutext.client.Mediator;
 import org.plutext.transforms.Changesets.Changeset;
 import org.w3c.dom.Node;
 
@@ -755,6 +759,41 @@ public class XmlUtil {
 		return newSdt;		
 	}
 	
+	public final static org.docx4j.wml.Document 
+		preTransmit(Mediator mediator) throws Exception {
+		WordMLDocument doc = 
+			(WordMLDocument) mediator.getWordMLTextPane().getDocument();
+		DocumentElement rootE = (DocumentElement) doc.getDefaultRootElement();
+		DocumentML docML = (DocumentML) rootE.getElementML();
+		org.docx4j.wml.Document docx4jDoc = 
+			(org.docx4j.wml.Document) docML.getDocxObject();
+		String srcString = XmlUtils.marshaltoString(docx4jDoc, false);
+		
+		java.io.InputStream xslt = 
+			org.docx4j.utils.ResourceUtils
+				.getResource("org/docx4all/util/PreTransmit.xslt");
+		
+		Map<String, Object> xsltParameters = new HashMap<String, Object>(1);
+		String chunking = 
+			getCustomProperty(
+				docML.getWordprocessingMLPackage(), 
+				Constants.PLUTEXT_GROUPING_PROPERTY_NAME).getLpwstr();
+		Boolean chunkOnEachBlock =
+			Boolean.valueOf(
+				Constants.EACH_BLOCK_GROUPING_STRATEGY.equals(chunking));
+		xsltParameters.put("chunkOnEachBlock", chunkOnEachBlock);
+		xsltParameters.put("mediator", mediator);
+		
+		StreamSource src = new StreamSource(new StringReader(srcString));
+
+		javax.xml.bind.util.JAXBResult result = 
+			new javax.xml.bind.util.JAXBResult(org.docx4j.jaxb.Context.jc);
+			
+		org.docx4j.XmlUtils.transform(src, xslt, xsltParameters, result);
+
+		return (org.docx4j.wml.Document) result.getResult();
+	}
+
 	private XmlUtil() {
 		;//uninstantiable
 	}
