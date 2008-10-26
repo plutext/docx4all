@@ -759,43 +759,6 @@ public class XmlUtil {
 		return newSdt;		
 	}
 	
-	public final static org.docx4j.wml.Document 
-		preTransmit(Mediator mediator) throws Exception {
-		WordMLDocument doc = 
-			(WordMLDocument) mediator.getWordMLTextPane().getDocument();
-		DocumentElement rootE = (DocumentElement) doc.getDefaultRootElement();
-		DocumentML docML = (DocumentML) rootE.getElementML();
-		org.docx4j.wml.Document docx4jDoc = 
-			(org.docx4j.wml.Document) docML.getDocxObject();
-		String srcString = XmlUtils.marshaltoString(docx4jDoc, false);
-		
-		java.io.InputStream xslt = 
-			org.docx4j.utils.ResourceUtils
-				.getResource("org/docx4all/util/PreTransmit.xslt");
-		
-		Map<String, Object> xsltParameters = new HashMap<String, Object>(1);
-		String chunking = 
-			getCustomProperty(
-				docML.getWordprocessingMLPackage(), 
-				Constants.PLUTEXT_GROUPING_PROPERTY_NAME).getLpwstr();
-		Boolean chunkOnEachBlock =
-			Boolean.valueOf(
-				Constants.EACH_BLOCK_GROUPING_STRATEGY.equals(chunking));
-		xsltParameters.put("chunkOnEachBlock", chunkOnEachBlock);
-		xsltParameters.put("mediatorInstance", mediator);
-		
-		StreamSource src = new StreamSource(new StringReader(srcString));
-
-		javax.xml.bind.util.JAXBResult result = 
-			new javax.xml.bind.util.JAXBResult(org.docx4j.jaxb.Context.jc);
-			
-		org.docx4j.XmlUtils.transform(src, xslt, xsltParameters, result);
-
-		docx4jDoc = (org.docx4j.wml.Document) result.getResult();
-		
-		return docx4jDoc;
-	}
-
 	private XmlUtil() {
 		;//uninstantiable
 	}
