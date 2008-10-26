@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-    xmlns:mediator="org.plutext.client.Mediator"
+  xmlns:java="http://xml.apache.org/xalan/java" 
     xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage"
-    xmlns:ns2="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-    xmlns:ns4="http://schemas.openxmlformats.org/schemaLibrary/2006/main"
     xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
   xmlns:xml="http://www.w3.org/XML/1998/namespace"                
-  version="1.0" >	
+  version="1.0" 
+  exclude-result-prefixes="java"> 
   
 
   <!-- 
@@ -32,8 +31,8 @@
   <xsl:output method="xml" encoding="utf-8" omit-xml-declaration="no" 
   indent="yes"/>  
   
-<xsl:param name="chunkOnEachBlock" select="'someone'"/>
-<xsl:param name="mediatorInstance" select="'someone'"/>
+<xsl:param name="chunkOnEachBlock"/>
+<xsl:param name="mediatorInstance"/>
 
   <!--xsl:preserve-space elements="w:t"/-->
 
@@ -76,7 +75,7 @@
                   <w:id  w:val="{w:sdt/w:sdtPr/w:id/@w:val}"/>
                 </xsl:when>
                 <xsl:otherwise>
-                  <xsl:variable name="generatedId"  select="mediator:generateId()" />
+                  <xsl:variable name="generatedId"  select="java:org.plutext.client.Mediator.generateId()" />
                   <w:tag w:val="0"/>
                   <w:id  w:val="{$generatedId}" />
                 </xsl:otherwise>
@@ -164,7 +163,7 @@
             </xsl:when>
             <xsl:otherwise>
 
-              <xsl:variable name="generatedId"  select="mediator:generateId()" />
+              <xsl:variable name="generatedId"  select="java:org.plutext.client.Mediator.generateId()" />
 
               <w:sdt>
                 <w:sdtPr>
@@ -180,7 +179,7 @@
         </xsl:for-each>        
       </xsl:when>
 
-      <xsl:when test="mediator:isDeletedPermanently($mediatorInstance, $id, $textContents ) and (count(w:sdtContent/w:p/w:del) + count(w:sdtContent/w:p/w:ins)=0)">
+      <xsl:when test="java:org.plutext.client.Mediator.isDeletedPermanently($mediatorInstance, string($id), $textContents ) and (count(w:sdtContent/w:p/w:del) + count(w:sdtContent/w:p/w:ins)=0)">
         <!-- The count stuff is necessary, because the extension function
              only gets the text contents.  It doesn't know whether the 
              text contents is a normal run, or one in a w:del 
