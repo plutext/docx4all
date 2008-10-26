@@ -19,8 +19,6 @@
 
 package org.docx4all.ui.menu;
 
-import java.awt.Cursor;
-
 import javax.swing.JInternalFrame;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
@@ -309,10 +307,21 @@ public class PlutextMenu extends UIMenu {
     			d.pack();
     			d.setLocationRelativeTo(wmlEditor.getWindowFrame());
     			
-       			TransmitLocalEditsWorker task = 
+       			final TransmitLocalEditsWorker task = 
         			new TransmitLocalEditsWorker(plutextClient, wmlEditor);
                 task.addPropertyChangeListener(d);
-                task.execute();
+                
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                    	task.preTransmit();
+                    }
+                });
+                
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                    	task.execute();
+                    }
+                });
                 
     			d.setVisible(true);
     			
