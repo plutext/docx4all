@@ -19,11 +19,17 @@
 
 package org.plutext.client;
 
+import java.io.StringReader;
 import java.util.HashMap;
+import java.util.Map;
+
+import javax.xml.transform.stream.StreamSource;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
+import org.docx4all.ui.main.Constants;
+import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.SdtBlockML;
 import org.docx4j.XmlUtils;
@@ -32,18 +38,19 @@ import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
 import org.plutext.client.state.StateChunk;
 
-
 public class Util {
-	
-	private static Logger log = Logger.getLogger(Util.class);	
-	
-	public static String getCustomDocumentProperty(DocPropsCustomPart docPropsCustomPart, 
-			String propName) {
-		
-		org.docx4j.docProps.custom.Properties customProps = (org.docx4j.docProps.custom.Properties)docPropsCustomPart.getJaxbElement();
-		
-		for (org.docx4j.docProps.custom.Properties.Property prop: customProps.getProperty() ) {
-			
+
+	private static Logger log = Logger.getLogger(Util.class);
+
+	public static String getCustomDocumentProperty(
+			DocPropsCustomPart docPropsCustomPart, String propName) {
+
+		org.docx4j.docProps.custom.Properties customProps = (org.docx4j.docProps.custom.Properties) docPropsCustomPart
+				.getJaxbElement();
+
+		for (org.docx4j.docProps.custom.Properties.Property prop : customProps
+				.getProperty()) {
+
 			if (prop.getName().equals(propName)) {
 				// At the moment, you need to know what sort of value it has.
 				// Could create a generic Object getValue() method.
@@ -52,27 +59,24 @@ public class Util {
 		}
 		log.error("Property '" + propName + "' not found!");
 		return null;
-		
+
 	}
-	
+
 	/** Gets the text contents of the Sdt */
 	public static String getSdtText(SdtBlock cc) {
-		
+
 		// TODO - implement
-		
+
 		return null;
 	}
 
-    public static String getChunkId(Id id)
-    {
-    	return id.getVal().toString();
-    }
-    
-    
-    public static DocumentElement getDocumentElement(
-    	WordMLDocument doc,
-    	String sdtBlockId) {
-    	
+	public static String getChunkId(Id id) {
+		return id.getVal().toString();
+	}
+
+	public static DocumentElement getDocumentElement(WordMLDocument doc,
+			String sdtBlockId) {
+
 		DocumentElement elem = null;
 
 		try {
@@ -103,54 +107,54 @@ public class Util {
 		return elem;
 	}
 
-    public static StateChunk getStateChunk(
-    	WordMLDocument doc,
-    	String sdtBlockId) {
-    	
-    	StateChunk theChunk = null;
-    	
-    	DocumentElement elem = getDocumentElement(doc, sdtBlockId);
-    	if (elem != null) {
-    		ElementML ml = elem.getElementML();
-    		theChunk = new StateChunk((org.docx4j.wml.SdtBlock) ml.getDocxObject());
-    	}
-    	
-    	return theChunk;
-    }
-    
-    public static Skeleton createSkeleton(WordMLDocument doc) {
-    	Skeleton skeleton = new Skeleton();
-  		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();    	
-  		for (int i=0; i < root.getElementCount(); i++) {
-  			DocumentElement elem = (DocumentElement) root.getElement(i);
-  			ElementML ml = elem.getElementML();
-  			if (ml instanceof SdtBlockML) {
-  				SdtBlockML sdt = (SdtBlockML) ml;
-  				String id = sdt.getSdtProperties().getIdValue().toString();
-				skeleton.getRibs().add(new TextLine(id)); 				
-  			}
-  		}
-  		return skeleton;
-    }
-    
-	public static HashMap<String, StateChunk> createStateChunks(WordMLDocument doc) {
+	public static StateChunk getStateChunk(WordMLDocument doc, String sdtBlockId) {
+
+		StateChunk theChunk = null;
+
+		DocumentElement elem = getDocumentElement(doc, sdtBlockId);
+		if (elem != null) {
+			ElementML ml = elem.getElementML();
+			theChunk = new StateChunk((org.docx4j.wml.SdtBlock) ml
+					.getDocxObject());
+		}
+
+		return theChunk;
+	}
+
+	public static Skeleton createSkeleton(WordMLDocument doc) {
+		Skeleton skeleton = new Skeleton();
 		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
-		
-		HashMap<String, StateChunk> stateChunks = 
-			new HashMap<String, StateChunk>(root.getElementCount());
+		for (int i = 0; i < root.getElementCount(); i++) {
+			DocumentElement elem = (DocumentElement) root.getElement(i);
+			ElementML ml = elem.getElementML();
+			if (ml instanceof SdtBlockML) {
+				SdtBlockML sdt = (SdtBlockML) ml;
+				String id = sdt.getSdtProperties().getIdValue().toString();
+				skeleton.getRibs().add(new TextLine(id));
+			}
+		}
+		return skeleton;
+	}
+
+	public static HashMap<String, StateChunk> createStateChunks(
+			WordMLDocument doc) {
+		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+
+		HashMap<String, StateChunk> stateChunks = new HashMap<String, StateChunk>(
+				root.getElementCount());
 
 		for (int idx = 0; idx < root.getElementCount(); idx++) {
 			DocumentElement elem = (DocumentElement) root.getElement(idx);
 			ElementML ml = elem.getElementML();
 			if (ml instanceof SdtBlockML) {
-				org.docx4j.wml.SdtBlock sdt = 
-					(org.docx4j.wml.SdtBlock) ml.getDocxObject();
+				org.docx4j.wml.SdtBlock sdt = (org.docx4j.wml.SdtBlock) ml
+						.getDocxObject();
 				sdt = (org.docx4j.wml.SdtBlock) XmlUtils.deepCopy(sdt);
 				StateChunk sc = new StateChunk(sdt);
 				stateChunks.put(sc.getIdAsString(), sc);
 			}
 		}
-		
+
 		return stateChunks;
 	}
 
@@ -160,35 +164,46 @@ public class Util {
 		return org.docx4j.XmlUtils.marshaltoString(cc, suppressDeclaration);
 
 		// return "<w:sdt
-		// xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">"
+		// xmlns:w=\
+		// "http://schemas.openxmlformats.org/wordprocessingml/2006/main\">"
 		// + node.InnerXml + "</w:sdt>";
 	}
-    
+
+	public final static org.docx4j.wml.Document preTransmit(Mediator mediator)
+			throws Exception {
+		WordMLDocument doc = (WordMLDocument) mediator.getWordMLTextPane()
+				.getDocument();
+		DocumentElement rootE = (DocumentElement) doc.getDefaultRootElement();
+		DocumentML docML = (DocumentML) rootE.getElementML();
+		org.docx4j.wml.Document docx4jDoc = (org.docx4j.wml.Document) docML
+				.getDocxObject();
+		String srcString = XmlUtils.marshaltoString(docx4jDoc, false);
+
+		java.io.InputStream xslt = org.docx4j.utils.ResourceUtils
+				.getResource("org/plutext/client/PreTransmit.xslt");
+
+		Map<String, Object> xsltParameters = new HashMap<String, Object>(1);
+		String chunking = 
+			getCustomDocumentProperty(
+				docML.getWordprocessingMLPackage().getDocPropsCustomPart(),
+				Constants.PLUTEXT_GROUPING_PROPERTY_NAME);
+		Boolean chunkOnEachBlock = Boolean
+				.valueOf(Constants.EACH_BLOCK_GROUPING_STRATEGY
+						.equals(chunking));
+		xsltParameters.put("chunkOnEachBlock", chunkOnEachBlock);
+		xsltParameters.put("mediatorInstance", mediator);
+
+		StreamSource src = new StreamSource(new StringReader(srcString));
+
+		javax.xml.bind.util.JAXBResult result = new javax.xml.bind.util.JAXBResult(
+				org.docx4j.jaxb.Context.jc);
+
+		org.docx4j.XmlUtils.transform(src, xslt, xsltParameters, result);
+
+		docx4jDoc = (org.docx4j.wml.Document) result.getResult();
+
+		return docx4jDoc;
+	}
 
 }// Util class
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
