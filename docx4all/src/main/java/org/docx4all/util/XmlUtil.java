@@ -782,7 +782,7 @@ public class XmlUtil {
 			Boolean.valueOf(
 				Constants.EACH_BLOCK_GROUPING_STRATEGY.equals(chunking));
 		xsltParameters.put("chunkOnEachBlock", chunkOnEachBlock);
-		xsltParameters.put("mediator", mediator);
+		xsltParameters.put("mediatorInstance", mediator);
 		
 		StreamSource src = new StreamSource(new StringReader(srcString));
 
@@ -791,7 +791,9 @@ public class XmlUtil {
 			
 		org.docx4j.XmlUtils.transform(src, xslt, xsltParameters, result);
 
-		return (org.docx4j.wml.Document) result.getResult();
+		docx4jDoc = (org.docx4j.wml.Document) result.getResult();
+		
+		return docx4jDoc;
 	}
 
 	private XmlUtil() {
