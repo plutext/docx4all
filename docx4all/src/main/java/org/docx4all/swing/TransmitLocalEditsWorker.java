@@ -25,8 +25,12 @@ import java.util.Hashtable;
 import javax.swing.JComponent;
 import javax.swing.SwingWorker;
 
+import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.ui.main.WordMLEditor;
+import org.docx4all.util.XmlUtil;
+import org.docx4all.xml.BodyML;
+import org.docx4all.xml.ElementML;
 import org.plutext.client.Mediator;
 
 /**
@@ -87,6 +91,43 @@ public class TransmitLocalEditsWorker extends SwingWorker<Boolean, Void> impleme
     		firePropertyChange("endResult", null, endResult);
     	} catch (Exception exc) {
     		;//ignore
+    	}
+    }
+    
+    public void preTransmit() {
+    	setProgress(TransmitProgress.START, "Cleaning Content Controls");
+    	
+    	WordMLTextPane editor = this.plutextClient.getWordMLTextPane();
+    	WordMLDocument doc = (WordMLDocument) editor.getDocument();
+    	
+    	try {
+    		doc.lockWrite();
+    		
+    		DocumentElement elem =
+    			(DocumentElement) doc.getDefaultRootElement();
+    		ElementML docML = elem.getElementML();
+    		
+    		//Do not include document's last paragraph.
+    		elem = (DocumentElement) elem.getElement(elem.getElementCount() - 1);
+    		ElementML paraML = elem.getElementML();
+    		ElementML bodyML = paraML.getParent();
+    		paraML.delete();
+    		
+    		org.docx4j.wml.Document wmlDoc = 
+    			org.plutext.client.Util.preTransmit(this.plutextClient);
+    		
+    		//Replace bodyML with the transform result: wmlDoc.getBody()
+    		bodyML.delete();
+    		bodyML = new BodyML(wmlDoc.getBody());
+    		bodyML.addChild(paraML);
+    		docML.addChild(bodyML);
+    		
+    		doc.refreshParagraphs(0, doc.getLength());
+    		
+    	} catch (Exception exc) {
+    		exc.printStackTrace();
+    	} finally {
+    		doc.unlockWrite();
     	}
     }
     
