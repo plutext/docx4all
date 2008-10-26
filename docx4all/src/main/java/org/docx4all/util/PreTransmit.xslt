@@ -187,7 +187,7 @@
              
              Don't really need the count bit, because we only count if
              all we have is whitespace; however, whitespace in a w:ins
-             or w:del probably should not be deleted.  -->
+             or w:del probably should not be deleted.  -->  
         <!-- Drop it-->
       </xsl:when>
 
