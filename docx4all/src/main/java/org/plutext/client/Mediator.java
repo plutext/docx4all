@@ -1721,20 +1721,36 @@ public class Mediator {
 		}
 	}
 	
-	public static String generateId() {
-		
-		// Return a random number
-		
-		return "TODO";
-		
+	private boolean isUndead(String sdtId) {
+		return sdtIdUndead.containsKey(sdtId);
 	}
 	
-	public static boolean isDeletedPermanently(Mediator mediator, String id, String textContents) {
-		
-		// TODO  - See equivalent method in Pkg.cs
-		
-		return false;
-		
+	private static final java.util.Random RANDOM = new java.util.Random();
+	
+    public static final String generateId() {
+    	java.math.BigInteger id =
+    		java.math.BigInteger.valueOf(Math.abs(RANDOM.nextInt()));
+    	return id.toString();
+    }
+	
+	public static boolean isDeletedPermanently(Mediator mediator, String sdtId, String textContents) {
+		if (!mediator.isUndead(sdtId)) {
+            // This is not a candidate for removal
+            return false;
+        }
+
+        // Remove it, if the w:del changes have been 
+        // accepted (ie the sdt contains only whitespace)
+        // So far, we can look at the text contents, but
+        // we don't know whether they are in a normal run,
+        // or a w:del (or w:ins) element
+        if (textContents.trim().length() == 0)
+        {
+            log.debug("Extension detected only whitespace in : " + sdtId);
+            return true;
+        }
+
+        return false;
 	}
 	
 	
