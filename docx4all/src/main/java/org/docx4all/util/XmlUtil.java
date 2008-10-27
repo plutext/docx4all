@@ -49,12 +49,16 @@ import org.docx4all.xml.PropertiesContainerML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
 import org.docx4j.XmlUtils;
+import org.docx4j.convert.out.xmlPackage.XmlPackage;
 import org.docx4j.diff.ParagraphDifferencer;
 import org.docx4j.jaxb.Context;
+import org.docx4j.openpackaging.contenttype.ContentTypeManager;
+import org.docx4j.openpackaging.contenttype.ContentTypeManagerImpl;
 import org.docx4j.openpackaging.exceptions.InvalidFormatException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.DocPropsCustomPart;
 import org.docx4j.openpackaging.parts.JaxbXmlPart;
+import org.docx4j.openpackaging.parts.Part;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.wml.SdtBlock;
 import org.docx4j.wml.SdtContentBlock;
@@ -81,47 +85,12 @@ public class XmlUtil {
 	 */
 	public final static void serialize(WordprocessingMLPackage wmlPackage, OutputStream out) {
         try {
-        	// Create a org.docx4j.wml.Package object
-        	org.docx4j.wml.ObjectFactory factory = new org.docx4j.wml.ObjectFactory();
-        	org.docx4j.wml.Package pkg = factory.createPackage();
-        	
-        	// Set its parts - at present, we only handle the main document part and the style part
-        	
-        	// .. the main document part
-        	org.docx4j.wml.Package.Part pkgPartDocument = factory.createPackagePart();
-        	    	
-    		MainDocumentPart documentPart = wmlPackage.getMainDocumentPart(); 
-    		
-        	pkgPartDocument.setName(documentPart.getPartName().getName());
-        	pkgPartDocument.setContentType(documentPart.getContentType() );
-    		
-        	org.docx4j.wml.Package.Part.XmlData XmlDataDoc = factory.createPackagePartXmlData();
-        	
-    		org.docx4j.wml.Document wmlDocumentEl = (org.docx4j.wml.Document)documentPart.getJaxbElement();
-    		
-    		XmlDataDoc.setDocument(wmlDocumentEl);
-    		pkgPartDocument.setXmlData(XmlDataDoc);
-    		pkg.getPart().add(pkgPartDocument);
-    				
-        	// .. the style part
-        	org.docx4j.wml.Package.Part pkgPartStyles = factory.createPackagePart();
 
-        	org.docx4j.openpackaging.parts.WordprocessingML.StyleDefinitionsPart stylesPart = documentPart.getStyleDefinitionsPart();
+    		XmlPackage worker = new XmlPackage(wmlPackage);
+    		org.docx4j.xmlPackage.Package pkg = worker.get();
         	
-        	pkgPartStyles.setName(stylesPart.getPartName().getName());
-        	pkgPartStyles.setContentType(stylesPart.getContentType() );
-        	
-        	org.docx4j.wml.Package.Part.XmlData XmlDataStyles = factory.createPackagePartXmlData();
-        	
-        	org.docx4j.wml.Styles styles = (org.docx4j.wml.Styles)stylesPart.getJaxbElement();
-        	
-    		XmlDataStyles.setStyles(styles);
-    		pkgPartStyles.setXmlData(XmlDataStyles);
-    		pkg.getPart().add(pkgPartStyles);    	        	
-        	
-			JAXBContext jc = Context.jc;
-			Marshaller marshaller = jc.createMarshaller();
-
+    		JAXBContext jc = Context.jcXmlPackage;
+    		Marshaller marshaller=jc.createMarshaller();        	
 			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 			
 			try { 
@@ -181,33 +150,44 @@ public class XmlUtil {
 		// NB at present we only handle main document part and style part.
 		
 		try {
-			JAXBContext jc = Context.jc;
+			JAXBContext jc = Context.jcXmlPackage;
 			Unmarshaller u = jc.createUnmarshaller();
 			u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());
+			
+			javax.xml.bind.JAXBElement je = (javax.xml.bind.JAXBElement)u.unmarshal(
+					new javax.xml.transform.stream.StreamSource(in));
 
-			org.docx4j.wml.Package wmlPackageEl = (org.docx4j.wml.Package)u.unmarshal(
-					new javax.xml.transform.stream.StreamSource(in)); 
+			org.docx4j.xmlPackage.Package wmlPackageEl = (org.docx4j.xmlPackage.Package)je.getValue(); 
+			org.docx4j.convert.in.XmlPackage xmlPackage = new org.docx4j.convert.in.XmlPackage( wmlPackageEl); 
 
-			org.docx4j.wml.Document wmlDocument = null;
-			org.docx4j.wml.Styles wmlStyles = null;
-			for (org.docx4j.wml.Package.Part p : wmlPackageEl.getPart() ) {
-				
-				if (p.getXmlData().getDocument()!= null) {
-					wmlDocument = p.getXmlData().getDocument();
-				}				
-				if (p.getXmlData().getStyles()!= null) {
-					wmlStyles = p.getXmlData().getStyles();
-				}				
-			}
+			ContentTypeManager ctm = new ContentTypeManagerImpl();
+			
+			Part tmpDocPart = xmlPackage.getRawPart(ctm,  "/word/document.xml");
+			Part tmpStylesPart = xmlPackage.getRawPart(ctm,  "/word/styles.xml");
+			
+//			org.docx4j.wml.Document wmlDocument = null;
+//			org.docx4j.wml.Styles wmlStyles = null;
+//			for (org.docx4j.wml.Package.Part p : wmlPackageEl.getPart() ) {
+//				
+//				if (p.getXmlData().getDocument()!= null) {
+//					wmlDocument = p.getXmlData().getDocument();
+//				}				
+//				if (p.getXmlData().getStyles()!= null) {
+//					wmlStyles = p.getXmlData().getStyles();
+//				}				
+//			}
 				
 			if (wmlPackage == null) {
-				wmlPackage = ObjectFactory.createDocumentPackage(wmlDocument);
+				wmlPackage = ObjectFactory.createDocumentPackage(
+						(org.docx4j.wml.Document)((JaxbXmlPart)tmpDocPart).getJaxbElement());
 			} else {
-				wmlPackage.getMainDocumentPart().setJaxbElement(wmlDocument);
+				wmlPackage.getMainDocumentPart().setJaxbElement(
+						((JaxbXmlPart)tmpDocPart).getJaxbElement());
 			}
 			
 			// That handled the Main Document Part; now set the Style part.
-			wmlPackage.getMainDocumentPart().getStyleDefinitionsPart().setJaxbElement(wmlStyles);
+			wmlPackage.getMainDocumentPart().getStyleDefinitionsPart().setJaxbElement( 
+					((JaxbXmlPart)tmpStylesPart).getJaxbElement() );
 			
 		} catch (Exception exc) {
 			exc.printStackTrace();
