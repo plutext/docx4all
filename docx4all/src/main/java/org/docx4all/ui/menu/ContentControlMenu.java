@@ -29,12 +29,19 @@ import javax.swing.event.CaretEvent;
 
 import org.docx4all.swing.ContentGroupingDialog;
 import org.docx4all.swing.WordMLTextPane;
+import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLEditorKit;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.ui.menu.enabler.CaretUpdateEnabler;
 import org.docx4all.util.DocUtil;
+import org.docx4all.util.XmlUtil;
+import org.docx4all.xml.BodyML;
+import org.docx4all.xml.DocumentML;
+import org.docx4all.xml.ElementML;
+import org.docx4j.XmlUtils;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.jdesktop.application.Action;
 import org.jdesktop.application.ResourceMap;
 
@@ -279,10 +286,40 @@ public class ContentControlMenu extends UIMenu {
 	
 	@Action public void cleanSdt() {
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-       	WordMLTextPane textpane = (WordMLTextPane) editor.getCurrentEditor();;
-		textpane.getWordMLEditorKit().saveCaretText();
-		textpane.cleanControlUnits();
-		textpane.getDocument().addDocumentListener(editor.getToolbarStates());
+       	WordMLTextPane textpane = (WordMLTextPane) editor.getCurrentEditor();
+		WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+		
+		try {
+			doc.lockWrite();
+			
+			textpane.getWordMLEditorKit().saveCaretText();
+			
+    		DocumentElement elem =
+    			(DocumentElement) doc.getDefaultRootElement();
+    		DocumentML docML = (DocumentML) elem.getElementML();
+    		
+    		//Do not include document's last paragraph.
+    		elem = (DocumentElement) elem.getElement(elem.getElementCount() - 1);
+    		ElementML paraML = elem.getElementML();
+    		ElementML bodyML = paraML.getParent();
+    		paraML.delete();
+    		
+        	WordprocessingMLPackage wmlPackage = 
+        		XmlUtil.export(docML.getWordprocessingMLPackage());
+        	DocumentML newDocML = new DocumentML(wmlPackage);
+			
+    		//Replace bodyML with the export result: newDocML's bodyML
+    		bodyML.delete();
+    		bodyML = newDocML.getChild(0);
+    		bodyML.addChild(paraML);
+    		bodyML.delete(); //has to be an orphan
+    		docML.addChild(bodyML);
+    		
+    		doc.refreshParagraphs(0, doc.getLength());
+
+		} finally {
+			doc.unlockWrite();
+		}
 	} //cleanSdt()
 	
     private static class ChangeIntoSdtEnabler extends CaretUpdateEnabler {
