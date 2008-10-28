@@ -64,7 +64,7 @@ public class TransmitLocalEditsWorker extends SwingWorker<Boolean, Void> impleme
         	doc.readLock();
         	
     		plutextClient.startSession();
-    		success = plutextClient.transmitLocalChanges(this);
+    		success = Boolean.valueOf(plutextClient.transmitLocalChanges(this));
     		
         } catch (Exception exc) {
         	exc.printStackTrace();
