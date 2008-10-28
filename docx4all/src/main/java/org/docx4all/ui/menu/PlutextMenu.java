@@ -276,7 +276,7 @@ public class PlutextMenu extends UIMenu {
 	}
 	
 	boolean commitLocalEdits(WordMLTextPane textpane, String callerActionName) {
-		Boolean success = false;
+		boolean success = false;
 		
 		log.debug("commitLocalEdits(): Starting...");
 		
@@ -325,7 +325,7 @@ public class PlutextMenu extends UIMenu {
                 
     			d.setVisible(true);
     			
-    			success = (Boolean) d.getEndResult();
+    			success = ((Boolean) d.getEndResult()).booleanValue();
     			if (success) {
         			wmlEditor.getToolbarStates().setDocumentDirty(textpane, false);
     			
@@ -339,7 +339,7 @@ public class PlutextMenu extends UIMenu {
     		}
     	}
     	
-    	return success.booleanValue();
+    	return success;
  	}
 	
 }// PlutextMenu class
