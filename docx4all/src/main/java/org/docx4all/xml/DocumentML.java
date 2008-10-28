@@ -74,6 +74,8 @@ public class DocumentML extends ElementML {
 		
 		if (!(child instanceof BodyML)) {
 			canAdd = false;
+		} else if (getChildrenCount() != 0){
+			canAdd = false;
 		} else {
 			canAdd = super.canAddChild(idx, child);
 		}
@@ -94,7 +96,29 @@ public class DocumentML extends ElementML {
 			throw new IllegalArgumentException("idx=" + idx + ". Zero is expected.");
 		}
 		
-		super.addChild(idx, child, adopt);
+		if (getChildrenCount() != 0) {
+			throw new IllegalStateException("Cannot afford having one more child.");
+		}
+		
+		if (this.children == null) {
+			this.children = new ArrayList<ElementML>();
+		}
+		
+		this.children.add(child);
+			
+		if (adopt) {
+			child.setParent(DocumentML.this);
+
+			if (getDocxChildParent() instanceof org.docx4j.wml.Document
+				&& child.getDocxObject() instanceof org.docx4j.wml.Body) {
+				org.docx4j.wml.Document doc = 
+					(org.docx4j.wml.Document) getDocxChildParent();
+				org.docx4j.wml.Body body =
+					(org.docx4j.wml.Body) child.getDocxObject();
+				doc.setBody(body);
+				body.setParent(doc);
+			}
+		}
 	}
 	
 	public boolean canAddSibling(ElementML elem, boolean after) {
