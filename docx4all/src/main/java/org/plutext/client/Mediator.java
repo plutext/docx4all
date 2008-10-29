@@ -163,8 +163,15 @@ public class Mediator {
 		    			
             org.alfresco.webservice.util.WebServiceFactory.setEndpointAddress(
             		endPointAddress.toString());
+
+            log.debug(uri.getUsername() );
+            log.debug( java.net.URLDecoder.decode(uri.getUsername(), "UTF-8") );
             
-            AuthenticationUtils.startSession(uri.getUsername(), uri.getPassword());
+            // Ensure a tenant user name appears as eg tester@public
+            // rather than tester%40public
+            
+            AuthenticationUtils.startSession(java.net.URLDecoder.decode(uri.getUsername(),"UTF-8"), uri.getPassword());
+            
 		      
             PlutextService_ServiceLocator locator = 
             	new PlutextService_ServiceLocator(
@@ -194,9 +201,11 @@ public class Mediator {
 			}
 
 		} catch (AuthenticationFault exc) {
+			log.error(exc);
 			throw new ServiceException("Service Connection failure.", exc);
-		} catch ( org.alfresco.webservice.util.WebServiceException wse) {
-        	throw new ServiceException("Service Connection failure.", wse);			
+		} catch ( Exception e) {
+			log.error(e);
+        	throw new ServiceException("Service Connection failure.", e);			
 		}
 	}
 
