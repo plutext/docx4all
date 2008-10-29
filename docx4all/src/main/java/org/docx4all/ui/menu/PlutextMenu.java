@@ -310,18 +310,7 @@ public class PlutextMenu extends UIMenu {
        			final TransmitLocalEditsWorker task = 
         			new TransmitLocalEditsWorker(plutextClient, wmlEditor);
                 task.addPropertyChangeListener(d);
-                
-                SwingUtilities.invokeLater(new Runnable() {
-                    public void run() {
-                    	task.preTransmit();
-                    }
-                });
-                
-                SwingUtilities.invokeLater(new Runnable() {
-                    public void run() {
-                    	task.execute();
-                    }
-                });
+                task.execute();
                 
     			d.setVisible(true);
     			
