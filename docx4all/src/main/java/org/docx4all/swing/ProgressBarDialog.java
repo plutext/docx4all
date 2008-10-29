@@ -23,12 +23,9 @@ import java.awt.ComponentOrientation;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.FontMetrics;
 import java.awt.Frame;
-import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.font.TextLayout;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -40,7 +37,6 @@ import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
-import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 
 /**
@@ -61,7 +57,7 @@ public class ProgressBarDialog extends JDialog implements PropertyChangeListener
 		JPanel content = createContentPanel();
         setContentPane(content);
 
-        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);        
+        setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);        
 	}
 
 	 /** This method reacts to state changes in the option pane. */
@@ -77,8 +73,16 @@ public class ProgressBarDialog extends JDialog implements PropertyChangeListener
         		message.invalidate();
         		
                 if (progress == progressBar.getMaximum()) {
-                	setVisible(false);
-                	setModalityType(java.awt.Dialog.ModalityType.APPLICATION_MODAL);
+                	if (getModalityType().equals(java.awt.Dialog.ModalityType.APPLICATION_MODAL)) {
+                		;//pass
+                	} else {
+                		//change modality type to APPLICATION_MODAL.
+                		setModalityType(java.awt.Dialog.ModalityType.APPLICATION_MODAL);
+                		//has to hide and re-display so that the new modality type
+                		//takes effect. See: java.awt.Dialog.setModalityType()
+                		setVisible(false);
+                	}
+                	
                 	ok_button.setEnabled(true);
                 	
                 	if (worker.getInsertedEndMessage() != null) {
@@ -132,6 +136,7 @@ public class ProgressBarDialog extends JDialog implements PropertyChangeListener
         ok_button.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
             	setVisible(false);
+            	ProgressBarDialog.this.dispose();
             }
         });
         
