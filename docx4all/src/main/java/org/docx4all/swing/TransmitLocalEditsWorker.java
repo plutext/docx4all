@@ -23,12 +23,12 @@ import java.awt.Cursor;
 import java.util.Hashtable;
 
 import javax.swing.JComponent;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.ui.main.WordMLEditor;
-import org.docx4all.util.XmlUtil;
 import org.docx4all.xml.BodyML;
 import org.docx4all.xml.ElementML;
 import org.plutext.client.Mediator;
@@ -52,13 +52,28 @@ public class TransmitLocalEditsWorker extends SwingWorker<Boolean, Void> impleme
      */
     @Override
     public Boolean doInBackground() {
-    	Boolean success = Boolean.TRUE;
-    	
     	WordMLTextPane editor = this.plutextClient.getWordMLTextPane();
     	WordMLDocument doc = (WordMLDocument) editor.getDocument();
     	
     	Cursor origCursor = editor.getCursor();
     	editor.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+    	
+		try {
+			SwingUtilities.invokeAndWait(new Runnable() {
+				public void run() {
+					preTransmit();
+				}
+			});
+		} catch (Exception exc){
+			exc.printStackTrace();
+        	setProgress(
+            	TransmitProgress.DONE, 
+            	"There was a transmission error . Please see logs for details.");
+        	editor.setCursor(origCursor);
+			return Boolean.FALSE;
+		}
+				
+    	Boolean success = Boolean.TRUE;
     	
     	try {
         	doc.readLock();
@@ -125,7 +140,8 @@ public class TransmitLocalEditsWorker extends SwingWorker<Boolean, Void> impleme
     		doc.refreshParagraphs(0, doc.getLength());
     		
     	} catch (Exception exc) {
-    		exc.printStackTrace();
+    		throw new RuntimeException(exc);
+    		
     	} finally {
     		doc.unlockWrite();
     	}
