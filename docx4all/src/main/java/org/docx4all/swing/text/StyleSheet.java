@@ -20,6 +20,7 @@
 package org.docx4all.swing.text;
 
 import java.awt.Toolkit;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -30,12 +31,19 @@ import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBIntrospector;
+import javax.xml.namespace.QName;
 
 import org.apache.log4j.Logger;
 import org.docx4all.xml.ObjectFactory;
+import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.BooleanDefaultTrue;
-import org.docx4j.wml.CTBorder;
+import org.docx4j.wml.CTHeight;
+import org.docx4j.wml.CTTblCellMar;
+import org.docx4j.wml.CTTrPrBase;
+import org.docx4j.wml.CTVerticalJc;
 import org.docx4j.wml.HpsMeasure;
 import org.docx4j.wml.Jc;
 import org.docx4j.wml.JcEnumeration;
@@ -43,10 +51,13 @@ import org.docx4j.wml.PPr;
 import org.docx4j.wml.RFonts;
 import org.docx4j.wml.RPr;
 import org.docx4j.wml.RStyle;
+import org.docx4j.wml.STBorder;
 import org.docx4j.wml.TblBorders;
 import org.docx4j.wml.TblPr;
 import org.docx4j.wml.TblWidth;
+import org.docx4j.wml.TcMar;
 import org.docx4j.wml.TcPr;
+import org.docx4j.wml.TcPrInner;
 import org.docx4j.wml.TrPr;
 import org.docx4j.wml.U;
 import org.docx4j.wml.PPrBase.PStyle;
@@ -66,22 +77,24 @@ public class StyleSheet extends StyleContext {
 	public final static String PARAGRAPH_ATTR_VALUE = "paragraph";
 	public final static String CHARACTER_ATTR_VALUE = "character";
 	
+	//Screen resolution is in dots per inch (dpi)
+	private final static int SCREEN_RESOLUTION_DPI = 
+		Toolkit.getDefaultToolkit().getScreenResolution();
+	
     private static StyleSheet defaultStyleSheet;
     
     public static final int toPixels(int twips) {
-    	int dpi = Toolkit.getDefaultToolkit().getScreenResolution();
     	//one inch = 1440 twips = dpi pixels.
     	//Therefore, one twip = dpi/1440 pixels.
-    	int conversionFactor = dpi / 1440;
-    	return twips * conversionFactor;
+    	float conversionFactor = SCREEN_RESOLUTION_DPI / 1440f;
+    	return (int) (twips * conversionFactor + 0.5f);
     }
     
     public static final int toTwips(int pixels) {
-    	int dpi = Toolkit.getDefaultToolkit().getScreenResolution();
     	//one inch = 1440 twips = dpi pixels.
     	//Therefore, one twip = dpi/1440 pixels.
-    	int conversionFactor = 1440 / dpi;
-    	return pixels * conversionFactor;
+    	float conversionFactor = 1440f / SCREEN_RESOLUTION_DPI;
+    	return (int) (pixels * conversionFactor);
     }
     
     public static final StyleSheet getDefaultStyleSheet() {
@@ -95,35 +108,283 @@ public class StyleSheet extends StyleContext {
         return defaultStyleSheet;
     }
 
-	public final static void addAttributes(MutableAttributeSet attrs, TblPr tPr) {
+	public final static void addAttributes(MutableAttributeSet attrs, TblPr tblPr) {
 		//ALIGNMENT attribute
-		Jc jc = tPr.getJc();
+		Jc jc = tblPr.getJc();
 		addJc(attrs, jc);
 		jc = null;
 		
-		TblBorders tblBorders = tPr.getTblBorders();
+		TblBorders tblBorders = tblPr.getTblBorders();
 		if (tblBorders != null) {
 			org.docx4all.xml.type.TblBorders value = 
 				new org.docx4all.xml.type.TblBorders(tblBorders);
 			attrs.addAttribute(WordMLStyleConstants.TblBordersAttribute, value);
-		}
-		
-		TblWidth tw = tPr.getTblW();
-		if (tw != null) {
-			//tw.ge
-			//String type = 
+			tblBorders = null;
+		} else {
+			//this table shall have the borders specified by 
+			//the associated table style. 
+			//If no borders are specified in the style hierarchy, 
+			//then this table shall not have any table borders
 			
+			//TODO: Remove this TRIAL TblBorders setting
+			Double sz = Double.valueOf(toTwips(1) * 20/8 + 0.5);
+			
+			org.docx4j.wml.CTBorder left = org.docx4all.xml.type.ObjectFactory.createCTBorder();
+			left.setColor("auto");
+			left.setSz(BigInteger.valueOf(sz.longValue()));
+			left.setVal(STBorder.SINGLE);
+			
+			org.docx4j.wml.CTBorder top = org.docx4all.xml.type.ObjectFactory.createCTBorder();
+			top.setColor("auto");
+			top.setSz(BigInteger.valueOf(sz.longValue()));
+			top.setVal(STBorder.SINGLE);
+			
+			org.docx4j.wml.CTBorder right = org.docx4all.xml.type.ObjectFactory.createCTBorder();
+			right.setColor("auto");
+			right.setSz(BigInteger.valueOf(sz.longValue()));
+			right.setVal(STBorder.SINGLE);
+
+			org.docx4j.wml.CTBorder bottom = org.docx4all.xml.type.ObjectFactory.createCTBorder();
+			bottom.setColor("auto");
+			bottom.setSz(BigInteger.valueOf(sz.longValue()));
+			bottom.setVal(STBorder.SINGLE);
+			
+			org.docx4j.wml.CTBorder insideH = org.docx4all.xml.type.ObjectFactory.createCTBorder();
+			insideH.setColor("auto");
+			insideH.setSz(BigInteger.valueOf(sz.longValue()));
+			insideH.setVal(STBorder.SINGLE);
+			
+			org.docx4j.wml.CTBorder insideV = org.docx4all.xml.type.ObjectFactory.createCTBorder();
+			insideV.setColor("auto");
+			insideV.setSz(BigInteger.valueOf(sz.longValue()));
+			insideV.setVal(STBorder.SINGLE);
+			
+			tblBorders = 
+				org.docx4all.xml.type.ObjectFactory.createTblBorders(
+					left, top, right, bottom, insideH, insideV);
+			org.docx4all.xml.type.TblBorders value = 
+				new org.docx4all.xml.type.TblBorders(tblBorders);
+			attrs.addAttribute(WordMLStyleConstants.TblBordersAttribute, value);
+			tblBorders = null;			
 		}
 		
+		TblWidth tw = tblPr.getTblInd();
+		if (tw != null) {
+			org.docx4all.xml.type.TblWidth indent = 
+				new org.docx4all.xml.type.TblWidth(tw);
+			if (indent.getType() == org.docx4all.xml.type.TblWidth.Type.DXA
+				|| indent.getType() == org.docx4all.xml.type.TblWidth.Type.NIL) {
+				int ignoreThisParam = 0;
+				int pixels = indent.getWidthInPixel(ignoreThisParam);
+				StyleConstants.setLeftIndent(attrs, pixels);
+			} else {
+				//WordprocessingML Spec says to ignore.
+			}
+		}
+		
+		
+		tw = tblPr.getTblW();
+		if (tw != null) {
+			org.docx4all.xml.type.TblWidth tblWidth = 
+				new org.docx4all.xml.type.TblWidth(tw);
+			attrs.addAttribute(WordMLStyleConstants.TblWidthAttribute, tblWidth);
+			tw = null;
+		}
+		
+		CTTblCellMar tmar = tblPr.getTblCellMar();
+		if (tmar != null) {
+			tw = tmar.getLeft();
+			if (tw != null) {
+				org.docx4all.xml.type.TblWidth left =
+					new org.docx4all.xml.type.TblWidth(tw);
+				if (left.getType() == org.docx4all.xml.type.TblWidth.Type.DXA
+					|| left.getType() == org.docx4all.xml.type.TblWidth.Type.NIL) {
+					attrs.addAttribute(WordMLStyleConstants.TcLeftMarginAttribute, left);
+				} else {
+					//WordprocessingML Spec says to ignore.
+				}
+			}
+			
+			tw = tmar.getRight();
+			if (tw != null) {
+				org.docx4all.xml.type.TblWidth right =
+					new org.docx4all.xml.type.TblWidth(tw);
+				if (right.getType() == org.docx4all.xml.type.TblWidth.Type.DXA
+					|| right.getType() == org.docx4all.xml.type.TblWidth.Type.NIL) {
+					attrs.addAttribute(WordMLStyleConstants.TcLeftMarginAttribute, right);
+				} else {
+					//WordprocessingML Spec says to ignore.
+				}
+			}
+			
+			tw = tmar.getTop();
+			if (tw != null) {
+				org.docx4all.xml.type.TblWidth top =
+					new org.docx4all.xml.type.TblWidth(tw);
+				if (top.getType() == org.docx4all.xml.type.TblWidth.Type.DXA
+					|| top.getType() == org.docx4all.xml.type.TblWidth.Type.NIL) {
+					attrs.addAttribute(WordMLStyleConstants.TcLeftMarginAttribute, top);
+				} else {
+					//WordprocessingML Spec says to ignore.
+				}
+			}
+			
+			tw = tmar.getBottom();
+			if (tw != null) {
+				org.docx4all.xml.type.TblWidth bottom =
+					new org.docx4all.xml.type.TblWidth(tw);
+				if (bottom.getType() == org.docx4all.xml.type.TblWidth.Type.DXA
+					|| bottom.getType() == org.docx4all.xml.type.TblWidth.Type.NIL) {
+					attrs.addAttribute(WordMLStyleConstants.TcLeftMarginAttribute, bottom);
+				} else {
+					//WordprocessingML Spec says to ignore.
+				}
+			}
+		} //if (tmar != null)
+		
+		tw = tblPr.getTblCellSpacing();
+		if (tw != null) {
+			org.docx4all.xml.type.TblWidth space =
+				new org.docx4all.xml.type.TblWidth(tw);
+			if (space.getType() == org.docx4all.xml.type.TblWidth.Type.DXA
+				|| space.getType() == org.docx4all.xml.type.TblWidth.Type.NIL) {
+				int ignoreThisParam = 0;
+				int pixels = space.getWidthInPixel(ignoreThisParam);
+				attrs.addAttribute(WordMLStyleConstants.TblCellSpacingAttribute, pixels);
+			} else {
+				//WordprocessingML Spec says to ignore.
+			}
+		}
+	} //addAttributes(attrs, tblPr)
+	
+	public final static void addAttributes(MutableAttributeSet attrs, TrPr trPr) {
+		JAXBIntrospector inspector = Context.jc.createJAXBIntrospector();
+		
+		List<JAXBElement<?>> list = trPr.getCnfStyleOrDivIdOrGridBefore();
+		for (JAXBElement<?> elem: list) {
+			Object value = JAXBIntrospector.getValue(elem);
+			if (value instanceof Jc) {
+				addJc(attrs, (Jc) value);
+			}
+			if (value instanceof CTHeight) {
+				org.docx4all.xml.type.CTHeight trHeight =
+					new org.docx4all.xml.type.CTHeight((CTHeight) value);
+				attrs.addAttribute(WordMLStyleConstants.TrHeightAttribute, trHeight);
+			}
+			if (value instanceof CTTrPrBase.GridAfter) {
+				CTTrPrBase.GridAfter ga = (CTTrPrBase.GridAfter) value;
+				attrs.addAttribute(WordMLStyleConstants.TrGridAfterAttribute, ga.getVal().intValue());
+			}
+			if (value instanceof CTTrPrBase.GridBefore) {
+				CTTrPrBase.GridBefore gb = (CTTrPrBase.GridBefore) value;
+				attrs.addAttribute(WordMLStyleConstants.TrGridBeforeAttribute, gb.getVal().intValue());
+			}
+			if (value instanceof TblWidth) {
+				QName qn = inspector.getElementName(elem);
+				if ("wAfter".equals(qn.getLocalPart())) {
+					attrs.addAttribute(WordMLStyleConstants.TrWAfterAttribute, value);
+				}
+				if ("wBefore".equals(qn.getLocalPart())) {
+					attrs.addAttribute(WordMLStyleConstants.TrWBeforeAttribute, value);
+				}
+			}
+		}
 	}
 	
-	public final static void addAttributes(MutableAttributeSet attrs, TrPr pPr) {
-		//TODO: Put Table Row properties into 'attrs'
-	}
-	
-	public final static void addAttributes(MutableAttributeSet attrs, TcPr pPr) {
-		//TODO: Put Table Cell properties into 'attrs'
-	}
+	public final static void addAttributes(MutableAttributeSet attrs, TcPr tcPr) {
+		TcPrInner.GridSpan gs = tcPr.getGridSpan();
+		if (gs != null && gs.getVal() != null) {
+			attrs.addAttribute(WordMLStyleConstants.TcGridSpanAttribute, gs);
+		}
+		gs = null;
+		
+		TcPrInner.VMerge vm = tcPr.getVMerge();
+		if (vm != null) {
+			attrs.addAttribute(WordMLStyleConstants.TcVMergeAttribute, vm);
+		}
+		vm = null;
+		
+		TcPrInner.TcBorders tcBorders = tcPr.getTcBorders();
+		if (tcBorders != null) {
+			org.docx4all.xml.type.TcBorders value = 
+				new org.docx4all.xml.type.TcBorders(tcBorders);
+			attrs.addAttribute(WordMLStyleConstants.TcBordersAttribute, value);
+			tcBorders = null;
+		} else {
+			//this cell shall honour the borders specified by 
+			//its ancestors.
+		}
+		
+		
+		TblWidth tw = tcPr.getTcW();
+		//TODO: Monitor whether there will be TcWidth object in docx4j library
+		if (tw != null) {
+			org.docx4all.xml.type.TblWidth tcWidth = 
+				new org.docx4all.xml.type.TblWidth(tw);
+			attrs.addAttribute(WordMLStyleConstants.TcWidthAttribute, tcWidth);
+			tw = null;
+		}
+		
+		TcMar tcMar = tcPr.getTcMar();
+		if (tcMar != null) {
+			if (tcMar.getLeft() != null) {
+				org.docx4all.xml.type.TblWidth w = 
+					new org.docx4all.xml.type.TblWidth(tcMar.getLeft());
+				if (w.getType() == org.docx4all.xml.type.TblWidth.Type.DXA
+					|| w.getType() == org.docx4all.xml.type.TblWidth.Type.NIL) {
+					attrs.addAttribute(WordMLStyleConstants.TcLeftMarginAttribute, w);
+				} else {
+					//WordprocessingML Spec says to ignore.
+				}
+			} else {
+				//honour the left cell margin specified in ancestors.
+			}
+			if (tcMar.getRight() != null) {
+				org.docx4all.xml.type.TblWidth w = 
+					new org.docx4all.xml.type.TblWidth(tcMar.getRight());
+				if (w.getType() == org.docx4all.xml.type.TblWidth.Type.DXA
+					|| w.getType() == org.docx4all.xml.type.TblWidth.Type.NIL) {
+					attrs.addAttribute(WordMLStyleConstants.TcRightMarginAttribute, w);
+				} else {
+					//WordprocessingML Spec says to ignore.
+				}
+			} else {
+				//honour the right cell margin specified in ancestors.
+			}
+			if (tcMar.getTop() != null) {
+				org.docx4all.xml.type.TblWidth w = 
+					new org.docx4all.xml.type.TblWidth(tcMar.getTop());
+				if (w.getType() == org.docx4all.xml.type.TblWidth.Type.DXA
+					|| w.getType() == org.docx4all.xml.type.TblWidth.Type.NIL) {
+					attrs.addAttribute(WordMLStyleConstants.TcTopMarginAttribute, w);
+				} else {
+					//WordprocessingML Spec says to ignore.
+				}
+			} else {
+				//honour the top cell margin specified in ancestors.
+			}
+			if (tcMar.getBottom() != null) {
+				org.docx4all.xml.type.TblWidth w = 
+					new org.docx4all.xml.type.TblWidth(tcMar.getBottom());
+				if (w.getType() == org.docx4all.xml.type.TblWidth.Type.DXA
+					|| w.getType() == org.docx4all.xml.type.TblWidth.Type.NIL) {
+					attrs.addAttribute(WordMLStyleConstants.TcBottomMarginAttribute, w);
+				} else {
+					//WordprocessingML Spec says to ignore.
+				}
+			} else {
+				//honour the bottom cell margin specified in ancestors.
+			}
+			tcMar = null;
+		} else {
+			//honour the table cell margins specified in ancestors.
+		}
+		
+		CTVerticalJc valign = tcPr.getVAlign();
+		if (valign != null) {
+			attrs.addAttribute(WordMLStyleConstants.TcVAlignAttribute, valign);
+		}
+	} //addAttributes(attrs, tcPr)
 	
 	public final static void addAttributes(MutableAttributeSet attrs, PPr pPr) {
 		//ALIGNMENT attribute
