@@ -19,6 +19,8 @@
 
 package org.docx4all.xml.type;
 
+import java.awt.Color;
+
 import org.docx4all.swing.BottomLineBorderSegment;
 import org.docx4all.swing.InsideHLineBorderSegment;
 import org.docx4all.swing.InsideVLineBorderSegment;
@@ -26,65 +28,128 @@ import org.docx4all.swing.LeftLineBorderSegment;
 import org.docx4all.swing.LineBorderSegment;
 import org.docx4all.swing.RightLineBorderSegment;
 import org.docx4all.swing.TopLineBorderSegment;
+import org.docx4all.swing.LineBorderSegment.Side;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/09/2008
  */
 public class TblBorders {
 	org.docx4j.wml.TblBorders tblBorders;
+	Color autoColor;
 	
 	public TblBorders(org.docx4j.wml.TblBorders tblBorders) {
 		this.tblBorders = tblBorders;
 	}
 	
-	public LineBorderSegment getLeft() {
+	public Object getDocxObject() {
+		return this.tblBorders;
+	}
+	
+	public void setAutoColor(Color c) {
+		this.autoColor = c;
+	}
+	
+	public Color getAutoColor() {
+		return this.autoColor;
+	}
+	
+	public LineBorderSegment getLineBorderSegment(Side side) {
+		LineBorderSegment theLine = null;
+		
+		CTBorder ctb = getCTBorder(side);
+		if (ctb == null) {
+			;
+		} else if (side == Side.LEFT) {
+			theLine = new LeftLineBorderSegment(ctb);
+		} else if (side == Side.RIGHT) {
+			theLine = new RightLineBorderSegment(ctb);
+		} else if (side == Side.TOP) {
+			theLine = new TopLineBorderSegment(ctb);
+		} else if (side == Side.BOTTOM) {
+			theLine = new BottomLineBorderSegment(ctb);
+		} else if (side == Side.INSIDE_H) {
+			theLine = new InsideHLineBorderSegment(ctb);
+		} else if (side == Side.INSIDE_V) {
+			theLine = new InsideVLineBorderSegment(ctb);
+		}
+		
+		return theLine;
+	}
+	
+	public CTBorder getCTBorder(Side side) {
+		CTBorder theBorder = null;
+		
+		if (side == Side.LEFT) {
+			theBorder = getLeftCTBorder();
+		} else if (side == Side.RIGHT) {
+			theBorder = getRightCTBorder();
+		} else if (side == Side.TOP) {
+			theBorder = getTopCTBorder();
+		} else if (side == Side.BOTTOM) {
+			theBorder = getBottomCTBorder();
+		} else if (side == Side.INSIDE_H) {
+			theBorder = getInsideH_CTBorder();
+		} else if (side == Side.INSIDE_V) {
+			theBorder = getInsideV_CTBorder();
+		}
+		
+		return theBorder;
+	}
+	
+	private CTBorder getLeftCTBorder() {
 		if (tblBorders.getLeft() != null) {
-			CTBorder left = new CTBorder(tblBorders.getLeft());
-			return new LeftLineBorderSegment(left);
+			CTBorder border = new CTBorder(tblBorders.getLeft());
+			border.setAutoColor(this.autoColor);
+			return border;
 		}
 		return null;
 	}
 	
-	public LineBorderSegment getTop() {
+	private CTBorder getTopCTBorder() {
 		if (tblBorders.getTop() != null) {
-			CTBorder top = new CTBorder(tblBorders.getTop());
-			return new TopLineBorderSegment(top);
+			CTBorder border = new CTBorder(tblBorders.getTop());
+			border.setAutoColor(this.autoColor);
+			return border;
 		}
 		return null;
 	}
 	
-	public LineBorderSegment getRight() {
+	private CTBorder getRightCTBorder() {
 		if (tblBorders.getRight() != null) {
-			CTBorder right = new CTBorder(tblBorders.getRight());
-			return new RightLineBorderSegment(right);
+			CTBorder border = new CTBorder(tblBorders.getRight());
+			border.setAutoColor(this.autoColor);
+			return border;
 		}
 		return null;
 	}
-
-	public LineBorderSegment getBottom() {
+	
+	private CTBorder getBottomCTBorder() {
 		if (tblBorders.getBottom() != null) {
-			CTBorder bottom = new CTBorder(tblBorders.getBottom());
-			return new BottomLineBorderSegment(bottom);
+			CTBorder border = new CTBorder(tblBorders.getBottom());
+			border.setAutoColor(this.autoColor);
+			return border;
 		}
 		return null;
 	}
-
-	public LineBorderSegment getInsideV() {
+	
+	private CTBorder getInsideV_CTBorder() {
 		if (tblBorders.getInsideV() != null) {
-			CTBorder insideV = new CTBorder(tblBorders.getInsideV());
-			return new InsideVLineBorderSegment(insideV);
+			CTBorder border = new CTBorder(tblBorders.getInsideV());
+			border.setAutoColor(this.autoColor);
+			return border;
 		}
 		return null;
 	}
-
-	public LineBorderSegment getInsideH() {
-		if (tblBorders.getInsideH() != null) {
-			CTBorder insideH = new CTBorder(tblBorders.getInsideH());
-			return new InsideHLineBorderSegment(insideH);
+	
+	private CTBorder getInsideH_CTBorder() {
+		if (tblBorders.getInsideV() != null) {
+			CTBorder border = new CTBorder(tblBorders.getInsideH());
+			border.setAutoColor(this.autoColor);
+			return border;
 		}
 		return null;
 	}
-
+	
 }// TblBorders class
 
 
