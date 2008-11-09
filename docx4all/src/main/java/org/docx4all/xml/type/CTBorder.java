@@ -30,9 +30,22 @@ import org.docx4all.swing.text.StyleSheet;
  */
 public class CTBorder {
 	private org.docx4j.wml.CTBorder ctBorder;
+	private Color autoColor;
 	
 	public CTBorder(org.docx4j.wml.CTBorder ctBorder) {
 		this.ctBorder = ctBorder;
+	}
+	
+	public Object getDocxObject() {
+		return this.ctBorder;
+	}
+	
+	public void setAutoColor(Color c) {
+		this.autoColor = c;
+	}
+	
+	public Color getAutoColor() {
+		return this.autoColor;
 	}
 	
 	public Color getColor() {
@@ -40,7 +53,7 @@ public class CTBorder {
 		
 		String s = ctBorder.getColor();
 		if (s.equalsIgnoreCase("auto")) {
-			;//pass
+			color = getAutoColor();
 		} else {
 			int r = Integer.valueOf(s.substring(0, 2), 16).intValue();
 			int g = Integer.valueOf(s.substring(2, 4), 16).intValue();
@@ -51,28 +64,42 @@ public class CTBorder {
 	}
 	
 	public LineBorderSegment.Style getStyle() {
+		//TODO: Currently only supporting two styles: SOLID and DASHED.
 		LineBorderSegment.Style style = LineBorderSegment.Style.SOLID;
 		if (ctBorder.getVal().value().toLowerCase().indexOf("dash") >= 0) {
 			style = LineBorderSegment.Style.DASHED;
 		}
+		//Other styles are being considered as SOLID. 
 		return style;
 	}
 
 	public int getSize() {
 		int theSize = 0;
 		
-		//ctBorder.getSz() is in eights of a point.
 		BigInteger sz = ctBorder.getSz();
 		if (sz != null && sz.intValue() > 0) {
+			//ctBorder.getSz() is in eights of a point.
 			theSize = sz.intValue();
 		}
+		
+		//Because we are still supporting Line Border style,
+		//current minimum size is 2 and maximum size is 96 
+		//eights of a point
+		theSize = Math.max(theSize, 2);
+		theSize = Math.min(theSize, 96);
+		
+		//TODO: For Art Border style, size is in point.
+		//Its miniumum size is 1 and maximum size is 31
 		
 		return theSize;
 	}
 	
 	public int getSizeInTwips() {
+		//TODO: For Art Border style, size is in point.
+		//Because we are still supporting Line Border style,
+		//getSize() is in eights of a point.
 		int sz = getSize(); //eights of a point
-		return sz / 8 * 20; //twips
+		return sz * 8 / 20; //twips
 	}
 	
 	public int getSizeInPixels() {
