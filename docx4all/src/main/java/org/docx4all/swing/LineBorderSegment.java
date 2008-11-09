@@ -43,6 +43,8 @@ public abstract class LineBorderSegment {
 
         if (this.color != null) {
         	g.setColor(this.color);
+        } else {
+        	g.setColor(Color.GRAY.brighter());
         }
         
         drawLine(g, x1, y1, dir, length);
