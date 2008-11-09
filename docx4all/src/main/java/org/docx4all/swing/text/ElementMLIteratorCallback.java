@@ -39,6 +39,9 @@ import org.docx4all.xml.RunDelML;
 import org.docx4all.xml.RunInsML;
 import org.docx4all.xml.RunML;
 import org.docx4all.xml.SdtBlockML;
+import org.docx4all.xml.TableCellML;
+import org.docx4all.xml.TableML;
+import org.docx4all.xml.TableRowML;
 
 public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	private List<ElementSpec> _elementSpecs = new ArrayList<ElementSpec>();
@@ -65,6 +68,15 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		//handleEndElement().
 		//} else if (elem instanceof SdtBlockML) {
 		//	openElementSpec((SdtBlockML) elem);
+		
+		} else if (elem instanceof TableML) {
+			openElementSpec((TableML) elem);
+			
+		} else if (elem instanceof TableRowML) {
+			openElementSpec((TableRowML) elem);
+			
+		} else if (elem instanceof TableCellML) {
+			openElementSpec((TableCellML) elem);
 			
 		} else if (elem instanceof BodyML) {
 			;//bypass
@@ -318,6 +330,46 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	private void closeElementSpec(SdtBlockML sdtBlockML) {
 		closeElementSpec((AttributeSet) null);
 	}
+	
+	private void openElementSpec(TableML tableML) {
+		SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
+		WordMLStyleConstants.setElementML(elemAttrs, tableML);
+		
+		PropertiesContainerML pc = tableML.getTableProperties();
+		if (pc != null) {
+			AttributeSet pcAttrs = pc.getAttributeSet();
+			elemAttrs.addAttributes(pcAttrs);
+		}
+
+		openElementSpec(elemAttrs);
+	}
+	
+	private void openElementSpec(TableRowML row) {
+		SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
+		WordMLStyleConstants.setElementML(elemAttrs, row);
+		
+		PropertiesContainerML pc = row.getTableRowProperties();
+		if (pc != null) {
+			AttributeSet pcAttrs = pc.getAttributeSet();
+			elemAttrs.addAttributes(pcAttrs);
+		}
+
+		openElementSpec(elemAttrs);
+	}
+	
+	private void openElementSpec(TableCellML cell) {
+		SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
+		WordMLStyleConstants.setElementML(elemAttrs, cell);
+		
+		PropertiesContainerML pc = cell.getTableCellProperties();
+		if (pc != null) {
+			AttributeSet pcAttrs = pc.getAttributeSet();
+			elemAttrs.addAttributes(pcAttrs);
+		}
+
+		openElementSpec(elemAttrs);
+	}
+	
 	
 }// ElementMLIteratorCallback class
 
