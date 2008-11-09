@@ -49,10 +49,10 @@ public class TopLineBorderSegment extends LineBorderSegment {
 		
         for(int i = 0; i < thickness; i++)  {
         	if (style == Style.SOLID) {
-        		g.drawRect(x1, y1 + i, 0, length);
+        		g.drawRect(x1, y1 + i, length, 0);
         	} else {
         		//Style.DASHED
-        		BasicGraphicsUtils.drawDashedRect(g, x1, y1 + i, 0, length);
+        		BasicGraphicsUtils.drawDashedRect(g, x1, y1 + i, length, 0);
         	}
         }
 	}
