@@ -29,6 +29,7 @@ import org.docx4all.xml.ElementML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
 import org.docx4all.xml.SdtBlockML;
+import org.docx4all.xml.TableCellML;
 import org.docx4all.xml.TableML;
 import org.docx4all.xml.TableRowML;
 
@@ -64,7 +65,9 @@ public class ViewFactory implements javax.swing.text.ViewFactory {
 			tableView = new TableView(elem);
 			theView = tableView;
 		} else if (elementML instanceof TableRowML) {
-			theView = tableView.new TableRow(elem);
+			theView = tableView.new TableRowView(elem);
+		} else if (elementML instanceof TableCellML) {
+			theView = new TableCellView(elem);
 		} else {
 			theView = new BoxView(elem, View.Y_AXIS);
 		}
