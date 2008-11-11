@@ -347,10 +347,8 @@
   </distributionManagement>
 
    		<!--  NB as at 20080521, docx4all can't be built using 1.5. Issues include:
-   		
-   				1. docx4j is built using 1.6
-   				
-   				2. javafx.swing.SwingWorker is included in Java 6. For Java 5, we'd
+   		   				
+   			   javafx.swing.SwingWorker is included in Java 6. For Java 5, we'd
    				   need to add a dependency below.
    		
 	so comment this out, until:
