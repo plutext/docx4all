@@ -19,6 +19,7 @@
 
 package org.docx4all.util;
 
+import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
@@ -93,6 +94,13 @@ public class XmlUtil {
     		Marshaller marshaller=jc.createMarshaller();        	
 			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 			
+			// Use the character set expected by JEditorPane
+			//marshaller.setProperty(Marshaller.JAXB_ENCODING, "ISO-10646-UCS-2");
+			marshaller.setProperty(Marshaller.JAXB_ENCODING, "UTF-16");
+			
+			// Suppress the XML declaration
+			marshaller.setProperty(Marshaller.JAXB_FRAGMENT, true);
+			
 			try { 
 				marshaller.setProperty("com.sun.xml.bind.namespacePrefixMapper", 
 						new org.docx4j.jaxb.NamespacePrefixMapper() ); 
@@ -148,15 +156,15 @@ public class XmlUtil {
 		WordprocessingMLPackage wmlPackage, InputStream in) {
 		
 		// NB at present we only handle main document part and style part.
-		
+				
 		try {
 			JAXBContext jc = Context.jcXmlPackage;
 			Unmarshaller u = jc.createUnmarshaller();
 			u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());
-			
+						
 			javax.xml.bind.JAXBElement je = (javax.xml.bind.JAXBElement)u.unmarshal(
 					new javax.xml.transform.stream.StreamSource(in));
-
+			
 			org.docx4j.xmlPackage.Package wmlPackageEl = (org.docx4j.xmlPackage.Package)je.getValue(); 
 			org.docx4j.convert.in.XmlPackage xmlPackage = new org.docx4j.convert.in.XmlPackage( wmlPackageEl); 
 

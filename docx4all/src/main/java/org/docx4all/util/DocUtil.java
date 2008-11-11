@@ -22,6 +22,8 @@ package org.docx4all.util;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.text.BreakIterator;
 import java.util.ArrayList;
@@ -178,7 +180,15 @@ public class DocUtil {
     	ByteArrayOutputStream out = new ByteArrayOutputStream();
     	XmlUtil.serialize(sourcePackage, out);
     	
-    	ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+    	//ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+    	
+    	InputStreamReader in = null;
+		try {
+			in = new InputStreamReader(new ByteArrayInputStream(out.toByteArray()), "UTF-16" );
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     	out = null;
     	
 		try {

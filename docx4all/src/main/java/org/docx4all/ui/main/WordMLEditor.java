@@ -430,12 +430,19 @@ public class WordMLEditor extends SingleFrameApplication {
     	StyleConstants.setFontSize(
     		attrs,
     		FontManager.getInstance().getSourceViewFontSize());
-    	sourceView.setFont(FontManager.getInstance().getFontInAction(attrs));
+
+    	// TODO - only do this if the font is available.
+    	Font font = new Font ( "Arial Unicode MS", Font.PLAIN, 12 ) ;
+    	sourceView.setFont(font);
+    	//sourceView.setFont(FontManager.getInstance().getFontInAction(attrs));
+
+    	sourceView.setContentType("text/xml; charset=UTF-16");
     	
     	// Instantiate a XMLEditorKit with wrapping enabled.
         XMLEditorKit kit = new XMLEditorKit( true);
         // Set the wrapping style.
         kit.setWrapStyleWord( true);
+        
         sourceView.setEditorKit( kit);
         
         WordMLDocument editorViewDoc = (WordMLDocument) editorView.getDocument();
