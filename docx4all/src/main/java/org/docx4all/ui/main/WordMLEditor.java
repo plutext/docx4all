@@ -68,9 +68,13 @@ import javax.swing.text.PlainDocument;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
+import net.sf.vfsjfilechooser.accessories.bookmarks.Bookmarks;
+import net.sf.vfsjfilechooser.accessories.bookmarks.TitledURLEntry;
 import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.commons.vfs.FileObject;
+import org.apache.commons.vfs.FileSystemException;
+import org.apache.commons.vfs.provider.webdav.WebdavFileObject;
 import org.apache.log4j.Logger;
 import org.bounce.text.xml.XMLDocument;
 import org.bounce.text.xml.XMLEditorKit;
@@ -160,10 +164,65 @@ public class WordMLEditor extends SingleFrameApplication {
 			|| clipboard.isDataFlavorAvailable(WordMLTransferable.WORDML_FRAGMENT_FLAVOR);
 		_toolbarStates.setPasteEnabled(available);
     	
+		log.info("setting up VFSJFileChooser");
+		initVFSJFileChooser();
+		
     	log.info("setting up WmlExitListener");
     	addExitListener(new WmlExitListener());
     }
     
+	/**
+	 * Initialises VFSJFileChooser default bookmark entry which has to be 
+	 * a webdav folder pointed by Constants.VFSJFILECHOOSER_DEFAULT_FOLDER_URI 
+	 * property.
+	 */
+    private void initVFSJFileChooser() {
+        ResourceMap rm = getContext().getResourceMap(WordMLEditor.class);
+    	String uri = rm.getString(Constants.VFSJFILECHOOSER_DEFAULT_FOLDER_URI);
+		if (uri != null && uri.length() > 0) {
+			uri = uri.trim();
+    		try {
+    			FileObject fo = VFSUtils.getFileSystemManager().resolveFile(uri);
+    			
+    			if (fo instanceof WebdavFileObject) {
+    				String name = rm.getString(Constants.VFSJFILECHOOSER_DEFAULT_WEBDAV_FOLDER_BOOKMARK_NAME);
+    				if (name == null || name.length() == 0) {
+    					name = "Default Webdav Folder";
+    				} else {
+    					name = name.trim();
+    				}
+    			
+    				Bookmarks book = new Bookmarks();
+    				TitledURLEntry entry = null;
+    				for (int i=0; i < book.getSize(); i++) {
+    					entry = book.getEntry(i);
+    					if (name.equalsIgnoreCase(entry.getTitle())) {
+    						i = book.getSize(); //break
+    					} else {
+    						entry = null;
+    					}
+    				}
+    			
+    				if (entry == null) {
+    					book.add(new TitledURLEntry(name, uri));
+    					book.save();
+    				} else if (uri.equals(entry.getURL())){
+    					;//no change
+    				} else {
+    					entry.setURL(uri);
+        				book.save();
+    				}
+    			}
+    		} catch (FileSystemException exc) {
+    			StringBuilder sb = new StringBuilder();
+    			sb.append("Bad ");
+    			sb.append(Constants.VFSJFILECHOOSER_DEFAULT_FOLDER_URI);
+    			sb.append(" property.");
+    			throw new RuntimeException(sb.toString());
+    		}
+		}	
+    } //initVFSJFileChooser()
+        
     public void closeAllInternalFrames() { 
     	
     	List<JInternalFrame> list = getAllInternalFrames();
