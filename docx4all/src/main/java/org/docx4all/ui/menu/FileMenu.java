@@ -770,14 +770,31 @@ public class FileMenu extends UIMenu {
         
         String desc = null;
         if (Constants.HTML_STRING.equals(filteredFileExtension)) {
-        	desc = resourceMap.getString(Constants.HTML_FILTER_DESC);
+        	desc = resourceMap.getString(Constants.VFSJFILECHOOSER_HTML_FILTER_DESC);
         	if (desc == null || desc.length() == 0) {
         		desc = "Html Files (.html)";
         	}
         } else {
-        	desc = resourceMap.getString(Constants.DOCX_FILTER_DESC);
+        	desc = resourceMap.getString(Constants.VFSJFILECHOOSER_DOCX_FILTER_DESC);
         	if (desc == null || desc.length() == 0) {
         		desc = "Docx Files (.docx)";
+        	}
+        }
+        
+        if (showedDir == null) {
+        	String s = resourceMap.getString(Constants.VFSJFILECHOOSER_DEFAULT_FOLDER_URI);
+        	if (s != null && s.length() > 0) {
+        		try {
+        			showedDir = VFSUtils.getFileSystemManager().resolveFile(s);
+        		} catch (FileSystemException exc) {
+        			StringBuilder sb = new StringBuilder();
+        			sb.append("Bad ");
+        			sb.append(Constants.VFSJFILECHOOSER_DEFAULT_FOLDER_URI);
+        			sb.append(" property.");
+        			throw new RuntimeException(sb.toString());
+        		}
+        	} else {
+        		showedDir = null;
         	}
         }
     	
