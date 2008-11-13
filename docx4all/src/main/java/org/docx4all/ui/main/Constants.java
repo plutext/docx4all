@@ -70,8 +70,10 @@ public interface Constants {
 	
 	public final static String FXSCRIPT_LOCATION = "fxscript.location";
 	
-	public final static String DOCX_FILTER_DESC  = "docx.filter.desc";
-	public final static String HTML_FILTER_DESC  = "html.filter.desc";
+	public final static String VFSJFILECHOOSER_DEFAULT_FOLDER_URI = "vfsjfilechooser.default.folder.uri";
+	public final static String VFSJFILECHOOSER_DEFAULT_WEBDAV_FOLDER_BOOKMARK_NAME = "vfsjfilechooser.default.webdav.folder.bookmark.name";
+	public final static String VFSJFILECHOOSER_DOCX_FILTER_DESC  = "vfsjfilechooser.docx.filter.desc";
+	public final static String VFSJFILECHOOSER_HTML_FILTER_DESC  = "vfsjfilechooser.html.filter.desc";
 	
 	public final static String CREATE_EDITOR_PANEL_FX = "createEditorPanel.fx";
 	public final static String CREATE_EDITOR_TABBED_PANEL_FX = "createEditorTabbedPanel.fx";
