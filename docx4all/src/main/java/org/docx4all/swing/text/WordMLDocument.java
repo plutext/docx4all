@@ -283,7 +283,8 @@ public class WordMLDocument extends DefaultStyledDocument {
 		}
 
 		length = Math.min(getLength() - offset, length);
-
+		length = Math.max(length, 1);
+		
 		Map<BigInteger, SdtBlock> snapshots = null;
 		int blockStart = -1;
 		int blockEnd = -1;
@@ -300,7 +301,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 				//from the first character in document (offset == 0)
 				blockStart = elem.getStartOffset();
 				
-				idx = (length == 0) ? idx : rootE.getElementIndex(offset + length - 1);
+				idx = rootE.getElementIndex(offset + length - 1);
 				elem = (DocumentElement) rootE.getElement(idx);
 				//blockEnd keeps the distance of elem's end position
 				//from the last character in document (offset == getLength())
@@ -315,7 +316,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 		    AttributeSet attrsCopy = attrs.copyAttributes();
 		    
 		    int pos = offset;
-		    while (pos <= offset + length) {
+		    while (pos < offset + length) {
 		    	DocumentElement paraE = 
 		    		(DocumentElement) getParagraphMLElement(pos, false);
 				ParagraphML paraML = (ParagraphML) paraE.getElementML();
@@ -329,7 +330,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 					elemAttr.removeAttributes(elemAttr);
 				}
 				elemAttr.addAttributes(attrs);
-				pos += (paraE.getEndOffset() - paraE.getStartOffset());
+				pos = paraE.getEndOffset();
 		    }
 		    
 			changes.end();
@@ -358,7 +359,8 @@ public class WordMLDocument extends DefaultStyledDocument {
 		}
 
 		length = Math.min(getLength() - offset, length);
-
+		length = Math.max(length, 1);
+		
 		Map<BigInteger, SdtBlock> snapshots = null;
 		int blockStart = -1;
 		int blockEnd = -1;
@@ -382,7 +384,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 					//from the first character in document (offset == 0)
 					blockStart = elem.getStartOffset();
 					
-					idx = (length == 0) ? idx : rootE.getElementIndex(offset + length - 1);
+					idx = rootE.getElementIndex(offset + length - 1);
 					elem = (DocumentElement) rootE.getElement(idx);
 					//blockEnd keeps the distance of elem's end position
 					//from the last character in document (offset == getLength())
@@ -398,13 +400,8 @@ public class WordMLDocument extends DefaultStyledDocument {
 					insertString(offset, Constants.NEWLINE, newAttrs);
 				}
 				
-				Element rootE = getDefaultRootElement();
-				int start = rootE.getElementIndex(offset);
-				int end = rootE.getElementIndex(offset
-						+ ((length > 0) ? length - 1 : 0));
-				
-				for (int i = start; i <= end; i++) {
-					DocumentElement paraE = (DocumentElement) rootE.getElement(i);
+				for (int pos = offset; pos < (offset + length);) {
+					DocumentElement paraE = (DocumentElement) getParagraphMLElement(pos, false);
 					ParagraphML paraML = (ParagraphML) paraE.getElementML();
 					for (ElementML child: paraML.getChildren()) {
 						//Clean up child's attributes
@@ -416,11 +413,10 @@ public class WordMLDocument extends DefaultStyledDocument {
 						}
 					}
 					paraML.addAttributes(newAttrs, true);
-				}
+					pos = paraE.getEndOffset();
+				}				
 				
-				start = rootE.getElement(start).getStartOffset();
-				end = rootE.getElement(end).getEndOffset();
-				refreshParagraphs(start, end - start);
+				refreshParagraphs(offset, length);
 				// fireUndoableEditUpdate(new UndoableEditEvent(this, changes));
 				
 			} //if (StyleSheet.PARAGRAPH_ATTR_VALUE.equals(type))
