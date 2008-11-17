@@ -19,7 +19,6 @@
 package org.docx4all.swing.text;
 
 import java.awt.Component;
-import java.awt.Container;
 import java.awt.Graphics;
 import java.awt.Rectangle;
 import java.awt.Shape;
@@ -32,10 +31,8 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BoxView;
 import javax.swing.text.Element;
-import javax.swing.text.JTextComponent;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.View;
-import javax.swing.text.html.HTML;
 
 import org.docx4all.swing.LineBorderSegment;
 import org.docx4all.xml.type.TblBorders;
@@ -74,9 +71,6 @@ public class TableView extends BoxView {
     ColumnIterator colIterator = new ColumnIterator();
 
     Vector<TableRowView> rows;
-
-    // whether to display comments inside table or not.
-    boolean skipComments = false;
 
     boolean gridValid;
     static final private BitSet EMPTY = new BitSet();
@@ -146,17 +140,6 @@ public class TableView extends BoxView {
     	return 0;
     }
 
-    /**
-     * Fetches the span (height) of the given row.
-     */
-    public int getRowSpan(int row) {
-    	TableRowView rv = getRow(row);
-    	if (rv != null) {
-    		return getSpan(Y_AXIS, rv.viewIndex);
-    	}
-    	return 0;
-    }
-
     TableRowView getRow(int row) {
     	if (row < rows.size()) {
     		return rows.elementAt(row);
@@ -191,29 +174,8 @@ public class TableView extends BoxView {
 		AttributeSet attr = v.getElement().getAttributes();
 
 		TcPrInner.GridSpan gs = WordMLStyleConstants.getTcGridSpan(attr);
-		if (gs != null) {
+		if (gs != null && gs.getVal() != null) {
 			return gs.getVal().intValue();
-		}
-
-		return 1;
-	}
-
-    /**
-	 * Determines the number of rows occupied by the table cell represented by
-	 * given element.
-	 */
-	protected int getRowsOccupied(View v) {
-		AttributeSet a = v.getElement().getAttributes();
-
-		if (a.isDefined(HTML.Attribute.ROWSPAN)) {
-			String s = (String) a.getAttribute(HTML.Attribute.ROWSPAN);
-			if (s != null) {
-				try {
-					return Integer.parseInt(s);
-				} catch (NumberFormatException nfe) {
-					// fall through to one row
-				}
-			}
 		}
 
 		return 1;
@@ -259,6 +221,7 @@ public class TableView extends BoxView {
 					TableRowView rv = (TableRowView) v;
 					rows.addElement(rv);
 					rv.clearFilledColumns();
+					rv.clearVMergeRestartColumns();
 					rv.rowIndex = rows.size() - 1;
 					rv.viewIndex = i;
 				}
@@ -272,7 +235,7 @@ public class TableView extends BoxView {
 				int col = 0;
 				int grid = WordMLStyleConstants.getTrGridBefore(rv.getAttributes());
 				for (; col < grid; col++) {
-					addFill(row, col);					
+					rv.fillColumn(col);
 				}
 				
 				for (int cell = 0; cell < rv.getViewCount(); cell++, col++) {
@@ -288,31 +251,57 @@ public class TableView extends BoxView {
 					// advance to a free column
 					for (; rv.isFilled(col); col++)
 						;
-					int rowSpan = getRowsOccupied(cv);
-					if (rowSpan > 1) {
-						multiRowCells = true;
-					}
+					
+					TcPrInner.VMerge vmerge = 
+						WordMLStyleConstants.getTcVMerge(cv.getAttributes());
 					int colSpan = getColumnGridSpan(cv);
-					if ((colSpan > 1) || (rowSpan > 1)) {
-						// fill in the overflow entries for this cell
-						int rowLimit = row + rowSpan;
-						int colLimit = col + colSpan;
-						for (int i = row; i < rowLimit; i++) {
-							for (int j = col; j < colLimit; j++) {
-								if (i != row || j != col) {
-									addFill(i, j);
+					if (vmerge != null) {
+						if ("restart".equalsIgnoreCase(vmerge.getVal())) {
+							//TableCellView cv is where 
+							//the vertical merge starts
+							rv.vmergeRestartColumn(col);
+							for (int i = 1; i < colSpan; i++) {
+								rv.fillColumn(col + i);
+							}
+						} else {
+							//TableCellView cv is a continuation of 
+							//vertical merge.
+							//Try to find the cell that starts the vertical merge
+							//and increase its row span attribute.
+							TableRowView trv = null;
+							for (int i = row - 1; i >= 0; i--) {
+								trv = getRow(i);
+								if (trv.isVMergeRestartColumn(col)) {
+									i = -1;//break
 								}
 							}
+							if (trv != null) {
+								//vmergeRestartCell is the cell that starts 
+								//the vertical merge
+								TableCellView vmergeRestartCell = 
+									(TableCellView) trv.findVMergeRestartCell(col);
+								int rowSpan = vmergeRestartCell.getRowSpan();
+								//Increase row span attribute
+								vmergeRestartCell.setRowSpan(rowSpan + 1);
+								
+								for (int i = 0; i < colSpan; i++) {
+									rv.fillColumn(col + i);
+								}
+								multiRowCells = true;
+							} else {
+								//Ignore bad vmerge setting.
+							}
 						}
-						if (colSpan > 1) {
-							col += colSpan - 1;
-						}
+					}
+					
+					if (colSpan > 1) {
+						col += colSpan - 1;
 					}
 				} //for (cell) loop
 				
 				grid = WordMLStyleConstants.getTrGridAfter(rv.getAttributes());
 				for (; col < col + grid; col++) {
-					addFill(row, col);					
+					rv.fillColumn(col);
 				}
 				
 				maxColumns = Math.max(maxColumns, col);
@@ -329,17 +318,7 @@ public class TableView extends BoxView {
 			gridValid = true;
 		}
 	}
-
-    /**
-     * Mark a grid location as filled in for a cells overflow.
-     */
-    void addFill(int row, int col) {
-		TableRowView rv = getRow(row);
-		if (rv != null) {
-			rv.fillColumn(col);
-		}
-	}
-
+    
     /**
      * Layout the columns to fit within the given target span.
      *
@@ -385,14 +364,7 @@ public class TableView extends BoxView {
 			req.preferred = 0;
 			req.maximum = Integer.MAX_VALUE;
 		}
-		Container host = getContainer();
-		if (host != null) {
-			if (host instanceof JTextComponent) {
-				skipComments = !((JTextComponent) host).isEditable();
-			} else {
-				skipComments = true;
-			}
-		}
+
 		// pass 1 - single column cells
 		boolean hasMultiColumn = false;
 		int nrows = getRowCount();
@@ -401,20 +373,20 @@ public class TableView extends BoxView {
 			int col = 0;
 			int ncells = row.getViewCount();
 			for (int cell = 0; cell < ncells; cell++) {
-				View cv = row.getView(cell);
-				if (skipComments && !(cv instanceof TableCellView)) {
-					continue;
+				TableCellView cv = (TableCellView) row.getView(cell);
+				if (!cv.isHidden()) {
+					for (; row.isFilled(col); col++)
+						; // advance to a free column
+				
+					int colSpan = getColumnGridSpan(cv);
+					if (colSpan == 1) {
+						checkSingleColumnCell(axis, col, cv);
+					} else {
+						hasMultiColumn = true;
+						col += colSpan - 1;
+					}
+					col++;
 				}
-				for (; row.isFilled(col); col++)
-					; // advance to a free column
-				int colSpan = getColumnGridSpan(cv);
-				if (colSpan == 1) {
-					checkSingleColumnCell(axis, col, cv);
-				} else {
-					hasMultiColumn = true;
-					col += colSpan - 1;
-				}
-				col++;
 			}
 		}
 
@@ -425,18 +397,17 @@ public class TableView extends BoxView {
 				int col = 0;
 				int ncells = row.getViewCount();
 				for (int cell = 0; cell < ncells; cell++) {
-					View cv = row.getView(cell);
-					if (skipComments && !(cv instanceof TableCellView)) {
-						continue;
+					TableCellView cv = (TableCellView) row.getView(cell);
+					if (!cv.isHidden()) {
+						for (; row.isFilled(col); col++)
+							; // advance to a free column
+						int colSpan = getColumnGridSpan(cv);
+						if (colSpan > 1) {
+							checkMultiColumnCell(axis, col, colSpan, cv);
+							col += colSpan - 1;
+						}
+						col++;
 					}
-					for (; row.isFilled(col); col++)
-						; // advance to a free column
-					int colSpan = getColumnGridSpan(cv);
-					if (colSpan > 1) {
-						checkMultiColumnCell(axis, col, colSpan, cv);
-						col += colSpan - 1;
-					}
-					col++;
 				}
 			}
 		}
@@ -878,29 +849,33 @@ public class TableView extends BoxView {
 				int col = 0;
 				int ncells = row.getViewCount();
 				for (int cell = 0; cell < ncells; cell++, col++) {
-					View cv = row.getView(cell);
-					for (; row.isFilled(col); col++)
-						; // advance to a free column
-					int colSpan = getColumnGridSpan(cv);
-					AttributeSet a = cv.getAttributes();
-					TblWidth tcwidth = WordMLStyleConstants.getTcWidth(a);
-					if (tcwidth != null) {
-						int len = tcwidth.getWidthInPixel(span);
-						len = (int) (len / colSpan + 0.5f);
-						for (int i=0; i < colSpan; i++) {
-							if (tcwidth.getType() == TblWidth.Type.PCT) {
-								percentages[col + i] = 
-									Math.max(percentages[col + i], len);
-								adjustmentWeights[col + i] = 
-									Math.max(adjustmentWeights[col + i], WorstAdjustmentWeight);
-							} else {
-								adjustmentWeights[col + i] = Math.max(
+					TableCellView cv = (TableCellView) row.getView(cell);
+					if (cv.isHidden()) {
+						col--;
+					} else {
+						for (; row.isFilled(col); col++)
+							; // advance to a free column
+						int colSpan = getColumnGridSpan(cv);
+						AttributeSet a = cv.getAttributes();
+						TblWidth tcwidth = WordMLStyleConstants.getTcWidth(a);
+						if (tcwidth != null) {
+							int len = tcwidth.getWidthInPixel(span);
+							len = (int) (len / colSpan + 0.5f);
+							for (int i=0; i < colSpan; i++) {
+								if (tcwidth.getType() == TblWidth.Type.PCT) {
+									percentages[col + i] = 
+										Math.max(percentages[col + i], len);
+									adjustmentWeights[col + i] = 
+										Math.max(adjustmentWeights[col + i], WorstAdjustmentWeight);
+								} else {
+									adjustmentWeights[col + i] = Math.max(
 										adjustmentWeights[col + i],
 										WorstAdjustmentWeight - 1);
+								}
 							}
 						}
+						col += colSpan - 1;
 					}
-					col += colSpan - 1;
 				}
 			}
 		} 
@@ -1001,8 +976,9 @@ public class TableView extends BoxView {
 					if (rv.multiRowCells == true) {
 						int ncells = rv.getViewCount();
 						for (int j = 0; j < ncells; j++) {
-							View v = rv.getView(j);
-							int nrows = getRowsOccupied(v);
+							TableCellView v = 
+								(TableCellView) rv.getView(j);
+							int nrows = v.getRowSpan();
 							if (nrows > 1) {
 								int spanNeeded = (int) v.getPreferredSpan(axis);
 								adjustMultiRowSpan(spanNeeded, nrows, i);
@@ -1134,7 +1110,7 @@ public class TableView extends BoxView {
     public class TableRowView extends BoxView {
 
 		/** columns filled by multi-column or multi-row cells */
-		BitSet fillColumns;
+		BitSet fillColumns, vmergeRestartColumns;
 
 		/**
 		 * The row index within the overall grid
@@ -1161,6 +1137,7 @@ public class TableView extends BoxView {
 		public TableRowView(Element elem) {
 			super(elem, View.X_AXIS);
 			fillColumns = new BitSet();
+			vmergeRestartColumns = new BitSet();
 		}
 
 		void clearFilledColumns() {
@@ -1175,24 +1152,46 @@ public class TableView extends BoxView {
 			return fillColumns.get(col);
 		}
 
-		/**
-		 * The number of columns present in this row.
-		 */
-		int getColumnCount() {
-			int nfill = 0;
-			int n = fillColumns.size();
-			for (int i = 0; i < n; i++) {
-				if (fillColumns.get(i)) {
-					nfill++;
+		void clearVMergeRestartColumns() {
+			vmergeRestartColumns.and(EMPTY);
+		}
+		
+		void vmergeRestartColumn(int col) {
+			vmergeRestartColumns.set(col);
+		}
+		
+		boolean isVMergeRestartColumn(int col) {
+			return vmergeRestartColumns.get(col);
+		}
+		
+		View findVMergeRestartCell(int col) {
+			View theCell = null;
+			
+			if (isVMergeRestartColumn(col)) {
+				int n = getViewCount();
+				
+				int cellColumnStart = 0;
+				for (int i=0; i < n && theCell == null; i++) {
+					theCell = getView(i);
+					int colSpan = getColumnGridSpan(theCell);
+					int cellColumnEnd = cellColumnStart + colSpan - 1;
+					if (cellColumnStart <= col && col <= cellColumnEnd) {
+						;//return theCell
+					} else {
+						theCell = null;
+						cellColumnStart = cellColumnEnd + 1;
+					}					
 				}
 			}
-			return getViewCount() + nfill;
+			
+			return theCell;
 		}
-
+		
 		View findViewAtPoint(int x, int y, Rectangle alloc) {
 			int n = getViewCount();
 			for (int i = 0; i < n; i++) {
-				if (getChildAllocation(i, alloc).contains(x, y)) {
+				Shape childAlloc = getChildAllocation(i, alloc);
+				if (childAlloc != null && childAlloc.contains(x, y)) {
 					childAllocation(i, alloc);
 					return getView(i);
 				}
@@ -1303,8 +1302,9 @@ public class TableView extends BoxView {
 			multiRowCells = false;
 			int n = getViewCount();
 			for (int i = 0; i < n; i++) {
-				View v = getView(i);
-				if (getRowsOccupied(v) > 1) {
+				TableCellView v = (TableCellView) getView(i);
+				int nrows = v.getRowSpan();
+				if (nrows > 1) {
 					multiRowCells = true;
 					max = Math.max((int) v.getMaximumSpan(axis), max);
 				} else {
@@ -1354,10 +1354,11 @@ public class TableView extends BoxView {
 			int col = 0;
 			int ncells = getViewCount();
 			for (int cell = 0; cell < ncells; cell++) {
-				View cv = getView(cell);
-				if (skipComments && !(cv instanceof TableCellView)) {
+				TableCellView cv = (TableCellView) getView(cell);
+				if (cv.isHidden()) {
 					continue;
 				}
+				
 				for (; isFilled(col); col++)
 					; // advance to a free column
 				int colSpan = getColumnGridSpan(cv);
@@ -1412,20 +1413,23 @@ public class TableView extends BoxView {
 			int col = 0;
 			int ncells = getViewCount();
 			for (int cell = 0; cell < ncells; cell++, col++) {
-				View cv = getView(cell);
-				for (; isFilled(col); col++)
-					; // advance to a free column
-				int colSpan = getColumnGridSpan(cv);
-				int rowSpan = getRowsOccupied(cv);
-				if (rowSpan > 1) {
-
-					int row0 = rowIndex;
-					int row1 = Math.min(rowIndex + rowSpan - 1,
+				TableCellView cv = (TableCellView) getView(cell);
+				if (cv.isHidden()) {
+					col--;
+				} else {
+					for (; isFilled(col); col++)
+						; // advance to a free column
+					int colSpan = getColumnGridSpan(cv);
+					int rowSpan = cv.getRowSpan();
+					if (rowSpan > 1) {
+						int row0 = rowIndex;
+						int row1 = Math.min(rowIndex + rowSpan - 1,
 							getRowCount() - 1);
-					spans[cell] = getMultiRowSpan(row0, row1);
-				}
-				if (colSpan > 1) {
-					col += colSpan - 1;
+						spans[cell] = getMultiRowSpan(row0, row1);
+					}
+					if (colSpan > 1) {
+						col += colSpan - 1;
+					}
 				}
 			}
 		}
