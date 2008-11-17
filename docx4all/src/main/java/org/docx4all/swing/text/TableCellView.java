@@ -19,6 +19,7 @@
 
 package org.docx4all.swing.text;
 
+import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Rectangle;
 import java.awt.Shape;
@@ -28,6 +29,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BoxView;
 import javax.swing.text.Element;
+import javax.swing.text.StyleConstants;
 import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
 
@@ -40,16 +42,26 @@ import org.docx4all.xml.type.TblWidth;
 import org.docx4all.xml.type.TcBorders;
 import org.docx4j.wml.STHeightRule;
 import org.docx4j.wml.STVerticalJc;
+import org.docx4j.wml.TcPrInner;
 
 /**
  * @author Jojada Tirtowidjojo - 22/09/2008
  */
 public class TableCellView extends BoxView {
-
+	private int rowSpan = 1;
+	
 	public TableCellView(Element elem) {
 		super(elem, Y_AXIS);
 	}
 
+	public int getRowSpan() {
+		return rowSpan;
+	}
+	
+	public void setRowSpan(int span) {
+		this.rowSpan = span;
+	}
+	
     /**
      * Gets the alignment.
      *
@@ -86,6 +98,10 @@ public class TableCellView extends BoxView {
 	 *                for an invalid axis
 	 */
 	public int getResizeWeight(int axis) {
+		if (isHidden()) {
+			return 0;
+		}
+		
 		switch (axis) {
 		case View.X_AXIS:
 			return 1;
@@ -129,6 +145,10 @@ public class TableCellView extends BoxView {
 	}
 
     public void paint(Graphics g, Shape allocation) {
+    	if (isHidden()) {
+    		return;
+    	}
+    	
     	Rectangle alloc = (Rectangle) allocation;
     	
     	int x = alloc.x;
@@ -137,6 +157,15 @@ public class TableCellView extends BoxView {
     	int h = alloc.height;
     	
     	AttributeSet attr = getAttributes();
+    	
+    	if (attr.isDefined(StyleConstants.Background)) {
+    		Color orig = g.getColor();
+        	Color bg = StyleConstants.getBackground(attr);
+    		g.setColor(bg);
+            g.fillRect(x, y, w, h);
+            g.setColor(orig);
+    	}
+    	
     	TcBorders tcBorders = WordMLStyleConstants.getTcBorders(attr);
     	if (tcBorders != null) {
     		tcBorders.setAutoColor(getContainer().getForeground());
@@ -188,6 +217,11 @@ public class TableCellView extends BoxView {
     	super.paint(g, alloc);
     }
     
+    public boolean isHidden() {
+		TcPrInner.VMerge vmerge = WordMLStyleConstants.getTcVMerge(getAttributes());
+		return (vmerge != null && !"restart".equalsIgnoreCase(vmerge.getVal()));
+    }
+    
     protected LineBorderSegment getLineBorderSegment(
     	TblBorders tblBorders, TcBorders tcBorders, LineBorderSegment.Side side) {
     	
@@ -202,6 +236,10 @@ public class TableCellView extends BoxView {
      * Update any cached values that come from attributes.
      */
     protected void setPropertiesFromAttributes() {
+    	if (isHidden()) {
+    		return;
+    	}
+    	
     	AttributeSet attr = getAttributes();
     	setParagraphInsets(attr);
     }
@@ -277,6 +315,10 @@ public class TableCellView extends BoxView {
 	 */
 	protected void layoutMajorAxis(int targetSpan, int axis, int[] offsets,
 			int[] spans) {
+		if (isHidden()) {
+			return;
+		}
+		
 		super.layoutMajorAxis(targetSpan, axis, offsets, spans);
 
 		int totalChildSpan = 0;
@@ -290,10 +332,11 @@ public class TableCellView extends BoxView {
 		if (totalChildSpan < targetSpan) {
 			STVerticalJc valign = WordMLStyleConstants.getTcVAlign(getAttributes());
 			if (valign == null 
-				|| valign == STVerticalJc.CENTER
 				|| valign == STVerticalJc.BOTH) {
+				//According WordprocessingML spec,
 				//STVerticalJc.BOTH is an invalid value in Table Cell.
 				//Therefore, consider it as undefined.
+			} else if (valign == STVerticalJc.CENTER) {
 				adjust = (targetSpan - totalChildSpan) / 2;
 			} else if (valign == STVerticalJc.BOTTOM) {
 				adjust = targetSpan - totalChildSpan;
@@ -328,6 +371,10 @@ public class TableCellView extends BoxView {
 			r = new SizeRequirements();
 		}
 		
+		if (isHidden()) {
+			return r;
+		}
+		
 		CTHeight height = 
 			WordMLStyleConstants.getTrHeight(getElement().getParentElement().getAttributes());
 		if (height == null || height.getRule() == STHeightRule.AUTO) {
@@ -353,7 +400,6 @@ public class TableCellView extends BoxView {
 			r.preferred -= margin;
 			fitIntoConstrain(r, constraintByParent);
 		}
-
 		return r;
 	}
 
@@ -362,6 +408,10 @@ public class TableCellView extends BoxView {
     	    r = new SizeRequirements();
     	}
 
+    	if (isHidden()) {
+    		return r;
+		}
+		
     	TblWidth w = WordMLStyleConstants.getTcWidth(getAttributes());
     	if (w == null
     		|| w.getType() == TblWidth.Type.AUTO
