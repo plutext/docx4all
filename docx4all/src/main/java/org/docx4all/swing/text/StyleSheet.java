@@ -19,6 +19,7 @@
 
 package org.docx4all.swing.text;
 
+import java.awt.Color;
 import java.awt.Toolkit;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -41,6 +42,7 @@ import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.BooleanDefaultTrue;
 import org.docx4j.wml.CTHeight;
+import org.docx4j.wml.CTShd;
 import org.docx4j.wml.CTTblCellMar;
 import org.docx4j.wml.CTTrPrBase;
 import org.docx4j.wml.CTVerticalJc;
@@ -52,6 +54,7 @@ import org.docx4j.wml.RFonts;
 import org.docx4j.wml.RPr;
 import org.docx4j.wml.RStyle;
 import org.docx4j.wml.STBorder;
+import org.docx4j.wml.STShd;
 import org.docx4j.wml.TblBorders;
 import org.docx4j.wml.TblPr;
 import org.docx4j.wml.TblWidth;
@@ -382,7 +385,38 @@ public class StyleSheet extends StyleContext {
 		
 		CTVerticalJc valign = tcPr.getVAlign();
 		if (valign != null) {
-			attrs.addAttribute(WordMLStyleConstants.TcVAlignAttribute, valign);
+			attrs.addAttribute(WordMLStyleConstants.TcVAlignAttribute, valign.getVal());
+			valign = null;
+		}
+		
+		CTShd ctShd = tcPr.getShd();
+		if (ctShd != null) {
+			//Currently we are still supporting solid background color.
+			//Solid background color is set if 
+			// - ctShd.getVal() is null; ie: @val attribute is omitted
+			// - ctShd.getVal() is clear or nil.
+			STShd val = ctShd.getVal();
+			if (val == null || val == STShd.CLEAR || val == STShd.NIL) {
+				//TODO: Make ctShd.getThemeFill() supersede ctShd.getFill()
+				//if (ctShd.getThemeFill() == null) {
+					String s = ctShd.getFill();
+					if ("auto".equalsIgnoreCase(s)) {
+						;//ignore
+					} else {
+						try {
+							Color c = new Color(Integer.parseInt(s, 16));
+							attrs.addAttribute(StyleConstants.Background, c);
+						} catch (NumberFormatException exc) {
+							;//ignore
+						}
+					}
+				//} else {
+					//not supported yet.
+					//ctShd.getThemeFill() supersedes ctShd.getFill()
+				//}
+			} else {
+				//not supported yet
+			}
 		}
 	} //addAttributes(attrs, tcPr)
 	
