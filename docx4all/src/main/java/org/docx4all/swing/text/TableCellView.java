@@ -378,8 +378,14 @@ public class TableCellView extends BoxView {
 		CTHeight height = 
 			WordMLStyleConstants.getTrHeight(getElement().getParentElement().getAttributes());
 		if (height == null 
-			|| height.getRule() == null
+			//|| height.getRule() == null
 			|| height.getRule() == STHeightRule.AUTO) {
+			//TODO: WordprocessingML specification tells that
+			//if hRule attribute is omitted (ie: height.getRule() == null)
+			//then its value shall be assumed to be auto.
+			//However, Ms-Word2007 does not do that.
+			//Therefore, let Docx4all imitate Ms-Word2007 until
+			//we decide otherwise.
 			r = super.calculateMajorAxisRequirements(axis, r);
 			r.maximum = Integer.MAX_VALUE;
 			
