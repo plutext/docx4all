@@ -179,7 +179,7 @@ public class StyleSheet extends StyleContext {
 				|| indent.getType() == org.docx4all.xml.type.TblWidth.Type.NIL) {
 				int ignoreThisParam = 0;
 				int pixels = indent.getWidthInPixel(ignoreThisParam);
-				StyleConstants.setLeftIndent(attrs, pixels);
+				attrs.addAttribute(WordMLStyleConstants.TblIndentAttribute, Integer.valueOf(pixels));
 			} else {
 				//WordprocessingML Spec says to ignore.
 			}
