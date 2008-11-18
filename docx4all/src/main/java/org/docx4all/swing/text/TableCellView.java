@@ -377,7 +377,9 @@ public class TableCellView extends BoxView {
 		
 		CTHeight height = 
 			WordMLStyleConstants.getTrHeight(getElement().getParentElement().getAttributes());
-		if (height == null || height.getRule() == STHeightRule.AUTO) {
+		if (height == null 
+			|| height.getRule() == null
+			|| height.getRule() == STHeightRule.AUTO) {
 			r = super.calculateMajorAxisRequirements(axis, r);
 			r.maximum = Integer.MAX_VALUE;
 			
@@ -403,6 +405,37 @@ public class TableCellView extends BoxView {
 		return r;
 	}
 
+    protected void layoutMinorAxis(int targetSpan, int axis, int[] offsets,
+			int[] spans) {
+		int n = getViewCount();
+		for (int i = 0; i < n; i++) {
+			View v = getView(i);
+			int min = (int) v.getMinimumSpan(axis);
+			int max;
+
+	    	TblWidth w = WordMLStyleConstants.getTcWidth(getAttributes());
+			// check for percentage span
+	    	if (w != null && w.getType() == TblWidth.Type.PCT) {
+	    		min = Math.max(w.getWidthInPixel(targetSpan), min);
+	    		max = min;	    		
+	    	} else {
+	    		max = (int) v.getMaximumSpan(axis);
+	    	}
+	    	
+			// assign the offset and span for the child
+			if (max < targetSpan) {
+				// can't make the child this wide, align it
+				float align = v.getAlignment(axis);
+				offsets[i] = (int) ((targetSpan - max) * align);
+				spans[i] = max;
+			} else {
+				// make it the target width, or as small as it can get.
+				offsets[i] = 0;
+				spans[i] = Math.max(min, targetSpan);
+			}
+		}
+	}
+
     protected SizeRequirements calculateMinorAxisRequirements(int axis, SizeRequirements r) {
     	if (r == null) {
     	    r = new SizeRequirements();
@@ -424,9 +457,7 @@ public class TableCellView extends BoxView {
     	} else {
     		//TblWidth.Type.DXA
     		int irrelevantParam = 0;
-			r.minimum = r.preferred = w.getWidthInPixel(irrelevantParam);
-			//Gracefully accommodate whatever big content size is
-			r.maximum = Integer.MAX_VALUE; 
+			r.minimum = r.preferred = r.maximum = w.getWidthInPixel(irrelevantParam);
 			
 			SizeRequirements constraintByParent = 
 				super.calculateMinorAxisRequirements(axis, null);
@@ -435,6 +466,7 @@ public class TableCellView extends BoxView {
 			int margin = getLeftInset() + getRightInset();
 			r.minimum -= margin;
 			r.preferred -= margin;
+			r.maximum -= margin;
 			fitIntoConstrain(r, constraintByParent);
     	}
     	
