@@ -66,7 +66,7 @@ public class WordMLStyleConstants {
 	public static final Object TblBordersAttribute = new WordMLStyleConstants("tblBorders");
 	
 	public static final Object TblWidthAttribute = new WordMLStyleConstants("tblWidth");
-	public static final Object TblIndentAttribute = StyleConstants.LeftIndent;
+	public static final Object TblIndentAttribute = new WordMLStyleConstants("tblIndent");
 	public static final Object TblCellSpacingAttribute = new WordMLStyleConstants("tblCellSpacing");
 	
 	public static final Object TrHeightAttribute = new WordMLStyleConstants("trHeight");
@@ -513,6 +513,30 @@ public class WordMLStyleConstants {
      */ 
     public static void setTblCellSpacing(MutableAttributeSet a, int i) {
         a.addAttribute(TblCellSpacingAttribute, Integer.valueOf(i));
+    }
+
+    /**
+     * Sets the TblIndentAttribute.
+     *
+     * @param a the attribute set
+     * @param value the value
+     */
+    public static void setTblIndent(MutableAttributeSet a, int value) {
+        a.addAttribute(TblIndentAttribute, Integer.valueOf(value));
+    }
+
+    /**
+	 * Gets the TblIndentAttribute setting from the attribute list.
+	 * 
+	 * @param a the attribute set
+	 * @return the TblIndentAttribute
+	 */
+    public static int getTblIndent(AttributeSet a) {
+        Integer ind = (Integer) a.getAttribute(TblIndentAttribute);
+        if (ind != null) {
+            return ind.intValue();
+        }
+        return 0;
     }
 
    /**
