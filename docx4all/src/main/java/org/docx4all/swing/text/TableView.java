@@ -33,6 +33,7 @@ import javax.swing.text.BoxView;
 import javax.swing.text.Element;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.View;
+import javax.swing.text.ViewFactory;
 
 import org.docx4all.swing.LineBorderSegment;
 import org.docx4all.xml.type.TblBorders;
@@ -190,8 +191,9 @@ public class TableView extends BoxView {
      */
     protected void setPropertiesFromAttributes() {
     	AttributeSet attr = getAttributes();
-    	setParagraphInsets(attr);
-   	
+   		int tblInd = WordMLStyleConstants.getTblIndent(attr);
+   		setInsets((short) 0, (short) tblInd, (short) 0, (short) 0);
+    	
     	cellSpacing = WordMLStyleConstants.getTblCellSpacing(attr);
     	TblBorders borders = WordMLStyleConstants.getTblBorders(attr);
     	if (borders != null) {
