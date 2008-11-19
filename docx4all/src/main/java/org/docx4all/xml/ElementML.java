@@ -28,6 +28,7 @@ import javax.xml.namespace.QName;
 import org.docx4all.swing.text.StyleSheet;
 import org.docx4all.ui.main.Constants;
 import org.docx4j.jaxb.Context;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -351,6 +352,10 @@ public abstract class ElementML implements Cloneable {
 	
 	public StyleSheet getStyleSheet() {
 		return (getParent() != null) ? getParent().getStyleSheet() : null;
+	}
+	
+	public WordprocessingMLPackage getWordprocessingMLPackage() {
+		return (getParent() != null) ? getParent().getWordprocessingMLPackage() : null;
 	}
 	
 	public String toString() {
