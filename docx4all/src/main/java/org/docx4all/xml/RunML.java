@@ -130,7 +130,8 @@ public class RunML extends ElementML {
 		if (parent != null 
 			&& !(parent instanceof ParagraphML)
 			&& !(parent instanceof RunInsML)
-			&& !(parent instanceof RunDelML)) {
+			&& !(parent instanceof RunDelML)
+			&& !(parent instanceof HyperlinkML)) {
 			throw new IllegalArgumentException("Invalid parent type = " + parent.getClass());
 		}
 		this.parent = parent;
