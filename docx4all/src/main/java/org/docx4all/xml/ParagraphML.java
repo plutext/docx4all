@@ -109,7 +109,8 @@ public class ParagraphML extends ElementML {
 		
 		if (!(child instanceof RunML)
 			&& !(child instanceof RunInsML)
-			&& !(child instanceof RunDelML)) {
+			&& !(child instanceof RunDelML)
+			&& !(child instanceof HyperlinkML)) {
 			canAdd = false;
 		} else {
 			canAdd = super.canAddChild(idx, child);
@@ -229,6 +230,8 @@ public class ParagraphML extends ElementML {
 					ml = new RunInsML(value, this.isDummy);
 				} else if (value instanceof org.docx4j.wml.RunDel) {
 					ml = new RunDelML(value, this.isDummy);
+				} else if (value instanceof org.docx4j.wml.P.Hyperlink) {
+					ml = new HyperlinkML(value, this.isDummy);
 				} else {
 					ml = new RunML(o, this.isDummy);
 				}
