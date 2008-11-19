@@ -24,6 +24,7 @@ import java.awt.Color;
 import javax.swing.text.Element;
 
 import org.docx4all.xml.ElementML;
+import org.docx4all.xml.HyperlinkML;
 import org.docx4all.xml.RunDelML;
 import org.docx4all.xml.RunInsML;
 import org.docx4all.xml.RunML;
@@ -34,19 +35,28 @@ import org.docx4all.xml.RunML;
 public class LabelView extends javax.swing.text.LabelView {
 	private boolean impliedUnderline;
 	private boolean impliedStrikethrough;
+	private Color foreground;
 	
     public LabelView(Element elem) {
     	super(elem);
     	
+    	impliedUnderline = impliedStrikethrough = false;
+    	foreground = null;
+    	
     	ElementML parent = 
-    		((DocumentElement) elem.getParentElement()).getElementML();
-    	impliedUnderline = 
-    		(parent instanceof RunML)
-    		&& (parent.getParent() instanceof RunInsML);
-    	impliedStrikethrough = 
-    		(parent instanceof RunML)
-    		&& (parent.getParent() instanceof RunDelML);
-    		
+    		((DocumentElement) getElement().getParentElement()).getElementML();
+    	if (parent instanceof RunML) {
+    		if (parent.getParent() instanceof RunInsML) {
+    			foreground = Color.RED;
+    			impliedUnderline = true;
+    		} else if (parent.getParent() instanceof RunDelML) {
+    			foreground = Color.RED;
+    			impliedStrikethrough = true;
+    		} else if (parent.getParent() instanceof HyperlinkML) {
+    			foreground = Color.BLUE;
+    			impliedUnderline = true;
+    		}
+    	}
     }
 
     public boolean isImpliedUnderline() {
@@ -58,11 +68,7 @@ public class LabelView extends javax.swing.text.LabelView {
     }
     
     public Color getForeground() {
-    	Color c =
-    		(isImpliedUnderline() || isImpliedStrikethrough())
-    			? Color.RED 
-    			: super.getForeground();
-    	return c;
+    	return (foreground == null) ? super.getForeground() : foreground;
     }
     
     protected void setPropertiesFromAttributes() {
