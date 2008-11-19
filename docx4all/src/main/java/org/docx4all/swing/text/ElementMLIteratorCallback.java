@@ -32,6 +32,7 @@ import org.docx4all.ui.main.Constants;
 import org.docx4all.xml.BodyML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLIterator;
+import org.docx4all.xml.HyperlinkML;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.PropertiesContainerML;
 import org.docx4all.xml.RunContentML;
@@ -82,7 +83,8 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 			;//bypass
 			
 		} else if (elem instanceof RunInsML
-					|| elem instanceof RunDelML) {
+					|| elem instanceof RunDelML
+					|| elem instanceof HyperlinkML) {
 			;//bypass
 			
 		} else {
@@ -103,10 +105,8 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 		} else if (elem instanceof ParagraphML) {
 			closeElementSpec((ParagraphML) elem);
 		
-			//Currently transparent nodes being supported are
-			//RunInsML and RunDelML which are paragraph contents.
-			//In order not to corrupt the ongoing iteration process
-			//deleting these transparent nodes is done here.
+			//In here we delete those barren transparent nodes
+			//registered in _transparentNodesToDelete.
 			if (_transparentNodesToDelete != null) {
 				for (ElementML ml:_transparentNodesToDelete) {
 					ml.delete();
@@ -125,7 +125,15 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 			;//bypass
 			
 		} else if (elem instanceof RunInsML
-					|| elem instanceof RunDelML) {
+					|| elem instanceof RunDelML
+					|| elem instanceof HyperlinkML) {
+			//These are paragraph content nodes that are transparent.
+			//Currently we are only supporting RunIns, RunDelML, and HyperlinkML.
+			//In here we want to clean up barren nodes but deleting them here
+			//will disrupt the ongoing iteration process.
+			//Therefore, register them only and delete later when
+			//the whole ParagraphML that hosts them have been fully iterated.
+			//See ParagraphML else-case in this method.
 			if (elem.getChildrenCount() == 0) {
 				if (_transparentNodesToDelete == null) {
 					_transparentNodesToDelete = new ArrayList<ElementML>();
