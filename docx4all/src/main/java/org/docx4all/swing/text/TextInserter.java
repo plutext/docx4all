@@ -175,10 +175,17 @@ public class TextInserter implements TextProcessor {
 						
 						doc.refreshParagraphs(paraStart, (paraEnd-paraStart));
 					}
+				} else if (runE.getElementML().isImplied()) {
+					//runE.getElementML() must be ElementML.IMPLIED_NEWLINE.
+					//Get NON-IMPLIED ParagraphML parent and add newRun
+					//as its new child.
+					DocumentElement parent = 
+						(DocumentElement) runE.getParentElement().getParentElement();
+					parent.getElementML().addChild(newRun);
+					doc.refreshParagraphs(paraStart, (paraEnd-paraStart));
 				} else {
 					boolean after = (runE.getEndOffset() == offset);
 					runE.getElementML().addSibling(newRun, after);
-					
 					doc.refreshParagraphs(paraStart, (paraEnd-paraStart));
 				}
 			}
