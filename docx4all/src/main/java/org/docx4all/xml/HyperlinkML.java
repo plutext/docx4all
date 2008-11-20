@@ -19,6 +19,8 @@
 
 package org.docx4all.xml;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +30,32 @@ import org.docx4j.XmlUtils;
  *	@author Jojada Tirtowidjojo - 20/11/2008
  */
 public class HyperlinkML extends ElementML {
+	
+	public final static String encodeTarget(HyperlinkML ml, String basePath) {
+		String target = ml.getTarget().replace('\\', '/');
+		if (target.indexOf("://") > 0) {
+			//if protocol is specified, basePath param is ignored
+			try {
+				target = URLDecoder.decode(target, "UTF-8");
+			} catch (UnsupportedEncodingException exc) {
+				//should not happen
+			}
+		} else if (basePath != null) {
+			//protocol is NOT specified.
+			//Append target to basePath param.
+			StringBuilder sb = new StringBuilder();
+			sb.append(basePath.replace('\\', '/'));
+			if (!basePath.endsWith("/")) {
+				sb.append("/");
+			}
+			if (target.startsWith("/")) {
+				target = target.substring(1);
+			}
+			sb.append(target);
+			target = sb.toString();
+		}
+		return target;
+	}
 	
 	public HyperlinkML(Object docxObject) {
 		this(docxObject, false);
