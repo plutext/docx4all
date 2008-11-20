@@ -82,6 +82,7 @@ import org.docx4all.util.XmlUtil;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
+import org.docx4all.xml.HyperlinkML;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunDelML;
@@ -522,10 +523,10 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	    	int pos = ui.viewToModel(editor, pt, biasRet);
 
 	    	highlight(editor, pos);
-	    	trackAuthorTooltip(editor, pos);
+	    	trackTooltip(editor, pos);
 	    }
 	    
-	    private void trackAuthorTooltip(WordMLTextPane editor, int pos) {
+	    private void trackTooltip(WordMLTextPane editor, int pos) {
 			WordMLDocument doc = (WordMLDocument) editor.getDocument();
 			DocumentElement elem = 
 				(DocumentElement) doc.getRunMLElement(pos);
@@ -555,6 +556,19 @@ public class WordMLEditorKit extends DefaultEditorKit {
 					tipText.append(text);
 					tipText.append("</p></html>");
 				}
+			} else if (parent instanceof HyperlinkML) {
+				String text = ((HyperlinkML) parent).getTooltip();
+				if (text == null || text.length() == 0) {
+					String base = 
+						(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
+					base = VFSUtils.getFriendlyName(base, false);
+					int idx = base.lastIndexOf("/");
+					base = base.substring(0, idx);
+					text = HyperlinkML.encodeTarget((HyperlinkML) parent, base);
+				}
+				tipText = new StringBuilder("<html><p>");
+				tipText.append(text);
+				tipText.append("</p><p><b>Ctrl+Click to follow link</b></p></html>");
 			}
 			
 			if (tipText == null || tipText.length() == 0) {
