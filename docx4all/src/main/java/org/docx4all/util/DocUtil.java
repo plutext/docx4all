@@ -62,6 +62,7 @@ import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.ElementMLIterator;
+import org.docx4all.xml.HyperlinkML;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.ParagraphPropertiesML;
 import org.docx4all.xml.RunContentML;
@@ -260,37 +261,73 @@ public class DocUtil {
 	 * @return An editable WordMLDocument.TextElement if any; Null, otherwise.
 	 */
 	public final static WordMLDocument.TextElement getInputAttributeElement(
-		WordMLDocument doc, 
-		int offset,
-		Position.Bias bias) {
-		
-		DocumentElement theElem = null;
-		
+			WordMLDocument doc, 
+			int offset,
+			Position.Bias bias) {
+			
+		WordMLDocument.TextElement theElem = null;
+
 		if (bias == null) {
-			theElem = (DocumentElement) doc.getParagraphMLElement(offset, true);
-			if (theElem.getStartOffset() == offset) {
-				theElem = (DocumentElement) doc.getCharacterElement(offset);
+			if (doc.getParagraphMLElement(offset, true).getStartOffset() == offset) {
+				theElem = (WordMLDocument.TextElement) doc
+						.getCharacterElement(offset);
 			} else {
-				theElem = 
-					(DocumentElement) 
-						doc.getCharacterElement(Math.max(offset - 1, 0));
-				if (!theElem.isEditable()) {
-					theElem = (DocumentElement) doc.getCharacterElement(offset);
+				int pos = Math.max(offset - 1, 0);
+				theElem = (WordMLDocument.TextElement) doc
+						.getCharacterElement(pos);
+				if (!canBecomeInputAttributeElement(theElem, offset)) {
+					theElem = (WordMLDocument.TextElement) doc
+							.getCharacterElement(offset);
 				}
 			}
 		} else {
-			offset = (bias == Position.Bias.Forward) ? offset : Math.max(offset - 1, 0);
-			theElem = 
-				(WordMLDocument.TextElement) doc.getCharacterElement(offset);
+			int pos = (bias == Position.Bias.Forward) ? offset : Math.max(
+					offset - 1, 0);
+			theElem = (WordMLDocument.TextElement) doc.getCharacterElement(pos);
 		}
 
-		if (!theElem.isEditable()) {
+		if (!canBecomeInputAttributeElement(theElem, offset)) {
 			theElem = null;
 		}
-		
+
 		return (WordMLDocument.TextElement) theElem;
 	}
-	
+
+	/**
+	 * Determines whether the passed 'runContent' element can become an input
+	 * attribute element at given 'offset' position.
+	 * 
+	 * The desired resulting effect is that when caret is placed at the middle
+	 * of hyperlink or tracked change text, user may edit the text but when
+	 * caret is at either end of hyperlink or tracked change text he may not
+	 * edit.
+	 * 
+	 * @param runContent
+	 * @param offset
+	 * @return true or false
+	 */
+	private final static boolean canBecomeInputAttributeElement(
+			WordMLDocument.TextElement runContent, int offset) {
+		boolean canBecome = false;
+
+		if (runContent.isEditable()) {
+			// Check the parent of RunML; ie: runContent's grandparent.
+			ElementML parent = runContent.getElementML().getParent()
+					.getParent();
+			if (parent instanceof HyperlinkML 
+				|| parent instanceof RunDelML
+				|| parent instanceof RunInsML) {
+				canBecome = 
+					(runContent.getStartOffset() < offset 
+						&& offset < runContent.getEndOffset());
+			} else {
+				canBecome = true;
+			}
+		}
+
+		return canBecome;
+	}
+		
 	public final static void saveTextContentToElementML(WordMLDocument.TextElement elem) {
 		if (elem == null) {
 			return;
