@@ -82,6 +82,53 @@ public class WindowMenu extends UIMenu implements PropertyChangeListener {
 		return _instance;
 	}
 	
+	public static void tileLayout(JInternalFrame[] allFrames) {
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        JDesktopPane desktop = editor.getDesktopPane();
+		
+        int rows = (int) Math.sqrt(allFrames.length);
+        int cols = rows;
+        
+        if (rows * cols < allFrames.length) {
+            cols += 1;
+            if (rows * cols < allFrames.length) {
+                rows += 1;
+            }
+        }
+        
+        Dimension size = desktop.getSize();
+        
+        int w = (int) (size.width / cols);
+        int h = (int) (size.height/ rows);
+        int x = 0;
+        int y = 0;
+        
+        for (int i=0; i < rows; i++) {
+        	for (int j=0; j < cols; j++) {
+                int cell = (i * cols) + j;
+                if (cell >= allFrames.length) {
+                    break;
+                }
+                
+                JInternalFrame iframe = allFrames[cell];
+                desktop.getDesktopManager().setBoundsForFrame(iframe, x, y, w, h);
+                iframe.setVisible(false);
+                iframe.invalidate();
+                
+                try {
+                	iframe.setVisible(true);
+                	iframe.setIcon(false);
+                	iframe.setMaximum(false);
+                } catch (PropertyVetoException exc) {
+                	;//do nothing
+                }
+                x += w;
+            }
+            y += h;
+            x = 0;
+        }
+	}
+	
 	private WindowMenu() {
 		;//singleton
 	}
@@ -154,46 +201,7 @@ public class WindowMenu extends UIMenu implements PropertyChangeListener {
 	@Action public void windowTiled() {
         WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         JDesktopPane desktop = editor.getDesktopPane();
-		
-        JInternalFrame[] allFrames = desktop.getAllFrames();
-        int rows = (int) Math.sqrt(allFrames.length);
-        int cols = rows;
-        
-        if (rows * cols < allFrames.length) {
-            cols += 1;
-            if (rows * cols < allFrames.length) {
-                rows += 1;
-            }
-        }
-        
-        Dimension size = desktop.getSize();
-        
-        int w = (int) (size.width / cols);
-        int h = (int) (size.height/ rows);
-        int x = 0;
-        int y = 0;
-        
-        for (int i=0; i < rows; i++) {
-        	for (int j=0; j < cols; j++) {
-                int cell = (i * cols) + j;
-                if (cell >= allFrames.length) {
-                    break;
-                }
-                
-                JInternalFrame iframe = allFrames[cell];
-                try {
-                	iframe.setVisible(true);
-                	iframe.setIcon(false);
-                	iframe.setMaximum(false);
-                } catch (PropertyVetoException exc) {
-                	;//do nothing
-                }
-                desktop.getDesktopManager().setBoundsForFrame(iframe, x, y, w, h);
-                x += w;
-            }
-            y += h;
-            x = 0;
-        }
+		tileLayout(desktop.getAllFrames());
 	}
 	
 	@Action public void windowCascaded() {
