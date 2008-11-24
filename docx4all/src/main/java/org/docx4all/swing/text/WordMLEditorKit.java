@@ -76,6 +76,7 @@ import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.event.InputAttributeEvent;
 import org.docx4all.swing.event.InputAttributeListener;
 import org.docx4all.ui.main.Constants;
+import org.docx4all.ui.menu.HyperlinkMenu;
 import org.docx4all.util.DocUtil;
 import org.docx4all.util.SwingUtil;
 import org.docx4all.util.XmlUtil;
@@ -510,20 +511,45 @@ public class WordMLEditorKit extends DefaultEditorKit {
 		private DocumentElement lastHighlightedE = null;
 		
 	    public void mouseClicked(MouseEvent e) {
-	    	WordMLTextPane editor = (WordMLTextPane) e.getSource();
+	    	WordMLTextPane editor = (WordMLTextPane) e.getSource();	    	
 	    	clearLastHighlight(editor);
+	    	
+	    	if (e.isControlDown()) {
+	    		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+		    	int pos = getOffsetPosition(e);
+		    	HyperlinkML ml = getHyperlinkML(doc, pos);
+		    	if (ml != null) {
+					String path = 
+						(String) doc.getProperty(
+								WordMLDocument.FILE_PATH_PROPERTY);
+		    		openLinkedDocument(ml, path);
+		    	}
+	    	}
 	    }
 	    
 	    public void mouseMoved(MouseEvent e){
 	    	WordMLTextPane editor = (WordMLTextPane) e.getSource();
+    		WordMLDocument doc = (WordMLDocument) editor.getDocument();
+	    	int pos = getOffsetPosition(e);
+	    	
+	    	highlight(editor, pos);
+	    	trackTooltip(editor, pos);
+	    	
+	    	HyperlinkML ml = getHyperlinkML(doc, pos);
+	    	if (ml != null && e.isControlDown()) {
+	    		editor.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+	    	} else {
+	    		editor.setCursor(Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR));
+	    	}
+	    }
+	    
+	    private int getOffsetPosition(MouseEvent e) {
+	    	WordMLTextPane editor = (WordMLTextPane) e.getSource();	    	
 	    	BasicTextUI ui = (BasicTextUI) editor.getUI();
 	    	
 	    	Point pt = new Point(e.getX(), e.getY());
 	    	Position.Bias[] biasRet = new Position.Bias[1];
-	    	int pos = ui.viewToModel(editor, pt, biasRet);
-
-	    	highlight(editor, pos);
-	    	trackTooltip(editor, pos);
+	    	return ui.viewToModel(editor, pt, biasRet);
 	    }
 	    
 	    private void trackTooltip(WordMLTextPane editor, int pos) {
@@ -636,6 +662,35 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			lastHighlightedE = null;
 	    }
 	    
+    	private void openLinkedDocument(
+        	HyperlinkML linkML,
+        	final String currentDocFilePath) {
+        		
+    	    String temp = VFSUtils.getFriendlyName(currentDocFilePath, false);
+    		int idx = temp.lastIndexOf("/");
+    		temp = temp.substring(0, idx);
+    		temp = HyperlinkML.encodeTarget((HyperlinkML) linkML, temp);
+
+    		HyperlinkMenu menu = HyperlinkMenu.getInstance();
+    		menu.openLinkedDocument(currentDocFilePath, temp);
+        }
+        
+    	private HyperlinkML getHyperlinkML(WordMLDocument doc, int pos) {
+    		HyperlinkML theLink = null;
+    		
+	    	DocumentElement elem =
+	    		(DocumentElement) doc.getRunMLElement(pos);
+			if (elem != null
+				&& elem.getStartOffset() < pos
+				&& pos < elem.getEndOffset()) {
+				ElementML runML = elem.getElementML();
+				if (runML.getParent() instanceof HyperlinkML) {
+					theLink = (HyperlinkML) runML.getParent();
+				}
+			}
+			
+			return theLink;
+    	}
 	}// MouseListener inner class
 	
 	private class ContentControlTracker implements javax.swing.event.CaretListener, Serializable {
@@ -1810,9 +1865,40 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
 				kit.saveCaretText();
 				
-				editor.replaceSelection(Constants.NEWLINE);
+				int pos = editor.getCaretPosition();
+				DocumentElement elem = kit.getCaretElement();
+				if (elem != null
+					&& elem.getStartOffset() < pos
+					&& pos < elem.getEndOffset()) {
+					elem = (DocumentElement) elem.getParentElement();
+					ElementML runML = elem.getElementML();
+					if (runML.getParent() instanceof HyperlinkML) {
+						String path = 
+							(String) elem.getDocument().getProperty(
+									WordMLDocument.FILE_PATH_PROPERTY);
+						openLinkedDocument((HyperlinkML) runML.getParent(), path);
+					} else {
+						editor.replaceSelection(Constants.NEWLINE);
+					}
+				} else {
+					editor.replaceSelection(Constants.NEWLINE);
+				}
 			}
     	}
+    	
+    	private void openLinkedDocument(
+    		HyperlinkML linkML,
+    		final String currentDocFilePath) {
+    		
+	    	String temp = VFSUtils.getFriendlyName(currentDocFilePath, false);
+			int idx = temp.lastIndexOf("/");
+			temp = temp.substring(0, idx);
+			temp = HyperlinkML.encodeTarget((HyperlinkML) linkML, temp);
+
+    		HyperlinkMenu menu = HyperlinkMenu.getInstance();
+    		menu.openLinkedDocument(currentDocFilePath, temp);
+    	}
+    	
     }// EnterKeyTypedAction inner class
     
     private static class DeleteNextCharAction extends StyledTextAction {
