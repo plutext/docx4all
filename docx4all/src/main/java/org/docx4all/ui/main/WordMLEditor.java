@@ -93,6 +93,7 @@ import org.docx4all.ui.menu.EditMenu;
 import org.docx4all.ui.menu.FileMenu;
 import org.docx4all.ui.menu.FormatMenu;
 import org.docx4all.ui.menu.HelpMenu;
+import org.docx4all.ui.menu.HyperlinkMenu;
 import org.docx4all.ui.menu.PlutextMenu;
 import org.docx4all.ui.menu.ReviewMenu;
 import org.docx4all.ui.menu.ViewMenu;
@@ -338,6 +339,16 @@ public class WordMLEditor extends SingleFrameApplication {
 		} catch (PropertyVetoException exc) {
 			// do nothing
 		}
+    }
+    
+    public void tileLayout(String filePath1, String filePath2) {
+    	if (_iframeMap.containsKey(filePath1) && _iframeMap.containsKey(filePath2)) {
+    		JInternalFrame[] frames = {
+    			_iframeMap.get(filePath1),
+    			_iframeMap.get(filePath2)
+    		};
+    		WindowMenu.tileLayout(frames);
+    	}
     }
     
     public void updateInternalFrame(FileObject oldFile, FileObject newFile) {
@@ -735,6 +746,7 @@ public class WordMLEditor extends SingleFrameApplication {
     	JMenu fileMenu = FileMenu.getInstance().createJMenu();
     	JMenu editMenu = EditMenu.getInstance().createJMenu();
     	JMenu formatMenu = FormatMenu.getInstance().createJMenu();
+    	JMenu hyperlinkMenu = HyperlinkMenu.getInstance().createJMenu();
     	JMenu contentControlMenu = ContentControlMenu.getInstance().createJMenu();
     	JMenu reviewMenu = ReviewMenu.getInstance().createJMenu();
     	JMenu viewMenu = ViewMenu.getInstance().createJMenu();
@@ -747,6 +759,8 @@ public class WordMLEditor extends SingleFrameApplication {
     	menubar.add(editMenu);
     	menubar.add(Box.createRigidArea(new Dimension(12, 0)));
     	menubar.add(formatMenu);
+    	menubar.add(Box.createRigidArea(new Dimension(12, 0)));
+    	menubar.add(hyperlinkMenu);
     	menubar.add(Box.createRigidArea(new Dimension(12, 0)));
     	menubar.add(contentControlMenu);
     	menubar.add(Box.createRigidArea(new Dimension(12, 0)));
