@@ -225,31 +225,8 @@
   <groupId>org.docx4j</groupId>
   <artifactId>docx4j</artifactId>
   <version>2.1.0</version> 
-
-<!-- As of 2008 11 11, of these, only commons-vfs-patched
-     is a docx4j dependency.  And we don't mind that it is pulled in.
-      
-  		<exclusions>
-  			<exclusion>
-  				<artifactId>webdavclient4j-vfs</artifactId>
-  				<groupId>webdavclient4j</groupId>
-  			</exclusion>
-  			<exclusion>
-  				<artifactId>webdavclient4j-core</artifactId>
-  				<groupId>webdavclient4j</groupId>
-  			</exclusion>
-  			<exclusion>
-				<groupId>org.apache.commons</groupId>
-				<artifactId>commons-vfs-patched</artifactId>
-  			</exclusion>
-  			<exclusion>
-				<groupId>commons-httpclient</groupId>
-				<artifactId>commons-httpclient</artifactId>
-  			</exclusion>
-  		</exclusions>
-  		 -->  
 </dependency>
-  	
+  	 
 <!--  2008 10 07 
 
 		commons-vfs-patched - we use the one from webdavclient4j's .m2 repository,
@@ -279,16 +256,17 @@
 
 <dependency>
   <groupId>org.bounce</groupId>
-  <artifactId>bounce</artifactId>
-  <version>0.9</version>
+  <artifactId>bounce-xmleditorkit-patched</artifactId>
+  <version>0.11</version>
 </dependency>
 
 <dependency>
   <groupId>net.sf.vfsjfilechooser</groupId>
   <artifactId>VFSJFileChooser-patched</artifactId>
-  <version>0.0.3</version>
+  <version>0.0.31</version>
 </dependency>
-
+ 
+ 
 <dependency>
   <groupId>xml-security</groupId>
   <artifactId>xmlsec</artifactId>
