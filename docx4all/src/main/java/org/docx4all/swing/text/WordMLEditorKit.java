@@ -71,6 +71,7 @@ import javax.xml.transform.stream.StreamSource;
 import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.commons.vfs.FileObject;
+import org.apache.commons.vfs.FileSystemException;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.event.InputAttributeEvent;
@@ -585,12 +586,15 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			} else if (parent instanceof HyperlinkML) {
 				String text = ((HyperlinkML) parent).getTooltip();
 				if (text == null || text.length() == 0) {
-					String base = 
-						(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
-					base = VFSUtils.getFriendlyName(base, false);
-					int idx = base.lastIndexOf("/");
-					base = base.substring(0, idx);
-					text = HyperlinkML.encodeTarget((HyperlinkML) parent, base);
+		    		FileObject srcFile = null;
+		    		try {
+						String path = 
+							(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
+		    			srcFile = VFSUtils.getFileSystemManager().resolveFile(path);
+		    		} catch (FileSystemException exc) {
+		    			;//ignore
+		    		}
+					text = HyperlinkML.encodeTarget((HyperlinkML) parent, srcFile, true);
 				}
 				tipText = new StringBuilder("<html><p>");
 				tipText.append(text);
@@ -664,17 +668,18 @@ public class WordMLEditorKit extends DefaultEditorKit {
 	    
     	private void openLinkedDocument(
         	HyperlinkML linkML,
-        	final String currentDocFilePath) {
+        	String currentDocFilePath) {
         		
-    	    String temp = VFSUtils.getFriendlyName(currentDocFilePath, false);
-    		int idx = temp.lastIndexOf("/");
-    		temp = temp.substring(0, idx);
-    		temp = HyperlinkML.encodeTarget((HyperlinkML) linkML, temp);
+        	FileObject srcFile = null;
+        	try {
+        		srcFile = VFSUtils.getFileSystemManager().resolveFile(currentDocFilePath);
+        	} catch (FileSystemException exc) {
+        		;//ignore
+        	}
+        		
+        	HyperlinkMenu.getInstance().openLinkedDocument(srcFile, linkML);
+        }	
 
-    		HyperlinkMenu menu = HyperlinkMenu.getInstance();
-    		menu.openLinkedDocument(currentDocFilePath, temp);
-        }
-        
     	private HyperlinkML getHyperlinkML(WordMLDocument doc, int pos) {
     		HyperlinkML theLink = null;
     		
@@ -1890,13 +1895,14 @@ public class WordMLEditorKit extends DefaultEditorKit {
     		HyperlinkML linkML,
     		final String currentDocFilePath) {
     		
-	    	String temp = VFSUtils.getFriendlyName(currentDocFilePath, false);
-			int idx = temp.lastIndexOf("/");
-			temp = temp.substring(0, idx);
-			temp = HyperlinkML.encodeTarget((HyperlinkML) linkML, temp);
-
-    		HyperlinkMenu menu = HyperlinkMenu.getInstance();
-    		menu.openLinkedDocument(currentDocFilePath, temp);
+    		FileObject srcFile = null;
+    		try {
+    			srcFile = VFSUtils.getFileSystemManager().resolveFile(currentDocFilePath);
+    		} catch (FileSystemException exc) {
+    			;//ignore
+    		}
+    		
+    		HyperlinkMenu.getInstance().openLinkedDocument(srcFile, linkML);
     	}
     	
     }// EnterKeyTypedAction inner class
