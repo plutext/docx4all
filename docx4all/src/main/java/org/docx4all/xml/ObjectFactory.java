@@ -23,7 +23,6 @@ import java.math.BigInteger;
 
 import javax.swing.text.StyleConstants;
 
-import org.docx4all.ui.main.Constants;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.StyleDefinitionsPart;
@@ -137,17 +136,42 @@ public class ObjectFactory {
 	}
 	
 	public final static WordprocessingMLPackage createEmptyDocumentPackage() {
-		org.docx4j.wml.P  para = createP(Constants.NEWLINE);
+		org.docx4j.wml.Document doc = createEmptyDocument();
+		return createDocumentPackage(doc);
+	}
+	
+	public final static org.docx4j.wml.Document createEmptyDocument() {
+		org.docx4j.wml.P  para = createP("");
 		
 		org.docx4j.wml.Body  body = _jaxbFactory.createBody();
 		body.getEGBlockLevelElts().add(para);
-		para.setParent(body);
 		
 		org.docx4j.wml.Document doc = _jaxbFactory.createDocument();
 		doc.setBody(body);
-		body.setParent(doc);
-
-		return createDocumentPackage(doc);
+		
+		return doc;
+	}
+	
+	public final static org.docx4j.wml.Document createEmptySharedDocument() {
+		org.docx4j.wml.P  para = createP("");
+		
+		org.docx4j.wml.SdtContentBlock sdtContent = createSdtContentBlock();
+		sdtContent.getEGContentBlockContent().add(para);
+		
+		org.docx4j.wml.SdtBlock sdtBlock = createSdtBlock();
+		org.docx4j.wml.SdtPr sdtPr = createSdtPr();
+		sdtPr.setId();
+		sdtPr.setTag(createTag("0"));
+		sdtBlock.setSdtPr(sdtPr);
+		sdtBlock.setSdtContent(sdtContent);
+		
+		org.docx4j.wml.Body  body = _jaxbFactory.createBody();
+		body.getEGBlockLevelElts().add(sdtBlock);
+		
+		org.docx4j.wml.Document doc = _jaxbFactory.createDocument();
+		doc.setBody(body);
+		
+		return doc;
 	}
 	
 	public final static org.docx4j.wml.Jc createJc(Integer align) {
@@ -222,6 +246,11 @@ public class ObjectFactory {
 	public final static org.docx4j.wml.SdtContentBlock createSdtContentBlock() {
 		org.docx4j.wml.SdtContentBlock sdtContentBlock = _jaxbFactory.createSdtContentBlock();
 		return sdtContentBlock;
+	}
+	
+	public final static org.docx4j.wml.P.Hyperlink createHyperlink() {
+		org.docx4j.wml.P.Hyperlink hyperlink = _jaxbFactory.createPHyperlink();
+		return hyperlink;
 	}
 	
 	private ObjectFactory() {
