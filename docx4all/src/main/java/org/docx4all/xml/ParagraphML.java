@@ -120,8 +120,11 @@ public class ParagraphML extends ElementML {
 	}
 	
 	public void addChild(int idx, ElementML child, boolean adopt) {
-		if (!(child instanceof RunML)) {
-			throw new IllegalArgumentException("NOT a RunML");
+		if (!(child instanceof RunML)
+			&& !(child instanceof RunInsML)
+			&& !(child instanceof RunDelML)
+			&& !(child instanceof HyperlinkML)) {
+			throw new IllegalArgumentException("Cannot become a child.");
 		}
 		if (child.getParent() != null) {
 			throw new IllegalArgumentException("Not an orphan.");
