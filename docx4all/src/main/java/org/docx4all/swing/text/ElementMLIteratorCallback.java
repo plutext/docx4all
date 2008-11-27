@@ -322,6 +322,8 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 			//closeElementSpec(elemAttrs);
 
 			//Open a new IMPLIED_PARAGRAPH
+			WordMLStyleConstants.setElementML(elemAttrs,
+					ElementML.IMPLIED_PARAGRAPH);
 			openElementSpec(elemAttrs.copyAttributes());
 			
 			//Open a copy of RUN block
