@@ -351,7 +351,7 @@ public class XmlUtil {
 			DocPropsCustomPart docPropsCustomPart = thePack.getDocPropsCustomPart();
 			if (copyDocPropsCustomPart) {
 				DocPropsCustomPart srcDocPropsCustomPart = source.getDocPropsCustomPart();
-				jaxbElement = org.docx4j.XmlUtils.deepCopy(srcDocPropsCustomPart.getJaxbElement());
+				jaxbElement = org.docx4j.XmlUtils.deepCopy(srcDocPropsCustomPart.getJaxbElement(), Context.jcDocPropsCustom);
 				docPropsCustomPart.setJaxbElement(jaxbElement);
 			}
 			
