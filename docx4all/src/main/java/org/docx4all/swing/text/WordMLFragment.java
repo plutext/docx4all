@@ -27,10 +27,13 @@ import javax.swing.text.DefaultStyledDocument.ElementSpec;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.util.DocUtil;
 import org.docx4all.xml.ElementML;
+import org.docx4all.xml.HyperlinkML;
 import org.docx4all.xml.ImpliedContainerML;
 import org.docx4all.xml.ObjectFactory;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.RunContentML;
+import org.docx4all.xml.RunDelML;
+import org.docx4all.xml.RunInsML;
 import org.docx4all.xml.RunML;
 
 /**
@@ -87,8 +90,8 @@ public class WordMLFragment implements Cloneable {
 			ElementML ml = records[i].getElementML();
 			container.addChild(ml, false);
 		}
-		//Prepare the ElementSpecs of all refreshed ElementML
-    	List<ElementSpec> specs = DocUtil.getElementSpecs(container);
+
+		List<ElementSpec> specs = DocUtil.getElementSpecs(container);
     	StringBuffer sb = new StringBuffer();
     	for (ElementSpec es: specs) {
     		if (es.getType() == ElementSpec.ContentType) {
@@ -104,7 +107,11 @@ public class WordMLFragment implements Cloneable {
 		
 		for (int i=records.length-1; i >= 0; i--) {
 			ElementML ml = records[i].getElementML();
-			if ((ml instanceof RunML) || (ml instanceof RunContentML)) {
+			if ((ml instanceof RunML) 
+				|| (ml instanceof RunContentML)
+				|| (ml instanceof RunInsML)
+				|| (ml instanceof RunDelML)
+				|| (ml instanceof HyperlinkML)) {
 				break;
 			} else {
 				theRecords.add(0, records[i]);
@@ -124,7 +131,11 @@ public class WordMLFragment implements Cloneable {
 		
 		for (ElementMLRecord rec: records) {
 			ElementML ml = rec.getElementML();
-			if ((ml instanceof RunML) || (ml instanceof RunContentML)) {
+			if ((ml instanceof RunML) 
+				|| (ml instanceof RunContentML)
+				|| (ml instanceof RunInsML)
+				|| (ml instanceof RunDelML)
+				|| (ml instanceof HyperlinkML)) {
 				theRecords.add(rec);				
 			} else {
 				break;
