@@ -19,7 +19,6 @@
 
 package org.docx4all.util;
 
-import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
@@ -32,16 +31,14 @@ import java.util.Map;
 
 import javax.swing.text.AttributeSet;
 import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.namespace.QName;
 import javax.xml.transform.stream.StreamSource;
 
 import org.apache.log4j.Logger;
-import org.docx4all.swing.text.DocumentElement;
-import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.ui.main.Constants;
-import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLIterator;
 import org.docx4all.xml.ObjectFactory;
@@ -60,10 +57,8 @@ import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.DocPropsCustomPart;
 import org.docx4j.openpackaging.parts.JaxbXmlPart;
 import org.docx4j.openpackaging.parts.Part;
-import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.wml.SdtBlock;
 import org.docx4j.wml.SdtContentBlock;
-import org.plutext.client.Mediator;
 import org.plutext.transforms.Changesets.Changeset;
 import org.w3c.dom.Node;
 
@@ -266,7 +261,8 @@ public class XmlUtil {
 		DocPropsCustomPart docPropsCustomPart = wmlPackage.getDocPropsCustomPart();
 		org.docx4j.docProps.custom.Properties customProps = 
 			(org.docx4j.docProps.custom.Properties) docPropsCustomPart.getJaxbElement();
-		List<org.docx4j.docProps.custom.Properties.Property> list = customProps.getProperty();
+		List<org.docx4j.docProps.custom.Properties.Property> list = 
+			(customProps != null) ? customProps.getProperty() : null;
 		
 		if (list != null) {
 			for (org.docx4j.docProps.custom.Properties.Property temp: list) {
@@ -280,8 +276,24 @@ public class XmlUtil {
 		
 		return theProp;
 	}
-
-	public final static WordprocessingMLPackage createNewPackage(WordprocessingMLPackage source) 
+	
+	public final static boolean isSharedDocumentPackage(WordprocessingMLPackage wmlPackage) {
+		org.docx4j.docProps.custom.Properties.Property groupingProp =
+			getCustomProperty(
+					wmlPackage, 
+					Constants.PLUTEXT_GROUPING_PROPERTY_NAME);
+		org.docx4j.docProps.custom.Properties.Property checkinProp =
+			getCustomProperty(
+					wmlPackage, 
+					Constants.PLUTEXT_CHECKIN_MESSAGE_ENABLED_PROPERTY_NAME);
+		return (groupingProp != null && checkinProp != null);
+	}
+	
+	public final static WordprocessingMLPackage createNewPackage(
+		WordprocessingMLPackage source,
+		boolean copyMainDocumentPart,
+		boolean copyStyleDefPart,
+		boolean copyDocPropsCustomPart) 
 		throws InvalidFormatException {
 		
 		// Create a package
@@ -293,12 +305,20 @@ public class XmlUtil {
 		
 		if (srcDocumentPart == null) {
 			log.warn("createNewPackage(): Main document part missing!");
+
 		} else {
 			// Create main document part
 			org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart 
 				documentPart = new org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart();
-			documentPart.setJaxbElement(org.docx4j.XmlUtils.deepCopy(srcDocumentPart.getJaxbElement()));
-		
+			Object jaxbElement;
+			if (copyMainDocumentPart) {
+				jaxbElement = org.docx4j.XmlUtils.deepCopy(srcDocumentPart.getJaxbElement());
+			} else if (isSharedDocumentPackage(source)) {
+				jaxbElement = ObjectFactory.createEmptySharedDocument();
+			} else {
+				jaxbElement = ObjectFactory.createEmptyDocument();
+			}
+			documentPart.setJaxbElement(jaxbElement);
 			thePack.addTargetPart(documentPart);
 			
 			//Check for source's styles part
@@ -307,15 +327,38 @@ public class XmlUtil {
 				log.warn("createNewPackage(): Style definitions part missing!");
 			} else  {
 				// Create a styles part
-				JaxbXmlPart stylesPart = new org.docx4j.openpackaging.parts.WordprocessingML.StyleDefinitionsPart();
-				stylesPart.setJaxbElement(org.docx4j.XmlUtils.deepCopy(srcStylesPart.getJaxbElement()));
-				// Add the styles part to the main document part relationships
-				// (creating it if necessary)
-				documentPart.addTargetPart(stylesPart); // NB - add it to main doc part, not package!
+				org.docx4j.openpackaging.parts.WordprocessingML.StyleDefinitionsPart stylesPart = 
+					new org.docx4j.openpackaging.parts.WordprocessingML.StyleDefinitionsPart();
+				if (copyStyleDefPart) {
+					jaxbElement = org.docx4j.XmlUtils.deepCopy(srcStylesPart.getJaxbElement());
+					stylesPart.setJaxbElement(jaxbElement);
+					// Add the styles part to the main document part relationships
+					// (creating it if necessary)
+					documentPart.addTargetPart(stylesPart); // NB - add it to main doc part, not package!
+				} else {
+					try {
+						stylesPart.unmarshalDefaultStyles();
+						// Add the styles part to the main document part relationships
+						// (creating it if necessary)
+						documentPart.addTargetPart(stylesPart); // NB - add it to main doc part, not package!
+					} catch (JAXBException exc) {
+						;//ignore
+					}
+				}
 			}
+			
+			//Check for document custom properties
+			DocPropsCustomPart docPropsCustomPart = thePack.getDocPropsCustomPart();
+			if (copyDocPropsCustomPart) {
+				DocPropsCustomPart srcDocPropsCustomPart = source.getDocPropsCustomPart();
+				jaxbElement = org.docx4j.XmlUtils.deepCopy(srcDocPropsCustomPart.getJaxbElement());
+				docPropsCustomPart.setJaxbElement(jaxbElement);
+			}
+			
 		}
 		
 		return thePack;
+		
 	}
 	
 	public final static void setPlutextGroupingProperty(
@@ -566,7 +609,12 @@ public class XmlUtil {
 		WordprocessingMLPackage theResult = null;
 		
 		try {
-			theResult = createNewPackage(source);
+			boolean copyMainDocumentPart = true;
+			boolean copyStyleDefPart = true;
+			boolean copyDocPropsCustomPart = false;
+			theResult = 
+				createNewPackage(
+					source, copyMainDocumentPart, copyStyleDefPart, copyDocPropsCustomPart);
 			java.io.InputStream xslt = org.docx4j.utils.ResourceUtils
 					.getResource("org/docx4all/util/Export.xslt");
 			theResult.transform(xslt, null);
