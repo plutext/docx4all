@@ -67,7 +67,10 @@ public class RunDelML extends ElementML {
 	public boolean canAddSibling(ElementML elem, boolean after) {
 		boolean canAdd = false;
 		
-		if (elem instanceof RunML || elem instanceof RunDelML || elem instanceof RunDelML) {
+		if (elem instanceof RunML 
+			|| elem instanceof RunDelML 
+			|| elem instanceof RunDelML
+			|| elem instanceof HyperlinkML) {
 			canAdd = super.canAddSibling(elem, after);
 		}
 		
