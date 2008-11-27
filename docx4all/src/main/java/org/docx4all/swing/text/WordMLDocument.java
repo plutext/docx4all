@@ -48,6 +48,7 @@ import org.docx4all.util.XmlUtil;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
+import org.docx4all.xml.HyperlinkML;
 import org.docx4all.xml.ImpliedContainerML;
 import org.docx4all.xml.ObjectFactory;
 import org.docx4all.xml.ParagraphML;
@@ -988,6 +989,9 @@ public class WordMLDocument extends DefaultStyledDocument {
 					canbe = false;
 					break;
 				}
+			} else {
+				canbe = false;
+				break;
 			}
 		}
 
@@ -1038,6 +1042,17 @@ public class WordMLDocument extends DefaultStyledDocument {
 					target.addSibling(ml, true);
 					target = ml;
 				}
+			} else if (ml instanceof HyperlinkML) {
+				if (!(target instanceof RunML)) {
+					target = runContentML.getParent();
+				}
+				if (!(target.getParent() instanceof ParagraphML)) {
+					//target is a RunML that is under a transparent node
+					//such as RunInsML, RunDelML, or HyperlinkML
+					target = target.getParent();
+				}
+				target.addSibling(ml, true);
+				target = ml;
 			} else {
 				//ml must be a ParagraphML
 				if (!(target instanceof ParagraphML)) {
@@ -1051,7 +1066,8 @@ public class WordMLDocument extends DefaultStyledDocument {
 	
 	private void pasteRecordsBefore(RunML runML, List<ElementMLRecord> paraContentRecords) {
 		ElementML target = runML;
-		//'tempRunML' will hold the leading RunContentML if any
+		//'tempRunML' will hold all leading paraContentRecords 
+		//that hold RunContentML if any
 		ElementML tempRunML = null; 
 		
 		for (int i=paraContentRecords.size()-1; i >= 0; i--) {
@@ -1060,14 +1076,16 @@ public class WordMLDocument extends DefaultStyledDocument {
 			
 			if (ml instanceof RunContentML) {
 				if (tempRunML == null) {
+					//tempRunML is created once and used to
+					//host all leading paraContentRecords that hold RunContentML
 					tempRunML = new RunML(ObjectFactory.createR(null));
 					target.addSibling(tempRunML, false);
 					target = tempRunML;			
 				}
+				//keeps on collecting 
 				tempRunML.addChild(0, ml);
 				
-			} else {
-				//ml must be a RunML
+			} else if (ml instanceof RunML) {
 				PropertiesContainerML targetRPr = ((RunML) target).getRunProperties();
 				AttributeSet targetAttrs = 
 					(targetRPr != null) ? targetRPr.getAttributeSet() : null;
@@ -1090,6 +1108,11 @@ public class WordMLDocument extends DefaultStyledDocument {
 					target.addSibling(ml, false);
 					target = ml;
 				}
+			} else {
+				//must be those transparent nodes such as
+				//RunInsML, RunDelML, or HyperlinkML
+				target.addSibling(ml, false);
+				target = ml;
 			}
 		}
 	}
