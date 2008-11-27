@@ -98,15 +98,7 @@ public class DocUtil {
 	    	DocumentML docML = (DocumentML) elem.getElementML();
 			WordprocessingMLPackage wmlPackage = docML.getWordprocessingMLPackage();
 			if (wmlPackage != null) {
-				org.docx4j.docProps.custom.Properties.Property groupingProp =
-					XmlUtil.getCustomProperty(
-							wmlPackage, 
-							Constants.PLUTEXT_GROUPING_PROPERTY_NAME);
-				org.docx4j.docProps.custom.Properties.Property checkinProp =
-					XmlUtil.getCustomProperty(
-							wmlPackage, 
-							Constants.PLUTEXT_CHECKIN_MESSAGE_ENABLED_PROPERTY_NAME);
-				isShared = (groupingProp != null && checkinProp != null);
+				isShared = XmlUtil.isSharedDocumentPackage(wmlPackage);
 			}
 		}
 		
