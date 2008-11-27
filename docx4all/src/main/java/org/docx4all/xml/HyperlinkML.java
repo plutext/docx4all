@@ -24,41 +24,99 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.text.SimpleAttributeSet;
+
+import net.sf.vfsjfilechooser.utils.VFSURIParser;
+import net.sf.vfsjfilechooser.utils.VFSUtils;
+
+import org.apache.commons.vfs.FileObject;
+import org.apache.commons.vfs.FileSystemException;
+import org.docx4all.swing.text.WordMLStyleConstants;
+import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
+import org.docx4j.openpackaging.parts.relationships.Namespaces;
 
 /**
  *	@author Jojada Tirtowidjojo - 20/11/2008
  */
 public class HyperlinkML extends ElementML {
 	
-	public final static String encodeTarget(HyperlinkML ml, String basePath) {
-		String target = ml.getTarget().replace('\\', '/');
-		if (target.indexOf("://") > 0) {
-			//if protocol is specified, basePath param is ignored
+	public final static String encodeTarget(
+		HyperlinkML ml, FileObject sourceFile, boolean inFriendlyFormat) {
+		String target = ml.getTarget();
+		if (target == null) {
+			return null;
+		}
+		
+		target = target.replace('\\', '/');
+		int idx = target.indexOf("://");
+		if (idx > 0) {
+			//if protocol is specified, directly construct 
+			//target by decoding it
 			try {
 				target = URLDecoder.decode(target, "UTF-8");
 			} catch (UnsupportedEncodingException exc) {
 				//should not happen
 			}
-		} else if (basePath != null) {
-			//protocol is NOT specified.
-			//Append target to basePath param.
-			StringBuilder sb = new StringBuilder();
-			sb.append(basePath.replace('\\', '/'));
-			if (!basePath.endsWith("/")) {
-				sb.append("/");
+			
+			if (inFriendlyFormat) {
+				//target should already be in friendly format.
+			} else if (sourceFile != null) {
+				String sourcePath = sourceFile.getName().getURI();
+				if (sourcePath.startsWith("file://")
+					|| target.startsWith("file://")) {
+					//either sourcePath or target is local.
+					//No need for user credentials
+				} else {
+					VFSURIParser parser = new VFSURIParser(sourcePath, false);
+					String username = parser.getUsername();
+					String password = parser.getPassword();
+					
+					StringBuilder sb = new StringBuilder();
+					sb.append(target.substring(0, idx + 3));
+					sb.append(username);
+					sb.append(":");
+					sb.append(password);
+					sb.append("@");
+					sb.append(target.substring(idx+3));
+				}
 			}
-			if (target.startsWith("/")) {
-				target = target.substring(1);
+		} else if (sourceFile != null) {
+			//protocol is NOT specified in target.
+			//Construct target by appending target to 
+			//sourceFile directory.
+			String base = null;
+			try {
+				base = sourceFile.getParent().getName().getURI();
+			} catch (FileSystemException exc) {
+				;//ignore
 			}
-			sb.append(target);
-			target = sb.toString();
+			if (base != null) {
+				if (inFriendlyFormat) {
+					base = VFSUtils.getFriendlyName(base, false);
+				}
+			
+				StringBuilder sb = new StringBuilder();
+				sb.append(base.replace('\\', '/'));
+				if (!base.endsWith("/")) {
+					sb.append("/");
+				}
+				if (target.startsWith("/")) {
+					target = target.substring(1);
+				}
+				sb.append(target);
+				target = sb.toString();
+			}
 		}
+		
 		return target;
 	}
 	
+	private String dummyTarget;
+	
 	public HyperlinkML(Object docxObject) {
 		this(docxObject, false);
+		this.dummyTarget = null;
 	}
 	
 	public HyperlinkML(Object docxObject, boolean isDummy) {
@@ -73,18 +131,75 @@ public class HyperlinkML extends ElementML {
 		((org.docx4j.wml.P.Hyperlink) this.docxObject).setId(id);
 	}
 	
+	public String getDummyTarget() {
+		return this.dummyTarget;
+	}
+	
+	public void setDummyTarget(String s) {
+		this.dummyTarget = s;
+	}
+	
 	public String getTarget() {
-		org.docx4j.openpackaging.parts.relationships.RelationshipsPart part = 
-			getWordprocessingMLPackage().getMainDocumentPart().getRelationshipsPart();
-		org.docx4j.relationships.Relationship rel = part.getRelationshipByID(getId());
-		return rel.getTarget();
+		String theTarget = null;
+		
+		org.docx4j.openpackaging.packages.WordprocessingMLPackage wmlPkg =
+			getWordprocessingMLPackage();
+		if (wmlPkg != null && wmlPkg.getMainDocumentPart() != null) {
+			org.docx4j.openpackaging.parts.relationships.RelationshipsPart part = 
+				wmlPkg.getMainDocumentPart().getRelationshipsPart();
+			if (part != null) {
+				org.docx4j.relationships.Relationship rel = 
+					part.getRelationshipByID(getId());
+				if (rel != null) {
+					theTarget = rel.getTarget();
+				}
+			}
+		}
+		
+		return theTarget;
+	}
+	
+	public boolean canSetTarget() {
+		boolean canSet = false;
+		
+		org.docx4j.openpackaging.packages.WordprocessingMLPackage wmlPkg =
+			getWordprocessingMLPackage();
+		if (wmlPkg != null && wmlPkg.getMainDocumentPart() != null) {
+			org.docx4j.openpackaging.parts.relationships.RelationshipsPart part = 
+				wmlPkg.getMainDocumentPart().getRelationshipsPart();
+			canSet = (part != null);
+		}
+		
+		return canSet;
 	}
 	
 	public void setTarget(String s) {
-		org.docx4j.openpackaging.parts.relationships.RelationshipsPart part = 
-			getWordprocessingMLPackage().getMainDocumentPart().getRelationshipsPart();
-		org.docx4j.relationships.Relationship rel = part.getRelationshipByID(getId());
-		rel.setTarget(s);
+		org.docx4j.openpackaging.packages.WordprocessingMLPackage wmlPkg =
+			getWordprocessingMLPackage();
+		if (wmlPkg != null && wmlPkg.getMainDocumentPart() != null) {
+			org.docx4j.openpackaging.parts.relationships.RelationshipsPart part = 
+				wmlPkg.getMainDocumentPart().getRelationshipsPart();
+			if (part != null) {
+				org.docx4j.relationships.Relationship rel = 
+					part.getRelationshipByID(getId());
+				if (rel == null) {
+					org.docx4j.relationships.ObjectFactory factory =
+						new org.docx4j.relationships.ObjectFactory();
+					rel = factory.createRelationship();
+					rel.setType( Namespaces.HYPERLINK  );
+					rel.setTarget(s);
+					rel.setTargetMode("External");  
+					part.addRelationship(rel);//id is auto generated
+					setId(rel.getId()); //remember to do this.
+				} else {
+					rel.setTarget(s);
+				}
+			} else {
+				throw new IllegalStateException("No RelationshipsPart");
+			}
+		} else {
+			throw new IllegalStateException("No WordprocessingMLPackage nor MainDocumentPart");
+		}
 	}
 	
 	public String getTooltip() {
@@ -93,6 +208,53 @@ public class HyperlinkML extends ElementML {
 	
 	public void setTooltip(String s) {
 		((org.docx4j.wml.P.Hyperlink) this.docxObject).setTooltip(s);
+	}
+	
+	public void setDisplayText(String s) {
+		RunML runML = getRunMLChild();
+		if (runML == null) {
+			runML = new RunML(ObjectFactory.createR(s));
+			RunPropertiesML rPr = createRunPropertiesML();
+			runML.setRunProperties(rPr);
+			addChild(runML);
+			
+		} else {
+			if (runML.getRunProperties() == null) {
+				RunPropertiesML rPr = createRunPropertiesML();
+				runML.setRunProperties(rPr);
+			}
+			RunContentML ml = XmlUtil.getFirstRunContentML(runML);
+			if (ml == null) {
+				ml = new RunContentML(ObjectFactory.createT(s));
+				runML.addChild(ml);
+			} else {
+				ml.setTextContent(s);
+			}
+		}
+	}
+	
+	public String getDisplayText() {
+		RunContentML ml = XmlUtil.getFirstRunContentML(this);
+		return (ml == null) ? null : ml.getTextContent();
+	}
+	
+	private RunML getRunMLChild() {
+		RunML theChild = null;
+		if (getChildren() != null) {
+			for (ElementML ml: getChildren()) {
+				if (ml instanceof RunML) {
+					theChild = (RunML) ml;
+					break;
+				}
+			}
+		}
+		return theChild;
+	}
+	
+	private RunPropertiesML createRunPropertiesML() {
+		SimpleAttributeSet attrs = new SimpleAttributeSet();
+		attrs.addAttribute(WordMLStyleConstants.RStyleAttribute, "Hyperlink");
+		return ElementMLFactory.createRunPropertiesML(attrs);
 	}
 	
 	public boolean canAddSibling(ElementML elem, boolean after) {
