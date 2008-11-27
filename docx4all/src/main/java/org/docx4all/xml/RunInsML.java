@@ -68,7 +68,10 @@ public class RunInsML extends ElementML {
 	public boolean canAddSibling(ElementML elem, boolean after) {
 		boolean canAdd = false;
 		
-		if (elem instanceof RunML || elem instanceof RunDelML || elem instanceof RunInsML) {
+		if (elem instanceof RunML 
+				|| elem instanceof RunDelML 
+				|| elem instanceof RunDelML
+				|| elem instanceof HyperlinkML) {
 			canAdd = super.canAddSibling(elem, after);
 		}
 		
