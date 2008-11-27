@@ -172,6 +172,11 @@ public class ElementMLFactory {
 		return theBlock;
 	}
 	
+	public final static HyperlinkML createEmptyHyperlinkML() {
+		HyperlinkML theLink = new HyperlinkML(ObjectFactory.createHyperlink());
+		return theLink;
+	}
+	
 	private ElementMLFactory() {
 		;//uninstantiable
 	}
