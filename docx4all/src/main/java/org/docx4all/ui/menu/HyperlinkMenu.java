@@ -25,8 +25,9 @@ import javax.swing.JEditorPane;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+import javax.swing.event.CaretEvent;
+import javax.swing.text.BadLocationException;
 
-import net.sf.vfsjfilechooser.utils.VFSURIParser;
 import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.commons.httpclient.HttpClient;
@@ -38,10 +39,26 @@ import org.apache.commons.vfs.provider.webdav.WebdavFileObject;
 import org.apache.commons.vfs.provider.webdav.WebdavFileSystemConfigBuilder;
 import org.apache.commons.vfs.provider.webdav.WebdavMethodRetryHandler;
 import org.apache.log4j.Logger;
+import org.docx4all.swing.ExternalHyperlinkDialog;
 import org.docx4all.swing.UserAuthenticationDialog;
 import org.docx4all.swing.WordMLTextPane;
+import org.docx4all.swing.text.DocumentElement;
+import org.docx4all.swing.text.WordMLDocument;
+import org.docx4all.swing.text.WordMLFragment;
+import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
+import org.docx4all.ui.main.Constants;
+import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
-import org.docx4all.ui.menu.enabler.CurrentEditorBasedEnabler;
+import org.docx4all.ui.menu.enabler.CaretUpdateEnabler;
+import org.docx4all.util.DocUtil;
+import org.docx4all.util.XmlUtil;
+import org.docx4all.vfs.FileNameExtensionFilter;
+import org.docx4all.xml.ElementML;
+import org.docx4all.xml.ElementMLFactory;
+import org.docx4all.xml.HyperlinkML;
+import org.docx4all.xml.ParagraphML;
+import org.docx4j.openpackaging.exceptions.InvalidFormatException;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.jdesktop.application.Action;
 import org.jdesktop.application.ResourceMap;
 
@@ -120,12 +137,158 @@ public class HyperlinkMenu extends UIMenu {
 
 	@Action
 	public void insertExternalLink() {
+		WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        WordMLTextPane textpane = (WordMLTextPane) editor.getCurrentEditor();
+        textpane.saveCaretText();
+        
+        WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+       
+		HyperlinkML linkML = ElementMLFactory.createEmptyHyperlinkML();
+		
+		ResourceMap rm = editor.getContext().getResourceMap(getClass());
+    	String filterDesc = rm.getString(Constants.VFSJFILECHOOSER_DOCX_FILTER_DESC);
+    	if (filterDesc == null || filterDesc.length() == 0) {
+    		filterDesc = "Docx Files (.docx)";
+    	}
+    	FileNameExtensionFilter filter = 
+    		new FileNameExtensionFilter(filterDesc, Constants.DOCX_STRING);        
 
+		final String sourceFilePath = 
+			(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
+		
+		ExternalHyperlinkDialog dialog = 
+			new ExternalHyperlinkDialog(editor, sourceFilePath, linkML, filter);
+		dialog.pack();
+		dialog.setLocationRelativeTo(editor.getMainFrame());
+		dialog.setSize(new Dimension(510, 355));
+		dialog.setVisible(true);
+
+		if (dialog.getValue() == ExternalHyperlinkDialog.OK_BUTTON_TEXT
+			&& linkML.getDummyTarget().lastIndexOf("/.docx") == -1) {
+			//Because linkML is still detached, 
+			//we call its getDummyTarget() method.
+			String dummyTarget = linkML.getDummyTarget();
+			ElementMLRecord[] records = new ElementMLRecord[] {
+					new ElementMLRecord(linkML, false)
+			};
+			WordMLFragment fragment = new WordMLFragment(records);
+			int caretPos = textpane.getCaretPosition();
+			
+			try {
+				doc.lockWrite();
+				
+				doc.insertFragment(caretPos, fragment, null);
+
+				DocumentElement elem = 
+					(DocumentElement) doc.getRunMLElement(caretPos);
+				final HyperlinkML hyperML = 
+					((HyperlinkML) elem.getElementML().getParent());
+				hyperML.setTarget(dummyTarget);
+				textpane.setCaretPosition(elem.getEndOffset());
+				
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						try {
+							FileObject sourceFile = 
+								VFSUtils.getFileSystemManager().resolveFile(sourceFilePath);
+							openLinkedDocument(sourceFile, hyperML, true);
+						} catch (FileSystemException exc) {
+							;//should not happen
+						}
+					}
+				});
+
+			} catch (BadLocationException exc) {
+				;//ignore
+			} finally {
+				doc.unlockWrite();
+			}
+		}
 	}
 
+	private WordprocessingMLPackage createNewEmptyPackage(WordprocessingMLPackage source)
+		throws FileSystemException {
+		WordprocessingMLPackage thePack = null;
+		
+		boolean copyMainDocumentPart = false;
+		boolean copyStyleDefPart = true;
+		boolean copyDocPropsCustomPart = true;
+		
+		try {
+			thePack = 
+				XmlUtil.createNewPackage(
+					source, copyMainDocumentPart, copyStyleDefPart, copyDocPropsCustomPart);
+		} catch (InvalidFormatException exc) {
+			throw new FileSystemException(exc);
+		}
+		
+		return thePack;
+	}
+	
+	private boolean createInFileSystem(FileObject fo, WordprocessingMLPackage source) 
+		throws FileSystemException {
+		boolean success = false;
+		
+		WordprocessingMLPackage newPack = createNewEmptyPackage(source);
+		if (newPack != null) {
+			String targetPath = fo.getName().getURI();
+			FileMenu.getInstance().createInFileSystem(fo);
+			success = 
+				FileMenu.getInstance().save(
+						newPack, 
+						targetPath, 
+						OPEN_LINKED_DOCUMENT_ACTION_NAME);
+			if (!success) {
+				fo.delete();
+			}
+		}
+		
+		return success;
+	}
+	
 	@Action
 	public void editExternalLink() {
+		WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        WordMLTextPane textpane = (WordMLTextPane) editor.getCurrentEditor();
+        textpane.saveCaretText();
+        
+        int caretPos = textpane.getCaretPosition();
+        WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+		DocumentElement elem = (DocumentElement) doc.getRunMLElement(caretPos);
+		if (elem != null
+			&& elem.getElementML().getParent() instanceof HyperlinkML) {
+			HyperlinkML hyperML = (HyperlinkML) elem.getElementML().getParent();
+			int offsWithinLink = caretPos - elem.getStartOffset();
+			
+			ResourceMap rm = editor.getContext().getResourceMap(getClass());
+	    	String filterDesc = rm.getString(Constants.VFSJFILECHOOSER_DOCX_FILTER_DESC);
+	    	if (filterDesc == null || filterDesc.length() == 0) {
+	    		filterDesc = "Docx Files (.docx)";
+	    	}
+	    	FileNameExtensionFilter filter = 
+	    		new FileNameExtensionFilter(filterDesc, Constants.DOCX_STRING);        
 
+			String sourceFilePath = 
+				(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
+			ExternalHyperlinkDialog dialog = 
+				new ExternalHyperlinkDialog(editor, sourceFilePath, hyperML, filter);
+			dialog.pack();
+			dialog.setLocationRelativeTo(editor.getMainFrame());
+			dialog.setSize(new Dimension(510, 355));
+			dialog.setVisible(true);
+			
+			if (dialog.getValue() == ExternalHyperlinkDialog.OK_BUTTON_TEXT
+				&& hyperML.getDummyTarget().lastIndexOf("/.docx") == -1) {
+				doc.refreshParagraphs(caretPos, 1);
+				if (offsWithinLink <= hyperML.getDisplayText().length()) {
+					//Caret position does not change
+					textpane.setCaretPosition(caretPos);
+				} else {
+					textpane.setCaretPosition(
+						caretPos - (offsWithinLink - hyperML.getDisplayText().length()));
+				}
+			}
+		}
 	}
 
 	@Action
@@ -137,93 +300,130 @@ public class HyperlinkMenu extends UIMenu {
 
 	}
 
-	public void openLinkedDocument(final String sourceFilePath,	String targetFilePath) {
+	public void openLinkedDocument(FileObject sourceFile, HyperlinkML linkML) {
+		openLinkedDocument(sourceFile, linkML, false);
+	}
+	
+	public void openLinkedDocument(
+		FileObject sourceFile,
+		HyperlinkML linkML, 
+		boolean autoCreateLinkedDocument) {
+		
+		if (autoCreateLinkedDocument && linkML.getWordprocessingMLPackage() == null) {
+			throw new IllegalArgumentException("Invalid HyperlinkML parameter");
+		}
+		
 		final WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
 		final ResourceMap rm = editor.getContext().getResourceMap(getClass());
-
-		FileObject targetFile = null;
-		String errMessage = null;
+		String title = 
+			rm.getString(OPEN_LINKED_DOCUMENT_ACTION_NAME + ".Action.text");
+		
+		String targetFilePath = HyperlinkML.encodeTarget(linkML, sourceFile, false);
 		if (targetFilePath.startsWith("file://")) {
 			// local file
 			try {
-				targetFile = VFSUtils.getFileSystemManager().resolveFile(targetFilePath);
-				if (targetFile.exists()) {
-					editor.createInternalFrame(targetFile);
+				FileObject fo = VFSUtils.getFileSystemManager().resolveFile(targetFilePath);
+				if (!fo.exists()) {
+					if (autoCreateLinkedDocument) {
+						boolean success = 
+							createInFileSystem(fo, linkML.getWordprocessingMLPackage());
+						if (!success) {
+							fo = null;
+						}
+					} else {
+						fo = null;
+					}
+				}
+				
+				if (fo != null) {
+					editor.createInternalFrame(fo);
+					
+					final String sourceUri = sourceFile.getName().getURI();
+					final String targetUri = fo.getName().getURI();
+					SwingUtilities.invokeLater(new Runnable() {
+						public void run() {
+							editor.tileLayout(sourceUri, targetUri);
+						}
+					});				
 				}
 			} catch (FileSystemException exc) {
 				exc.printStackTrace();
-				targetFile = null;
-				errMessage = 
-					rm.getString("openLinkedDocument.io.error.message", targetFilePath);
+				String errMessage = 
+					rm.getString(
+						OPEN_LINKED_DOCUMENT_ACTION_NAME + ".io.error.message", 
+						targetFilePath);
+				editor.showMessageDialog(
+					title, errMessage, JOptionPane.ERROR_MESSAGE);
 			}
-		} else if (targetFilePath.startsWith("http://")
-				|| targetFilePath.startsWith("webdav://")) {
-			// TODO: Differentiate HTTP from WEBDAV.
-			// Use the same user credentials as written in sourceFilePath
-			VFSURIParser parser = new VFSURIParser(sourceFilePath);
-			String username = parser.getUsername();
-			String password = parser.getPassword();
-
-			// Authenticate user against destination server
-			// by trying to resolve the server's root file system.
-			parser = new VFSURIParser(targetFilePath);
-			StringBuilder path = new StringBuilder();
-			path.append(parser.getProtocol().name().toLowerCase());
-			path.append("://");
-			if (username != null && password != null) {
-				path.append(username);
-				path.append(":");
-				path.append(password);
-				path.append("@");
-			}
-
-			path.append(parser.getHostname());
-			if (parser.getPortnumber().length() > 0) {
-				path.append(":");
-				path.append(parser.getPortnumber());
-			}
-			path.append(parser.getPath());
-
-			try {
-				targetFile = resolveFile(path.toString());
-				if (targetFile != null && targetFile.exists()) {
-					editor.createInternalFrame(targetFile);
-				}
-			} catch (FileSystemException exc) {
-				exc.printStackTrace();
-				targetFile = null;
-				errMessage = 
-					rm.getString(OPEN_LINKED_DOCUMENT_ACTION_NAME + ".io.error.message", targetFilePath);
-			}
-		} else {
-			throw new IllegalArgumentException(
-					"Unsupported protocol. targetFilePath=" + targetFilePath);
-		}
-
-		if (errMessage != null) {
-			String title = 
-				rm.getString(OPEN_LINKED_DOCUMENT_ACTION_NAME + ".Action.text");
-			editor.showMessageDialog(
-				title, errMessage, JOptionPane.ERROR_MESSAGE);
 			
-		} else if (targetFile != null) {
-			final String targetUri = targetFile.getName().getURI();
-			SwingUtilities.invokeLater(new Runnable() {
-				public void run() {
-					editor.tileLayout(sourceFilePath, targetUri);
+		} else if (targetFilePath.startsWith("webdav://")) {
+			try {
+				FileObject fo = resolveWebdavFile(targetFilePath);
+				if (fo != null && !fo.exists()) {
+					if (autoCreateLinkedDocument) {
+						boolean success = 
+							createInFileSystem(fo, linkML.getWordprocessingMLPackage());
+						if (!success) {
+							fo = null;
+						}
+					} else {
+						fo = null;
+					}
 				}
-			});
-		}
+				
+				if (fo != null) {
+					editor.createInternalFrame(fo);
+					
+					final String sourceUri = sourceFile.getName().getURI();
+					final String targetUri = fo.getName().getURI();
+					SwingUtilities.invokeLater(new Runnable() {
+						public void run() {
+							editor.tileLayout(sourceUri, targetUri);
+						}
+					});				
+				}
+			} catch (FileSystemException exc) {
+				exc.printStackTrace();
+				String errMessage = 
+					rm.getString(
+						OPEN_LINKED_DOCUMENT_ACTION_NAME + ".io.error.message", 
+						targetFilePath);
+				editor.showMessageDialog(
+					title, errMessage, JOptionPane.ERROR_MESSAGE);
+			}
+						
+		} else {
+			String message = 
+				rm.getString(
+					OPEN_LINKED_DOCUMENT_ACTION_NAME + ".unsupported.protocol.message", 
+					targetFilePath);
+			editor.showMessageDialog(
+				title, message, JOptionPane.ERROR_MESSAGE);
+		}		
+		
 	}
-
+	
 	protected JMenuItem createMenuItem(String actionName) {
 		JMenuItem theItem = super.createMenuItem(actionName);
-		//TODO: Enable all menu items
 		theItem.setEnabled(false);
+		
+        WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+        ToolBarStates toolbarStates = editor.getToolbarStates();
+        
+    	if (INSERT_EXTERNAL_LINK_ACTION_NAME.equals(actionName)) {
+       		toolbarStates.addPropertyChangeListener(
+   				ToolBarStates.CARET_UPDATE_PROPERTY_NAME, 
+      				new InsertHyperlinkEnabler(theItem));
+       		
+    	} else if (EDIT_EXTERNAL_LINK_ACTION_NAME.equals(actionName)) {
+       		toolbarStates.addPropertyChangeListener(
+       			ToolBarStates.CARET_UPDATE_PROPERTY_NAME, 
+          			new EditHyperlinkEnabler(theItem));
+    	}
 		return theItem;
 	}
 
-	private FileObject resolveFile(String path) throws FileSystemException {
+	private FileObject resolveWebdavFile(String path) throws FileSystemException {
 		int idx = path.indexOf("://");
 		StringBuilder webdavPath = new StringBuilder();
 		webdavPath.append("webdav://");
@@ -332,8 +532,9 @@ public class HyperlinkMenu extends UIMenu {
 				password = urlFileName.getPassword().toCharArray();
 			}
 			
+			WebdavClientFactory factory = new WebdavClientFactory();
 			HttpClient client = 
-				WebdavClientFactory.createConnection(
+				factory.createConnection(
 						urlFileName.getHostName(),
 						urlFileName.getPort(),
 						username,
@@ -351,20 +552,93 @@ public class HyperlinkMenu extends UIMenu {
 		return status;
 	}
 
-	private static class HyperlinkEnabler extends CurrentEditorBasedEnabler {
-		HyperlinkEnabler(JMenuItem item) {
+	private static class InsertHyperlinkEnabler extends CaretUpdateEnabler {
+		InsertHyperlinkEnabler(JMenuItem item) {
 			super(item);
 		}
 
-		protected boolean isMenuEnabled(JEditorPane currentEditor) {
-			if (currentEditor instanceof WordMLTextPane
-					&& currentEditor.isEditable()) {
-				return true;
+    	protected boolean isMenuEnabled(CaretEvent caretEvent) {
+			boolean isEnabled = false;
+			
+			if (caretEvent != null) {
+				WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+				JEditorPane source = (JEditorPane) caretEvent.getSource();
+				if (source instanceof WordMLTextPane
+					&& source == wmlEditor.getView(wmlEditor.getEditorViewTabTitle())) {
+					WordMLTextPane textpane = (WordMLTextPane) source;
+					WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+					int offset = textpane.getCaretPosition();
+					WordMLDocument.TextElement elem =
+						DocUtil.getInputAttributeElement(doc, offset, null);
+					isEnabled = true;
+					if (elem != null
+						&& elem.getStartOffset() < offset
+						&& offset < elem.getEndOffset()) {
+						ElementML runML = elem.getElementML().getParent();
+						isEnabled = 
+							elem.isEditable()
+							&& (runML.getParent() instanceof ParagraphML);
+					}
+				}
 			}
 
-			return false;
+			return isEnabled;
 		}
-	} // HyperlinkEnabler inner class
+	} //InsertHyperlinkEnabler inner class
+
+	private static class EditHyperlinkEnabler extends CaretUpdateEnabler {
+		EditHyperlinkEnabler(JMenuItem item) {
+			super(item);
+		}
+
+    	protected boolean isMenuEnabled(CaretEvent caretEvent) {
+			boolean isEnabled = false;
+			
+			if (caretEvent != null) {
+				WordMLEditor wmlEditor = WordMLEditor.getInstance(WordMLEditor.class);
+				JEditorPane source = (JEditorPane) caretEvent.getSource();
+				if (source instanceof WordMLTextPane
+						&& source == wmlEditor.getView(wmlEditor.getEditorViewTabTitle())) {
+					WordMLTextPane textpane = (WordMLTextPane) source;
+					WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+					int offset = textpane.getCaretPosition();
+					WordMLDocument.TextElement elem =
+						DocUtil.getInputAttributeElement(doc, offset, null);
+					if (elem != null
+						&& elem.getStartOffset() < offset
+						&& offset < elem.getEndOffset()) {
+						ElementML runML = elem.getElementML().getParent();
+						isEnabled = (runML.getParent() instanceof HyperlinkML);
+					}
+				}
+			}
+
+			return isEnabled;
+		}
+	} //EditHyperlinkEnabler inner class
 
 }// HyperlinkMenu class
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
