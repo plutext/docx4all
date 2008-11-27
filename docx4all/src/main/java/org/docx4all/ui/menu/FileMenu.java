@@ -610,7 +610,17 @@ public class FileMenu extends UIMenu {
      * @param desiredFileType File extension
      * @return a File whose extension is desiredFileType.
      */
-    private FileObject getSelectedFile(VFSJFileChooser chooser, String desiredFileType) {
+    /**
+     * If user types in a filename JFileChooser does not append the file extension
+     * displayed by its FileFilter to it.
+     * This method appends desiredFileType parameter as file extension
+     * if JFileChooser's selected file does not have it.
+     * 
+     * @param chooser JFileChooser instance
+     * @param desiredFileType File extension
+     * @return a File whose extension is desiredFileType.
+     */
+    public FileObject getSelectedFile(VFSJFileChooser chooser, String desiredFileType) {
     	FileObject theFile = chooser.getSelectedFile();
 		
     	StringBuffer uri = new StringBuffer(theFile.getName().getURI());
@@ -805,6 +815,26 @@ public class FileMenu extends UIMenu {
         return chooser;
     }
     
+    public void createInFileSystem(FileObject file) throws FileSystemException {
+		FileObject parent = file.getParent();
+		String uri = UriParser.decode(parent.getName().getURI());
+		
+		if (System.getProperty("os.name").toUpperCase().indexOf("WINDOWS") > -1
+			&& parent.getName().getScheme().startsWith("file")
+			&& !parent.isWriteable()
+			&& (uri.indexOf("/Documents") > -1 
+				|| uri.indexOf("/My Documents") > -1)) {
+			//TODO: Check whether we still need this workaround.
+			//See http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4939819
+			//Re: File.canWrite() returns false for the "My Documents" directory (win)
+			String localpath = org.docx4j.utils.VFSUtils.getLocalFilePath(parent);
+			File f = new File(localpath);
+			f.setWritable(true, true);
+		}
+		
+		file.createFile();	
+    }
+    
     /**
      * Saves editor documents to a file.
      * 
@@ -930,7 +960,7 @@ public class FileMenu extends UIMenu {
     	return PlutextMenu.getInstance().commitLocalEdits(editor, callerActionName);
     }
     
-    private boolean save(WordprocessingMLPackage wmlPackage, String saveAsFilePath, String callerActionName) {
+    protected boolean save(WordprocessingMLPackage wmlPackage, String saveAsFilePath, String callerActionName) {
     	boolean success = true;
         try {
        		if (saveAsFilePath.endsWith(Constants.DOCX_STRING)) {
