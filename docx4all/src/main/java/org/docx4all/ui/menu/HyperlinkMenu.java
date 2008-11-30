@@ -139,19 +139,22 @@ public class HyperlinkMenu extends UIMenu {
 	public void insertExternalLink() {
 		WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         WordMLTextPane textpane = (WordMLTextPane) editor.getCurrentEditor();
+        WordMLDocument doc = (WordMLDocument) textpane.getDocument();
         textpane.saveCaretText();
         
-        WordMLDocument doc = (WordMLDocument) textpane.getDocument();
-       
 		HyperlinkML linkML = ElementMLFactory.createEmptyHyperlinkML();
-		
+		String temp = textpane.getSelectedText();
+		if (temp != null && temp.length() > 0) {
+			linkML.setDisplayText(temp);
+		}
+				
 		ResourceMap rm = editor.getContext().getResourceMap(getClass());
-    	String filterDesc = rm.getString(Constants.VFSJFILECHOOSER_DOCX_FILTER_DESC);
-    	if (filterDesc == null || filterDesc.length() == 0) {
-    		filterDesc = "Docx Files (.docx)";
+    	temp = rm.getString(Constants.VFSJFILECHOOSER_DOCX_FILTER_DESC);
+    	if (temp == null || temp.length() == 0) {
+    		temp = "Docx Files (.docx)";
     	}
     	FileNameExtensionFilter filter = 
-    		new FileNameExtensionFilter(filterDesc, Constants.DOCX_STRING);        
+    		new FileNameExtensionFilter(temp, Constants.DOCX_STRING);        
 
 		final String sourceFilePath = 
 			(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
@@ -166,25 +169,29 @@ public class HyperlinkMenu extends UIMenu {
 		if (dialog.getValue() == ExternalHyperlinkDialog.OK_BUTTON_TEXT
 			&& linkML.getDummyTarget().lastIndexOf("/.docx") == -1) {
 			//Because linkML is still detached, 
-			//we call its getDummyTarget() method.
-			String dummyTarget = linkML.getDummyTarget();
+			//we keep its dummy target value.
+			//When linkML has been attached/pasted
+			//we'll set its target to this dummy value.
+			temp = linkML.getDummyTarget();
 			ElementMLRecord[] records = new ElementMLRecord[] {
 					new ElementMLRecord(linkML, false)
 			};
 			WordMLFragment fragment = new WordMLFragment(records);
-			int caretPos = textpane.getCaretPosition();
+			
+			int start = textpane.getSelectionStart();
 			
 			try {
 				doc.lockWrite();
 				
-				doc.insertFragment(caretPos, fragment, null);
+				textpane.replaceSelection(fragment);
 
 				DocumentElement elem = 
-					(DocumentElement) doc.getRunMLElement(caretPos);
+					(DocumentElement) doc.getRunMLElement(start);
 				final HyperlinkML hyperML = 
 					((HyperlinkML) elem.getElementML().getParent());
-				hyperML.setTarget(dummyTarget);
-				textpane.setCaretPosition(elem.getEndOffset());
+				//hyperML has now been attached/pasted.
+				//Remember to set its target value.
+				hyperML.setTarget(temp);
 				
 				SwingUtilities.invokeLater(new Runnable() {
 					public void run() {
@@ -198,14 +205,12 @@ public class HyperlinkMenu extends UIMenu {
 					}
 				});
 
-			} catch (BadLocationException exc) {
-				;//ignore
 			} finally {
 				doc.unlockWrite();
 			}
 		}
 	}
-
+	
 	private WordprocessingMLPackage createNewEmptyPackage(WordprocessingMLPackage source)
 		throws FileSystemException {
 		WordprocessingMLPackage thePack = null;
@@ -257,7 +262,7 @@ public class HyperlinkMenu extends UIMenu {
 		DocumentElement elem = (DocumentElement) doc.getRunMLElement(caretPos);
 		if (elem != null
 			&& elem.getElementML().getParent() instanceof HyperlinkML) {
-			HyperlinkML hyperML = (HyperlinkML) elem.getElementML().getParent();
+			final HyperlinkML hyperML = (HyperlinkML) elem.getElementML().getParent();
 			int offsWithinLink = caretPos - elem.getStartOffset();
 			
 			ResourceMap rm = editor.getContext().getResourceMap(getClass());
@@ -268,7 +273,7 @@ public class HyperlinkMenu extends UIMenu {
 	    	FileNameExtensionFilter filter = 
 	    		new FileNameExtensionFilter(filterDesc, Constants.DOCX_STRING);        
 
-			String sourceFilePath = 
+			final String sourceFilePath = 
 				(String) doc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
 			ExternalHyperlinkDialog dialog = 
 				new ExternalHyperlinkDialog(editor, sourceFilePath, hyperML, filter);
@@ -278,7 +283,7 @@ public class HyperlinkMenu extends UIMenu {
 			dialog.setVisible(true);
 			
 			if (dialog.getValue() == ExternalHyperlinkDialog.OK_BUTTON_TEXT
-				&& hyperML.getDummyTarget().lastIndexOf("/.docx") == -1) {
+				&& hyperML.getTarget().lastIndexOf("/.docx") == -1) {
 				doc.refreshParagraphs(caretPos, 1);
 				if (offsWithinLink <= hyperML.getDisplayText().length()) {
 					//Caret position does not change
@@ -287,6 +292,18 @@ public class HyperlinkMenu extends UIMenu {
 					textpane.setCaretPosition(
 						caretPos - (offsWithinLink - hyperML.getDisplayText().length()));
 				}
+
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						try {
+							FileObject sourceFile = 
+								VFSUtils.getFileSystemManager().resolveFile(sourceFilePath);
+							openLinkedDocument(sourceFile, hyperML, true);
+						} catch (FileSystemException exc) {
+							;//should not happen
+						}
+					}
+				});
 			}
 		}
 	}
@@ -317,6 +334,7 @@ public class HyperlinkMenu extends UIMenu {
 		final ResourceMap rm = editor.getContext().getResourceMap(getClass());
 		String title = 
 			rm.getString(OPEN_LINKED_DOCUMENT_ACTION_NAME + ".Action.text");
+		String errMsg = null;
 		
 		String targetFilePath = HyperlinkML.encodeTarget(linkML, sourceFile, false);
 		if (targetFilePath.startsWith("file://")) {
@@ -328,10 +346,15 @@ public class HyperlinkMenu extends UIMenu {
 						boolean success = 
 							createInFileSystem(fo, linkML.getWordprocessingMLPackage());
 						if (!success) {
+							//needs not display additional error message.
 							fo = null;
 						}
 					} else {
 						fo = null;
+						errMsg = 
+							rm.getString(
+								OPEN_LINKED_DOCUMENT_ACTION_NAME + ".file.not.found.message", 
+								targetFilePath);
 					}
 				}
 				
@@ -348,12 +371,10 @@ public class HyperlinkMenu extends UIMenu {
 				}
 			} catch (FileSystemException exc) {
 				exc.printStackTrace();
-				String errMessage = 
+				errMsg = 
 					rm.getString(
 						OPEN_LINKED_DOCUMENT_ACTION_NAME + ".io.error.message", 
 						targetFilePath);
-				editor.showMessageDialog(
-					title, errMessage, JOptionPane.ERROR_MESSAGE);
 			}
 			
 		} else if (targetFilePath.startsWith("webdav://")) {
@@ -368,6 +389,10 @@ public class HyperlinkMenu extends UIMenu {
 						}
 					} else {
 						fo = null;
+						errMsg = 
+							rm.getString(
+								OPEN_LINKED_DOCUMENT_ACTION_NAME + ".file.not.found.message", 
+								targetFilePath);
 					}
 				}
 				
@@ -384,23 +409,23 @@ public class HyperlinkMenu extends UIMenu {
 				}
 			} catch (FileSystemException exc) {
 				exc.printStackTrace();
-				String errMessage = 
+				errMsg = 
 					rm.getString(
 						OPEN_LINKED_DOCUMENT_ACTION_NAME + ".io.error.message", 
 						targetFilePath);
-				editor.showMessageDialog(
-					title, errMessage, JOptionPane.ERROR_MESSAGE);
 			}
 						
 		} else {
-			String message = 
+			errMsg = 
 				rm.getString(
 					OPEN_LINKED_DOCUMENT_ACTION_NAME + ".unsupported.protocol.message", 
 					targetFilePath);
-			editor.showMessageDialog(
-				title, message, JOptionPane.ERROR_MESSAGE);
 		}		
 		
+		if (errMsg != null) {
+			editor.showMessageDialog(
+					title, errMsg, JOptionPane.ERROR_MESSAGE);
+		}
 	}
 	
 	protected JMenuItem createMenuItem(String actionName) {
@@ -567,23 +592,50 @@ public class HyperlinkMenu extends UIMenu {
 					&& source == wmlEditor.getView(wmlEditor.getEditorViewTabTitle())) {
 					WordMLTextPane textpane = (WordMLTextPane) source;
 					WordMLDocument doc = (WordMLDocument) textpane.getDocument();
-					int offset = textpane.getCaretPosition();
-					WordMLDocument.TextElement elem =
-						DocUtil.getInputAttributeElement(doc, offset, null);
-					isEnabled = true;
-					if (elem != null
-						&& elem.getStartOffset() < offset
-						&& offset < elem.getEndOffset()) {
-						ElementML runML = elem.getElementML().getParent();
-						isEnabled = 
-							elem.isEditable()
-							&& (runML.getParent() instanceof ParagraphML);
+					int start = textpane.getSelectionStart();
+					int end = textpane.getSelectionEnd();
+					if (start == end) {
+						//no selection
+						isEnabled = canInsert(doc, start);
+					} else {
+						isEnabled = canInsert(doc, start, end);
 					}
 				}
 			}
 
 			return isEnabled;
 		}
+    	
+    	private boolean canInsert(WordMLDocument doc, int offset) {
+    		boolean canInsert = true;
+    		
+			WordMLDocument.TextElement elem =
+				DocUtil.getInputAttributeElement(doc, offset, null);
+			if (elem != null
+				&& elem.getStartOffset() < offset
+				&& offset < elem.getEndOffset()) {
+				ElementML runML = elem.getElementML().getParent();
+				canInsert = 
+					elem.isEditable()
+					&& (runML.getParent() instanceof ParagraphML);
+			}
+			
+			return canInsert;
+    	}
+    	
+    	private boolean canInsert(WordMLDocument doc, int start, int end) {
+    		boolean canInsert = false;
+    		
+    		try {
+    			String s = doc.getText(start, (end-start));
+    			canInsert = (s.indexOf(Constants.NEWLINE) == -1);
+    		} catch (BadLocationException exc) {
+    			//ignore
+    		}
+    		
+    		return canInsert;
+    	}
+    	
 	} //InsertHyperlinkEnabler inner class
 
 	private static class EditHyperlinkEnabler extends CaretUpdateEnabler {
@@ -600,15 +652,19 @@ public class HyperlinkMenu extends UIMenu {
 				if (source instanceof WordMLTextPane
 						&& source == wmlEditor.getView(wmlEditor.getEditorViewTabTitle())) {
 					WordMLTextPane textpane = (WordMLTextPane) source;
-					WordMLDocument doc = (WordMLDocument) textpane.getDocument();
-					int offset = textpane.getCaretPosition();
-					WordMLDocument.TextElement elem =
-						DocUtil.getInputAttributeElement(doc, offset, null);
-					if (elem != null
-						&& elem.getStartOffset() < offset
-						&& offset < elem.getEndOffset()) {
-						ElementML runML = elem.getElementML().getParent();
-						isEnabled = (runML.getParent() instanceof HyperlinkML);
+					if (textpane.getSelectionStart() == textpane.getSelectionEnd()) {
+						//no selection
+						WordMLDocument doc = (WordMLDocument) textpane.getDocument();
+										
+						int offset = textpane.getCaretPosition();
+						WordMLDocument.TextElement elem =
+							DocUtil.getInputAttributeElement(doc, offset, null);
+						if (elem != null
+							&& elem.getStartOffset() < offset
+							&& offset < elem.getEndOffset()) {
+							ElementML runML = elem.getElementML().getParent();
+							isEnabled = (runML.getParent() instanceof HyperlinkML);
+						}
 					}
 				}
 			}
