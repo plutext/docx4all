@@ -448,7 +448,7 @@ public class HyperlinkMenu extends UIMenu {
 		return theItem;
 	}
 
-	private FileObject resolveWebdavFile(String path) throws FileSystemException {
+	public FileObject resolveWebdavFile(String path) throws FileSystemException {
 		int idx = path.indexOf("://");
 		StringBuilder webdavPath = new StringBuilder();
 		webdavPath.append("webdav://");
