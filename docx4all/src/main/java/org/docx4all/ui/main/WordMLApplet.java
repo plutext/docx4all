@@ -23,6 +23,7 @@ import java.util.prefs.Preferences;
 
 import javax.swing.JApplet;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 import net.sf.vfsjfilechooser.accessories.bookmarks.Bookmarks;
 import net.sf.vfsjfilechooser.accessories.bookmarks.TitledURLEntry;
@@ -43,7 +44,7 @@ public class WordMLApplet extends JApplet {
 
 	public void init() {
 		System.out.println("Applet initialising");
-		WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+		final WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
         editor.preStartup(this);
         
         setJMenuBar(editor.createMenuBar());
@@ -57,7 +58,12 @@ public class WordMLApplet extends JApplet {
         } else if (s.endsWith(".docx")
         			&& (s.startsWith("http://")
         					|| s.startsWith("webdav://"))) {
-        	openFile(editor, s);
+        	final String urlParam = s;
+        	SwingUtilities.invokeLater(new Runnable() {
+        		public void run() {
+                	openFile(editor, urlParam);
+        		}
+        	});
         } else {
         	log.error("Unknown file type or protocol");
         }
