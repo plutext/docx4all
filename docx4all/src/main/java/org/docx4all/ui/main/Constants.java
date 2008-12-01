@@ -67,6 +67,7 @@ public interface Constants {
 	//=====================
 	public final static String APP_DEFAULT_FONT_FAMILY_NAME = "Application.default.font.family.name";
 	public final static String APP_DEFAULT_FONT_SIZE = "Application.default.font.size";
+	public final static String APP_APPLET_OPEN_FILE_URL_PARAM_NAME = "Application.applet.openFileUrl.param.name";
 	
 	public final static String FXSCRIPT_LOCATION = "fxscript.location";
 	
