@@ -511,7 +511,7 @@ public class HyperlinkMenu extends UIMenu {
 						String message = 
 							rm.getString(
 								OPEN_LINKED_DOCUMENT_ACTION_NAME
-								+ ".authentication.failure.message");
+								+ ".authentication.tryAgain.message");
 						editor.showMessageDialog(
 							title, message.toString(), JOptionPane.INFORMATION_MESSAGE);
 						retry++;
