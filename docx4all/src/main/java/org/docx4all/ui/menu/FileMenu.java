@@ -46,6 +46,7 @@ import org.apache.commons.vfs.FileSystemException;
 import org.apache.commons.vfs.provider.UriParser;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.NewShareDialog;
+import org.docx4all.swing.PDFViewer;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
@@ -701,7 +702,7 @@ public class FileMenu extends UIMenu {
 
 			os.close();
 
-			com.sun.pdfview.PDFViewer pv = new com.sun.pdfview.PDFViewer(true);
+			PDFViewer pv = new PDFViewer(true);
 			// pv.openFile(buf, "some name"); // requires modified
 			// com.sun.pdfview.PDFViewer
 			pv.openFile(tmpFile);
