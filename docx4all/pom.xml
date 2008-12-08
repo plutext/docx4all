@@ -263,8 +263,9 @@
 <dependency>
   <groupId>net.sf.vfsjfilechooser</groupId>
   <artifactId>VFSJFileChooser-patched</artifactId>
-  <version>0.0.31</version>
-</dependency>
+  <version>0.0.32</version>
+</dependency> <!--  mvn deploy:deploy-file -f wagon-svn-pom.xml -Dfile=VFSJFileChooser-patched.jar -DgroupId=net.sf.vfsjfilechooser -DartifactId=VFSJFileChooser-patched -Dversion=0.0.32 -Dpackaging=jar -DrepositoryId=docx4all -Durl=svn:http://dev.plutext.org/svn/docx4all/trunk/docx4all/m2
+ -->
  
  
 <dependency>
