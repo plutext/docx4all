@@ -68,8 +68,7 @@ import javax.swing.text.PlainDocument;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
-import net.sf.vfsjfilechooser.accessories.bookmarks.Bookmarks;
-import net.sf.vfsjfilechooser.accessories.bookmarks.TitledURLEntry;
+import net.sf.vfsjfilechooser.utils.VFSURIParser;
 import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.commons.vfs.FileObject;
@@ -193,27 +192,10 @@ public class WordMLEditor extends SingleFrameApplication {
     					name = name.trim();
     				}
     			
-    				Bookmarks book = new Bookmarks();
-    				TitledURLEntry entry = null;
-    				for (int i=0; i < book.getSize(); i++) {
-    					entry = book.getEntry(i);
-    					if (name.equalsIgnoreCase(entry.getTitle())) {
-    						i = book.getSize(); //break
-    					} else {
-    						entry = null;
-    					}
-    				}
-    			
-    				if (entry == null) {
-    					book.add(new TitledURLEntry(name, uri));
-    					book.save();
-    				} else if (uri.equals(entry.getURL())){
-    					;//no change
-    				} else {
-    					entry.setURL(uri);
-        				book.save();
-    				}
+    				VFSURIParser vup = new VFSURIParser(uri, false);
+    				org.docx4all.vfs.VFSUtil.addBookmarkEntry(name, vup);
     			}
+    			
     		} catch (FileSystemException exc) {
     			StringBuilder sb = new StringBuilder();
     			sb.append("Bad ");
