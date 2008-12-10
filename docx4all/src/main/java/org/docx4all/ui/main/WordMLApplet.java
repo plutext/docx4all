@@ -19,21 +19,20 @@
 
 package org.docx4all.ui.main;
 
-import java.util.List;
 import java.util.prefs.Preferences;
 
 import javax.swing.JApplet;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
-import net.sf.vfsjfilechooser.utils.VFSURIParser;
 import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.commons.vfs.FileObject;
 import org.apache.commons.vfs.FileSystemException;
 import org.apache.log4j.Logger;
 import org.docx4all.ui.menu.FileMenu;
-import org.docx4all.util.AuthenticationUtil;
+import org.docx4all.ui.menu.HyperlinkMenu;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.jdesktop.application.ResourceMap;
 
 /**
@@ -118,19 +117,19 @@ public class WordMLApplet extends JApplet {
 			} else {
 				errMsg = 
 					rm.getString(
-						"Application.applet.file.not.found.message", 
+						"Application.applet.initialisation.file.not.found.message", 
 						urlParam);
 			}
 		} catch (FileSystemException exc) {
 			exc.printStackTrace();
 			errMsg = 
 				rm.getString(
-					"Application.applet.file.io.error.message", 
+					"Application.applet.initialisation.file.io.error.message", 
 					urlParam);
 		}
 		
 		if (errMsg != null) {
-			String title = rm.getString("Application.applet.initialisation.text");
+			String title = rm.getString("Application.applet.initialisation.Action.text");
 			editor.showMessageDialog(title, errMsg, JOptionPane.ERROR_MESSAGE);
 		}
 	} //openLocalFile()
@@ -141,91 +140,17 @@ public class WordMLApplet extends JApplet {
 			webdavUrl = "webdav://" + urlParam.substring(7);
 		}
 		
-        ResourceMap rm = editor.getContext().getResourceMap(WordMLEditor.class);
-        
-		String temp = 
-			rm.getString(Constants.VFSJFILECHOOSER_DEFAULT_WEBDAV_FOLDER_BOOKMARK_NAME);
-		if (temp == null || temp.length() == 0) {
-			temp = "Default Webdav Folder";
-		} else {
-			temp = temp.trim();
-		}
-		
-		List<String> userCredentials = 
-			AuthenticationUtil.collectUserCredentialsFromBookmark(
-				new VFSURIParser(webdavUrl, false), 
-				temp);
-		temp = webdavUrl.substring(9); //hostname(:port) and path
-
-		//Try each known userCredential to resolve a FileObject
-		FileObject fo = null;
-		for (String uc: userCredentials) {
-			StringBuilder sb = new StringBuilder();
-			sb.append("webdav://");
-			sb.append(uc);
-			sb.append("@");
-			sb.append(temp);
-			try {
-				fo = VFSUtils.getFileSystemManager().resolveFile(sb.toString());
-				if (fo.exists()) {
-					break;
-				} else {
-					fo = null;
-				}
-			} catch (FileSystemException exc) {
-				fo = null;
-			}
-		}
-		
-		if (fo != null) {
-	        Preferences prefs = Preferences.userNodeForPackage(FileMenu.class);
-			String lastFileUri = fo.getName().getURI();
-			prefs.put(Constants.LAST_OPENED_FILE, lastFileUri);
-
-			log.info("\n\n Opening " + webdavUrl);
-			editor.createInternalFrame(fo);
-
-		} else {
-			String title = rm.getString("Application.applet.initialisation.text");
-			String errMsg = null;
-			try {
-				fo = AuthenticationUtil.userAuthenticationChallenge(editor, webdavUrl, title);
-				if (fo == null) {
-					//user may have cancelled the authentication challenge
-					//or unsuccessfully authenticated himself.
-					//Because AuthenticationUtil.userAuthenticationChallenge()
-					//has displayed authentication failure message, we do
-					//not need to do anything here.
-				} else if (fo.exists()) {
-			        Preferences prefs = Preferences.userNodeForPackage(FileMenu.class);
-					String lastFileUri = fo.getName().getURI();
-					prefs.put(Constants.LAST_OPENED_FILE, lastFileUri);
-					if (fo.getName().getScheme().equals(("file"))) {
-						prefs.put(Constants.LAST_OPENED_LOCAL_FILE, lastFileUri);
-					}
-
-					log.info("\n\n Opening " + webdavUrl);
-					editor.createInternalFrame(fo);
-					
-				} else {
-					errMsg = 
-						rm.getString(
-							"Application.applet.file.not.found.message", 
-							urlParam);
-				}
-			} catch (FileSystemException exc) {
-				exc.printStackTrace();
-				errMsg = 
-					rm.getString(
-						"Application.applet.file.io.error.message", 
-						urlParam);
-			}
-			
-			if (errMsg != null) {
-				editor.showMessageDialog(title, errMsg, JOptionPane.ERROR_MESSAGE);
-			}
-		}
-	} //openRemoteFile()
+		boolean recordAsLastOpenUrl = true;
+		boolean createNewIfNotFound = false;
+		WordprocessingMLPackage newPackage = null;
+		String callerActionName = "Application.applet.initialisation";
+		HyperlinkMenu.getInstance().openWebdavDocument(
+			webdavUrl, 
+			recordAsLastOpenUrl, 
+			createNewIfNotFound, 
+			newPackage, 
+			callerActionName);
+	}
 	
 }// WordMLApplet class
 
