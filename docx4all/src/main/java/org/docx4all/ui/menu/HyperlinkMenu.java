@@ -20,6 +20,8 @@
 package org.docx4all.ui.menu;
 
 import java.awt.Dimension;
+import java.util.List;
+import java.util.prefs.Preferences;
 
 import javax.swing.JEditorPane;
 import javax.swing.JMenuItem;
@@ -28,19 +30,13 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.CaretEvent;
 import javax.swing.text.BadLocationException;
 
+import net.sf.vfsjfilechooser.utils.VFSURIParser;
 import net.sf.vfsjfilechooser.utils.VFSUtils;
 
-import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.vfs.FileObject;
 import org.apache.commons.vfs.FileSystemException;
-import org.apache.commons.vfs.provider.URLFileName;
-import org.apache.commons.vfs.provider.webdav.WebdavClientFactory;
-import org.apache.commons.vfs.provider.webdav.WebdavFileObject;
-import org.apache.commons.vfs.provider.webdav.WebdavFileSystemConfigBuilder;
-import org.apache.commons.vfs.provider.webdav.WebdavMethodRetryHandler;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.ExternalHyperlinkDialog;
-import org.docx4all.swing.UserAuthenticationDialog;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
@@ -50,6 +46,7 @@ import org.docx4all.ui.main.Constants;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.ui.menu.enabler.CaretUpdateEnabler;
+import org.docx4all.util.AuthenticationUtil;
 import org.docx4all.util.DocUtil;
 import org.docx4all.util.XmlUtil;
 import org.docx4all.vfs.FileNameExtensionFilter;
@@ -322,111 +319,315 @@ public class HyperlinkMenu extends UIMenu {
 	}
 	
 	public void openLinkedDocument(
-		FileObject sourceFile,
-		HyperlinkML linkML, 
+		FileObject sourceFile, 
+		HyperlinkML linkML,
 		boolean autoCreateLinkedDocument) {
-		
-		if (autoCreateLinkedDocument && linkML.getWordprocessingMLPackage() == null) {
+
+		if (autoCreateLinkedDocument
+				&& linkML.getWordprocessingMLPackage() == null) {
 			throw new IllegalArgumentException("Invalid HyperlinkML parameter");
 		}
-		
+
 		final WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
 		final ResourceMap rm = editor.getContext().getResourceMap(getClass());
 		String title = 
 			rm.getString(OPEN_LINKED_DOCUMENT_ACTION_NAME + ".Action.text");
 		String errMsg = null;
-		
-		String targetFilePath = HyperlinkML.encodeTarget(linkML, sourceFile, false);
+
+		String targetFilePath = HyperlinkML.encodeTarget(linkML, sourceFile,
+				false);
 		if (targetFilePath.startsWith("file://")) {
 			// local file
 			try {
-				FileObject fo = VFSUtils.getFileSystemManager().resolveFile(targetFilePath);
+				FileObject fo = VFSUtils.getFileSystemManager().resolveFile(
+						targetFilePath);
 				if (!fo.exists()) {
 					if (autoCreateLinkedDocument) {
-						boolean success = 
-							createInFileSystem(fo, linkML.getWordprocessingMLPackage());
+						boolean success = createInFileSystem(fo, linkML
+								.getWordprocessingMLPackage());
 						if (!success) {
-							//needs not display additional error message.
+							// needs not display additional error message.
 							fo = null;
 						}
 					} else {
 						fo = null;
-						errMsg = 
-							rm.getString(
-								OPEN_LINKED_DOCUMENT_ACTION_NAME + ".file.not.found.message", 
-								targetFilePath);
+						errMsg = rm.getString(OPEN_LINKED_DOCUMENT_ACTION_NAME
+								+ ".file.not.found.message", targetFilePath);
 					}
 				}
-				
+
 				if (fo != null) {
 					editor.createInternalFrame(fo);
-					
+
 					final String sourceUri = sourceFile.getName().getURI();
 					final String targetUri = fo.getName().getURI();
 					SwingUtilities.invokeLater(new Runnable() {
 						public void run() {
 							editor.tileLayout(sourceUri, targetUri);
 						}
-					});				
+					});
 				}
 			} catch (FileSystemException exc) {
 				exc.printStackTrace();
-				errMsg = 
-					rm.getString(
-						OPEN_LINKED_DOCUMENT_ACTION_NAME + ".io.error.message", 
-						targetFilePath);
+				errMsg = rm.getString(OPEN_LINKED_DOCUMENT_ACTION_NAME
+						+ ".io.error.message", targetFilePath);
 			}
-			
+
 		} else if (targetFilePath.startsWith("webdav://")) {
 			try {
-				FileObject fo = resolveWebdavFile(targetFilePath);
-				if (fo != null && !fo.exists()) {
-					if (autoCreateLinkedDocument) {
-						boolean success = 
-							createInFileSystem(fo, linkML.getWordprocessingMLPackage());
-						if (!success) {
-							fo = null;
-						}
-					} else {
-						fo = null;
-						errMsg = 
-							rm.getString(
-								OPEN_LINKED_DOCUMENT_ACTION_NAME + ".file.not.found.message", 
-								targetFilePath);
-					}
+				boolean recordAsLastOpenUrl = false;
+				WordprocessingMLPackage newPackage = 
+					createNewEmptyPackage(linkML.getWordprocessingMLPackage());
+				if (autoCreateLinkedDocument && newPackage == null) {
+					//cannot create a new WordprocessingMLPackage.
+					//This is an unlikely situation.
+					//Avoid creating new linked document.
+					//TODO: probably display a message ?
+					autoCreateLinkedDocument = false;
 				}
 				
+				FileObject fo = 
+					openWebdavDocument(
+						targetFilePath, 
+						recordAsLastOpenUrl, 
+						autoCreateLinkedDocument, 
+						newPackage, 
+						OPEN_LINKED_DOCUMENT_ACTION_NAME);
 				if (fo != null) {
-					editor.createInternalFrame(fo);
-					
 					final String sourceUri = sourceFile.getName().getURI();
 					final String targetUri = fo.getName().getURI();
 					SwingUtilities.invokeLater(new Runnable() {
 						public void run() {
 							editor.tileLayout(sourceUri, targetUri);
 						}
-					});				
+					});
+				} else {
+					//Does not need to display additional error message.
+					//openWebdavDocument() must have displayed all necessary
+					//messages.
 				}
 			} catch (FileSystemException exc) {
 				exc.printStackTrace();
-				errMsg = 
-					rm.getString(
-						OPEN_LINKED_DOCUMENT_ACTION_NAME + ".io.error.message", 
-						targetFilePath);
+				errMsg = rm.getString(OPEN_LINKED_DOCUMENT_ACTION_NAME
+						+ ".io.error.message", targetFilePath);
 			}
-						
+
 		} else {
-			errMsg = 
-				rm.getString(
-					OPEN_LINKED_DOCUMENT_ACTION_NAME + ".unsupported.protocol.message", 
-					targetFilePath);
-		}		
-		
+			errMsg = rm.getString(OPEN_LINKED_DOCUMENT_ACTION_NAME
+					+ ".unsupported.protocol.message", targetFilePath);
+		}
+
 		if (errMsg != null) {
-			editor.showMessageDialog(
-					title, errMsg, JOptionPane.ERROR_MESSAGE);
+			editor.showMessageDialog(title, errMsg, JOptionPane.ERROR_MESSAGE);
 		}
 	}
+		
+	/**
+	 * Opens a webdav document pointed by vfsWebdavUrl parameter in its own
+	 * internal frame.
+	 * 
+	 * vfsWebdavUrl is a VFS Webdav URL that points to a webdav document.
+	 * It may or may not contain user credentials information. 
+	 * For example:
+	 * <> webdav://dev.plutext.org/alfresco/plutextwebdav/User Homes/someone/AFile.docx
+	 * <> webdav://dev.plutext.org:80/alfresco/plutextwebdav/User Homes/someone/AFile.docx
+	 * <> webdav://username:password@dev.plutext.org/alfresco/plutextwebdav/User Homes/someone/AFile.docx
+	 * 
+	 * In the event that vfsWebdavUrl does not have user credentials or its user credentials
+	 * is invalid then this method will cycle through each known user credential found in 
+	 * VFSJFileChooser Bookmark in order to find an authorised user. If no such user can be 
+	 * found then an authentication challenge dialog will be displayed and user has three 
+	 * attempts to authenticate himself. 
+	 * 
+	 * @param vfsWebdavUrl a VFS Webdav Url in its friendly format.
+	 * @param recordAsLastOpenUrl a boolean flag that indicates whether vfsWebdavUrl 
+	 * should be recorded as the last open url.
+	 * @param createNewIfNotFound a boolean flag that indicates whether a new webdav
+	 * document at vfsWebdavUrl should be created if it has not existed.
+	 * @param newPackage a WordprocessingMLPackage that will become the content of
+	 * newly created webdav document. This parameter must be supplied when 
+	 * createNewIfNotFound parameter is true.
+	 * @param callerActionName an Action name that can be used as a key to get 
+	 * resource properties in relation to dialog messages.
+	 * @return FileObject of the opened document
+	 */
+	public FileObject openWebdavDocument(
+		String vfsWebdavUrl, 
+		boolean recordAsLastOpenUrl,
+		boolean createNewIfNotFound,
+		WordprocessingMLPackage newPackage,
+		String callerActionName) {
+		
+		if (!vfsWebdavUrl.startsWith("webdav://")) {
+			throw new IllegalArgumentException("Not a webdav uri");
+		}
+		
+		if (createNewIfNotFound && newPackage == null) {
+			throw new IllegalArgumentException("Invalid newPackage parameter");
+		}
+		
+		final WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
+		final ResourceMap rm = editor.getContext().getResourceMap(getClass());
+		
+		VFSURIParser uriParser = new VFSURIParser(vfsWebdavUrl, false);
+		if (uriParser.getUsername() != null
+			&& uriParser.getUsername().length() > 0
+			&& uriParser.getPassword() != null
+			&& uriParser.getPassword().length() > 0) {
+			//vfsWebdavUrl has user credentials.
+			try {
+				FileObject fo = VFSUtils.getFileSystemManager().resolveFile(vfsWebdavUrl);
+				if (fo.exists()) {
+					if (recordAsLastOpenUrl) {
+						Preferences prefs = Preferences.userNodeForPackage(FileMenu.class);
+						String lastFileUri = fo.getName().getURI();
+						prefs.put(Constants.LAST_OPENED_FILE, lastFileUri);
+					}
+
+					log.info("\n\n Opening " + fo.getName().getURI());
+					editor.createInternalFrame(fo);
+					return fo;
+				}
+			} catch (FileSystemException exc) {
+				;
+			}
+		}
+		
+		String temp = 
+			rm.getString(Constants.VFSJFILECHOOSER_DEFAULT_WEBDAV_FOLDER_BOOKMARK_NAME);
+		if (temp == null || temp.length() == 0) {
+			temp = "Default Webdav Folder";
+		} else {
+			temp = temp.trim();
+		}
+		
+		List<String> userCredentials = 
+			org.docx4all.vfs.VFSUtil.collectUserCredentialsFromBookmark(uriParser, temp);
+		
+		StringBuilder sb = new StringBuilder();
+		sb.append(uriParser.getHostname());
+		if (uriParser.getPortnumber() != null 
+			&& uriParser.getPortnumber().length() > 0) {
+			sb.append(":");
+			sb.append(uriParser.getPortnumber());
+		}
+		sb.append(uriParser.getPath());
+		temp = sb.toString();//hostname[:port] and path
+		vfsWebdavUrl = "webdav://" + temp;
+		
+		//Try each known userCredential to resolve a FileObject
+		FileObject theFile = null;
+		for (String uc: userCredentials) {
+			sb.delete(0, sb.length());
+			sb.append("webdav://");
+			sb.append(uc);
+			sb.append("@");
+			sb.append(temp);
+			try {
+				theFile = VFSUtils.getFileSystemManager().resolveFile(sb.toString());
+				if (theFile.exists()) {
+					break;
+				} else {
+					theFile = null;
+				}
+			} catch (FileSystemException exc) {
+				theFile = null;
+			}
+		}
+		
+		if (theFile != null) {
+			//theFile exists
+			if (recordAsLastOpenUrl) {
+				Preferences prefs = Preferences.userNodeForPackage(FileMenu.class);
+				String lastFileUri = theFile.getName().getURI();
+				prefs.put(Constants.LAST_OPENED_FILE, lastFileUri);
+			}
+
+			log.info("\n\n Opening " + theFile.getName().getURI());
+			editor.createInternalFrame(theFile);
+
+		} else {
+			//Cannot get theFile yet.
+			//Get user to authenticate himself.
+			String title = rm.getString(callerActionName + ".Action.text");
+			String errMsg = null;
+			try {
+				theFile = AuthenticationUtil.userAuthenticationChallenge(editor, vfsWebdavUrl, title);
+				if (theFile == null) {
+					//user may have cancelled the authentication challenge
+					//or unsuccessfully authenticated himself.
+					//Because AuthenticationUtil.userAuthenticationChallenge()
+					//has displayed authentication failure message, we do
+					//not need to do anything here.
+				} else if (theFile.exists()) {
+					String lastFileUri = theFile.getName().getURI();
+					if (recordAsLastOpenUrl) {
+						Preferences prefs = Preferences.userNodeForPackage(FileMenu.class);
+						prefs.put(Constants.LAST_OPENED_FILE, lastFileUri);
+					}
+
+					//Record lastFileUri in bookmark.
+					//Use file name as bookmark entry title.
+					int idx = lastFileUri.lastIndexOf("/");
+					org.docx4all.vfs.VFSUtil.addBookmarkEntry(
+						lastFileUri.substring(idx + 1),
+						new VFSURIParser(lastFileUri, false));
+					
+					log.info("\n\n Opening " + lastFileUri);
+					editor.createInternalFrame(theFile);
+					
+				} else if (createNewIfNotFound) {
+					boolean success = 
+						createInFileSystem(theFile, newPackage);
+					if (success) {
+						String lastFileUri = theFile.getName().getURI();
+						if (recordAsLastOpenUrl) {
+							Preferences prefs = 
+								Preferences.userNodeForPackage(FileMenu.class);
+							prefs.put(Constants.LAST_OPENED_FILE, lastFileUri);
+						}
+
+						//Record lastFileUri in bookmark.
+						//Use file name as bookmark entry title.
+						int idx = lastFileUri.lastIndexOf("/");
+						org.docx4all.vfs.VFSUtil.addBookmarkEntry(
+							lastFileUri.substring(idx + 1),
+							new VFSURIParser(lastFileUri, false));
+						
+						log.info("\n\n Opening " + lastFileUri);
+						editor.createInternalFrame(theFile);
+						
+					} else {
+						theFile = null;
+						errMsg = 
+							rm.getString(
+								callerActionName + ".file.io.error.message", 
+								vfsWebdavUrl);
+					}					
+				} else {
+					theFile = null;
+					errMsg = 
+						rm.getString(
+							callerActionName + ".file.not.found.message", 
+							vfsWebdavUrl);
+				}
+			} catch (FileSystemException exc) {
+				exc.printStackTrace();
+				theFile = null;
+				errMsg = 
+					rm.getString(
+						callerActionName + ".file.io.error.message", 
+						vfsWebdavUrl);
+			}
+			
+			if (errMsg != null) {
+				theFile = null;
+				editor.showMessageDialog(title, errMsg, JOptionPane.ERROR_MESSAGE);
+			}
+		}
+		
+		return theFile;
+	} //openWebdavDocument()
 	
 	protected JMenuItem createMenuItem(String actionName) {
 		JMenuItem theItem = super.createMenuItem(actionName);
@@ -446,135 +647,6 @@ public class HyperlinkMenu extends UIMenu {
           			new EditHyperlinkEnabler(theItem));
     	}
 		return theItem;
-	}
-
-	public FileObject resolveWebdavFile(String path) throws FileSystemException {
-		int idx = path.indexOf("://");
-		StringBuilder webdavPath = new StringBuilder();
-		webdavPath.append("webdav://");
-		webdavPath.append(path.substring(idx + 3));
-		
-		WebdavFileObject theFile =
-			(WebdavFileObject)
-				VFSUtils.getFileSystemManager().resolveFile(
-					webdavPath.toString());
-		int status = getAuthorisationStatus(theFile);
-
-		if (status == 200) {
-			//ok
-		} else if (status == 401) {
-			//unauthorised and retry
-			WordMLEditor editor = WordMLEditor.getInstance(WordMLEditor.class);
-			
-			UserAuthenticationDialog dialog = 
-				new UserAuthenticationDialog(editor, path);
-			dialog.pack();
-			dialog.setLocationRelativeTo(editor.getMainFrame());
-			dialog.setSize(new Dimension(400, 250));
-
-			URLFileName urlFileName = (URLFileName) theFile.getName();
-			int retry = 1;
-			while (status == 401 && retry <= 3) {
-				theFile = null;
-				dialog.setVisible(true);
-
-				if (dialog.getValue() == UserAuthenticationDialog.CANCEL_BUTTON_TEXT) {
-					dialog.setVisible(false);
-					dialog.dispose();
-					retry = 4; // break
-				} else {
-					webdavPath = new StringBuilder();
-					webdavPath.append("webdav://");
-					webdavPath.append(dialog.getUsername());
-					webdavPath.append(":");
-					webdavPath.append(dialog.getPassword());
-					webdavPath.append("@");
-					webdavPath.append(urlFileName.getHostName());
-					webdavPath.append(":");
-					webdavPath.append(Integer.toString(urlFileName.getPort()));
-					webdavPath.append(urlFileName.getPath());
-
-					theFile =
-						(WebdavFileObject)
-							VFSUtils.getFileSystemManager().resolveFile(
-									webdavPath.toString());
-					status = getAuthorisationStatus(theFile);
-					if (status == 401) {
-						if (retry == 3) {
-							throw new FileSystemException("Access denied");
-						}
-						
-						ResourceMap rm = 
-							editor.getContext().getResourceMap(getClass());
-						String title = 
-							rm.getString(OPEN_LINKED_DOCUMENT_ACTION_NAME + ".Action.text");
-						String message = 
-							rm.getString(
-								OPEN_LINKED_DOCUMENT_ACTION_NAME
-								+ ".authentication.tryAgain.message");
-						editor.showMessageDialog(
-							title, message.toString(), JOptionPane.INFORMATION_MESSAGE);
-						retry++;
-					}
-				}
-			} //while (status == 401 && retry <= 3);
-			
-			if (status == 200) {
-				//ok
-			} else {
-				theFile = null;
-			}
-		} else {
-			theFile = null;
-		}
-
-		return theFile;
-	}
-
-	private int getAuthorisationStatus(WebdavFileObject fo) throws FileSystemException {
-		int status = 401; //unauthorised and retry.
-		
-		org.apache.webdav.lib.methods.OptionsMethod optionsMethod = null;
-		try {
-			String urlCharset = 
-				WebdavFileSystemConfigBuilder.getInstance().getUrlCharset(
-						fo.getFileSystem().getFileSystemOptions());
-			URLFileName urlFileName = (URLFileName) fo.getName();
-			optionsMethod = 
-				new org.apache.webdav.lib.methods.OptionsMethod(
-						urlFileName.getPathQueryEncoded(urlCharset));
-		
-			optionsMethod.setMethodRetryHandler(
-					WebdavMethodRetryHandler.getInstance());
-			optionsMethod.setFollowRedirects(true);
-
-			char[] username = null;
-			if (urlFileName.getUserName() != null) {
-				username = urlFileName.getUserName().toCharArray();
-			}
-			char[] password = null;
-			if (urlFileName.getPassword() != null) {
-				password = urlFileName.getPassword().toCharArray();
-			}
-			
-			WebdavClientFactory factory = new WebdavClientFactory();
-			HttpClient client = 
-				factory.createConnection(
-						urlFileName.getHostName(),
-						urlFileName.getPort(),
-						username,
-						password,
-						fo.getFileSystem().getFileSystemOptions());
-			status = client.executeMethod(optionsMethod);
-		} catch (Exception exc) {
-			throw new FileSystemException("Cannot get authorisation status", exc);
-		} finally {
-			if (optionsMethod != null) {
-				optionsMethod.releaseConnection();
-			}
-		}
-	
-		return status;
 	}
 
 	private static class InsertHyperlinkEnabler extends CaretUpdateEnabler {
