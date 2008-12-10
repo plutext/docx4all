@@ -20,15 +20,9 @@
 package org.docx4all.util;
 
 import java.awt.Dimension;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 import javax.swing.JOptionPane;
 
-import net.sf.vfsjfilechooser.accessories.bookmarks.Bookmarks;
-import net.sf.vfsjfilechooser.accessories.bookmarks.TitledURLEntry;
 import net.sf.vfsjfilechooser.utils.VFSURIParser;
 import net.sf.vfsjfilechooser.utils.VFSUtils;
 
@@ -191,74 +185,6 @@ public class AuthenticationUtil {
 		}
 	
 		return status;
-	}
-
-	/**
-	 * This method searches for all username and password pairs in bookmark entries
-	 * that match uri parameter as well as that contained in default bookmark entry
-	 * marked by defaultBookmarkEntryTitle parameter.
-	 *  
-	 * A bookmark entry matches uri parameter if its
-	 * - protocol is the same as uri's
-	 * - hostname is the same as uri's
-	 * - path is the ancestor of uri's
-	 * 
-	 * @param uri
-	 * @param defaultBookmarkEntryTitle
-	 * @return a list of String objects in username:password syntax format.
-	 */
-	public final static List<String> collectUserCredentialsFromBookmark(
-		VFSURIParser uri,
-		String defaultBookmarkEntryTitle) {
-		
-		//The returned list of user credentials in username:password format.
-		List<String> theList = new ArrayList<String>();
-		
-		//A temporary set used to ensure single entry.
-		//We need this so that we can guarantee that the username and password
-		//of default bookmark entry be the last entry in the returned list.
-		Set<String> tempSet = new HashSet<String>();
-				
-		VFSURIParser defaultEntry = null;
-		Bookmarks book = new Bookmarks();
-				
-		for (int i=0; i < book.getSize(); i++) {
-			TitledURLEntry entry = book.getEntry(i);
-			VFSURIParser temp = new VFSURIParser(entry.getURL(), false);
-			if (uri.getProtocol() == temp.getProtocol()
-				&& uri.getHostname().equals(temp.getHostname())
-				&& uri.getPath().startsWith(temp.getPath())) {
-				//The bookmark entry matches uri.
-				//Put username:password in the top list.
-				StringBuilder sb = new StringBuilder();
-				sb.append(temp.getUsername());
-				sb.append(":");
-				sb.append(temp.getPassword());
-				
-				if (!tempSet.contains(sb.toString())) {
-					tempSet.add(sb.toString());
-					theList.add(sb.toString());
-				}
-			} else if (defaultBookmarkEntryTitle.equals(entry.getTitle())) {
-				//identify this default bookmark entry
-				//and add its username:password last in theList.
-				defaultEntry = temp;
-			}
-		}
-
-		if (defaultEntry != null) {
-			//Put the username:password of default bookmark entry
-			//as last entry in theList.
-			StringBuilder sb = new StringBuilder();
-			sb.append(defaultEntry.getUsername());
-			sb.append(":");
-			sb.append(defaultEntry.getPassword());
-			if (!tempSet.contains(sb.toString())) {
-				theList.add(sb.toString());
-			}
-		}
-		
-		return theList;
 	}
 
 	private AuthenticationUtil() {
