@@ -26,6 +26,7 @@ import javax.swing.text.View;
 
 import org.apache.log4j.Logger;
 import org.docx4all.xml.ElementML;
+import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
 import org.docx4all.xml.SdtBlockML;
@@ -53,12 +54,14 @@ public class ViewFactory implements javax.swing.text.ViewFactory {
 		ElementML elementML = WordMLStyleConstants.getElementML(attrs);
 
 		//TODO: Don't quite like this temporary solution
-		if (elementML == ElementML.IMPLIED_PARAGRAPH) {
-			theView = new ParagraphView(elem);
+		if (elementML instanceof RunContentML) {
+			theView = new LabelView(elem);
 		} else if (elementML instanceof RunML) {
 			theView = new RunView(elem);
-		} else if (elementML instanceof RunContentML) {
-			theView = new LabelView(elem);
+		} else if (elementML == ElementML.IMPLIED_PARAGRAPH) {
+			theView = new ImpliedParagraphView(elem);
+		} else if (elementML instanceof ParagraphML) {
+			theView = new ParagraphView(elem);
 		} else if (elementML instanceof SdtBlockML) {
 			theView = new SdtBlockView(elem);
 		} else if (elementML instanceof TableML) {

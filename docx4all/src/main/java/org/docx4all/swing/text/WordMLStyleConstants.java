@@ -21,7 +21,6 @@ package org.docx4all.swing.text;
 
 import javax.swing.text.AttributeSet;
 import javax.swing.text.MutableAttributeSet;
-import javax.swing.text.StyleConstants;
 
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.WordML;
@@ -30,6 +29,7 @@ import org.docx4all.xml.type.CTHeight;
 import org.docx4all.xml.type.TblBorders;
 import org.docx4all.xml.type.TblWidth;
 import org.docx4all.xml.type.TcBorders;
+import org.docx4j.wml.STLineSpacingRule;
 import org.docx4j.wml.STVerticalJc;
 import org.docx4j.wml.TcPrInner;
 
@@ -62,6 +62,8 @@ public class WordMLStyleConstants {
 	public static final Object BorderVisibleAttribute = new WordMLStyleConstants("borderVisible");
 	
 	public static final Object CTBorderAttribute = new WordMLStyleConstants("ctborder");
+	
+	public static final Object STLineSpacingRuleAttribute = new WordMLStyleConstants("stLineSpacingRule");
 	
 	public static final Object TblBordersAttribute = new WordMLStyleConstants("tblBorders");
 	
@@ -161,6 +163,26 @@ public class WordMLStyleConstants {
 	 */
     public static CTBorder getCTBorder(AttributeSet a) {
     	return (CTBorder) a.getAttribute(CTBorderAttribute);
+    }
+
+    /**
+     * Sets the STLineSpacingRule attribute.
+     *
+     * @param a the attribute set
+     * @param rule the STLineSpacingRule
+     */
+    public static void setSTLineSpacingRule(MutableAttributeSet a, STLineSpacingRule rule) {
+        a.addAttribute(STLineSpacingRuleAttribute, rule);
+    }
+
+    /**
+	 * Gets the STLineSpacingRule setting from the attribute list.
+	 * 
+	 * @param a the attribute set
+	 * @return the STLineSpacingRule attribute
+	 */
+    public static STLineSpacingRule getSTLineSpacingRule(AttributeSet a) {
+    	return (STLineSpacingRule) a.getAttribute(STLineSpacingRuleAttribute);
     }
 
     /**

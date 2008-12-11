@@ -50,6 +50,7 @@ import org.docx4j.wml.HpsMeasure;
 import org.docx4j.wml.Jc;
 import org.docx4j.wml.JcEnumeration;
 import org.docx4j.wml.PPr;
+import org.docx4j.wml.PPrBase;
 import org.docx4j.wml.RFonts;
 import org.docx4j.wml.RPr;
 import org.docx4j.wml.RStyle;
@@ -424,10 +425,83 @@ public class StyleSheet extends StyleContext {
 		//ALIGNMENT attribute
 		Jc jc = pPr.getJc();
 		addJc(attrs, jc);
+		jc = null;
 		
 		PStyle pStyle = pPr.getPStyle();
 		if (pStyle != null) {
 			attrs.addAttribute(WordMLStyleConstants.PStyleAttribute, pStyle.getVal());
+		}
+		pStyle = null;
+		
+		//INDENTATION attribute
+		PPrBase.Ind ind = pPr.getInd();
+		if (ind != null) {
+			if (ind.getHanging() != null) {
+				int i = toPixels(ind.getHanging().intValue());
+				StyleConstants.setFirstLineIndent(attrs, -i);
+			} else if (ind.getFirstLineChars() != null) {
+				;// TODO: Support firstLineChars attr of paragraph indentation
+			} else if (ind.getFirstLine() != null) {
+				int i = toPixels(ind.getFirstLine().intValue());
+				StyleConstants.setFirstLineIndent(attrs, i);
+			}
+
+			if (ind.getLeftChars() != null) {
+				;// TODO: Support leftChars attr of paragraph indentation
+			} else if (ind.getLeft() != null) {
+				int i = toPixels(ind.getLeft().intValue());
+				StyleConstants.setLeftIndent(attrs, i);
+			}
+
+			if (ind.getRightChars() != null) {
+				;// TODO: Support rightChars attr of paragraph indentation
+			} else if (ind.getRight() != null) {
+				int i = toPixels(ind.getRight().intValue());
+				StyleConstants.setRightIndent(attrs, i);
+			}
+			ind = null;
+		}
+		
+		//SPACING attribute
+		PPrBase.Spacing spacing = pPr.getSpacing();
+		if (spacing != null) {
+			//if (spacing.getAfterLines() != null
+			//	|| spacing.isAfterAutospacing()) {
+				//WordprocessingML Spec says to ignore spacing.getAfter()
+				//if spacing.getAfterLines() is specified or 
+				//spacing.isAfterAutospacing() is true
+				//TODO: Support afterLines and afterAutoSpacing
+			//} else {
+				if (spacing.getAfter() != null) {
+					int i = toPixels(spacing.getAfter().intValue());
+					StyleConstants.setSpaceBelow(attrs, i);
+				}
+			//}
+			
+			//if (spacing.getBeforeLines() != null
+			//	|| spacing.isBeforeAutospacing()) {
+				//WordprocessingML Spec says to ignore spacing.getBefore()
+				//if spacing.getBeforeLines() is specified or 
+				//spacing.isBeforeAutospacing() is true
+				//TODO: Support beforeLines and beforeAutoSpacing
+			//} else {
+				if (spacing.getBefore() != null) {
+					int i = toPixels(spacing.getBefore().intValue());
+					StyleConstants.setSpaceAbove(attrs, i);
+				}
+			//}
+			
+			if (spacing.getLine() != null) {
+				//TODO: Support interline spacing
+				/*
+				STLineSpacingRule rule = 
+					(spacing.getLineRule() == null)
+						? STLineSpacingRule.AUTO
+						: spacing.getLineRule();
+				attrs.addAttribute(WordMLStyleConstants.STLineSpacingRuleAttribute, rule);
+				*/
+			}
+			spacing = null;
 		}
 	}
 	

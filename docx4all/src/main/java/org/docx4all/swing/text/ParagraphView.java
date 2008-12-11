@@ -19,50 +19,84 @@
 
 package org.docx4all.swing.text;
 
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BoxView;
 import javax.swing.text.Element;
-import javax.swing.text.Position;
+import javax.swing.text.StyleConstants;
 import javax.swing.text.View;
 
 import org.apache.log4j.Logger;
 
-public class ParagraphView extends javax.swing.text.ParagraphView {
+public class ParagraphView extends BoxView {
 	private static Logger log = Logger.getLogger(ParagraphView.class);
 
+	private static short DEFAULT_INTER_PARAGRAPH_SPACE = 200;//twips
+	
 	public ParagraphView(Element elem) {
-		super(elem);
-		strategy = new FlowStrategy();
+		super(elem, View.Y_AXIS);
+		setParagraphInsets(getAttributes());
 	}
+	
+    protected void setParagraphInsets(AttributeSet attr) {
+    	if (attr == null) {
+    		return;
+    	}
+    	
+    	//According to WordprocessingML specification
+    	//when determining the spacing between any two paragraphs, a consumer shall use
+    	//the maximum of the interline spacing in each paragraph, 
+    	//the spacing after the first paragraph and the spacing before the second
+    	//paragraph to determine the net spacing between the paragraphs.
+    	//Currently we do not include interline spacing in the calculation
+    	//and keep the result in BOTTOM inset.
+    	//TODO: Include interline spacing in calculating spacing between
+    	//two paragraphs.
+    	
+    	//Get the spacing after this paragraph
+    	Float f = (Float) attr.getAttribute(StyleConstants.SpaceBelow);
+    	if (f == null) {
+    		f = Float.valueOf(0.0f);
+    	}
 
-	//===== INNER CLASS =====\\
-	class FlowStrategy extends javax.swing.text.FlowView.FlowStrategy {
-		protected View createView(
-			javax.swing.text.FlowView fv,
-			int startOffset,
-			int spanLeft,
-			int rowIndex) {
+    	//Get the spacing before the next paragraph
+    	AttributeSet temp = getParagraphAttr(false);
+    	Float spaceBefore = null;
+    	if (temp != null) {
+        	spaceBefore = (Float) attr.getAttribute(StyleConstants.SpaceAbove);
+    	}
+    	if (spaceBefore == null) {
+    		spaceBefore = Float.valueOf(0.0f);
+    	}
+    	
+    	//BOTTOM inset is the maximum
+    	f = Math.max(f.floatValue(), spaceBefore.floatValue());    	
+    	short bottom = f.shortValue();
+    	if (bottom == 0) {
+    		bottom = (short) StyleSheet.toPixels(DEFAULT_INTER_PARAGRAPH_SPACE);
+    	}
 
-			// Get the child view that contains the given starting position
-			View lv = getLogicalView(fv);
-			int childIndex =
-				lv.getViewIndex(startOffset, Position.Bias.Forward);
-			View v = lv.getView(childIndex);
+    	//TOP inset is always zero
+    	short top = 0;
+    	
+    	short left = (short) StyleConstants.getLeftIndent(attr);
+    	short right = (short) StyleConstants.getRightIndent(attr);
+    	setInsets(top, left, bottom, right);
+    }
 
-			if (v instanceof RunView) {
-				RunView runV = (RunView) v;
-				v = runV.getTextView(startOffset);
-			}
-
-			if (startOffset == v.getStartOffset()) {
-				// return the entire view
-				return v;
-			}
-
-			// return a fragment.
-			v = v.createFragment(startOffset, v.getEndOffset());
-			return v;
-		}
-	}
-
+    protected AttributeSet getParagraphAttr(boolean paragraphBefore) {
+    	AttributeSet theAttr = null;
+    	
+    	WordMLDocument doc = (WordMLDocument) getDocument();
+    	int start = getStartOffset();
+    	int end = getEndOffset();
+    	if (start > 0 && paragraphBefore) {
+    		theAttr = doc.getParagraphMLElement(start - 1, true).getAttributes();
+    	} else if (end < doc.getLength()) {
+    		theAttr = doc.getParagraphMLElement(end, true).getAttributes();
+    	}
+    	
+    	return theAttr;
+    }
 
 }// ParagraphView class
 
