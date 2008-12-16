@@ -37,6 +37,7 @@ public interface Constants {
 	public final static String LOCAL_VIEWS_SYNCHRONIZED_FLAG = "localViewsSynchronizedFlag";
 	
 	public final static String NEWLINE = "\n";
+	public final static String SINGLE_SPACE = " ";
 	
 	public final static String LAST_OPENED_FILE  = "last.opened.file";
 	public final static String LAST_OPENED_LOCAL_FILE = "last.opened.local.file";
