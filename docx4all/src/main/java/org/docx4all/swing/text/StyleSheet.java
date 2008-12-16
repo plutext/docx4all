@@ -101,6 +101,17 @@ public class StyleSheet extends StyleContext {
     	return (int) (pixels * conversionFactor);
     }
     
+    public static final int emuToTwips(int emus) {
+    	//one emu = 1/914400 inch
+    	//one inch = 1440 twips
+    	float conversionFactor = 1440f / 914400;
+    	return (int) (emus * conversionFactor);
+    }
+    
+    public static final int emuToPixels(int emus) {
+    	return toPixels(emuToTwips(emus));
+    }
+    
     public static final StyleSheet getDefaultStyleSheet() {
     	log.info("");
         if (defaultStyleSheet == null) {
