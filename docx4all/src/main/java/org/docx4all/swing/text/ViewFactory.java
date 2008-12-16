@@ -26,6 +26,7 @@ import javax.swing.text.View;
 
 import org.apache.log4j.Logger;
 import org.docx4all.xml.ElementML;
+import org.docx4all.xml.InlineDrawingML;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
@@ -54,7 +55,9 @@ public class ViewFactory implements javax.swing.text.ViewFactory {
 		ElementML elementML = WordMLStyleConstants.getElementML(attrs);
 
 		//TODO: Don't quite like this temporary solution
-		if (elementML instanceof RunContentML) {
+		if (elementML instanceof InlineDrawingML) {
+			theView = new InlineImageView(elem);
+		} else if (elementML instanceof RunContentML) {
 			theView = new LabelView(elem);
 		} else if (elementML instanceof RunML) {
 			theView = new RunView(elem);
