@@ -224,9 +224,30 @@ public class RunML extends ElementML {
 		if (!rKids.isEmpty()) {
 			this.children = new ArrayList<ElementML>(rKids.size());
 			for (Object o : rKids) {
-				RunContentML child = new RunContentML(o, this.isDummy);
-				child.setParent(RunML.this);
-				this.children.add(child);
+				Object value = JAXBIntrospector.getValue(o);
+
+				RunContentML child = null;
+				if (value instanceof org.docx4j.wml.Drawing) {
+					org.docx4j.wml.Drawing drawing = 
+						(org.docx4j.wml.Drawing) value;
+					List<Object> list = drawing.getAnchorOrInline();
+					for (Object item: list) {
+						if (item instanceof org.docx4j.dml.Inline) {
+							child = new InlineDrawingML(drawing, this.isDummy);
+						} else {
+							//Anchor is not supported yet.
+							//Let Drawing object be rendered as RunContentML.
+							//TODO: Support Drawing's Anchor element. 
+							child = new RunContentML(drawing, this.isDummy);
+						}
+						child.setParent(RunML.this);
+						this.children.add(child);
+					}
+				} else {
+					child = new RunContentML(o, this.isDummy);
+					child.setParent(RunML.this);
+					this.children.add(child);
+				}
 			}
 		}
 	}// initChildren()
