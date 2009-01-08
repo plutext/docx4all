@@ -26,11 +26,9 @@ import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
-import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.xml.BodyML;
-import org.docx4all.xml.ElementML;
 import org.plutext.client.Mediator;
 
 /**
@@ -115,35 +113,13 @@ public class TransmitLocalEditsWorker extends SwingWorker<Boolean, Void> impleme
     	WordMLTextPane editor = this.plutextClient.getWordMLTextPane();
     	WordMLDocument doc = (WordMLDocument) editor.getDocument();
     	
-    	try {
-    		doc.lockWrite();
-    		
-    		DocumentElement elem =
-    			(DocumentElement) doc.getDefaultRootElement();
-    		ElementML docML = elem.getElementML();
-    		
-    		//Do not include document's last paragraph.
-    		elem = (DocumentElement) elem.getElement(elem.getElementCount() - 1);
-    		ElementML paraML = elem.getElementML();
-    		ElementML bodyML = paraML.getParent();
-    		paraML.delete();
-    		
+    	try {    		
     		org.docx4j.wml.Document wmlDoc = 
     			org.plutext.client.Util.preTransmit(this.plutextClient);
-    		
-    		//Replace bodyML with the transform result: wmlDoc.getBody()
-    		bodyML.delete();
-    		bodyML = new BodyML(wmlDoc.getBody());
-    		bodyML.addChild(paraML);
-    		docML.addChild(bodyML);
-    		
-    		doc.refreshParagraphs(0, doc.getLength());
+    		doc.replaceBodyML(new BodyML(wmlDoc.getBody()));
     		
     	} catch (Exception exc) {
     		throw new RuntimeException(exc);
-    		
-    	} finally {
-    		doc.unlockWrite();
     	}
     }
     
