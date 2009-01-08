@@ -19,14 +19,44 @@
 
 package org.docx4all.swing;
 
+import java.net.URL;
+
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+
+import org.apache.log4j.Logger;
+
 /**
  *	@author Jojada Tirtowidjojo - 05/12/2008
  */
 public class PDFViewer extends com.sun.pdfview.PDFViewer {
+	private static Logger log = Logger.getLogger(PDFViewer.class);
+	
     public PDFViewer(boolean useThumbs) {
     	super(useThumbs);
     }
     
+    public Icon getIcon(String name) {
+        Icon icon = null;
+        URL url = null;
+        try {
+            url = com.sun.pdfview.PDFViewer.class.getResource(name);
+
+            icon = new ImageIcon(url);
+            if (icon == null) {
+                log.error("Couldn't find " + url);
+            }
+        } catch (Exception e) {
+            log.error(
+            	"Couldn't find " 
+            	+ com.sun.pdfview.PDFViewer.class.getName() 
+            	+ "/" 
+            	+ name);
+            e.printStackTrace();
+        }
+        return icon;
+    }
+
     public void doQuit() {
         doClose();
         dispose();
