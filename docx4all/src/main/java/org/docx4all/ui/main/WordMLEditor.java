@@ -99,6 +99,7 @@ import org.docx4all.ui.menu.ViewMenu;
 import org.docx4all.ui.menu.WindowMenu;
 import org.docx4all.util.DocUtil;
 import org.docx4all.util.SwingUtil;
+import org.docx4all.xml.BodyML;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.SdtBlockML;
@@ -564,10 +565,12 @@ public class WordMLEditor extends SingleFrameApplication {
            	
            	plutextClient.startSession();
        		WordprocessingMLPackage wp = plutextClient.getVersionHistory(sdtId);
-
-       		WordMLDocument historyDoc = 
-       			theView.getWordMLEditorKit().read(new DocumentML(wp));
-       		theView.setDocument(historyDoc);
+    		org.docx4j.wml.Document wmlDoc = 
+    			(org.docx4j.wml.Document)
+    				wp.getMainDocumentPart().getJaxbElement();
+    		
+    		WordMLDocument historyDoc = (WordMLDocument) theView.getDocument();
+    		historyDoc.replaceBodyML(new BodyML(wmlDoc.getBody()));
             	
        	} catch (Exception exc) {
        		exc.printStackTrace();
@@ -593,9 +596,12 @@ public class WordMLEditor extends SingleFrameApplication {
 		try {
 			plutextClient.startSession();
        		WordprocessingMLPackage wp = plutextClient.getRecentChangesReport();
+    		org.docx4j.wml.Document wmlDoc = 
+    			(org.docx4j.wml.Document)
+    				wp.getMainDocumentPart().getJaxbElement();
 
-       		WordMLDocument doc = theView.getWordMLEditorKit().read(new DocumentML(wp));
-       		theView.setDocument(doc);			
+    		WordMLDocument doc = (WordMLDocument) theView.getDocument();
+    		doc.replaceBodyML(new BodyML(wmlDoc.getBody()));
 			
 		} catch (Exception exc) {
 			exc.printStackTrace();
@@ -1047,21 +1053,14 @@ public class WordMLEditor extends SingleFrameApplication {
 				//its WordprocessingMLPackage's main document part was
 				//updated by DocUtil.write() above.
 				//Need to refresh editor view.
-    			String filePath = 
-    				(String) editorViewDoc.getProperty(WordMLDocument.FILE_PATH_PROPERTY);
-       	
-    			//Create a new document for editor view.
-    			WordMLDocument newDoc = 
-    				editorView.getWordMLEditorKit().read(new DocumentML(wmlPackage));
-    			newDoc.putProperty(WordMLDocument.FILE_PATH_PROPERTY, filePath);
-    			newDoc.addDocumentListener(getToolbarStates());
-    			newDoc.setDocumentFilter(editorViewDoc.getDocumentFilter());
-        	
+	    		org.docx4j.wml.Document wmlDoc = 
+	    			(org.docx4j.wml.Document)
+	    				wmlPackage.getMainDocumentPart().getJaxbElement();
+				editorViewDoc.replaceBodyML(new BodyML(wmlDoc.getBody()));
+				        	
     			log.debug("stateChanged(): NEW Document Structure...");
-    			DocUtil.displayStructure(newDoc);
+    			DocUtil.displayStructure(editorViewDoc);
         	
-    			editorView.setDocument(newDoc);
-    			
 		    	//reset LOCAL_VIEWS_SYNCHRONIZED_FLAG of source view
 		    	sourceView.putClientProperty(Constants.LOCAL_VIEWS_SYNCHRONIZED_FLAG, Boolean.TRUE);
 				
