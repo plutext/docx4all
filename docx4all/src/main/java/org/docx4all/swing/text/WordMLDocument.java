@@ -45,6 +45,7 @@ import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.util.DocUtil;
 import org.docx4all.util.XmlUtil;
+import org.docx4all.xml.BodyML;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
@@ -59,6 +60,7 @@ import org.docx4all.xml.RunML;
 import org.docx4all.xml.RunPropertiesML;
 import org.docx4all.xml.SdtBlockML;
 import org.docx4j.XmlUtils;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.SdtBlock;
 
 public class WordMLDocument extends DefaultStyledDocument {
@@ -1392,6 +1394,64 @@ public class WordMLDocument extends DefaultStyledDocument {
 			writeUnlock();
 		}
 
+	}
+    
+    public void replaceBodyML(BodyML newBodyML) {
+    	if (newBodyML.getParent() != null) {
+    		throw new IllegalArgumentException("Not an orphan.");
+    	}
+    	
+		try {
+			writeLock();
+
+    		DocumentElement elem =
+    			(DocumentElement) getDefaultRootElement();
+    		ElementML docML = elem.getElementML();
+    		
+    		//Keep document's last paragraph.
+    		elem = (DocumentElement) elem.getElement(elem.getElementCount() - 1);
+    		ElementML paraML = elem.getElementML();
+    		ElementML bodyML = paraML.getParent();
+    		
+    		paraML.delete();
+    		newBodyML.addChild(paraML);
+    		
+    		bodyML.delete();
+    		docML.addChild(newBodyML);
+    		    		
+    		refreshParagraphs(0, getLength());
+        	
+		} finally {
+			writeUnlock();
+		}
+    }
+    
+	public void applyFilter() {
+		try {
+			writeLock();
+
+    		DocumentElement elem = (DocumentElement) getDefaultRootElement();
+    		ElementML docML = elem.getElementML();
+    		
+    		//Do not include document's last paragraph.
+    		elem = (DocumentElement) elem.getElement(elem.getElementCount() - 1);
+    		ElementML paraML = elem.getElementML();
+    		ElementML bodyML = paraML.getParent();
+    		paraML.delete();
+    		
+        	WordprocessingMLPackage wmlPackage = 
+        		XmlUtil.applyFilter(docML.getWordprocessingMLPackage());
+        	//Restore document's last paragraph 'paraML'.
+        	bodyML.addChild(paraML);
+        	
+    		org.docx4j.wml.Document wmlDoc = 
+    			(org.docx4j.wml.Document)
+    				wmlPackage.getMainDocumentPart().getJaxbElement();
+    		replaceBodyML(new BodyML(wmlDoc.getBody()));
+    		
+		} finally {
+			writeUnlock();
+		}
 	}
     
     @Override public void insertString(int offs, String str, AttributeSet a) 
