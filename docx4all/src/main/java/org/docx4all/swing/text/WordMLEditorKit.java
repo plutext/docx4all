@@ -288,18 +288,13 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			log.debug("read(): File = " + VFSUtils.getFriendlyName(f.getName().getURI()));
 		}
 		
-		WordMLDocument doc = read(ElementMLFactory.createDocumentML(f));
-		return doc;
-	}
-
-	public WordMLDocument read(DocumentML documentML) {
-		if (log.isDebugEnabled()) {
-			log.debug("read(): documentML = " + documentML);
-		}
-		
-		List<ElementSpec> specs = DocUtil.getElementSpecs(documentML);
-		
+		//Default WordMLDocument has to be created prior to 
+		//unmarshalling docx4j Document so that StyleDefinitionsPart's
+		//liveStyles property will be populated correctly.
+		//See: StyleDefinitionsPart.unmarshall(java.io.InputStream)
 		WordMLDocument doc = (WordMLDocument) createDefaultDocument();
+		List<ElementSpec> specs = 
+			DocUtil.getElementSpecs(ElementMLFactory.createDocumentML(f));
 		doc.createElementStructure(specs);
 		
 		if (log.isDebugEnabled()) {
@@ -309,7 +304,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			
 		return doc;
 	}
-	
+
 	/**
 	 * Write content from a document to the given stream in a format appropriate
 	 * for this kind of content handler.
