@@ -127,7 +127,7 @@ public class ViewMenu extends UIMenu {
         if (view instanceof WordMLTextPane) {
         	WordMLTextPane tp = (WordMLTextPane) view;
         	tp.applyFilter();
-        	tp.getDocument().addDocumentListener(editor.getToolbarStates());
+        	//tp.getDocument().addDocumentListener(editor.getToolbarStates());
         }		
 	}
 	
