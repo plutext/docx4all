@@ -120,6 +120,7 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
       <element name="docID" type="xsd:string"/>
       <element name="partName" type="xsd:string"/>
       <element name="version" type="xsd:string"/>
+      <element name="contentType" type="xsd:string"/>
       <element name="content" type="xsd:string"/>
      </sequence>
     </complexType>
