@@ -4,6 +4,42 @@
 Built on Apr 22, 2006 (06:55:48 PDT)-->
  <wsdl:types>
   <schema elementFormDefault="qualified" targetNamespace="http://server.plutext.org/" xmlns="http://www.w3.org/2001/XMLSchema">
+   <element name="transform">
+    <complexType>
+     <sequence>
+      <element name="docID" type="xsd:string"/>
+      <element name="xml" type="xsd:string"/>
+      <element name="message" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="transformResponse">
+    <complexType>
+     <sequence>
+      <element maxOccurs="unbounded" name="transformReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getParts">
+    <complexType>
+     <sequence>
+      <element name="docID" type="xsd:string"/>
+      <element maxOccurs="unbounded" name="partNames" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getPartsResponse">
+    <complexType>
+     <sequence>
+      <element maxOccurs="unbounded" name="getPartsReturn" type="impl:ArrayOf_xsd_string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <complexType name="ArrayOf_xsd_string">
+    <sequence>
+     <element maxOccurs="unbounded" minOccurs="0" name="item" type="xsd:string"/>
+    </sequence>
+   </complexType>
    <element name="getTransforms">
     <complexType>
      <sequence>
@@ -78,24 +114,47 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
      </sequence>
     </complexType>
    </element>
-   <element name="transform">
+   <element name="injectPart">
     <complexType>
      <sequence>
       <element name="docID" type="xsd:string"/>
-      <element name="xml" type="xsd:string"/>
-      <element name="message" type="xsd:string"/>
+      <element name="partName" type="xsd:string"/>
+      <element name="version" type="xsd:string"/>
+      <element name="content" type="xsd:string"/>
      </sequence>
     </complexType>
    </element>
-   <element name="transformResponse">
+   <element name="injectPartResponse">
     <complexType>
      <sequence>
-      <element maxOccurs="unbounded" name="transformReturn" type="xsd:string"/>
+      <element name="injectPartReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="removePart">
+    <complexType>
+     <sequence>
+      <element name="docID" type="xsd:string"/>
+      <element name="partName" type="xsd:string"/>
+      <element name="version" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="removePartResponse">
+    <complexType>
+     <sequence>
+      <element name="removePartReturn" type="xsd:boolean"/>
      </sequence>
     </complexType>
    </element>
   </schema>
  </wsdl:types>
+
+   <wsdl:message name="injectPartRequest">
+
+      <wsdl:part element="impl:injectPart" name="parameters"/>
+
+   </wsdl:message>
 
    <wsdl:message name="transformResponse">
 
@@ -109,21 +168,15 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
 
    </wsdl:message>
 
-   <wsdl:message name="getSkeletonDocumentResponse">
-
-      <wsdl:part element="impl:getSkeletonDocumentResponse" name="parameters"/>
-
-   </wsdl:message>
-
    <wsdl:message name="transformRequest">
 
       <wsdl:part element="impl:transform" name="parameters"/>
 
    </wsdl:message>
 
-   <wsdl:message name="getSkeletonDocumentRequest">
+   <wsdl:message name="getPartsRequest">
 
-      <wsdl:part element="impl:getSkeletonDocument" name="parameters"/>
+      <wsdl:part element="impl:getParts" name="parameters"/>
 
    </wsdl:message>
 
@@ -133,33 +186,9 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
 
    </wsdl:message>
 
-   <wsdl:message name="reportVersionHistoryResponse">
-
-      <wsdl:part element="impl:reportVersionHistoryResponse" name="parameters"/>
-
-   </wsdl:message>
-
-   <wsdl:message name="getTransformsResponse">
-
-      <wsdl:part element="impl:getTransformsResponse" name="parameters"/>
-
-   </wsdl:message>
-
-   <wsdl:message name="getTransformsRequest">
-
-      <wsdl:part element="impl:getTransforms" name="parameters"/>
-
-   </wsdl:message>
-
    <wsdl:message name="reportRecentChangesResponse">
 
       <wsdl:part element="impl:reportRecentChangesResponse" name="parameters"/>
-
-   </wsdl:message>
-
-   <wsdl:message name="reportVersionHistoryRequest">
-
-      <wsdl:part element="impl:reportVersionHistory" name="parameters"/>
 
    </wsdl:message>
 
@@ -169,7 +198,83 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
 
    </wsdl:message>
 
+   <wsdl:message name="getPartsResponse">
+
+      <wsdl:part element="impl:getPartsResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="injectPartResponse">
+
+      <wsdl:part element="impl:injectPartResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="getSkeletonDocumentResponse">
+
+      <wsdl:part element="impl:getSkeletonDocumentResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="getSkeletonDocumentRequest">
+
+      <wsdl:part element="impl:getSkeletonDocument" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="reportVersionHistoryResponse">
+
+      <wsdl:part element="impl:reportVersionHistoryResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="getTransformsRequest">
+
+      <wsdl:part element="impl:getTransforms" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="getTransformsResponse">
+
+      <wsdl:part element="impl:getTransformsResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="removePartResponse">
+
+      <wsdl:part element="impl:removePartResponse" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="removePartRequest">
+
+      <wsdl:part element="impl:removePart" name="parameters"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="reportVersionHistoryRequest">
+
+      <wsdl:part element="impl:reportVersionHistory" name="parameters"/>
+
+   </wsdl:message>
+
    <wsdl:portType name="PlutextWebService">
+
+      <wsdl:operation name="transform">
+
+         <wsdl:input message="impl:transformRequest" name="transformRequest"/>
+
+         <wsdl:output message="impl:transformResponse" name="transformResponse"/>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="getParts">
+
+         <wsdl:input message="impl:getPartsRequest" name="getPartsRequest"/>
+
+         <wsdl:output message="impl:getPartsResponse" name="getPartsResponse"/>
+
+      </wsdl:operation>
 
       <wsdl:operation name="getTransforms">
 
@@ -211,11 +316,19 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
 
       </wsdl:operation>
 
-      <wsdl:operation name="transform">
+      <wsdl:operation name="injectPart">
 
-         <wsdl:input message="impl:transformRequest" name="transformRequest"/>
+         <wsdl:input message="impl:injectPartRequest" name="injectPartRequest"/>
 
-         <wsdl:output message="impl:transformResponse" name="transformResponse"/>
+         <wsdl:output message="impl:injectPartResponse" name="injectPartResponse"/>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="removePart">
+
+         <wsdl:input message="impl:removePartRequest" name="removePartRequest"/>
+
+         <wsdl:output message="impl:removePartResponse" name="removePartResponse"/>
 
       </wsdl:operation>
 
@@ -224,6 +337,42 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
    <wsdl:binding name="PlutextServiceSoapBinding" type="impl:PlutextWebService">
 
       <wsdlsoap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+      <wsdl:operation name="transform">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="transformRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="transformResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="getParts">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="getPartsRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="getPartsResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
 
       <wsdl:operation name="getTransforms">
 
@@ -315,17 +464,35 @@ Built on Apr 22, 2006 (06:55:48 PDT)-->
 
       </wsdl:operation>
 
-      <wsdl:operation name="transform">
+      <wsdl:operation name="injectPart">
 
          <wsdlsoap:operation soapAction=""/>
 
-         <wsdl:input name="transformRequest">
+         <wsdl:input name="injectPartRequest">
 
             <wsdlsoap:body use="literal"/>
 
          </wsdl:input>
 
-         <wsdl:output name="transformResponse">
+         <wsdl:output name="injectPartResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="removePart">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="removePartRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="removePartResponse">
 
             <wsdlsoap:body use="literal"/>
 
