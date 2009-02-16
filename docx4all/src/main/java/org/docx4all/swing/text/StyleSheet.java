@@ -444,6 +444,12 @@ public class StyleSheet extends StyleContext {
 		}
 		pStyle = null;
 		
+		PPrBase.NumPr numPr = pPr.getNumPr();
+		if (numPr != null) {
+			attrs.addAttribute(WordMLStyleConstants.NumPrAttribute, numPr);
+		}
+		numPr = null;
+		
 		//INDENTATION attribute
 		PPrBase.Ind ind = pPr.getInd();
 		if (ind != null) {
