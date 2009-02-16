@@ -59,6 +59,8 @@ public class WordMLStyleConstants {
 	
 	public static final Object RStyleAttribute = new WordMLStyleConstants("rStyle");
 	
+	public static final Object NumPrAttribute = new WordMLStyleConstants("numPr");
+	
 	public static final Object BorderVisibleAttribute = new WordMLStyleConstants("borderVisible");
 	
 	public static final Object CTBorderAttribute = new WordMLStyleConstants("ctborder");
