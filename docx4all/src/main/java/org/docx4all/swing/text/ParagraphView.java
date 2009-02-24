@@ -26,6 +26,10 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.View;
 
 import org.apache.log4j.Logger;
+import org.docx4all.xml.ElementML;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
+import org.docx4j.openpackaging.parts.WordprocessingML.NumberingDefinitionsPart;
+import org.docx4j.wml.PPrBase;
 
 public class ParagraphView extends BoxView {
 	private static Logger log = Logger.getLogger(ParagraphView.class);
@@ -78,8 +82,62 @@ public class ParagraphView extends BoxView {
     	//TOP inset is always zero
     	short top = 0;
     	
-    	short left = (short) StyleConstants.getLeftIndent(attr);
-    	short right = (short) StyleConstants.getRightIndent(attr);
+    	//The types of indentation specified in numbering properties
+    	//are firstLine, hanging, left and right indentations.
+    	//Left and right indentations are calculated in this ParagraphView.class
+    	//while firstLine and hanging indentations are in ImpliedParagraphView.class
+    	PPrBase.Ind indByNumPr = null;
+		if (attr.isDefined(WordMLStyleConstants.NumPrAttribute)) {
+			PPrBase.NumPr numPr = 
+				(PPrBase.NumPr) 
+					attr.getAttribute(
+						WordMLStyleConstants.NumPrAttribute);
+			String numId = null;
+			if (numPr.getNumId() != null) {
+				numId = numPr.getNumId().getVal().toString();
+			}
+			String ilvl = null;
+			if (numPr.getIlvl() != null) {
+				ilvl = numPr.getIlvl().getVal().toString();
+			}
+			
+			ElementML elemML = WordMLStyleConstants.getElementML(attr);
+			WordprocessingMLPackage p = elemML.getWordprocessingMLPackage();
+			// Get the Ind value
+			NumberingDefinitionsPart ndp = 
+				p.getMainDocumentPart().getNumberingDefinitionsPart();
+			// Force initialisation of maps
+			ndp.getEmulator();
+			
+			indByNumPr = ndp.getInd(numId, ilvl);
+		}
+		
+    	short left = 0;
+    	if (!attr.isDefined(StyleConstants.LeftIndent)
+    		&& indByNumPr != null
+    		&& indByNumPr.getLeft() != null) { 
+    		//LeftIndent attribute defined in attr
+    		//takes precedence over that in indByNumPr.
+    		//Therefore, process LeftIndent in indByNumPr 
+    		//only when it is not defined in attr.
+			left = (short) StyleSheet.toPixels(indByNumPr.getLeft().intValue());
+    	} else {
+    		left = (short) StyleConstants.getLeftIndent(attr);
+    	}
+    	
+    	short right = 0;
+    	if (!attr.isDefined(StyleConstants.RightIndent)
+    		&& indByNumPr != null
+    		&& indByNumPr.getRight() != null) {    		
+    		//RightIndent attribute defined in attr
+    		//takes precedence over that in indByNumPr.
+    		//Therefore, process RightIndent in indByNumPr 
+    		//only when it is not defined in attr.
+			right = (short) StyleSheet.toPixels(indByNumPr.getRight().intValue());
+    	} else {
+    		right = (short) StyleConstants.getRightIndent(attr);
+    	}
+    	
     	setInsets(top, left, bottom, right);
     }
 
