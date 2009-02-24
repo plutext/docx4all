@@ -51,6 +51,9 @@ import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
 
 import org.apache.log4j.Logger;
+import org.docx4all.xml.ElementML;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
+import org.docx4j.openpackaging.parts.WordprocessingML.NumberingDefinitionsPart;
 import org.docx4j.wml.PPrBase;
 
 /**
@@ -149,15 +152,67 @@ public class ImpliedParagraphView extends FlowView implements TabExpander {
 			}
 			setJustification(alignment);
 			setLineSpacing(StyleConstants.getLineSpacing(attr));
-			setFirstLineIndent(StyleConstants.getFirstLineIndent(attr));
 			
+	    	//The types of indentation specified in numbering properties
+	    	//are firstLine, hanging, left and right indentations.
+	    	//FirstLine and hanging indentations are calculated in this 
+			//ImpliedParagraphView.class while left and right indentations 
+			//are in ParagraphView.class.
+	    	PPrBase.Ind indByNumPr = null;
 			PPrBase.NumPr numPr = 
 				(PPrBase.NumPr) 
 					attr.getAttribute(
 						WordMLStyleConstants.NumPrAttribute);
 			if (numPr != null) {
 				this.numberingView = new NumberingView(getElement());				
+				String numId = null;
+				if (numPr.getNumId() != null) {
+					numId = numPr.getNumId().getVal().toString();
+				}
+				String ilvl = null;
+				if (numPr.getIlvl() != null) {
+					ilvl = numPr.getIlvl().getVal().toString();
+				}
+				
+				DocumentElement paraE = 
+					(DocumentElement) getElement().getParentElement();
+				WordprocessingMLPackage p = 
+					paraE.getElementML().getWordprocessingMLPackage();
+				// Get the Ind value
+				NumberingDefinitionsPart ndp = 
+					p.getMainDocumentPart().getNumberingDefinitionsPart();
+				// Force initialisation of maps
+				ndp.getEmulator();
+				
+				indByNumPr = ndp.getInd(numId, ilvl);
 			}
+			
+	    	short firstLineIndent = 0;
+	    	if (!attr.isDefined(StyleConstants.FirstLineIndent)
+	    		&& indByNumPr != null) {
+	    		//FirstLineIndent attribute defined in attr
+	    		//takes precedence over that in indByNumPr.
+	    		//Therefore, process FirstLineIndent in indByNumPr 
+	    		//only when it is not defined in attr.
+	    		if (indByNumPr.getHanging() != null) {    		
+	    			int hanging = 
+	    				StyleSheet.toPixels(indByNumPr.getHanging().intValue());
+	    			firstLineIndent = (short) (-1 * hanging);
+	    		} else if (indByNumPr.getFirstLine() != null) {
+	    			firstLineIndent = 
+	    				(short)
+	    					StyleSheet.toPixels(
+	    						indByNumPr.getFirstLine().intValue());
+	    		} else {
+	    			firstLineIndent = 
+	    				(short) StyleConstants.getFirstLineIndent(attr);
+	    		}
+	    	} else {
+	    		firstLineIndent = 
+	    			(short) StyleConstants.getFirstLineIndent(attr);
+	    	}
+	    	
+			setFirstLineIndent(firstLineIndent);
 		}
 	}
 
