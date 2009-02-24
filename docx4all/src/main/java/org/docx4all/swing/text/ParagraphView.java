@@ -87,11 +87,11 @@ public class ParagraphView extends BoxView {
     	//Left and right indentations are calculated in this ParagraphView.class
     	//while firstLine and hanging indentations are in ImpliedParagraphView.class
     	PPrBase.Ind indByNumPr = null;
-		if (attr.isDefined(WordMLStyleConstants.NumPrAttribute)) {
-			PPrBase.NumPr numPr = 
-				(PPrBase.NumPr) 
-					attr.getAttribute(
-						WordMLStyleConstants.NumPrAttribute);
+		PPrBase.NumPr numPr = 
+			(PPrBase.NumPr) 
+				attr.getAttribute(
+					WordMLStyleConstants.NumPrAttribute);
+		if (numPr != null) {
 			String numId = null;
 			if (numPr.getNumId() != null
 				&& numPr.getNumId().getVal() != null) {
