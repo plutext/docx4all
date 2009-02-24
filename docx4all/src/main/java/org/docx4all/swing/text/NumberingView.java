@@ -58,7 +58,8 @@ public class NumberingView extends View {
 	private final static int DEFAULT_NUMBERING_GAP = 15;
 	
 	private ResultTriple numbering;
-	private int firstLineIndent, leftIndent;
+	private Font font;
+	private int firstLineIndent;
 	
 	public NumberingView(Element impliedPara) {
 		super(impliedPara);
@@ -71,7 +72,7 @@ public class NumberingView extends View {
     
     public float getAlignment(int axis) {
     	float align = super.getAlignment(axis);
-    	if (!this.numbering.isBullet() && axis == View.Y_AXIS) {
+    	if (axis == View.Y_AXIS) {
     		FontMetrics fm = getContainer().getFontMetrics(getFont());
     		float h = fm.getHeight();
     		float d = fm.getDescent();
@@ -91,29 +92,8 @@ public class NumberingView extends View {
 	}
 
     public Font getFont() {
-    	Font theFont = null;
-    	
-    	AttributeSet attr = getAttributes();
-    	
-    	String fontStr = this.numbering.getNumFont();
-    	
-    	log.info("getFont(): fontStr=" + fontStr);
-    	
-    	if (fontStr != null) {
-    		MutableAttributeSet temp = new SimpleAttributeSet();
-    		StyleConstants.setBold(temp, StyleConstants.isBold(attr));
-    		StyleConstants.setItalic(temp, StyleConstants.isItalic(attr));
-    		StyleConstants.setFontFamily(temp, fontStr);
-			theFont = ((StyledDocument) getDocument()).getFont(temp);
-		} else {
-			theFont = ((StyledDocument) getDocument()).getFont(attr);
-		}
-    	log.info("getFont(): theFont=" + theFont);
-    	
-    	return theFont;
+    	return this.font;
 	}
-    
-
     
     /**
      * Renders a portion of a text style run.
@@ -128,7 +108,8 @@ public class NumberingView extends View {
         boolean intersect = clip.intersects(r);
     	
         if (intersect) {
-        	if (this.numbering.isBullet()) {
+        	if (this.numbering.isBullet() 
+        		&& "Symbol".equalsIgnoreCase(this.numbering.getNumFont())) {
         		drawBullet(g, r.x, r.y, r.width, r.height, getAlignment(Y_AXIS));        		
         	} else {
         		drawNumberingString(g, r.x, r.y, r.width, r.height, getAlignment(Y_AXIS));
@@ -176,26 +157,18 @@ public class NumberingView extends View {
     	if (getContainer() == null) {
     		;//return
     	} else if (axis == View.X_AXIS) {
-			if (this.numbering.isBullet()) {
-				theSpan = DEFAULT_BULLET_WIDTH + DEFAULT_NUMBERING_GAP;
-			} else {
-	    		FontMetrics fm = getContainer().getFontMetrics(getFont());
-	    		//theSpan = fm.stringWidth(this.numbering.getNumString());
-	       	    theSpan = 
-	       	    	SwingUtilities2.stringWidth(
-	       	    		(JComponent) getContainer(), 
-	        	    	fm, 
-	        	    	this.numbering.getNumString())
-	        	    + DEFAULT_NUMBERING_GAP;
-
-			}
+	    	FontMetrics fm = getContainer().getFontMetrics(getFont());
+	    	//theSpan = fm.stringWidth(this.numbering.getNumString());
+	       	theSpan = 
+	       	    SwingUtilities2.stringWidth(
+	       	    	(JComponent) getContainer(), 
+	        	    fm, 
+	        	    this.numbering.getNumString())
+	        	+ DEFAULT_NUMBERING_GAP;
 			
 			if (Math.abs(this.firstLineIndent) > theSpan) {
 				theSpan = Math.abs(this.firstLineIndent);
-			}
-		} else if (this.numbering.isBullet()){
-			theSpan = DEFAULT_BULLET_HEIGHT;
-			
+			}			
 		} else {
     		FontMetrics fm = getContainer().getFontMetrics(getFont());
 			theSpan = fm.getHeight();
@@ -387,19 +360,30 @@ public class NumberingView extends View {
 		if (numPr.getNumId() != null) {
 			numId = numPr.getNumId().getVal().toString();
 		}
-		String lvlId = null;
+		String ilvl = null;
 		if (numPr.getIlvl() != null) {
-			lvlId = numPr.getIlvl().getVal().toString();
+			ilvl = numPr.getIlvl().getVal().toString();
 		}
 		this.numbering = 
 			Emulator.getNumber(
 				elemML.getWordprocessingMLPackage(), 
 				pStyle, 
 				numId, 
-				lvlId);
+				ilvl);
 		
 		this.firstLineIndent = (int) StyleConstants.getFirstLineIndent(attr);
-		this.leftIndent = (int) StyleConstants.getLeftIndent(attr);
+		
+	    if (this.numbering.getNumFont() != null) {
+    		MutableAttributeSet temp = new SimpleAttributeSet();
+    		StyleConstants.setBold(temp, StyleConstants.isBold(attr));
+    		StyleConstants.setItalic(temp, StyleConstants.isItalic(attr));
+    		StyleConstants.setFontSize(temp, StyleConstants.getFontSize(attr));
+    		StyleConstants.setFontFamily(temp, this.numbering.getNumFont());
+    		this.font = ((StyledDocument) getDocument()).getFont(temp);
+		} else {
+			this.font = ((StyledDocument) getDocument()).getFont(attr);
+		}
+	    
 	}
 	
 }// NumberingView class
