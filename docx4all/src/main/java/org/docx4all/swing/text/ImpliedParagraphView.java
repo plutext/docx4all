@@ -166,11 +166,13 @@ public class ImpliedParagraphView extends FlowView implements TabExpander {
 			if (numPr != null) {
 				this.numberingView = new NumberingView(getElement());				
 				String numId = null;
-				if (numPr.getNumId() != null) {
+				if (numPr.getNumId() != null
+					&& numPr.getNumId().getVal() != null) {
 					numId = numPr.getNumId().getVal().toString();
 				}
 				String ilvl = null;
-				if (numPr.getIlvl() != null) {
+				if (numPr.getIlvl() != null
+					&& numPr.getIlvl().getVal() != null) {
 					ilvl = numPr.getIlvl().getVal().toString();
 				}
 				
@@ -184,7 +186,9 @@ public class ImpliedParagraphView extends FlowView implements TabExpander {
 				// Force initialisation of maps
 				ndp.getEmulator();
 				
-				indByNumPr = ndp.getInd(numId, ilvl);
+				if (numId != null && ilvl != null) {
+					indByNumPr = ndp.getInd(numId, ilvl);
+				}
 			}
 			
 	    	short firstLineIndent = 0;
