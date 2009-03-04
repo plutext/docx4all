@@ -20,10 +20,13 @@
 package org.plutext.client.webservice;
 
 public interface PlutextWebService extends java.rmi.Remote {
+    public java.lang.String[] transform(java.lang.String docID, java.lang.String xml, java.lang.String message) throws java.rmi.RemoteException;
+    public java.lang.String[][] getParts(java.lang.String docID, java.lang.String[] partNames) throws java.rmi.RemoteException;
     public java.lang.String[] getTransforms(java.lang.String docID, long firstSequenceNumber) throws java.rmi.RemoteException;
     public java.lang.String getSkeletonDocument(java.lang.String docID) throws java.rmi.RemoteException;
     public java.lang.String[] putMainDocumentPart(java.lang.String docID, java.lang.String xml, java.lang.String message) throws java.rmi.RemoteException;
     public java.lang.String reportRecentChanges(java.lang.String docID) throws java.rmi.RemoteException;
     public java.lang.String reportVersionHistory(java.lang.String docID, java.lang.String chunkID) throws java.rmi.RemoteException;
-    public java.lang.String[] transform(java.lang.String docID, java.lang.String xml, java.lang.String message) throws java.rmi.RemoteException;
+    public java.lang.String injectPart(java.lang.String docID, java.lang.String partName, java.lang.String version, java.lang.String contentType, java.lang.String content) throws java.rmi.RemoteException;
+    public boolean removePart(java.lang.String docID, java.lang.String partName, java.lang.String version) throws java.rmi.RemoteException;
 }
