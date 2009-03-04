@@ -1,0 +1,111 @@
+From http://dev.plutext.org/trac/docx4all/wiki/WebServiceClientSelection
+
+Context
+
+docx4all needs a web services client, so that it can interact with a plutext-server during a collaboration session.
+
+There are a number to choose from, including:
+
+Axis 1.4
+Axis 2 - 1.3
+CXF
+Java SE 6 built-in functionality
+This page explains why we are currently using Axis 1.4.
+
+Selection Criteria
+
+Interoperates with Alfresco web services
+- support for WS Security
+Small footprint
+Can be used in a Java Web Start application (no need to put stuff in endorsed dirs)
+WS Security
+
+To use the plutext-server web services running in Alfresco, you first have to get a ticket from the Alfresco authentication service.
+
+See http://wiki.alfresco.com/wiki/Web_Service_Samples_for_Java
+
+So we need support for OASIS Web Services Security (WS-Security), as is provided by Apache WSS4J. http://ws.apache.org/wss4j/axis.html
+
+Axis 1.4
+
+Axis 1.4 is getting old, and it is superseded by Axis 2.
+
+But Alfresco use this (and WSS4J) server-side and client-side.
+
+So if we use this, we can use Alfresco's existing client-side authentication stuff. There's no reason we couldn't generate a client-side binding to suit one of the other web service client libraries, but this way, we can leverage the community.
+
+So, here is what I did:
+
+1. Generated a WSDL from org.plutext.server.PlutextWebService?
+
+plutext-server/build.xml contains a target 'generate.wsdl.axis1'
+
+Note that the style must be WRAPPED, not RPC. Without WRAPPED, you get:
+
+org.xml.sax.SAXException: Found character data inside an array element while deserializing 
+at org.apache.axis.encoding.ser.ArrayDeserializer?.characters(ArrayDeserializer?.java:502) 
+at org.apache.axis.encoding.DeserializationContext?.characters(DeserializationContext?.java:966) 
+Setting WRAPPED also changed things from ENCODED to LITERAL (not sure whether this matters).
+
+2. Generate client code
+
+axis-1_4/lib$ java -cp axis.jar:commons-logging-1.0.4.jar:commons-discovery-0.2.jar:jaxrpc.jar:wsdl4j-1.5.1.jar org.apache.axis.wsdl.WSDL2Java -p org.plutext.client.webservice ../../axis1-out.wsdl
+
+3. Add that code to docx4all, together with alfresco-web-service-client.jar and axis-1.4.jar and dependencies
+
+To build alfresco-web-service-client.jar, use target 'package-webserviceclient'. There's a fair bit of stuff in there we can remove to make the footprint smaller.
+
+Axis 1.4 dependencies
+
+To make it all work, here are the jars that need to be on docx4all's classpath:
+
+axis.jar (1.6 MB)
+commons-discovery-0.2.jar
+jaxrpc.jar
+wsdl4j-1.5.1.jar
+wss4j.jar
+bcprov-jdk15-137.jar (1.5 MB)
+opensaml-1.0.1.jar
+xmlsec-1.4.1.jar (415 KB)
+All these are in the main public maven repositories, except xmlsec-1.4.1 and opensaml-1.0.1.
+
+The maven dependency:tree looks like this:
+
+axis:axis:jar:1.4:compile 
+axis:axis-jaxrpc:jar:1.4:compile 
+axis:axis-saaj:jar:1.4:compile 
+axis:axis-wsdl4j:jar:1.5.1:runtime 
+commons-discovery:commons-discovery:jar:0.2:runtime 
+wss4j:wss4j:jar:1.5.0:compile 
+bouncycastle:bcprov-jdk16:jar:136:compile 
+Axis 2
+
+I tried to generate classes using our existing wsdl:
+
+sh wsdl2java.sh -uri ../../PlutextWebService.wsdl -p org.docx4all -d jaxbri -o tmp -S tmp
+
+I wanted to use jaxb, since we're already using that extensively.
+
+But it didn't work.
+
+(Iirc, it did work if I didn't use jaxb).
+
+So I thought I'd generate a new WSDL, and work from that. See plutext-server/build.xml target 'generate.wsdl.axis2'. But that failed as well.
+
+I guess I could try to generate classes using the WSDL which worked for Axis 1, but there is no immediate need to move from Axis 1. Mayeb we'll move if/when Alfresco does.
+
+There are some posts about the size of the footprint: May 2006, March 2007, but Axis 1 is not exactly small either!
+
+Java SE 6 web service client
+
+The idea of using stuff already built in to Java SE 6 is appealing, from a footprint point of view.
+
+However, the instructions for getting security to work suggest you need a different version of SAAJ RI to the one packaged in Java 6, and this rings alarm bells - can a Java Web Start application be easily made to use it?
+
+The XWSS mailing list also has very little traffic.
+
+In all, Axis is an easier approach for now. But we should revist Java SE 6 web service client again further down the track.
+
+CXF
+
+This is just coming out of incubation. Something to keep an eye on.
