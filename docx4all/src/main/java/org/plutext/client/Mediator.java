@@ -488,18 +488,638 @@ public class Mediator {
 		/*
 		 * For example
 		 * 
-		 * 1324568180 1324568180 (no change) 1911345834 1911345834 (no change)
-		 * --- 293467343 not at this location in source <---- if user deletes
-		 * 884169107 884169107 (no change) 528989532 528989532 (no change)
+		 * 1324568180 1324568180 (no change)
+		 * 1911345834 1911345834 (no change)
+		 * ---        293467343   not at this location in source <---- if user deletes
+		 * 884169107  884169107  (no change) 528989532 528989532 (no change)
 		 */
 
 		// }
 
 		worker.setProgress(FetchProgress.APPLYING_UPDATES, "Applying updates");
+		
+	    fetchParts[PART_RELS] = false;
+	    fetchParts[PART_COMMENTS] = false;
+	    fetchParts[PART_FOOTNOTES] = false;
+	    fetchParts[PART_ENDNOTES] = false;
+	    // applyUpdates may tell us otherwise ...
+
+	    changedChunks = new Dictionary<string, string>();		
+		
 		applyUpdates(worker);
+		
+	    // update references to other parts
+	    //
+	    // if any of the transforms we just applied insert | update another part, 
+	    if (fetchParts[PART_RELS]
+	        | fetchParts[PART_COMMENTS]
+	        | fetchParts[PART_FOOTNOTES]
+	        | fetchParts[PART_ENDNOTES])
+	    {
+	        updateRelatedParts(pkgB, currentStateChunks, bw);
+	    }
+		
 
 		this.oldServer = null;
 	}
+	
+	/// <summary>
+	/// If any of the transforms we just applied insert/update another part, then we need to do
+	/// two things:
+	/// 1. update that part (ie re-create it, out of the local version and the one on the server)
+	/// 2. renumber the id's in the document (in document order) and the composite part, so they match
+	/// </summary>
+	/// <param name="pkg"></param>
+	/// <param name="currentStateChunks"></param>
+	/// <param name="bw"></param>
+	private void updateRelatedParts(Pkg pkg, Dictionary<string, StateChunk> currentStateChunks, System.ComponentModel.BackgroundWorker bw)
+	{
+	    bw.ReportProgress(5, "Links");
+
+	    // 1. update that part
+
+	    // array of part names we need
+	    // how many to get?
+	    int max = 0;
+	    for (int i = 0; i < 4; i++)
+	    {
+	        if (fetchParts[i])
+	        {
+	            max++;
+	        }
+	    }
+	    string[] partNames = new string[max];
+	    string[] parts = new string[max];
+	    int j = 0;
+	    Dictionary<int, int> mapping = new Dictionary<int, int>();
+	    for (int i = 0; i < 4; i++)
+	    {
+	        if (fetchParts[i])
+	        {
+	            partNames[j] = Pkg.SequenceableParts[i];
+	            mapping.Add(j, i);
+	            j++;
+	        }
+	    }
+
+
+	    // invoke web service - returns the part and its version number.
+	    WebReference.ArrayOf_xsd_string[] weirdParts = ws.getParts(stateDocx.DocID, partNames);
+
+	    log.Debug("number of weird parts: " + weirdParts.Length);
+
+	    //Dictionary<string, SequencedPart> serverSequencedParts = 
+	    //    new Dictionary<string,SequencedPart>();
+	    SequencedPart[] serverSequencedParts = new SequencedPart[max];
+	    for (int i = 0; i < max; i++)
+	    {
+	        string[] itemField = weirdParts[i].item;
+
+	        log.Debug("weirdParts[" + i + "] length = " + itemField.Length);
+
+	        if (itemField[1].Equals(""))
+	        {
+	            // Part doesn't exist on server
+	            // This should not happen.
+
+	            log.Error(i + " : " + Pkg.SequenceableParts[mapping[i]] + " doesn't exist on server!  INVESTIGATE");
+
+	        }
+	        else
+	        {
+
+	            SequencedPart sp = (SequencedPart)Part.factory(itemField[1]);
+	            serverSequencedParts[i] = sp;
+	                        
+
+	            // In anticipation of success in what follows, 
+	            // set the version of this part in StateDocx 
+	            stateDocx.PartVersionList.setVersion( sp.Name, itemField[0]);
+	            //sp.Version = itemField[0];
+
+	            // and update our record of the part in StateDocx
+	            // (since any change from this is something we want to transmit)
+	            try
+	            {
+	                stateDocx.Parts[sp.Name] = sp;
+	            }
+	            catch (KeyNotFoundException knfe)
+	            {
+	                stateDocx.Parts.Add(sp.Name, sp);
+
+	            }
+
+	        }
+	    }
+
+	    // .. and the corresponding local parts.
+	    // We want to work with the ones corresponding to the current state of the
+	    // document, not its last recorded state (which would be stateDocx)
+	    Dictionary<string, Part> localParts = pkg.extractParts();
+	    SequencedPart[] localSequencedParts = new SequencedPart[max];
+	    for (int i = 0; i < max; i++)
+	    {
+	        String partName = serverSequencedParts[i].Name;
+
+	        if (partName.Equals("/word/_rels/document.xml.rels"))
+	        {
+	            //localSequencedParts[i] = (SequencedPartRels)stateDocx.Parts[partName];
+	            localSequencedParts[i] = (SequencedPartRels)localParts[partName];
+	        }
+	        else
+	        {
+	            try
+	            {
+	                //localSequencedParts[i] = (SequencedPart)stateDocx.Parts[partName];
+	                localSequencedParts[i] = (SequencedPart)localParts[partName];
+	            }
+	            catch (KeyNotFoundException knf)
+	            {
+
+	                // So, the part doesn't yet exist locally.
+	                // However, if the local document does not already contain
+	                // a comment, footnote or endnote,
+	                // we will need to add it.
+
+	                // Rather than fetch it again,
+	                // We can just say:
+	                localSequencedParts[i] = serverSequencedParts[i];
+	                // (in which case the numbers are going to be aligned, and
+	                //  much of the following code would be unnecessary in that case;
+	                //  however, it does take care of adding the part for us...)
+	            }
+	        }
+	    }
+
+
+
+	    // construct composite part(s)
+
+	    // so here's the tricky bit
+	    /* for each of the parts we are dealing with,
+	    // we need to go through the document, and make a list of the correct
+	    // references:  
+	     *  - Sdt's which we didn't update, will reference the existing part
+	     *  - Sdt's which we inserted/updated will reference the part we just fetched.
+	    */
+
+	    // Go through the document .. 
+	    // in this case that means pkgB, since the document itself
+	    // has not yet been updated.  We can't go through the state chunks,
+	    // because they aren't in document order.
+
+	    // Trick here is to run a single transform which gives us
+	    // the data we want
+	    log.Debug("pkgB: " + pkgB.PkgXmlDocument.OuterXml);
+
+
+	    XmlDocument referenceMap = pkgB.getReferenceMap();
+
+	    log.Debug("referenceMap: " + referenceMap.OuterXml);
+
+	    /* Something like:
+	     * 
+	     * 
+	            <ReferenceMap>
+	                <sdt>
+	                    <id>368753226</id>
+	                    <rels />
+	                    <comments />
+	                    <footnotes />
+	                    <endnotes />
+	                </sdt>
+	                <sdt>
+	                    <id>770713813</id>
+	                    <rels>
+	                        <idref>rId4</idref>
+	                    </rels>
+	                    <comments />
+	                    <footnotes />
+	                    <endnotes />
+	                </sdt>
+	                <sdt>
+	                    <id>1413643190</id>
+	                    <rels>
+	                        <idref>rId5</idref>
+	                        <idref>rId6</idref>
+	                        <idref>rId7</idref>
+	                    </rels>
+	                    <comments />
+	                    <footnotes />
+	                    <endnotes />
+	                </sdt>
+	     */
+
+	    XmlNodeList sdts = referenceMap.FirstChild.ChildNodes;
+	    // nb: std's aren't live, in the sense that they
+	    // only come from output of a transform.
+	    // They're not even sdt's as such - see the example XML above.
+
+	    ArrayList[] constructedContent = new ArrayList[max]; // or XmlNodeList[] ?
+
+	    // for each of the parts we are dealing with, 
+	    // get referenced objects from local | remote part as appropriate
+	    for (int i = 0; i < max; i++)
+	    {
+	        String partName = serverSequencedParts[i].Name; // as good a way as any to get the part name
+	        log.Debug("Constructing content for Part: " + i + " .. " + partName);
+
+	        constructedContent[i] = new ArrayList();
+
+	        foreach (XmlNode sdt in sdts)
+	        {
+	            log.Debug(sdt.OuterXml);
+
+	            String sdtId = sdt.ChildNodes[0].InnerText;
+
+
+	            try
+	            {
+
+	                // An Sdt which we inserted/updated will reference the part we just fetched
+	                // (assuming it contains rel idrefs).
+	                // If we didn't just insert/update the sdt, we branch to KeyNotFoundException
+	                object dummy = changedChunks[sdtId];
+
+	                log.Debug("id: " + sdtId + " - references serverSequencedPart");
+	                foreach (XmlNode idref in sdt.ChildNodes[1 + mapping[i]])
+	                {
+	                    if ((serverSequencedParts[i]).GetType().Name.Equals("SequencedPartRels"))
+	                    {
+	                        constructedContent[i].Add(
+	                            ((SequencedPartRels)serverSequencedParts[i]).getNodeById(
+	                                idref.InnerText).CloneNode(true));
+	                        // Clone, so that if there 2 references to the same image,
+	                        // we get distinct copies of the rel node, which we can 
+	                        // number as we choose.  Without the distinct copies,
+	                        // when we number the images in the document sequentially,
+	                        // there is no corresponding rel for the second image.
+	                    }
+	                    else
+	                    {
+	                        constructedContent[i].Add(
+	                            serverSequencedParts[i].getNodeByIndex(
+	                                int.Parse(idref.InnerText)
+	                                ));
+	                        log.Debug("Added to constructedContent[" + i);
+	                    }
+	                }
+
+	            }
+	            catch (KeyNotFoundException knf)
+	            {
+
+	                log.Debug("id: " + sdtId + " - references local SequencedPart");
+
+	                foreach (XmlNode idref in sdt.ChildNodes[1 + mapping[i]])
+	                {
+	                    // An Sdt which we didn't update, will reference the existing part
+	                    if ((localSequencedParts[i]).GetType().Name.Equals("SequencedPartRels"))
+	                    {
+	                        constructedContent[i].Add(
+	                            ((SequencedPartRels)localSequencedParts[i]).getNodeById(
+	                                idref.InnerText).CloneNode(true));
+	                    }
+	                    else
+	                    {
+	                        constructedContent[i].Add(
+	                            localSequencedParts[i].getNodeByIndex(
+	                                int.Parse(idref.InnerText)
+	                                ));
+	                        log.Debug("Added to constructedContent[" + i);
+	                    }
+	                }
+	            }
+	        }
+	    }
+
+	    // ok, now we have the correct references in ArrayList[] constructedContent
+	    // All we have to do is, for each of the relevant sequences (ie comments, rels etc):
+	    // 2. renumber the id's in (i) document order and (ii) list, 
+	    // and (iii) build an actual part
+
+	    // .. here we want to be manipulating the 'live' XmlDocument
+	    // which IS the Pkg
+
+	    XmlNamespaceManager nsmgr = new XmlNamespaceManager(pkgB.PkgXmlDocument.NameTable);
+	    nsmgr.AddNamespace("w", Namespaces.WORDML_NAMESPACE);
+	    nsmgr.AddNamespace("r", Namespaces.RELATIONSHIPS_NAMESPACE);
+	    nsmgr.AddNamespace("pkg", Namespaces.PKG_NAMESPACE);
+
+	    XmlNode mdp = pkgB.PkgXmlDocument.SelectSingleNode("//pkg:part[@pkg:name='/word/document.xml']", nsmgr);
+
+	    string[] xpaths = {
+	    ".//@r:embed | .//@r:link | .//@r:id | ./descendant::w:commentReference[1]", 
+	    ".//w:commentReference/@w:id | .//w:commentRangeStart/@w:id | .//w:commentRangeEnd/@w:id", 
+	    ".//w:footnoteReference/@w:id", 
+	    ".//w:endnoteReference/@w:id"}; // NB same order as Pkg.sequencableParts
+
+	    // NB XPath spec says: the location path //para[1] does not mean the same as the 
+	    // location path /descendant::para[1].
+	    // The latter selects the first descendant para element; the former selects all descendant para 
+	    // elements that are the first para children of their parents.
+
+
+	    // Any @r:embed should only be temporary, since such images
+	    // will be replaced with @r:link on transmit.
+
+	    // Note: @r:id will match images, hyperlinks, object related stuff,
+	    // and header/footerReference
+
+	    XmlNode rel_comment = null;
+
+	    // for each of the parts we are dealing with, 
+	    for (int i = 0; i < max; i++)
+	    {
+	        String partName = serverSequencedParts[i].Name; // as good a way as any to get the part name
+	        // Get a NodeList of the id's in the document
+	        // .. for this we need an XPath expression particular
+	        // to that type ...
+	        String xpath = xpaths[mapping[i]];
+	        log.Debug("Renumbering for XPath: " + xpath + " .. (" + partName);
+
+	        XmlNodeList nodeList = mdp.SelectNodes(xpath, nsmgr);
+
+	        Boolean correctOffsetForCommentReference = false;
+
+	        // Renumber
+	        for (int k = 0; k < nodeList.Count; k++)
+	        {
+	            log.Debug("Node k: " + k);
+
+	            if (partName.Equals("/word/_rels/document.xml.rels"))
+	            {
+	                // First, a sanity check
+	                if (((SequencedPartRels)(serverSequencedParts[i])).getPrefixedRelsCount()
+	                        != ((SequencedPartRels)(localSequencedParts[i])).getPrefixedRelsCount())
+	                {
+	                    log.Error("Invalid assumption - prefixed rels have changed!");
+
+	                    // TODO - dump the 2 parts
+	                }
+	                // Hope the sanity check was ok; if it wasn't, its better to use the local _rels
+	                // since its for that that we actually have the matching parts
+	                // id is a 1-based index.
+	                int idNum = k + 1 + ((SequencedPartRels)(localSequencedParts[i])).getPrefixedRelsCount();
+
+	                log.Debug(nodeList[k].Name + ", " + nodeList[k].LocalName);
+	                if (nodeList[k].LocalName.Equals("commentReference"))
+	                // Name = w:commentReference, LocalName = commentReference
+	                {
+	                    // Special case - this is the first spot at which we
+	                    // encounter a commentReference, so its the location in the rels part
+	                    // at which we need to insert a reference to the comments part.
+
+	                    // NB this commentReference is in nodeList, 
+	                    // but (given our PkgToReferenceMap.xslt), it is
+	                    // NOT in constructedcontent
+
+	                    // Subsequent refs are incremented by 1 to take account of this
+	                    // rel_comment_step = 1;
+	                    // - no need for that: because it has a slot in
+	                    // nodeList, it will be taken into account automatically.
+	                    
+	                    // But since the comment reference is in the NodeList,
+	                    // but not constructedContent, subsequent iterations
+	                    // will need to take this into account
+	                    correctOffsetForCommentReference = true;
+
+	                    // Renumber in the document
+	                    // - not in this case!
+
+	                    // But we will need a rel to comments with the correct id.
+	                    // This isn't in constructed content (and nor are
+	                    // any of the rels in FIXED_PARTS_PREFIX or FIXED_PARTS_SUFFIX),
+	                    // so just note its id for now. We can add it at the end
+	                    // of the rels part (because although we are taking care 
+	                    // to get all the id's correct, they don't have to be written
+	                    // in order)
+
+	                    String rel_comment_id_new = "rId" + idNum;
+	                    
+	                    // WRONG! String rel_comment_id_old = nodeList[k].Attributes.GetNamedItem("id", Namespaces.WORDML_NAMESPACE).Value;
+	                    // log.Debug("rel_comment_id_old: " + rel_comment_id_old);
+
+	                    rel_comment = ((SequencedPartRels)(localSequencedParts[i])).getNodeByType("comments");
+	                    if (rel_comment == null)
+	                    {
+	                        // Comments part does not exist locally
+	                        rel_comment = ((SequencedPartRels)(serverSequencedParts[i])).getNodeByType("comments").CloneNode(true);
+	                    }
+	                    else
+	                    {
+	                        // We know it exists, so let's use a clone of it
+	                        rel_comment = ((SequencedPartRels)(localSequencedParts[i])).getNodeByType("comments").CloneNode(true);
+	                    }
+	                    rel_comment.Attributes.GetNamedItem("Id").Value = rel_comment_id_new;
+	                }
+	                else
+	                {
+	                    log.Debug("Setting rId" + idNum.ToString() );
+	                    // Renumber in the document
+	                    nodeList[k].Value = "rId" + idNum.ToString();
+
+	                    // Number the constructed content the same
+	                    XmlNode n;
+	                    if (!correctOffsetForCommentReference)
+	                    {
+	                        // Up to the point in the nodelist where
+	                        // we encountered the single comment reference
+	                        n = (XmlNode)(constructedContent[i])[k];
+	                    }
+	                    else
+	                    {
+	                        // After the comment reference
+	                        n = (XmlNode)(constructedContent[i])[k - 1];
+	                    }
+	                    n.Attributes.GetNamedItem("Id").Value = "rId" + idNum.ToString();  // No Namespaces.WORDML_NAMESPACE
+
+	                }
+	            }
+	            else if (partName.Equals("/word/footnotes.xml")
+	                || partName.Equals("/word/endnotes.xml"))
+	            {
+
+	                // footnotes & endnotes 0 & 1 are artificial;
+	                //    the first one in the document is #2 ...
+
+	                // Renumber in the document
+	                nodeList[k].Value = (k + 2).ToString();
+	                /* The existing value should already have been changed to match
+	                 * the value on the server, so any change is something to be
+	                 * transmitted.
+	                 * 
+	                 * That is, if we renumber here (ie actually change the number 
+	                 * to something different), we will need to transmit the change.
+	                 * 
+	                 * However, such a change will be detected in the transmit 
+	                 * code (since this will be different to the statechunk we'll
+	                 * be comparing it to), so nothing extra is required here.
+	                 */ 
+
+	                // Number the constructed content the same
+	                XmlNode n = (XmlNode)(constructedContent[i])[k + 2];
+	                n.Attributes.GetNamedItem("id", Namespaces.WORDML_NAMESPACE).Value = (k + 2).ToString();
+	            }
+	            else  // comments, and hmm, what might else this catch all catch?
+	            {
+	                // Each comment has 3 nodes:
+	                /*
+	                 * <w:commentRangeStart w:id="0" />
+				        <w:r>
+					        <w:t>Here</w:t>
+				        </w:r>
+				        <w:commentRangeEnd w:id="0" />
+				        <w:r>
+					        <w:rPr>
+						        <w:rStyle w:val="CommentReference" />
+					        </w:rPr>
+					        <w:commentReference w:id="0" />
+				        </w:r>
+	                 */ 
+
+	                // Renumber in the document - 3 times  
+	                // FIXME: what if its not a comment??
+	                int cid = (int)(k / 3);
+	                log.Debug("Comment @id: " + cid);
+	                nodeList[k].Value = cid.ToString();
+
+	                // Number the constructed content the same - once
+	                if (cid == (k / 3))
+	                {
+	                    XmlNode n = (XmlNode)(constructedContent[i])[cid];
+	                    n.Attributes.GetNamedItem("id", Namespaces.WORDML_NAMESPACE).Value = cid.ToString();
+	                }
+
+	            }
+
+	        }
+
+	        // Build the part
+	        // .. we have a list of nodes, some of which are foreign
+	        // We need to attach them 
+	        XmlNode parent = localSequencedParts[i].XmlNode;
+	        XmlNode listParent = parent.FirstChild.FirstChild;
+
+	        if (partName.Equals("/word/_rels/document.xml.rels"))
+	        {
+	            int localPrefixedRelsCount = ((SequencedPartRels)(localSequencedParts[i])).getPrefixedRelsCount();
+	            int localSuffixedRelsCount = ((SequencedPartRels)(localSequencedParts[i])).getSuffixedRelsCount();
+	            log.Debug("localPrefixedRelsCount = " + localPrefixedRelsCount);
+	            log.Debug("localSuffixedRelsCount = " + localSuffixedRelsCount);
+
+	            log.Debug(listParent.OuterXml);
+
+	            // Sanity check - as good to do it here as anywhere
+	            if (((SequencedPartRels)(serverSequencedParts[i])).getSuffixedRelsCount()
+	                    != localSuffixedRelsCount)
+	            {
+	                log.Error("Invalid assumption - suffixed rels have changed!");
+
+	                // TODO - dump the 2 parts
+	            }
+
+	            // Keep FIXED_RELS_PREFIX and FIXED_RELS_SUFFIX,
+	            // but Remove the other children 
+	            // These *aren't stored in order*, so we can't just do:
+	            // XmlNode deletion = listParent.ChildNodes[i2 - 1];
+	            int relCount = listParent.ChildNodes.Count;
+	            for (int i2 = relCount; i2 > 0; i2--)
+	            {
+
+	                // extract number from rIdnn
+	                String idtmp = listParent.ChildNodes[i2 - 1].Attributes.GetNamedItem("Id").Value;
+	                int relId = int.Parse(idtmp.Substring(3));
+
+	                log.Debug(idtmp + " ( " + listParent.ChildNodes[i2 - 1].Attributes.GetNamedItem("Target").Value);
+	                if (relId <= localPrefixedRelsCount)
+	                {
+	                    // Its one of the FIXED_RELS_PREFIX,
+	                    // so just keep it
+	                    log.Debug(relId + "<=" + localPrefixedRelsCount + "---> keeping");
+
+	                }
+	                else if (relId >
+	                    (relCount - localSuffixedRelsCount))
+	                {
+	                    // Its one of the FIXED_RELS_SUFFIX,
+	                    // so renumber (which is all we need to do with this)
+	                    log.Debug(relId + ">" + relCount + " - " + localSuffixedRelsCount);
+	                    int offset = relId - (relCount - localSuffixedRelsCount);
+	                    log.Debug(localPrefixedRelsCount + " + " + (constructedContent[i]).Count + " + " + offset);
+
+	                    int newnum = localPrefixedRelsCount
+	                        + (constructedContent[i]).Count
+	                        + offset;
+	                    if (rel_comment != null)
+	                    {
+	                        newnum++;
+	                    }
+
+	                    listParent.ChildNodes[i2 - 1].Attributes.GetNamedItem("Id").Value
+	                        = "rId" + newnum.ToString();
+	                    log.Debug("---> renumbered as " + newnum);
+
+	                }
+	                else
+	                {
+	                    // its one of the others, so delete it
+	                    XmlNode deletion = listParent.ChildNodes[i2 - 1];
+	                    listParent.RemoveChild(deletion);
+	                    log.Debug("---> deleted");
+
+	                }
+	            }
+
+	            if (rel_comment != null)
+	            {
+	                // We need a reference to the comments part;
+	                // we can do it at the end;
+	                // we have already given it its correct Id.
+	                XmlNode importedNode = parent.OwnerDocument.ImportNode(rel_comment, true);  // pkgB.PkgXmlDocument.ImportNode(n, true);
+	                listParent.AppendChild(importedNode);
+	            }
+	        }
+	        else
+	        {
+	            // Remove the children 
+	            for (int i2 = listParent.ChildNodes.Count; i2 > 0; i2--)
+	            {
+	                log.Debug(i2);
+	                XmlNode deletion = listParent.ChildNodes[i2 - 1];
+	                listParent.RemoveChild(deletion);
+	            }
+	        }
+
+	        for (int j2 = 0; j2 < (constructedContent[i]).Count; j2++)
+	        {
+	            log.Debug(j2);
+	            XmlNode n = (XmlNode)(constructedContent[i])[j2];
+	            XmlNode importedNode = parent.OwnerDocument.ImportNode(n, true);  // pkgB.PkgXmlDocument.ImportNode(n, true);
+	            listParent.AppendChild(importedNode);
+	        }
+	        log.Debug("RESULT: " + parent.OuterXml);
+
+	        // XmlNode parent comes from localSequencedParts,
+	        // but this comes from a *different* (earlier)
+	        // pkg object than pkgB.
+
+	        // So, unfortunately, we need to attach the node
+	        // in pkgB
+	        XmlNode replacementNode = pkgB.PkgXmlDocument.ImportNode(parent, true);  // pkgB.PkgXmlDocument.ImportNode(n, true);
+	        try
+	        {
+	            XmlNode nodeToReplace = pkgB.extractParts()[partName].XmlNode;
+	            nodeToReplace.ParentNode.ReplaceChild(replacementNode, nodeToReplace);
+	        }
+	        catch (KeyNotFoundException knfe)
+	        {
+	            // This is a new part, so just add it
+	            pkgB.PkgXmlDocument.DocumentElement.AppendChild(replacementNode);
+	        }
+	    }
+	}
+	
 
 	/* Apply registered transforms. */
 	public void applyUpdates(FetchRemoteEditsWorker worker) {
@@ -529,6 +1149,8 @@ public class Mediator {
             	FetchProgress.APPLYING_UPDATES, 
             	"Update " + (i++) + " of " + total);
 			if (t.getApplied()) // then it shouldn't be in the list ?!
+				// ? (unless it was injected by 
+		        // transmitLocalChanges, or hasn't previously been discarded)
 			{
 				if (stateDocx.getTransforms()
 						.getTSequenceNumberHighestFetched() > t
@@ -538,6 +1160,7 @@ public class Mediator {
 				continue;
 			}
 
+			// docx4all specific
 			if (changeset != t.getChangesetNumber()) {
 				changeset = t.getChangesetNumber();
 				refreshLocalDocument();
@@ -609,8 +1232,14 @@ public class Mediator {
 
 			resultCode = t.apply(this, stateDocx.getStateChunks());
 			t.setApplied(true);
+	        scanSdtForIdref(t);		
+	        changedChunks.Add(t.ID, t.ID);  // TODO, what if it is already there?	        
 			log.debug(t.getSequenceNumber() + " applied ("
 					+ t.getClass().getName() + ")");
+			
+	        // 2009 02 05 - Add it to currentStateChunks, so it is there
+	        // for updateRelatedParts
+	        currentStateChunks.Add(t.ID, stateDocx.StateChunks[t.ID]);			
 
 			if (resultCode >= 0) {
 				this.sdtChangeTypes.put(idStr,
@@ -632,6 +1261,10 @@ public class Mediator {
 
 			} else {
 				boolean conflict = isConflict(currentChunk, stateDocxSC);
+				
+	            // The update we will insert is one that contains the results
+	            // of comparing the server's SDT to the user's local one.
+	            // This will allow the user to see other people's changes.				
 				if (conflict) {
 					if (currentChunk.containsTrackedChanges()) {
 						/*
@@ -674,6 +1307,14 @@ public class Mediator {
 						TrackedChangeType.OtherUserChange);
 				this.sdtIdUndead.put(idStr, idStr);
 			}
+			
+	        // 2009 02 05 - Add it to currentStateChunks, so it is there
+	        // for updateRelatedParts
+	        try
+	        {
+	            currentStateChunks.Remove(t.ID);
+	        }
+	        catch (KeyNotFoundException knf) { }			
 
 			log.debug(t.getSequenceNumber() + " applied ("
 					+ t.getClass().getName() + ")");
@@ -727,6 +1368,9 @@ public class Mediator {
 			} else {
 				conflict = isConflict(currentChunk, stateDocxSC);
 
+	            // The update we will insert is one that contains the results
+	            // of comparing the server's SDT to the user's local one.
+	            // This will allow the user to see other people's changes.				
 				if (conflict) {
 					if (currentChunk.containsTrackedChanges()) {
 						/*
@@ -751,8 +1395,7 @@ public class Mediator {
 						t.markupChanges(currentChunk.getXml(), changeset);
 
 						// We could warn the user here that their stuff has been
-						// redlined
-						// as a deletion.
+						// redlined as a deletion.
 					}
 				} else if (matchedOnMarkedUpVersion(currentChunk, stateDocxSC)) {
 					// Compare it to non-marked up
@@ -765,6 +1408,8 @@ public class Mediator {
 
 			resultCode = t.apply(this, stateDocx.getStateChunks());
 			t.setApplied(true);
+	        scanSdtForIdref(t);
+	        changedChunks.Add(t.ID, t.ID);  // TODO, what if it is already there?
 
 			log.debug(t.getSequenceNumber() + " applied ("
 					+ t.getClass().getName() + ")");
@@ -776,6 +1421,15 @@ public class Mediator {
 				this.sdtChangeTypes.put(idStr,
 						TrackedChangeType.OtherUserChange);
 			}
+			
+	        // 2009 02 05 - Add it to currentStateChunks, so it is there
+	        // for updateRelatedParts
+	        try
+	        {
+	            currentStateChunks.Remove(t.ID);
+	        }
+	        catch (KeyNotFoundException knf) { }
+	        currentStateChunks.Add(t.ID, stateDocx.StateChunks[t.ID]);			
 
 			return resultCode;
 
@@ -785,37 +1439,56 @@ public class Mediator {
 		}
 	}
 
+	/// <summary>
+	/// Determine whether the user has changed this sdt, so that changes fetched from
+	/// the server have to be merged (and this marked as TrackedChangeType.Conflict).
+	/// If the only change is Word's renumbering of rel references, that doesn't
+	/// count.
+	/// </summary>
+	/// <param name="currentStateChunk"></param>
+	/// <param name="stateDocxSC"></param>
+	/// <returns></returns>	
 	boolean isConflict(StateChunk currentStateChunk, StateChunk stateDocxSC) {
 
 		boolean conflict = !(currentStateChunk.getXml().equals(stateDocxSC
 				.getXml()));
+		
+	    if (!conflict)
+	    {
+	        return false;
+	    }
+	    
+		log.debug("different!");
+		log.debug("stateDocx : " + stateDocxSC.getXml());
+		log.debug("current : " + currentStateChunk.getXml());
 
-		if (conflict) {
-			log.debug("different!");
-			log.debug("stateDocx : " + stateDocxSC.getXml());
-			log.debug("current : " + currentStateChunk.getXml());
+		// The StateChunks in stateDocx _never_ have markup
+		// applied to them (because nothing on the server
+		// can ever have markup in it).
+		// But currentStateChunks might have markup in them,
+		// if the user hasn't accepted changes.
+		// So, we do store the marked up string in stateDocx
+		// stateChunks, so we can perform the following test.
 
-			// The StateChunks in stateDocx _never_ have markup
-			// applied to them (because nothing on the server
-			// can ever have markup in it).
-			// But currentStateChunks might have markup in them,
-			// if the user hasn't accepted changes.
-			// So, we do store the marked up string in stateDocx
-			// stateChunks, so we can perform the following test.
-
-			if (currentStateChunk.getXml().equals(stateDocxSC.getMarkedUpSdt())) {
-				log.debug("Match on marked up versions");
-				return false;
-			} else {
-				log.debug("Still different!");
-				log.debug("stateDocx marked up: "
-						+ stateDocxSC.getMarkedUpSdt());
-				log.debug("current : " + currentStateChunk.getXml());
-				return true;
-			}
-		} else {
+		if (currentStateChunk.getXml().equals(stateDocxSC.getMarkedUpSdt())) {
+			log.debug("Match on marked up versions");
 			return false;
-		}
+		} 
+		
+		log.debug("Still different!");
+		log.debug("stateDocx marked up: "
+				+ stateDocxSC.getMarkedUpSdt());
+		log.debug("current : " + currentStateChunk.getXml());
+		
+	    // If all that has happened is that Word has renumbered the rel id's,
+	    // we don't flag that
+	    if (currentStateChunk.RelReferencesDropped.Equals(stateDocxSC.RelReferencesDropped))
+	    {
+	        log.Debug("Match with RelReferencesDropped.");
+	        return false;
+	    }
+		
+		return true;
 
 	}
 
@@ -832,6 +1505,111 @@ public class Mediator {
 		
 		return matched;
 	}
+	
+	
+	bool [] fetchParts = new bool[4];
+
+	static int PART_RELS = 0;
+	static int PART_COMMENTS = 1;
+	static int PART_FOOTNOTES = 2;
+	static int PART_ENDNOTES = 3;
+
+	/// <summary>
+	/// Sdt's which are altered through the application of a transform, 
+	/// during this round of apply updates.
+	/// </summary>
+	Dictionary<string, string> changedChunks;
+
+	void scanSdtForIdref(TransformAbstract t)
+	{
+	    // Look at this Insert | Update, to see
+	    // whether it contains any of these 
+	    // id's which Word renumbers in document order
+	    XmlNodeList nodeList;
+
+	    XmlNode sdt = t.SDT;
+	    XmlNamespaceManager nsmgr = new XmlNamespaceManager(sdt.OwnerDocument.NameTable);
+	    nsmgr.AddNamespace("w", Namespaces.WORDML_NAMESPACE);
+	    nsmgr.AddNamespace("r", Namespaces.RELATIONSHIPS_NAMESPACE);
+
+	    if (!fetchParts[PART_COMMENTS])
+	    {
+	        // <w:commentReference w:id="1" />
+	        nodeList = sdt.SelectNodes("//w:commentReference", nsmgr);
+	        if (nodeList.Count > 0)
+	        {
+	            fetchParts[PART_COMMENTS] = true;
+	            log.Debug("Detected comment");
+	            // TODO: iff this is the first comment, we need to adjust the rels part.
+	            // But for now:
+	            fetchParts[PART_RELS] = true;
+	        }
+	    }
+
+	    if (!fetchParts[PART_FOOTNOTES])
+	    {
+	        // <w:footnoteReference w:id="3" />
+	        nodeList = sdt.SelectNodes("//w:footnoteReference", nsmgr);
+	        if (nodeList.Count > 0)
+	        {
+	            fetchParts[PART_FOOTNOTES] = true;
+	            log.Debug("Detected footnote");
+	            // TODO: iff this is the first footnote, we need to adjust the rels part.
+	            // But for now:
+	            fetchParts[PART_RELS] = true;
+	        }
+	    }
+
+
+	    if (!fetchParts[PART_ENDNOTES])
+	    {
+	        // <w:endnoteReference w:id="2" />
+	        nodeList = sdt.SelectNodes("//w:endnoteReference", nsmgr);
+	        if (nodeList.Count > 0)
+	        {
+	            fetchParts[PART_ENDNOTES] = true;
+	            log.Debug("Detected endnote");
+	            // TODO: iff this is the first endnote, we need to adjust the rels part.
+	            // But for now:
+	            fetchParts[PART_RELS] = true;
+	        }
+	    }				
+
+	    if (!fetchParts[PART_RELS] )
+	    {
+	        // Only perform this test, if we don't already require this part
+
+	        // references to rels part
+	        // - images
+	        nodeList = sdt.SelectNodes("//@r:link", nsmgr);  
+	            /* We only expect @r:link, since all
+	             * @r:embed would have been converted when the 
+	             * sdt containing the image was transmitted
+	             * to the server by the other client. */
+
+	        if (nodeList.Count > 0)
+	        {
+	            fetchParts[PART_RELS] = true;
+	            log.Debug("Detected @r:embed");
+	        }
+	        else
+	        {
+	            // - hyperlinks (and w:object/v:imagedata, w:object/o:OLEObject)
+	            nodeList = sdt.SelectNodes("//@r:id", nsmgr);
+	            if (nodeList.Count > 0)
+	            {
+	                fetchParts[PART_RELS] = true;
+	                log.Debug("Detected hyperlink");
+	            }
+	        }
+
+	    }
+
+	}
+
+	/* ****************************************************************************************
+	*          ACCEPT REMOTE CHANGES
+	* **************************************************************************************** */
 
 	private int updateStartOffset;
 
@@ -910,6 +1688,20 @@ public class Mediator {
 	
 		// The list of transforms to be transmitted
 		List<T> transformsToSend = new ArrayList<T>();
+		
+		// Unlike Word Add-In, Docx4all doesn't do any pre-processing.  
+		// This is done elsewhere.
+		// So, when an image is added, making that External needs to
+		// be done elsewhere as well. See Word Add-In line ~ 2019
+		
+	    // PreTransmit also had the effect of externalising images.
+	    // But, we have to actually save them on the server before
+	    // they will be available to the replaced document below!
+	    foreach (DetachedImagePart dip in detachedImages)
+	    {
+	        log.Debug( ws.injectPart(stateDocx.DocID, 
+	            dip.Name, "0", dip.ContentType, dip.Data) );
+	    }
 	
 	    /*
 	     * Handle remote deleted chunks.
@@ -1022,7 +1814,37 @@ public class Mediator {
         	"Fetching remote document structure");
         
 	    String serverSkeletonStr = ws.getSkeletonDocument(stateDocx.getDocID());
+	    log.Debug(serverSkeletonStr);
+
 	    Skeleton serverSkeleton = new Skeleton(serverSkeletonStr);
+	    
+	    // Added to docx4all 2009 03 05
+	    bool structuralTransformsPending = !serverSkeleton.init(
+	            stateDocx.Transforms.TSequenceNumberHighestFetched);
+
+
+	        /* When we detect a difference, we need to know whether
+	         * this is a local change, or a remote one which we haven't
+	         * applied yet.
+	         * 
+	         * Given that we have to work with the latest server skeleton,
+	         * we have to rely on it to be able to tell us that.
+	         * (If we could use an older one, then that ambiguity 
+	         *  would go away.  And we could keep the old one around
+	         *  for this purpose, but code which used the old one to
+	         *  resolve such ambiguities would probably be a little
+	         *  harder to understand - though with the advantage that
+	         *  maybe we could continue - TODO think this through ..)
+	         * 
+	         * So, if there are any pending remote moves/inserts/deletes,
+	         * require the user to apply these before transmitting:
+	         */
+	        if (structuralTransformsPending)
+	        {
+	            bw.ReportProgress(0, "Please fetch remote updates, then try again.");
+	            return;
+	        }
+	    
 	
 	    // OK, compare the inferredSkeleton to serverSkeleton
         worker.setProgress(
@@ -1061,6 +1883,13 @@ public class Mediator {
 					org.docx4j.wml.SdtBlock sdt = 
 						(org.docx4j.wml.SdtBlock) ml.getDocxObject();
 					StateChunk chunkCurrent = new StateChunk(sdt);
+					
+		            if (chunkCurrent.IsNew)
+		            {
+		                log.Debug(chunkCurrent.ID + " IsNew, so ignoring");
+		                continue;
+		            }					
+					
 					String sdtId = chunkCurrent.getIdAsString();
 
 					StateChunk chunkOlder = stateDocx.getStateChunks().get(sdtId);
@@ -1138,6 +1967,8 @@ public class Mediator {
 					transformsToSend.add(t);
 				}
 			}// for (idx) loop
+			
+	        transmitOtherUpdates(pkg);  // TODO - move this, since its a separate ws call.			
 	    
 			if (transformsToSend.isEmpty()) {
 				boolean success = false;
@@ -1201,16 +2032,31 @@ public class Mediator {
         
 			log.debug("Checkin also returned results");
 
-			// We do what is necessary to in effect apply the changes immediately,
-			// so there is no issue with the user making changes before it
-			// is applied, and those changes getting lost
-			// In strict theory, we shouldn't do this, because they'll end
-			// up in the list in the wrong order.
-			// But we actually know there are no conflicting transforms with
-			// lower snums, so it isn't a problem.
-			// Remember the indocument controls still have the dodgy StyleSeparator,
-			// so we will have to make allowance for that later
-			// (that is, until we're able to transform them away ...)
+	        /* Design choice:
+	         * 
+	         * Either you chunk locally, in which case, you don't have to apply
+	         * transforms which are local in origin, 
+	         * 
+	         * .. or you leave it to the 
+	         * server to do the chunking, in which case you do have to apply
+	         * the resulting transforms.
+	         * 
+	         * You have to do one or the other to apply the changes immediately,
+	         * so there is no issue with the user making changes before it
+	         * is applied, and those changes getting lost
+	         * 
+	         * I've opted to chunk locally.  
+	         * 
+	         * If one was to leave it to the server to do the chunking, then
+	         * apply the resulting transforms, you'd have to make sure you
+	         * had the corresponding server skeleton doc, so any insertions 
+	         * were in the correct place.
+	         * 
+	         */
+	        // In strict theory, we shouldn't do this, because they'll end 
+	        // up in the list in the wrong order.
+	        // But we actually know there are no conflicting transforms with
+	        // lower snums, so it isn't a problem.
 			Boolean appliedTrue = true;
 			Boolean localTrue = true; // means it wouldn't be treated as a conflict
 			Boolean updateHighestFetchedFalse = false;
@@ -1330,7 +2176,8 @@ public class Mediator {
 		Skeleton inferredSkeleton, 
 		Skeleton serverSkeleton) {
 		
-		org.plutext.transforms.ObjectFactory transformsFactory = new org.plutext.transforms.ObjectFactory();
+		org.plutext.transforms.ObjectFactory transformsFactory 
+			= new org.plutext.transforms.ObjectFactory();
 
 		DiffEngine de = new DiffEngine();
 		de.processDiff(inferredSkeleton, serverSkeleton);
@@ -1611,6 +2458,100 @@ public class Mediator {
 			}
 		}
 	}
+	
+	void transmitOtherUpdates(Pkg currentPkg)
+	{
+	    Dictionary<string, Part> knownParts = stateDocx.Parts;
+
+	    Dictionary<string, Part> discoveredParts = currentPkg.extractParts();
+
+	    // DELETED PART - are there any KnownParts which have now gone?
+	    foreach (KeyValuePair<string, Part> kvp in knownParts)
+	    {
+	        Part knownPart = kvp.Value; 
+	        // do we know about it?
+	        try
+	        {
+	            Part discoveredPart = discoveredParts[knownPart.Name];
+
+	            // So we do know about it
+	            // That's fine - the foreach below will see whether it has changed?
+
+	        }
+	        catch (KeyNotFoundException knf)
+	        {
+	            // This part has been deleted
+	            log.Warn(knownPart.Name + " no longer present locally; delete it on server?");
+	            // TODO removePart(PartName)
+
+	        }
+	    }
+
+
+	    // INSERTED/UPDATED parts
+	    foreach (KeyValuePair<string, Part> kvp in discoveredParts)
+	    {
+	        Part discoveredPart = kvp.Value;
+	        log.Error("Considering " + discoveredPart.Name);
+	        // do we know about it?
+	        try
+	        {
+	            Part knownPart = knownParts[discoveredPart.Name];
+
+	            // So we do know about it
+	            // - has it changed?
+	            if (knownPart.Xml.Equals(discoveredPart.Xml))
+	            {
+	                log.Debug("No changes detected in: " + knownPart.Name);
+	            }
+	            else
+	            {
+	                // Similar to what we do when we send an update to an SDT,
+	                // we send this with our current version number.
+	                // All being well, the server will respond with a new version
+	                // number.
+
+	                string localVersion = stateDocx.PartVersionList.getVersion(
+	                    discoveredPart.Name);
+
+	                string resultingVersion = ws.injectPart(stateDocx.DocID, 
+	                    discoveredPart.Name, localVersion, discoveredPart.ContentType, discoveredPart.UnwrappedXml);
+	                stateDocx.PartVersionList.setVersion(discoveredPart.Name, resultingVersion);
+
+	                // and update our record of the part in StateDocx
+	                // (since any change from this new baseline is something we will want to transmit)
+	                knownParts[discoveredPart.Name] = discoveredPart;
+	            }
+
+	        }
+	        catch (KeyNotFoundException knf)
+	        {
+	            // This must be a new part, so version is 0.
+	            string resultingVersion = ws.injectPart(stateDocx.DocID, discoveredPart.Name, 
+	                "0", discoveredPart.ContentType, discoveredPart.UnwrappedXml);
+
+	            // expect that to be 1?  well, no: the first version on the server will be numbered 0.
+	            if (!resultingVersion.Equals("0"))
+	            {
+	                log.Error("expected this be to version 0 ?!");
+	            }
+	            stateDocx.PartVersionList.setVersion(discoveredPart.Name, resultingVersion);
+
+	            // and update our record of the part in StateDocx
+	            // (since any change from this new baseline is something we will want to transmit)
+	            stateDocx.Parts.Add(discoveredPart.Name, discoveredPart);
+
+	            // note that _rels of this which is a target will get handled 
+	            // automatically, because we will have detected a change to that part as well,
+	            // and sent it ...
+
+	        }
+	    }
+
+
+	            
+	}
+	
 
 	void transmitStyleUpdates() throws RemoteException {
 		log.debug(stateDocx.getDocID() + ".. .. transmitStyleUpdates");
