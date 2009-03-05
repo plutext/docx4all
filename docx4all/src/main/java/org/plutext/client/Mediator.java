@@ -32,8 +32,15 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.namespace.NamespaceContext;
+import javax.xml.namespace.QName;
 import javax.xml.rpc.ServiceException;
 import javax.xml.transform.stream.StreamSource;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 
 import org.alfresco.webservice.authentication.AuthenticationFault;
 import org.alfresco.webservice.util.AuthenticationUtils;
@@ -49,12 +56,16 @@ import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.util.DocUtil;
 import org.docx4all.util.XmlUtil;
 import org.docx4all.vfs.WebdavUri;
+import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.SdtBlockML;
 import org.docx4j.XmlUtils;
+import org.docx4j.jaxb.NamespacePrefixMapper;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
+import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.wml.Tag;
 import org.docx4j.xmlPackage.Part;
+import org.jaxen.SimpleNamespaceContext;
 import org.plutext.Context;
 import org.plutext.client.diffengine.DiffEngine;
 import org.plutext.client.diffengine.DiffResultSpan;
@@ -74,6 +85,8 @@ import org.plutext.client.wrappedTransforms.TransformUpdate;
 import org.plutext.transforms.Transforms;
 import org.plutext.transforms.Changesets.Changeset;
 import org.plutext.transforms.Transforms.T;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 /**
  * This class is the real workhorse.
@@ -139,11 +152,36 @@ public class Mediator {
 
 		this.textPane = textPane;
 		this.stateDocx = new StateDocx(doc);
+		
+		
 	}
 
 	private PlutextWebService ws = null;
 
 	private Skeleton currentClientSkeleleton = null;
+
+	private static XPathExpression[] xpaths; 
+	
+	static {
+		
+		XPathFactory factory = XPathFactory.newInstance();
+		XPath xPath = factory.newXPath();
+		
+		NamespacePrefixMapper nsContext = new NamespacePrefixMapper(); 
+		
+		xPath.setNamespaceContext(nsContext);
+		
+		xpaths = new XPathExpression[4];
+	    try {
+			xpaths[0] =  xPath.compile(".//@r:embed | .//@r:link | .//@r:id | ./descendant::w:commentReference[1]");
+			xpaths[1] =  xPath.compile(".//w:commentReference/@w:id | .//w:commentRangeStart/@w:id | .//w:commentRangeEnd/@w:id");
+			xpaths[2] =  xPath.compile(".//w:footnoteReference/@w:id");
+			xpaths[3] =  xPath.compile(".//w:endnoteReference/@w:id");
+		} catch (XPathExpressionException e) {
+			e.printStackTrace();
+		}
+		
+	}
 
 	/***************************************************************************
 	 * SESSION MANAGEMENT 
@@ -567,14 +605,14 @@ public class Mediator {
 
 
 	    // invoke web service - returns the part and its version number.
-	    WebReference.ArrayOf_xsd_string[] weirdParts = ws.getParts(stateDocx.getDocID(), partNames);
+	    String[][] weirdParts = ws.getParts(stateDocx.getDocID(), partNames);
 
-	    log.Debug("number of weird parts: " + weirdParts.Length);
+	    log.debug("number of weird parts: " + weirdParts.length);
 
 	    SequencedPart[] serverSequencedParts = new SequencedPart[max];
 	    for (int i = 0; i < max; i++)
 	    {
-	        String[] itemField = weirdParts[i].item;
+	        String[] itemField = weirdParts[i];
 
 	        log.debug("weirdParts[" + i + "] length = " + itemField.length );
 
@@ -595,7 +633,7 @@ public class Mediator {
 
 	            // In anticipation of success in what follows, 
 	            // set the version of this part in StateDocx 
-	            stateDocx.PartVersionList.setVersion( sp.Name, itemField[0]);
+	            stateDocx.getPartVersionList().setVersion( sp.getName(), itemField[0]);
 	            //sp.Version = itemField[0];
 
 	            // and update our record of the part in StateDocx
@@ -654,19 +692,24 @@ public class Mediator {
 	     *  - Sdt's which we inserted/updated will reference the part we just fetched.
 	    */
 
-	    // Go through the document .. 
-	    // in this case that means pkgB, since the document itself
-	    // has not yet been updated.  We can't go through the state chunks,
-	    // because they aren't in document order.
-
+	    // Go through the document ..
+	    
 	    // Trick here is to run a single transform which gives us
 	    // the data we want
-	    log.Debug("pkgB: " + pkgB.PkgXmlDocument.OuterXml);
-
-
-	    XmlDocument referenceMap = pkgB.getReferenceMap();
-
-	    log.Debug("referenceMap: " + referenceMap.OuterXml);
+	    
+	    WordMLDocument doc = getWordMLDocument();
+		DocumentML documentML = (DocumentML) doc.getDefaultRootElement();
+		MainDocumentPart mdp = documentML.getWordprocessingMLPackage().getMainDocumentPart();
+		
+		org.w3c.dom.Document mdpW3C = XmlUtils.marshaltoW3CDomDocument( mdp.getJaxbElement() );
+		
+		java.io.InputStream xslt = org.docx4j.utils.ResourceUtils.getResource("org/plutext/client/ReferenceMap.xslt");		
+		javax.xml.transform.dom.DOMResult domResult = new javax.xml.transform.dom.DOMResult();
+		
+		XmlUtils.transform(mdpW3C, xslt, null, domResult);
+		
+//	    XmlDocument referenceMap = pkgB.getReferenceMap();
+//	    log.Debug("referenceMap: " + referenceMap.OuterXml);
 
 	    /* Something like:
 	     * 
@@ -701,7 +744,10 @@ public class Mediator {
 	                </sdt>
 	     */
 
-	    XmlNodeList sdts = referenceMap.FirstChild.ChildNodes;
+	    //XmlNodeList sdts = referenceMap.FirstChild.ChildNodes;
+		
+		NodeList sdts = domResult.getNode().getChildNodes();
+		
 	    // nb: std's aren't live, in the sense that they
 	    // only come from output of a transform.
 	    // They're not even sdt's as such - see the example XML above.
@@ -712,34 +758,67 @@ public class Mediator {
 	    // get referenced objects from local | remote part as appropriate
 	    for (int i = 0; i < max; i++)
 	    {
-	        String partName = serverSequencedParts[i].Name; // as good a way as any to get the part name
+	        String partName = serverSequencedParts[i].getName(); // as good a way as any to get the part name
 	        log.debug("Constructing content for Part: " + i + " .. " + partName);
 
 	        constructedContent[i] = new ArrayList();
 
-	        foreach (XmlNode sdt in sdts)
-	        {
-	            log.Debug(sdt.OuterXml);
+	        //foreach (XmlNode sdt in sdts)
+            for (int nli=0 ; nli < sdts.getLength() ; nli++ )
+            {
+            	
+            	Node sdt = sdts.item(nli);
+	            //log.Debug(sdt.OuterXml);
+            	
+	            String sdtId = sdt.getFirstChild().getNodeValue();
+	            log.debug(sdtId);
 
-	            String sdtId = sdt.ChildNodes[0].InnerText;
+                Object dummy = changedChunks.get(sdtId);
+                if (dummy == null) {
+                	
+	                log.debug("id: " + sdtId + " - references local SequencedPart");
 
-
-	            try
-	            {
+	                NodeList idrefs = sdt.getChildNodes().item(1 + mapping.get(i)).getChildNodes();
+	                //foreach (XmlNode idref in sdt.ChildNodes[1 + mapping[i]])
+	                for (int nl2i=0 ; nl2i < idrefs.getLength() ; nl2i++ )
+	                {
+	                	
+	                	Node idref = idrefs.item(nl2i); 
+	                
+	                    // An Sdt which we didn't update, will reference the existing part
+	                    if ( localSequencedParts[i] instanceof SequencedPartRels )
+	                    {
+	                        constructedContent[i].add(
+	                            ((SequencedPartRels)localSequencedParts[i]).getNodeById(
+	                                idref.getNodeValue()).cloneNode(true));
+	                    }
+	                    else
+	                    {
+	                        constructedContent[i].add(
+	                            localSequencedParts[i].getNodeByIndex(
+	                            		Integer.parseInt(idref.getNodeValue())
+	                                ));
+	                        log.debug("Added to constructedContent[" + i);
+	                    }
+	                }
+                } else {
 
 	                // An Sdt which we inserted/updated will reference the part we just fetched
 	                // (assuming it contains rel idrefs).
 	                // If we didn't just insert/update the sdt, we branch to KeyNotFoundException
-	                Object dummy = changedChunks.get(sdtId);
 
 	                log.debug("id: " + sdtId + " - references serverSequencedPart");
-	                foreach (XmlNode idref in sdt.ChildNodes[1 + mapping.get(i)])
+	                NodeList idrefs = sdt.getChildNodes().item(1 + mapping.get(i)).getChildNodes();
+	                //foreach (XmlNode idref in sdt.ChildNodes[1 + mapping.get(i)])
+	                for (int nl2i=0 ; nl2i < idrefs.getLength() ; nl2i++ )
 	                {
-	                    if ((serverSequencedParts[i]).GetType().Name.Equals("SequencedPartRels"))
+	                	
+	                	Node idref = idrefs.item(nl2i); 
+	                    if ( serverSequencedParts[i] instanceof SequencedPartRels )
 	                    {
-	                        constructedContent[i].Add(
+	                        constructedContent[i].add(
 	                            ((SequencedPartRels)serverSequencedParts[i]).getNodeById(
-	                                idref.InnerText).CloneNode(true));
+	                                idref.getNodeValue()).cloneNode(true));
 	                        // Clone, so that if there 2 references to the same image,
 	                        // we get distinct copies of the rel node, which we can 
 	                        // number as we choose.  Without the distinct copies,
@@ -748,38 +827,14 @@ public class Mediator {
 	                    }
 	                    else
 	                    {
-	                        constructedContent[i].Add(
+	                        constructedContent[i].add(
 	                            serverSequencedParts[i].getNodeByIndex(
-	                                int.Parse(idref.InnerText)
+	                                Integer.parseInt(idref.getNodeValue())
 	                                ));
-	                        log.Debug("Added to constructedContent[" + i);
+	                        log.debug("Added to constructedContent[" + i);
 	                    }
 	                }
 
-	            }
-	            catch (KeyNotFoundException knf)
-	            {
-
-	                log.Debug("id: " + sdtId + " - references local SequencedPart");
-
-	                foreach (XmlNode idref in sdt.ChildNodes[1 + mapping[i]])
-	                {
-	                    // An Sdt which we didn't update, will reference the existing part
-	                    if ((localSequencedParts[i]).GetType().Name.Equals("SequencedPartRels"))
-	                    {
-	                        constructedContent[i].Add(
-	                            ((SequencedPartRels)localSequencedParts[i]).getNodeById(
-	                                idref.InnerText).CloneNode(true));
-	                    }
-	                    else
-	                    {
-	                        constructedContent[i].Add(
-	                            localSequencedParts[i].getNodeByIndex(
-	                                int.Parse(idref.InnerText)
-	                                ));
-	                        log.Debug("Added to constructedContent[" + i);
-	                    }
-	                }
 	            }
 	        }
 	    }
@@ -789,21 +844,15 @@ public class Mediator {
 	    // 2. renumber the id's in (i) document order and (ii) list, 
 	    // and (iii) build an actual part
 
-	    // .. here we want to be manipulating the 'live' XmlDocument
-	    // which IS the Pkg
+	    
+	    // Use org.w3c.dom.Document mdpW3C	    
+	    // .. here we want to be manipulating the 'live' document
+	    // so when we are finished, we'll need to unmarshall that,
+	    // then do whatever is necessary for docx4all to use the
+	    // unmarshalled thing
+	    
 
-	    XmlNamespaceManager nsmgr = new XmlNamespaceManager(pkgB.PkgXmlDocument.NameTable);
-	    nsmgr.AddNamespace("w", Namespaces.WORDML_NAMESPACE);
-	    nsmgr.AddNamespace("r", Namespaces.RELATIONSHIPS_NAMESPACE);
-	    nsmgr.AddNamespace("pkg", Namespaces.PKG_NAMESPACE);
-
-	    XmlNode mdp = pkgB.PkgXmlDocument.SelectSingleNode("//pkg:part[@pkg:name='/word/document.xml']", nsmgr);
-
-	    string[] xpaths = {
-	    ".//@r:embed | .//@r:link | .//@r:id | ./descendant::w:commentReference[1]", 
-	    ".//w:commentReference/@w:id | .//w:commentRangeStart/@w:id | .//w:commentRangeEnd/@w:id", 
-	    ".//w:footnoteReference/@w:id", 
-	    ".//w:endnoteReference/@w:id"}; // NB same order as Pkg.sequencableParts
+ // NB same order as Pkg.sequencableParts
 
 	    // NB XPath spec says: the location path //para[1] does not mean the same as the 
 	    // location path /descendant::para[1].
@@ -817,34 +866,34 @@ public class Mediator {
 	    // Note: @r:id will match images, hyperlinks, object related stuff,
 	    // and header/footerReference
 
-	    XmlNode rel_comment = null;
+	    Node rel_comment = null;
 
 	    // for each of the parts we are dealing with, 
 	    for (int i = 0; i < max; i++)
 	    {
-	        String partName = serverSequencedParts[i].Name; // as good a way as any to get the part name
+	        String partName = serverSequencedParts[i].getName(); // as good a way as any to get the part name
 	        // Get a NodeList of the id's in the document
 	        // .. for this we need an XPath expression particular
 	        // to that type ...
-	        String xpath = xpaths[mapping[i]];
-	        log.Debug("Renumbering for XPath: " + xpath + " .. (" + partName);
-
-	        XmlNodeList nodeList = mdp.SelectNodes(xpath, nsmgr);
-
+	        XPathExpression xpath = xpaths[mapping.get(i)];
+	        log.debug("Renumbering for XPath: " + xpath.toString() + " .. (" + partName);
+	        
+	        NodeList nodeList = (NodeList)xpath.evaluate(mdpW3C, XPathConstants.NODESET);
+	        
 	        Boolean correctOffsetForCommentReference = false;
 
 	        // Renumber
-	        for (int k = 0; k < nodeList.Count; k++)
+	        for (int k = 0; k < nodeList.getLength(); k++)
 	        {
-	            log.Debug("Node k: " + k);
+	            log.debug("Node k: " + k);
 
-	            if (partName.Equals("/word/_rels/document.xml.rels"))
+	            if (partName.equals("/word/_rels/document.xml.rels"))
 	            {
 	                // First, a sanity check
 	                if (((SequencedPartRels)(serverSequencedParts[i])).getPrefixedRelsCount()
 	                        != ((SequencedPartRels)(localSequencedParts[i])).getPrefixedRelsCount())
 	                {
-	                    log.Error("Invalid assumption - prefixed rels have changed!");
+	                    log.error("Invalid assumption - prefixed rels have changed!");
 
 	                    // TODO - dump the 2 parts
 	                }
@@ -853,8 +902,8 @@ public class Mediator {
 	                // id is a 1-based index.
 	                int idNum = k + 1 + ((SequencedPartRels)(localSequencedParts[i])).getPrefixedRelsCount();
 
-	                log.Debug(nodeList[k].Name + ", " + nodeList[k].LocalName);
-	                if (nodeList[k].LocalName.Equals("commentReference"))
+	                log.debug(nodeList.item(k).getLocalName());
+	                if (nodeList.item(k).getLocalName().equals("commentReference"))
 	                // Name = w:commentReference, LocalName = commentReference
 	                {
 	                    // Special case - this is the first spot at which we
@@ -895,47 +944,47 @@ public class Mediator {
 	                    if (rel_comment == null)
 	                    {
 	                        // Comments part does not exist locally
-	                        rel_comment = ((SequencedPartRels)(serverSequencedParts[i])).getNodeByType("comments").CloneNode(true);
+	                        rel_comment = ((SequencedPartRels)(serverSequencedParts[i])).getNodeByType("comments").cloneNode(true);
 	                    }
 	                    else
 	                    {
 	                        // We know it exists, so let's use a clone of it
-	                        rel_comment = ((SequencedPartRels)(localSequencedParts[i])).getNodeByType("comments").CloneNode(true);
+	                        rel_comment = ((SequencedPartRels)(localSequencedParts[i])).getNodeByType("comments").cloneNode(true);
 	                    }
-	                    rel_comment.Attributes.GetNamedItem("Id").Value = rel_comment_id_new;
+	                    rel_comment.getAttributes().getNamedItem("Id").setNodeValue(rel_comment_id_new);
 	                }
 	                else
 	                {
-	                    log.Debug("Setting rId" + idNum.ToString() );
+	                    log.debug("Setting rId" + idNum );
 	                    // Renumber in the document
-	                    nodeList[k].Value = "rId" + idNum.ToString();
+	                    nodeList.item(k).setNodeValue( "rId" + idNum);
 
 	                    // Number the constructed content the same
-	                    XmlNode n;
+	                    Node n;
 	                    if (!correctOffsetForCommentReference)
 	                    {
 	                        // Up to the point in the nodelist where
 	                        // we encountered the single comment reference
-	                        n = (XmlNode)(constructedContent[i])[k];
+	                        n = (Node)(constructedContent[i].get(k));
 	                    }
 	                    else
 	                    {
 	                        // After the comment reference
-	                        n = (XmlNode)(constructedContent[i])[k - 1];
+	                        n = (Node)(constructedContent[i].get(k-1));
 	                    }
-	                    n.Attributes.GetNamedItem("Id").Value = "rId" + idNum.ToString();  // No Namespaces.WORDML_NAMESPACE
+	                    n.getAttributes().getNamedItem("Id").setNodeValue("rId" + idNum);  // No Namespaces.WORDML_NAMESPACE
 
 	                }
 	            }
-	            else if (partName.Equals("/word/footnotes.xml")
-	                || partName.Equals("/word/endnotes.xml"))
+	            else if (partName.equals("/word/footnotes.xml")
+	                || partName.equals("/word/endnotes.xml"))
 	            {
 
 	                // footnotes & endnotes 0 & 1 are artificial;
 	                //    the first one in the document is #2 ...
 
 	                // Renumber in the document
-	                nodeList[k].Value = (k + 2).ToString();
+	                nodeList.item(k).setNodeValue( Integer.toString(k + 2));
 	                /* The existing value should already have been changed to match
 	                 * the value on the server, so any change is something to be
 	                 * transmitted.
@@ -949,8 +998,8 @@ public class Mediator {
 	                 */ 
 
 	                // Number the constructed content the same
-	                XmlNode n = (XmlNode)(constructedContent[i])[k + 2];
-	                n.Attributes.GetNamedItem("id", Namespaces.WORDML_NAMESPACE).Value = (k + 2).ToString();
+	                Node n = (Node)constructedContent[i].get(k + 2);
+	                n.getAttributes().getNamedItemNS("id", Namespaces.WORDML_NAMESPACE).setNodeValue( Integer.toString(k + 2) );
 	            }
 	            else  // comments, and hmm, what might else this catch all catch?
 	            {
@@ -972,14 +1021,15 @@ public class Mediator {
 	                // Renumber in the document - 3 times  
 	                // FIXME: what if its not a comment??
 	                int cid = (int)(k / 3);
-	                log.Debug("Comment @id: " + cid);
-	                nodeList[k].Value = cid.ToString();
+	                log.debug("Comment @id: " + cid);
+	                nodeList.item(k).setNodeValue( Integer.toString(cid) );
 
 	                // Number the constructed content the same - once
 	                if (cid == (k / 3))
 	                {
-	                    XmlNode n = (XmlNode)(constructedContent[i])[cid];
-	                    n.Attributes.GetNamedItem("id", Namespaces.WORDML_NAMESPACE).Value = cid.ToString();
+	                    Node n = (Node)constructedContent[i].get(cid);
+	                    n.getAttributes().getNamedItemNS("id", Namespaces.WORDML_NAMESPACE).setNodeValue(
+	                    		Integer.toString(cid));
 	                }
 
 	            }
@@ -989,23 +1039,23 @@ public class Mediator {
 	        // Build the part
 	        // .. we have a list of nodes, some of which are foreign
 	        // We need to attach them 
-	        XmlNode parent = localSequencedParts[i].XmlNode;
-	        XmlNode listParent = parent.FirstChild.FirstChild;
+	        Node parent = localSequencedParts[i].getXmlNode();
+	        Node listParent = parent.getFirstChild().getFirstChild();
 
-	        if (partName.Equals("/word/_rels/document.xml.rels"))
+	        if (partName.equals("/word/_rels/document.xml.rels"))
 	        {
 	            int localPrefixedRelsCount = ((SequencedPartRels)(localSequencedParts[i])).getPrefixedRelsCount();
 	            int localSuffixedRelsCount = ((SequencedPartRels)(localSequencedParts[i])).getSuffixedRelsCount();
-	            log.Debug("localPrefixedRelsCount = " + localPrefixedRelsCount);
-	            log.Debug("localSuffixedRelsCount = " + localSuffixedRelsCount);
+	            log.debug("localPrefixedRelsCount = " + localPrefixedRelsCount);
+	            log.debug("localSuffixedRelsCount = " + localSuffixedRelsCount);
 
-	            log.Debug(listParent.OuterXml);
+	            //log.debug(listParent.OuterXml);
 
 	            // Sanity check - as good to do it here as anywhere
 	            if (((SequencedPartRels)(serverSequencedParts[i])).getSuffixedRelsCount()
 	                    != localSuffixedRelsCount)
 	            {
-	                log.Error("Invalid assumption - suffixed rels have changed!");
+	                log.error("Invalid assumption - suffixed rels have changed!");
 
 	                // TODO - dump the 2 parts
 	            }
@@ -1014,20 +1064,20 @@ public class Mediator {
 	            // but Remove the other children 
 	            // These *aren't stored in order*, so we can't just do:
 	            // XmlNode deletion = listParent.ChildNodes[i2 - 1];
-	            int relCount = listParent.ChildNodes.Count;
+	            int relCount = listParent.getChildNodes().getLength();
 	            for (int i2 = relCount; i2 > 0; i2--)
 	            {
 
 	                // extract number from rIdnn
-	                String idtmp = listParent.ChildNodes[i2 - 1].Attributes.GetNamedItem("Id").Value;
-	                int relId = int.Parse(idtmp.Substring(3));
+	                String idtmp = listParent.getChildNodes().item(i2 - 1).getAttributes().getNamedItem("Id").getNodeValue();
+	                int relId =  Integer.parseInt(idtmp.substring(3));
 
-	                log.Debug(idtmp + " ( " + listParent.ChildNodes[i2 - 1].Attributes.GetNamedItem("Target").Value);
+	                log.debug(idtmp + " ( " + listParent.getChildNodes().item(i2 - 1).getAttributes().getNamedItem("Target").getNodeValue());
 	                if (relId <= localPrefixedRelsCount)
 	                {
 	                    // Its one of the FIXED_RELS_PREFIX,
 	                    // so just keep it
-	                    log.Debug(relId + "<=" + localPrefixedRelsCount + "---> keeping");
+	                    log.debug(relId + "<=" + localPrefixedRelsCount + "---> keeping");
 
 	                }
 	                else if (relId >
@@ -1035,29 +1085,29 @@ public class Mediator {
 	                {
 	                    // Its one of the FIXED_RELS_SUFFIX,
 	                    // so renumber (which is all we need to do with this)
-	                    log.Debug(relId + ">" + relCount + " - " + localSuffixedRelsCount);
+	                    log.debug(relId + ">" + relCount + " - " + localSuffixedRelsCount);
 	                    int offset = relId - (relCount - localSuffixedRelsCount);
-	                    log.Debug(localPrefixedRelsCount + " + " + (constructedContent[i]).Count + " + " + offset);
+	                    log.debug(localPrefixedRelsCount + " + " + (constructedContent[i]).size() + " + " + offset);
 
 	                    int newnum = localPrefixedRelsCount
-	                        + (constructedContent[i]).Count
+	                        + (constructedContent[i]).size()
 	                        + offset;
 	                    if (rel_comment != null)
 	                    {
 	                        newnum++;
 	                    }
 
-	                    listParent.ChildNodes[i2 - 1].Attributes.GetNamedItem("Id").Value
-	                        = "rId" + newnum.ToString();
-	                    log.Debug("---> renumbered as " + newnum);
+	                    listParent.getChildNodes().item(i2 - 1).getAttributes().getNamedItem("Id").setNodeValue(
+	                        "rId" + newnum );
+	                    log.debug("---> renumbered as " + newnum);
 
 	                }
 	                else
 	                {
 	                    // its one of the others, so delete it
-	                    XmlNode deletion = listParent.ChildNodes[i2 - 1];
-	                    listParent.RemoveChild(deletion);
-	                    log.Debug("---> deleted");
+	                    Node deletion = listParent.getChildNodes().item(i2 - 1);
+	                    listParent.removeChild(deletion);
+	                    log.debug("---> deleted");
 
 	                }
 	            }
@@ -1067,41 +1117,42 @@ public class Mediator {
 	                // We need a reference to the comments part;
 	                // we can do it at the end;
 	                // we have already given it its correct Id.
-	                XmlNode importedNode = parent.OwnerDocument.ImportNode(rel_comment, true);  // pkgB.PkgXmlDocument.ImportNode(n, true);
-	                listParent.AppendChild(importedNode);
+	                Node importedNode = parent.getOwnerDocument().importNode(rel_comment, true);  // pkgB.PkgXmlDocument.ImportNode(n, true);
+	                listParent.appendChild(importedNode);
 	            }
 	        }
 	        else
 	        {
 	            // Remove the children 
-	            for (int i2 = listParent.ChildNodes.Count; i2 > 0; i2--)
+	            for (int i2 = listParent.getChildNodes().getLength(); i2 > 0; i2--)
 	            {
-	                log.Debug(i2);
-	                XmlNode deletion = listParent.ChildNodes[i2 - 1];
-	                listParent.RemoveChild(deletion);
+	                log.debug(i2);
+	                Node deletion = listParent.getChildNodes().item(i2 - 1);
+	                listParent.removeChild(deletion);
 	            }
 	        }
 
-	        for (int j2 = 0; j2 < (constructedContent[i]).Count; j2++)
+	        for (int j2 = 0; j2 < (constructedContent[i]).size(); j2++)
 	        {
-	            log.Debug(j2);
-	            XmlNode n = (XmlNode)(constructedContent[i])[j2];
-	            XmlNode importedNode = parent.OwnerDocument.ImportNode(n, true);  // pkgB.PkgXmlDocument.ImportNode(n, true);
-	            listParent.AppendChild(importedNode);
+	            log.debug(j2);
+	            Node n = (Node)constructedContent[i].get(j2);
+	            Node importedNode = parent.getOwnerDocument().importNode(n, true);  // pkgB.PkgXmlDocument.ImportNode(n, true);
+	            listParent.appendChild(importedNode);
 	        }
-	        log.Debug("RESULT: " + parent.OuterXml);
+	        //log.Debug("RESULT: " + parent.OuterXml);
 
-	        // XmlNode parent comes from localSequencedParts,
-	        // but this comes from a *different* (earlier)
-	        // pkg object than pkgB.
-
-	        // So, unfortunately, we need to attach the node
-	        // in pkgB
-	        XmlNode replacementNode = pkgB.PkgXmlDocument.ImportNode(parent, true);  // pkgB.PkgXmlDocument.ImportNode(n, true);
+	        // Here is where we have to replace the relevant xml node in the
+	        // part, and then unmarshall that to update the underlying
+	        // JAXB Part (and then do whatever we need to so that
+	        // docx4all updates its model of that part) - here we need to be dealing 
+	        // with the current parts (as opposed to stateDocx copy).
+	        // CONSIDER - when does the stateDocx copy get updated???	        	        
+	        
+	        Node replacementNode = pkgB.PkgXmlDocument.ImportNode(parent, true);  // pkgB.PkgXmlDocument.ImportNode(n, true);
 	        try
 	        {
-	            XmlNode nodeToReplace = pkgB.extractParts()[partName].XmlNode;
-	            nodeToReplace.ParentNode.ReplaceChild(replacementNode, nodeToReplace);
+	            Node nodeToReplace = pkgB.extractParts()[partName].XmlNode;
+	            nodeToReplace.getParentNode().replaceChild(replacementNode, nodeToReplace);
 	        }
 	        catch (KeyNotFoundException knfe)
 	        {

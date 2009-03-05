@@ -6,6 +6,8 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.docx4j.openpackaging.parts.JaxbXmlPart;
 import org.plutext.client.Mediator;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 public class SequencedPart extends Part {
 
@@ -43,24 +45,24 @@ public class SequencedPart extends Part {
         public SequencedPart()
         {
         }
-        public SequencedPart(JaxbXmlPart jxp)
+        public SequencedPart(org.w3c.dom.Document doc)
         {
-
-            init(jxp);
-//            sequencedElements = xmlNode.FirstChild.FirstChild.ChildNodes;
+            init(doc);
+            log.debug("List element: " + xmlNode.getFirstChild().getFirstChild().getLocalName() );
+            sequencedElements = xmlNode.getFirstChild().getFirstChild().getChildNodes();
         }
 
         
 
         
         
-//        XmlNodeList sequencedElements;
-//
-//
-//        public XmlNode getNodeByIndex(int i)
-//        {
-//            return sequencedElements[i];
-//        }
+        NodeList sequencedElements;
+
+
+        public Node getNodeByIndex(int i)
+        {
+            return sequencedElements.item(i);
+        }
 
         
 }

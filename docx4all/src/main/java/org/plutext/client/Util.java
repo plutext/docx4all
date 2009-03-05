@@ -177,8 +177,10 @@ public class Util {
 //        {
 //            return parts;
 //        }
+    	
+    	// TODO - check this isn't called repeatedly!!
 
-        parts = new HashMap<String, org.plutext.client.partWrapper.Part>();
+    	HashMap<String, org.plutext.client.partWrapper.Part> parts = new HashMap<String, org.plutext.client.partWrapper.Part>();
 
         
         WordprocessingMLPackage wmlp = ((DocumentML)doc.getDefaultRootElement()).getWordprocessingMLPackage();
@@ -197,11 +199,13 @@ public class Util {
 	        org.docx4j.openpackaging.parts.Part docx4jPart
 	        	= (org.docx4j.openpackaging.parts.Part)pairs.getValue();
 
-            if (SequencedPart.getSequenceableParts().contains( partName.getName() ) )
+            if (docx4jPart instanceof org.docx4j.openpackaging.parts.JaxbXmlPart
+            		&& SequencedPart.getSequenceableParts().contains( partName.getName() ) )
             {
-    	        Part p = Part.factory(docx4jPart);
-                parts.Add(p.getName(), p);
-                log.Debug("Added part: " + p.getName());
+    	        Part p = Part.factory(
+    	        		(org.docx4j.openpackaging.parts.JaxbXmlPart)docx4jPart);
+                parts.put(p.getName(), p);
+                log.debug("Added part: " + p.getName());
             }
             //else if (p.GetType().Name.Equals("PartVersionList"))
             //{

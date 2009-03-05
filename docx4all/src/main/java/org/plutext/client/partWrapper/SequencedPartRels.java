@@ -1,8 +1,10 @@
 package org.plutext.client.partWrapper;
 
+import java.util.HashMap;
+
 import org.apache.log4j.Logger;
-import org.docx4j.openpackaging.parts.JaxbXmlPart;
-import org.plutext.client.Mediator;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 public class SequencedPartRels extends SequencedPart {
 
@@ -47,48 +49,50 @@ FIXED_RELS_SUFFIX:
 
     	private static Logger log = Logger.getLogger(SequencedPartRels.class);
 
-        public SequencedPartRels(JaxbXmlPart jxp)
+        public SequencedPartRels(org.w3c.dom.Document doc)
         {
-            init(xmlNode);
+            init(doc);
 
             // pkg:part/pkg:xmlData/Relationships
-            foreach (XmlNode xn in xmlNode.FirstChild.FirstChild.ChildNodes)
+            log.debug("List element: " + xmlNode.getFirstChild().getFirstChild().getLocalName() );
+            
+            NodeList nl = xmlNode.getFirstChild().getFirstChild().getChildNodes();            
+            for (int i=0 ; i < nl.getLength() ; i++ )
             {
-
-                String id = xn.Attributes.GetNamedItem("Id").Value;  
-                nodesMap.Add(id, xn);
+                String id = nl.item(i).getAttributes().getNamedItem("Id").getNodeValue();  
+                nodesMap.put(id, nl.item(i) );
 
             }
 
             // Calculate prefixedRelsCount and suffixedRelsCount
-            bool inPrefix = true;
-            bool inSuffix = false;
-            for (int i=1 ; i <= nodesMap.Count; i++) {
+            boolean inPrefix = true;
+            boolean inSuffix = false;
+            for (int i=1 ; i <= nodesMap.size(); i++) {
 
-                XmlNode n = nodesMap["rId" + i];
-                String type = n.Attributes.GetNamedItem("Type").Value;  
-                type = type.Substring(type.LastIndexOf("/") +1);
-                log.Debug("Inspecting  rId" + i + " of " + type);
+                Node n = nodesMap.get("rId" + i);
+                String type = n.getAttributes().getNamedItem("Type").getNodeValue();  
+                type = type.substring(type.lastIndexOf("/") +1);
+                log.debug("Inspecting  rId" + i + " of " + type);
                 if (inPrefix
-                    && (type.Equals("comments")
-                            || type.Equals("image")
-                            || type.Equals("hyperlink")
-                            || type.Equals("header")
-                            || type.Equals("footer")
-                            || type.Equals("oleObject")
-                            || type.Equals("fontTable")
-                            || type.Equals("theme")))
+                    && (type.equals("comments")
+                            || type.equals("image")
+                            || type.equals("hyperlink")
+                            || type.equals("header")
+                            || type.equals("footer")
+                            || type.equals("oleObject")
+                            || type.equals("fontTable")
+                            || type.equals("theme")))
                     // TODO - this code relies on that list being exhaustive!
                 {
                     // This is the end of the PREFIX
-                    log.Debug(".. end prefix! " );
+                    log.debug(".. end prefix! " );
                     inPrefix = false;
                     prefixedRelsCount = i-1;
                 }
 
                 if (inSuffix
-                    || (type.Equals("fontTable")
-                            || type.Equals("theme")))
+                    || (type.equals("fontTable")
+                            || type.equals("theme")))
                 {
                     suffixedRelsCount++;
                 }
@@ -97,23 +101,23 @@ FIXED_RELS_SUFFIX:
 
         }
 
-        Dictionary<string, XmlNode> nodesMap = new Dictionary<string, XmlNode>();
+        HashMap<String, Node> nodesMap = new HashMap<String, Node>();
 
-        public XmlNode getNodeById(String id)
+        public Node getNodeById(String id)
         {
-            return nodesMap[id];
+            return nodesMap.get(id);
         }
 
-        public XmlNode getNodeByType(String wantedType) // eg "comments"
+        public Node getNodeByType(String wantedType) // eg "comments"
         {
-            for (int i = 1; i <= nodesMap.Count; i++)
+            for (int i = 1; i <= nodesMap.size(); i++)
             {
 
-                XmlNode n = nodesMap["rId" + i];
-                String type = n.Attributes.GetNamedItem("Type").Value;
-                type = type.Substring(type.LastIndexOf("/") + 1);
-                log.Debug("Inspecting  rId" + i + " of " + type);
-                if (type.Equals(wantedType) )
+                Node n = nodesMap.get("rId" + i);
+                String type = n.getAttributes().getNamedItem("Type").getNodeValue();
+                type = type.substring(type.lastIndexOf("/") + 1);
+                log.debug("Inspecting  rId" + i + " of " + type);
+                if (type.equals(wantedType) )
                 {
                     return n;
                 }

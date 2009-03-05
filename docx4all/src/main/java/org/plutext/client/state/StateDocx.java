@@ -22,14 +22,21 @@ package org.plutext.client.state;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.xml.DocumentML;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
+import org.docx4j.openpackaging.parts.CustomXmlDataStoragePart;
+import org.docx4j.openpackaging.parts.PartName;
+import org.dom4j.Document;
 import org.plutext.client.CustomProperties;
 import org.plutext.client.Util;
+import org.plutext.client.partWrapper.Part;
+import org.plutext.client.partWrapper.SequencedPart;
 import org.plutext.client.wrappedTransforms.TransformAbstract;
 import org.plutext.client.wrappedTransforms.TransformComparator;
 
@@ -77,11 +84,63 @@ public class StateDocx {
 		this.chunkingStrategy = Util.getCustomDocumentProperty(
 				wordMLPackage.getDocPropsCustomPart(),
 				CustomProperties.CHUNKING_STRATEGY);
+		
+        // Find our version list CustomXml part
+        HashMap docx4jParts = wordMLPackage.getParts().getParts();
+		Iterator partsIterator = docx4jParts.entrySet().iterator();
+	    while (partsIterator.hasNext()) {
+	        Map.Entry pairs = (Map.Entry)partsIterator.next();
+	        
+	        if(pairs.getKey()==null) {
+	        	log.warn("Skipped null key");
+	        	pairs = (Map.Entry)partsIterator.next();
+	        }
+	        
+	        PartName partName = (PartName)pairs.getKey();
+
+            if (partName.getName().startsWith("/customXml") )            	
+            {
+            	CustomXmlDataStoragePart docx4jPart
+	        		= (CustomXmlDataStoragePart)pairs.getValue();
+            	
+            	// dom4j document :-(
+            	Document customXmlDoc = docx4jPart.getDocument();
+            	
+            	log.debug(customXmlDoc.getName());
+            	
+            	if (customXmlDoc.getName().equals("PartVersionList")) {
+            		
+                    partVersionList = new PartVersionList(customXmlDoc);
+                    log.debug("set partVersionList");
+                    
+                    // TODO - now delete this part from the package,
+                    // including its entry in the doc's rels.
+            		
+            	}
+            	
+            }
+        }
+		
+        parts = Util.extractParts(doc);
+
+        // For the parts we care about, record their version info.
+        partVersionList.setVersions(parts);
 
 		this.transforms = new TransformsCollection();
 		
 		this.stateChunks = Util.createStateChunks(doc);
 	}
+	
+    private PartVersionList partVersionList;
+    public PartVersionList getPartVersionList() {
+    	return partVersionList;
+    }
+    
+    private HashMap<String, Part> parts;
+    public HashMap<String, Part> getParts() {
+    	return parts;
+    }
+	
 	
 	private HashMap<String, StateChunk> stateChunks;
 	public HashMap<String, StateChunk> getStateChunks() {
