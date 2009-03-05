@@ -49,6 +49,9 @@ public class Chunker
 
 	}    
     
+	
+	
+	
 
     /* Split a control containing n paragraphs
      * into n controls.  
@@ -65,5 +68,9 @@ public class Chunker
 
     }
 
+    
+//	if ( o instanceof org.docx4j.wml.P  
+//	|| o instanceof org.docx4j.wml.Tbl ) {
+    
 
 }

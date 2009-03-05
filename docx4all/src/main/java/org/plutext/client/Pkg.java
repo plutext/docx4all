@@ -33,6 +33,8 @@ import org.plutext.client.state.StateChunk;
  * In docx4all, we may be able to keep this object uptodate, without needing to
  * re-create it again and again in Mediator.
  * 
+ * 2009 05 06 - this is Not used!  Remove it if not required...  
+ * 
  */
 public class Pkg implements Cloneable {
 

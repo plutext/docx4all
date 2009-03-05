@@ -54,9 +54,12 @@ import org.docx4all.xml.SdtBlockML;
 import org.docx4j.XmlUtils;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.Tag;
+import org.docx4j.xmlPackage.Part;
 import org.plutext.Context;
 import org.plutext.client.diffengine.DiffEngine;
 import org.plutext.client.diffengine.DiffResultSpan;
+import org.plutext.client.partWrapper.SequencedPart;
+import org.plutext.client.partWrapper.SequencedPartRels;
 import org.plutext.client.state.StateChunk;
 import org.plutext.client.state.StateDocx;
 import org.plutext.client.webservice.PlutextService_ServiceLocator;
@@ -504,7 +507,7 @@ public class Mediator {
 	    fetchParts[PART_ENDNOTES] = false;
 	    // applyUpdates may tell us otherwise ...
 
-	    changedChunks = new Dictionary<string, string>();		
+	    changedChunks = new HashMap<String, String>();		
 		
 		applyUpdates(worker);
 		
@@ -516,7 +519,7 @@ public class Mediator {
 	        | fetchParts[PART_FOOTNOTES]
 	        | fetchParts[PART_ENDNOTES])
 	    {
-	        updateRelatedParts(pkgB, currentStateChunks, bw);
+	        updateRelatedParts(worker);
 	    }
 		
 
@@ -532,9 +535,9 @@ public class Mediator {
 	/// <param name="pkg"></param>
 	/// <param name="currentStateChunks"></param>
 	/// <param name="bw"></param>
-	private void updateRelatedParts(Pkg pkg, Dictionary<string, StateChunk> currentStateChunks, System.ComponentModel.BackgroundWorker bw)
+	private void updateRelatedParts(FetchRemoteEditsWorker worker)
 	{
-	    bw.ReportProgress(5, "Links");
+	    worker.setProgress(5, "Links");
 
 	    // 1. update that part
 
@@ -548,47 +551,45 @@ public class Mediator {
 	            max++;
 	        }
 	    }
-	    string[] partNames = new string[max];
-	    string[] parts = new string[max];
+	    String[] partNames = new String[max];
+	    String[] parts = new String[max];
 	    int j = 0;
-	    Dictionary<int, int> mapping = new Dictionary<int, int>();
+	    HashMap<Integer, Integer> mapping = new HashMap<Integer, Integer>();
 	    for (int i = 0; i < 4; i++)
 	    {
 	        if (fetchParts[i])
 	        {
-	            partNames[j] = Pkg.SequenceableParts[i];
-	            mapping.Add(j, i);
+	            partNames[j] = SequencedPart.getSequenceableParts().get(i);
+	            mapping.put(j, i);
 	            j++;
 	        }
 	    }
 
 
 	    // invoke web service - returns the part and its version number.
-	    WebReference.ArrayOf_xsd_string[] weirdParts = ws.getParts(stateDocx.DocID, partNames);
+	    WebReference.ArrayOf_xsd_string[] weirdParts = ws.getParts(stateDocx.getDocID(), partNames);
 
 	    log.Debug("number of weird parts: " + weirdParts.Length);
 
-	    //Dictionary<string, SequencedPart> serverSequencedParts = 
-	    //    new Dictionary<string,SequencedPart>();
 	    SequencedPart[] serverSequencedParts = new SequencedPart[max];
 	    for (int i = 0; i < max; i++)
 	    {
-	        string[] itemField = weirdParts[i].item;
+	        String[] itemField = weirdParts[i].item;
 
-	        log.Debug("weirdParts[" + i + "] length = " + itemField.Length);
+	        log.debug("weirdParts[" + i + "] length = " + itemField.length );
 
-	        if (itemField[1].Equals(""))
+	        if (itemField[1].equals(""))
 	        {
 	            // Part doesn't exist on server
 	            // This should not happen.
 
-	            log.Error(i + " : " + Pkg.SequenceableParts[mapping[i]] + " doesn't exist on server!  INVESTIGATE");
+	            log.error(i + " : " + SequencedPart.getSequenceableParts().get(mapping.get(i)) + " doesn't exist on server!  INVESTIGATE");
 
 	        }
 	        else
 	        {
 
-	            SequencedPart sp = (SequencedPart)Part.factory(itemField[1]);
+	            SequencedPart sp = (SequencedPart)org.plutext.client.partWrapper.Part.factory(itemField[1]);
 	            serverSequencedParts[i] = sp;
 	                        
 
@@ -599,15 +600,7 @@ public class Mediator {
 
 	            // and update our record of the part in StateDocx
 	            // (since any change from this is something we want to transmit)
-	            try
-	            {
-	                stateDocx.Parts[sp.Name] = sp;
-	            }
-	            catch (KeyNotFoundException knfe)
-	            {
-	                stateDocx.Parts.Add(sp.Name, sp);
-
-	            }
+	            stateDocx.getParts().put(sp.getName(), sp);
 
 	        }
 	    }
@@ -615,25 +608,23 @@ public class Mediator {
 	    // .. and the corresponding local parts.
 	    // We want to work with the ones corresponding to the current state of the
 	    // document, not its last recorded state (which would be stateDocx)
-	    Dictionary<string, Part> localParts = pkg.extractParts();
+	    HashMap<String, org.plutext.client.partWrapper.Part> localParts 
+	    	= Util.extractParts( getWordMLDocument() );
 	    SequencedPart[] localSequencedParts = new SequencedPart[max];
 	    for (int i = 0; i < max; i++)
 	    {
-	        String partName = serverSequencedParts[i].Name;
+	        String partName = serverSequencedParts[i].getName();
 
-	        if (partName.Equals("/word/_rels/document.xml.rels"))
+	        if (partName.equals("/word/_rels/document.xml.rels"))
 	        {
 	            //localSequencedParts[i] = (SequencedPartRels)stateDocx.Parts[partName];
-	            localSequencedParts[i] = (SequencedPartRels)localParts[partName];
+	            localSequencedParts[i] = (SequencedPartRels)localParts.get(partName);
 	        }
 	        else
 	        {
-	            try
-	            {
 	                //localSequencedParts[i] = (SequencedPart)stateDocx.Parts[partName];
-	                localSequencedParts[i] = (SequencedPart)localParts[partName];
-	            }
-	            catch (KeyNotFoundException knf)
+                localSequencedParts[i] = (SequencedPart)localParts.get(partName);
+                if ( localSequencedParts[i]==null )
 	            {
 
 	                // So, the part doesn't yet exist locally.
@@ -722,7 +713,7 @@ public class Mediator {
 	    for (int i = 0; i < max; i++)
 	    {
 	        String partName = serverSequencedParts[i].Name; // as good a way as any to get the part name
-	        log.Debug("Constructing content for Part: " + i + " .. " + partName);
+	        log.debug("Constructing content for Part: " + i + " .. " + partName);
 
 	        constructedContent[i] = new ArrayList();
 
@@ -739,10 +730,10 @@ public class Mediator {
 	                // An Sdt which we inserted/updated will reference the part we just fetched
 	                // (assuming it contains rel idrefs).
 	                // If we didn't just insert/update the sdt, we branch to KeyNotFoundException
-	                object dummy = changedChunks[sdtId];
+	                Object dummy = changedChunks.get(sdtId);
 
-	                log.Debug("id: " + sdtId + " - references serverSequencedPart");
-	                foreach (XmlNode idref in sdt.ChildNodes[1 + mapping[i]])
+	                log.debug("id: " + sdtId + " - references serverSequencedPart");
+	                foreach (XmlNode idref in sdt.ChildNodes[1 + mapping.get(i)])
 	                {
 	                    if ((serverSequencedParts[i]).GetType().Name.Equals("SequencedPartRels"))
 	                    {
@@ -1216,6 +1207,7 @@ public class Mediator {
 
 		StateChunk currentChunk = 
 			Util.getStateChunk(getWordMLDocument(), idStr);
+		
 		boolean virgin = (currentChunk == null);
 
 		Changeset changeset =
@@ -1233,13 +1225,13 @@ public class Mediator {
 			resultCode = t.apply(this, stateDocx.getStateChunks());
 			t.setApplied(true);
 	        scanSdtForIdref(t);		
-	        changedChunks.Add(t.ID, t.ID);  // TODO, what if it is already there?	        
+	        changedChunks.put( t.getId(), t.getId() );  // TODO, what if it is already there?	        
 			log.debug(t.getSequenceNumber() + " applied ("
 					+ t.getClass().getName() + ")");
 			
 	        // 2009 02 05 - Add it to currentStateChunks, so it is there
 	        // for updateRelatedParts
-	        currentStateChunks.Add(t.ID, stateDocx.StateChunks[t.ID]);			
+	        currentStateChunks.put(t.getId(), stateDocx.getStateChunks().get(t.getId()));			
 
 			if (resultCode >= 0) {
 				this.sdtChangeTypes.put(idStr,
@@ -1312,7 +1304,7 @@ public class Mediator {
 	        // for updateRelatedParts
 	        try
 	        {
-	            currentStateChunks.Remove(t.ID);
+	            currentStateChunks.Remove(t.getId());
 	        }
 	        catch (KeyNotFoundException knf) { }			
 
@@ -1409,7 +1401,7 @@ public class Mediator {
 			resultCode = t.apply(this, stateDocx.getStateChunks());
 			t.setApplied(true);
 	        scanSdtForIdref(t);
-	        changedChunks.Add(t.ID, t.ID);  // TODO, what if it is already there?
+	        changedChunks.Add(t.getId(), t.getId());  // TODO, what if it is already there?
 
 			log.debug(t.getSequenceNumber() + " applied ("
 					+ t.getClass().getName() + ")");
@@ -1424,12 +1416,7 @@ public class Mediator {
 			
 	        // 2009 02 05 - Add it to currentStateChunks, so it is there
 	        // for updateRelatedParts
-	        try
-	        {
-	            currentStateChunks.Remove(t.ID);
-	        }
-	        catch (KeyNotFoundException knf) { }
-	        currentStateChunks.Add(t.ID, stateDocx.StateChunks[t.ID]);			
+	        currentStateChunks.put(t.getId(), stateDocx.StateChunks[t.getId()]);			
 
 			return resultCode;
 
@@ -1482,9 +1469,9 @@ public class Mediator {
 		
 	    // If all that has happened is that Word has renumbered the rel id's,
 	    // we don't flag that
-	    if (currentStateChunk.RelReferencesDropped.Equals(stateDocxSC.RelReferencesDropped))
+	    if (currentStateChunk.RelReferencesDropped.equals(stateDocxSC.RelReferencesDropped))
 	    {
-	        log.Debug("Match with RelReferencesDropped.");
+	        log.debug("Match with RelReferencesDropped.");
 	        return false;
 	    }
 		
@@ -1507,7 +1494,7 @@ public class Mediator {
 	}
 	
 	
-	bool [] fetchParts = new bool[4];
+	boolean [] fetchParts = new boolean[4];
 
 	static int PART_RELS = 0;
 	static int PART_COMMENTS = 1;
@@ -1518,7 +1505,7 @@ public class Mediator {
 	/// Sdt's which are altered through the application of a transform, 
 	/// during this round of apply updates.
 	/// </summary>
-	Dictionary<string, string> changedChunks;
+	HashMap<String, String> changedChunks;
 
 	void scanSdtForIdref(TransformAbstract t)
 	{
@@ -1539,7 +1526,7 @@ public class Mediator {
 	        if (nodeList.Count > 0)
 	        {
 	            fetchParts[PART_COMMENTS] = true;
-	            log.Debug("Detected comment");
+	            log.debug("Detected comment");
 	            // TODO: iff this is the first comment, we need to adjust the rels part.
 	            // But for now:
 	            fetchParts[PART_RELS] = true;
@@ -1553,7 +1540,7 @@ public class Mediator {
 	        if (nodeList.Count > 0)
 	        {
 	            fetchParts[PART_FOOTNOTES] = true;
-	            log.Debug("Detected footnote");
+	            log.debug("Detected footnote");
 	            // TODO: iff this is the first footnote, we need to adjust the rels part.
 	            // But for now:
 	            fetchParts[PART_RELS] = true;
@@ -1568,7 +1555,7 @@ public class Mediator {
 	        if (nodeList.Count > 0)
 	        {
 	            fetchParts[PART_ENDNOTES] = true;
-	            log.Debug("Detected endnote");
+	            log.debug("Detected endnote");
 	            // TODO: iff this is the first endnote, we need to adjust the rels part.
 	            // But for now:
 	            fetchParts[PART_RELS] = true;
@@ -1590,7 +1577,7 @@ public class Mediator {
 	        if (nodeList.Count > 0)
 	        {
 	            fetchParts[PART_RELS] = true;
-	            log.Debug("Detected @r:embed");
+	            log.debug("Detected @r:embed");
 	        }
 	        else
 	        {
@@ -1599,7 +1586,7 @@ public class Mediator {
 	            if (nodeList.Count > 0)
 	            {
 	                fetchParts[PART_RELS] = true;
-	                log.Debug("Detected hyperlink");
+	                log.debug("Detected hyperlink");
 	            }
 	        }
 
@@ -1689,17 +1676,16 @@ public class Mediator {
 		// The list of transforms to be transmitted
 		List<T> transformsToSend = new ArrayList<T>();
 		
-		// Unlike Word Add-In, Docx4all doesn't do any pre-processing.  
-		// This is done elsewhere.
-		// So, when an image is added, making that External needs to
-		// be done elsewhere as well. See Word Add-In line ~ 2019
+		// See TransmitLocalEditsWorker.preTransmit()
 		
-	    // PreTransmit also had the effect of externalising images.
-	    // But, we have to actually save them on the server before
+		// When an image is added, making that External needs to
+		// be done there. See Word Add-In line ~ 2019
+		
+	    // We also have to actually save them on the server before
 	    // they will be available to the replaced document below!
 	    foreach (DetachedImagePart dip in detachedImages)
 	    {
-	        log.Debug( ws.injectPart(stateDocx.DocID, 
+	        log.debug( ws.injectPart(stateDocx.DocID, 
 	            dip.Name, "0", dip.ContentType, dip.Data) );
 	    }
 	
@@ -1814,13 +1800,13 @@ public class Mediator {
         	"Fetching remote document structure");
         
 	    String serverSkeletonStr = ws.getSkeletonDocument(stateDocx.getDocID());
-	    log.Debug(serverSkeletonStr);
+	    log.debug(serverSkeletonStr);
 
 	    Skeleton serverSkeleton = new Skeleton(serverSkeletonStr);
 	    
 	    // Added to docx4all 2009 03 05
-	    bool structuralTransformsPending = !serverSkeleton.init(
-	            stateDocx.Transforms.TSequenceNumberHighestFetched);
+	    boolean structuralTransformsPending = !serverSkeleton.init(
+	            stateDocx.getTransforms().getTSequenceNumberHighestFetched() );
 
 
 	        /* When we detect a difference, we need to know whether
@@ -1841,7 +1827,7 @@ public class Mediator {
 	         */
 	        if (structuralTransformsPending)
 	        {
-	            bw.ReportProgress(0, "Please fetch remote updates, then try again.");
+	            worker.setProgress(0, "Please fetch remote updates, then try again.");
 	            return;
 	        }
 	    
@@ -1886,7 +1872,7 @@ public class Mediator {
 					
 		            if (chunkCurrent.IsNew)
 		            {
-		                log.Debug(chunkCurrent.ID + " IsNew, so ignoring");
+		                log.debug(chunkCurrent.getIdAsString() + " IsNew, so ignoring");
 		                continue;
 		            }					
 					
@@ -1968,7 +1954,7 @@ public class Mediator {
 				}
 			}// for (idx) loop
 			
-	        transmitOtherUpdates(pkg);  // TODO - move this, since its a separate ws call.			
+	        transmitOtherUpdates();  // TODO - move this, since its a separate ws call.			
 	    
 			if (transformsToSend.isEmpty()) {
 				boolean success = false;
@@ -2459,44 +2445,62 @@ public class Mediator {
 		}
 	}
 	
-	void transmitOtherUpdates(Pkg currentPkg)
+	void transmitOtherUpdates()
 	{
-	    Dictionary<string, Part> knownParts = stateDocx.Parts;
+	    HashMap<String, Part> knownParts = stateDocx.Parts;
 
-	    Dictionary<string, Part> discoveredParts = currentPkg.extractParts();
+	    HashMap<String, Part> discoveredParts = currentPkg.extractParts();
 
 	    // DELETED PART - are there any KnownParts which have now gone?
-	    foreach (KeyValuePair<string, Part> kvp in knownParts)
+	    foreach (KeyValuePair<String, Part> kvp in knownParts)
 	    {
 	        Part knownPart = kvp.Value; 
 	        // do we know about it?
-	        try
-	        {
-	            Part discoveredPart = discoveredParts[knownPart.Name];
+	        
+            Part discoveredPart = discoveredParts[knownPart.Name];
 
-	            // So we do know about it
-	            // That's fine - the foreach below will see whether it has changed?
-
-	        }
-	        catch (KeyNotFoundException knf)
-	        {
+            // So we do know about it
+            // That's fine - the foreach below will see whether it has
+			// changed?
+            
+            if (discoveredPart==null) {	        {
 	            // This part has been deleted
 	            log.Warn(knownPart.Name + " no longer present locally; delete it on server?");
 	            // TODO removePart(PartName)
-
 	        }
 	    }
 
 
 	    // INSERTED/UPDATED parts
-	    foreach (KeyValuePair<string, Part> kvp in discoveredParts)
+	    foreach (KeyValuePair<String, Part> kvp in discoveredParts)
 	    {
 	        Part discoveredPart = kvp.Value;
 	        log.Error("Considering " + discoveredPart.Name);
 	        // do we know about it?
-	        try
-	        {
-	            Part knownPart = knownParts[discoveredPart.Name];
+            Part knownPart = knownParts[discoveredPart.Name];
+            
+            if (knownPart==null) {
+            	
+	            // This must be a new part, so version is 0.
+	            string resultingVersion = ws.injectPart(stateDocx.DocID, discoveredPart.Name, 
+	                "0", discoveredPart.ContentType, discoveredPart.UnwrappedXml);
+
+	            // expect that to be 1?  well, no: the first version on the server will be numbered 0.
+	            if (!resultingVersion.Equals("0"))
+	            {
+	                log.Error("expected this be to version 0 ?!");
+	            }
+	            stateDocx.PartVersionList.setVersion(discoveredPart.Name, resultingVersion);
+
+	            // and update our record of the part in StateDocx
+	            // (since any change from this new baseline is something we will want to transmit)
+	            stateDocx.Parts.Add(discoveredPart.Name, discoveredPart);
+
+	            // note that _rels of this which is a target will get handled 
+	            // automatically, because we will have detected a change to that part as well,
+	            // and sent it ...            
+            
+            } else {
 
 	            // So we do know about it
 	            // - has it changed?
@@ -2524,31 +2528,7 @@ public class Mediator {
 	            }
 
 	        }
-	        catch (KeyNotFoundException knf)
-	        {
-	            // This must be a new part, so version is 0.
-	            string resultingVersion = ws.injectPart(stateDocx.DocID, discoveredPart.Name, 
-	                "0", discoveredPart.ContentType, discoveredPart.UnwrappedXml);
-
-	            // expect that to be 1?  well, no: the first version on the server will be numbered 0.
-	            if (!resultingVersion.Equals("0"))
-	            {
-	                log.Error("expected this be to version 0 ?!");
-	            }
-	            stateDocx.PartVersionList.setVersion(discoveredPart.Name, resultingVersion);
-
-	            // and update our record of the part in StateDocx
-	            // (since any change from this new baseline is something we will want to transmit)
-	            stateDocx.Parts.Add(discoveredPart.Name, discoveredPart);
-
-	            // note that _rels of this which is a target will get handled 
-	            // automatically, because we will have detected a change to that part as well,
-	            // and sent it ...
-
-	        }
 	    }
-
-
 	            
 	}
 	

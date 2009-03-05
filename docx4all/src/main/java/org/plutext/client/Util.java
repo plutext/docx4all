@@ -21,6 +21,7 @@ package org.plutext.client;
 
 import java.io.StringReader;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import javax.xml.transform.stream.StreamSource;
@@ -33,10 +34,15 @@ import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.SdtBlockML;
 import org.docx4j.XmlUtils;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.DocPropsCustomPart;
+import org.docx4j.openpackaging.parts.PartName;
+import org.docx4j.openpackaging.parts.Parts;
 import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
 import org.plutext.client.state.StateChunk;
+import org.plutext.client.partWrapper.Part;
+import org.plutext.client.partWrapper.SequencedPart;
 
 public class Util {
 
@@ -62,17 +68,17 @@ public class Util {
 
 	}
 
-	/** Gets the text contents of the Sdt */
-	public static String getSdtText(SdtBlock cc) {
+//	/** Gets the text contents of the Sdt */
+//	public static String getSdtText(SdtBlock cc) {
+//
+//		// TODO - implement
+//
+//		return null;
+//	}
 
-		// TODO - implement
-
-		return null;
-	}
-
-	public static String getChunkId(Id id) {
-		return id.getVal().toString();
-	}
+//	public static String getChunkId(Id id) {
+//		return id.getVal().toString();
+//	}
 
 	public static DocumentElement getDocumentElement(WordMLDocument doc,
 			String sdtBlockId) {
@@ -121,20 +127,20 @@ public class Util {
 		return theChunk;
 	}
 
-	public static Skeleton createSkeleton(WordMLDocument doc) {
-		Skeleton skeleton = new Skeleton();
-		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
-		for (int i = 0; i < root.getElementCount(); i++) {
-			DocumentElement elem = (DocumentElement) root.getElement(i);
-			ElementML ml = elem.getElementML();
-			if (ml instanceof SdtBlockML) {
-				SdtBlockML sdt = (SdtBlockML) ml;
-				String id = sdt.getSdtProperties().getIdValue().toString();
-				skeleton.getRibs().add(new TextLine(id));
-			}
-		}
-		return skeleton;
-	}
+//	public static Skeleton createSkeleton(WordMLDocument doc) {
+//		Skeleton skeleton = new Skeleton();
+//		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+//		for (int i = 0; i < root.getElementCount(); i++) {
+//			DocumentElement elem = (DocumentElement) root.getElement(i);
+//			ElementML ml = elem.getElementML();
+//			if (ml instanceof SdtBlockML) {
+//				SdtBlockML sdt = (SdtBlockML) ml;
+//				String id = sdt.getSdtProperties().getIdValue().toString();
+//				skeleton.getRibs().add(new TextLine(id));
+//			}
+//		}
+//		return skeleton;
+//	}
 
 	public static HashMap<String, StateChunk> createStateChunks(
 			WordMLDocument doc) {
@@ -157,17 +163,66 @@ public class Util {
 
 		return stateChunks;
 	}
+	
+    /// <summary>
+    /// Extracts certain parts from the PkgXmlDocument
+    /// </summary>
+    /// <returns></returns>
+    public static HashMap<String, org.plutext.client.partWrapper.Part> extractParts(WordMLDocument doc)
+    {
+        // NB at present we're only interested 
+        // in certain parts
 
-	public static String getContentControlXML(SdtBlock cc) {
+//        if (parts != null)
+//        {
+//            return parts;
+//        }
 
-		boolean suppressDeclaration = true;
-		return org.docx4j.XmlUtils.marshaltoString(cc, suppressDeclaration);
+        parts = new HashMap<String, org.plutext.client.partWrapper.Part>();
 
-		// return "<w:sdt
-		// xmlns:w=\
-		// "http://schemas.openxmlformats.org/wordprocessingml/2006/main\">"
-		// + node.InnerXml + "</w:sdt>";
-	}
+        
+        WordprocessingMLPackage wmlp = ((DocumentML)doc.getDefaultRootElement()).getWordprocessingMLPackage();
+        
+        HashMap docx4jParts = wmlp.getParts().getParts();
+		Iterator partsIterator = docx4jParts.entrySet().iterator();
+	    while (partsIterator.hasNext()) {
+	        Map.Entry pairs = (Map.Entry)partsIterator.next();
+	        
+	        if(pairs.getKey()==null) {
+	        	log.warn("Skipped null key");
+	        	pairs = (Map.Entry)partsIterator.next();
+	        }
+	        
+	        PartName partName = (PartName)pairs.getKey();
+	        org.docx4j.openpackaging.parts.Part docx4jPart
+	        	= (org.docx4j.openpackaging.parts.Part)pairs.getValue();
+
+            if (SequencedPart.getSequenceableParts().contains( partName.getName() ) )
+            {
+    	        Part p = Part.factory(docx4jPart);
+                parts.Add(p.getName(), p);
+                log.Debug("Added part: " + p.getName());
+            }
+            //else if (p.GetType().Name.Equals("PartVersionList"))
+            //{
+            //    partVersionList = (PartVersionList)p;
+            //    log.Debug("set partVersionList");
+            //}
+        }
+
+        return parts;
+    }	
+
+//	public static String getContentControlXML(SdtBlock cc) {
+//
+//		boolean suppressDeclaration = true;
+//		return org.docx4j.XmlUtils.marshaltoString(cc, suppressDeclaration);
+//
+//		// return "<w:sdt
+//		// xmlns:w=\
+//		// "http://schemas.openxmlformats.org/wordprocessingml/2006/main\">"
+//		// + node.InnerXml + "</w:sdt>";
+//	}
 
 	public final static org.docx4j.wml.Document preTransmit(Mediator mediator)
 			throws Exception {
