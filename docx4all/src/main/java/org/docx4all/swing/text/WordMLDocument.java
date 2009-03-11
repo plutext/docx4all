@@ -74,7 +74,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 	
 	public WordMLDocument() {
 		super();
-		this.snapshotFireBan = false;
+		this.snapshotFireBan = false;		
 	}
 
 	public synchronized final void lockWrite() {

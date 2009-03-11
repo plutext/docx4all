@@ -61,6 +61,7 @@ import org.docx4all.util.XmlUtil;
 import org.docx4all.vfs.FileNameExtensionFilter;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
+import org.docx4j.convert.out.xmlPackage.XmlPackage;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.io.SaveToVFSZipFile;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
@@ -678,6 +679,17 @@ public class FileMenu extends UIMenu {
 		try {
 			WordprocessingMLPackage wordMLPackage = rootML
 					.getWordprocessingMLPackage();
+			
+//			XmlPackage worker = new XmlPackage(wordMLPackage);			
+//			org.docx4j.xmlPackage.Package result = worker.get();			
+//			boolean suppressDeclaration = true;
+//			boolean prettyprint = true;			
+//			System.out.println( 
+//					org.docx4j.XmlUtils.
+//						marshaltoString(result, suppressDeclaration, prettyprint, 
+//								org.docx4j.jaxb.Context.jcXmlPackage) );
+			
+			
 			//Create temporary .pdf file.
 			//Remember that filePath is in Commons-VFS format which
 			//uses '/' as separator char.

@@ -106,9 +106,10 @@ public class StateDocx {
             	// dom4j document :-(
             	Document customXmlDoc = docx4jPart.getDocument();
             	
-            	log.debug(customXmlDoc.getName());
+            	log.debug(customXmlDoc.getRootElement().getName());
             	
-            	if (customXmlDoc.getName().equals("PartVersionList")) {
+            	if (customXmlDoc.getRootElement().getName().equals("parts")) {
+            		// ? was = PartVersionList
             		
                     partVersionList = new PartVersionList(customXmlDoc);
                     log.debug("set partVersionList");

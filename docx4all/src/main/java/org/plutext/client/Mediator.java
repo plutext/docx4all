@@ -56,13 +56,18 @@ import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.util.DocUtil;
 import org.docx4all.util.XmlUtil;
 import org.docx4all.vfs.WebdavUri;
+import org.docx4all.xml.BodyML;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.SdtBlockML;
 import org.docx4j.XmlUtils;
 import org.docx4j.jaxb.NamespacePrefixMapper;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
+import org.docx4j.openpackaging.parts.JaxbXmlPart;
+import org.docx4j.openpackaging.parts.PartName;
+import org.docx4j.openpackaging.parts.WordprocessingML.CommentsPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
+import org.docx4j.openpackaging.parts.relationships.RelationshipsPart;
 import org.docx4j.wml.Tag;
 import org.docx4j.xmlPackage.Part;
 import org.jaxen.SimpleNamespaceContext;
@@ -85,6 +90,7 @@ import org.plutext.client.wrappedTransforms.TransformUpdate;
 import org.plutext.transforms.Transforms;
 import org.plutext.transforms.Changesets.Changeset;
 import org.plutext.transforms.Transforms.T;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -161,6 +167,7 @@ public class Mediator {
 	private Skeleton currentClientSkeleleton = null;
 
 	private static XPathExpression[] xpaths; 
+	private static XPathExpression xpathRelTest; 
 	
 	static {
 		
@@ -177,6 +184,9 @@ public class Mediator {
 			xpaths[1] =  xPath.compile(".//w:commentReference/@w:id | .//w:commentRangeStart/@w:id | .//w:commentRangeEnd/@w:id");
 			xpaths[2] =  xPath.compile(".//w:footnoteReference/@w:id");
 			xpaths[3] =  xPath.compile(".//w:endnoteReference/@w:id");
+			
+            // linked images, hyperlinks (and w:object/v:imagedata, w:object/o:OLEObject)			
+			xpathRelTest = xPath.compile(" .//@r:link | .//@r:id ");
 		} catch (XPathExpressionException e) {
 			e.printStackTrace();
 		}
@@ -251,6 +261,9 @@ public class Mediator {
 	}
 
 	public void endSession() {
+		log.info("Ending session.");
+		Throwable t = new Throwable();
+		t.printStackTrace();
 		AuthenticationUtils.endSession();
 		currentClientSkeleleton = null;
 		ws = null;
@@ -557,7 +570,13 @@ public class Mediator {
 	        | fetchParts[PART_FOOTNOTES]
 	        | fetchParts[PART_ENDNOTES])
 	    {
-	        updateRelatedParts(worker);
+	        try {
+	        	log.error("Related parts need updating..");
+				updateRelatedParts(worker);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 	    }
 		
 
@@ -573,9 +592,9 @@ public class Mediator {
 	/// <param name="pkg"></param>
 	/// <param name="currentStateChunks"></param>
 	/// <param name="bw"></param>
-	private void updateRelatedParts(FetchRemoteEditsWorker worker)
+	private void updateRelatedParts(FetchRemoteEditsWorker worker) throws Exception
 	{
-	    worker.setProgress(5, "Links");
+	    worker.setProgress(FetchProgress.LINKS, "Links");
 
 	    // 1. update that part
 
@@ -605,7 +624,10 @@ public class Mediator {
 
 
 	    // invoke web service - returns the part and its version number.
+	    log.debug("invoking web service");
+	    //this.startSession();
 	    String[][] weirdParts = ws.getParts(stateDocx.getDocID(), partNames);
+	    log.debug("web service call done...");
 
 	    log.debug("number of weird parts: " + weirdParts.length);
 
@@ -627,7 +649,8 @@ public class Mediator {
 	        else
 	        {
 
-	            SequencedPart sp = (SequencedPart)org.plutext.client.partWrapper.Part.factory(itemField[1]);
+	            SequencedPart sp = (SequencedPart)org.plutext.client.partWrapper.Part.factory(
+	            		itemField[1], partNames[i] );
 	            serverSequencedParts[i] = sp;
 	                        
 
@@ -648,6 +671,7 @@ public class Mediator {
 	    // document, not its last recorded state (which would be stateDocx)
 	    HashMap<String, org.plutext.client.partWrapper.Part> localParts 
 	    	= Util.extractParts( getWordMLDocument() );
+	    
 	    SequencedPart[] localSequencedParts = new SequencedPart[max];
 	    for (int i = 0; i < max; i++)
 	    {
@@ -699,6 +723,7 @@ public class Mediator {
 	    
 	    WordMLDocument doc = getWordMLDocument();
 		DocumentML documentML = (DocumentML) doc.getDefaultRootElement();
+        WordprocessingMLPackage wmlp = documentML.getWordprocessingMLPackage();        		
 		MainDocumentPart mdp = documentML.getWordprocessingMLPackage().getMainDocumentPart();
 		
 		org.w3c.dom.Document mdpW3C = XmlUtils.marshaltoW3CDomDocument( mdp.getJaxbElement() );
@@ -748,9 +773,7 @@ public class Mediator {
 		
 		NodeList sdts = domResult.getNode().getChildNodes();
 		
-	    // nb: std's aren't live, in the sense that they
-	    // only come from output of a transform.
-	    // They're not even sdt's as such - see the example XML above.
+	    // nb: std's aren't sdt's as such - see the example XML above.
 
 	    ArrayList[] constructedContent = new ArrayList[max]; // or XmlNodeList[] ?
 
@@ -867,6 +890,12 @@ public class Mediator {
 	    // and header/footerReference
 
 	    Node rel_comment = null;
+	    
+	    
+	    // We need the real underlying parts, so we can update them
+	    // at the end of each loop
+        HashMap<PartName, org.docx4j.openpackaging.parts.Part> docx4jParts 
+        	= wmlp.getParts().getParts();	    
 
 	    // for each of the parts we are dealing with, 
 	    for (int i = 0; i < max; i++)
@@ -878,6 +907,12 @@ public class Mediator {
 	        XPathExpression xpath = xpaths[mapping.get(i)];
 	        log.debug("Renumbering for XPath: " + xpath.toString() + " .. (" + partName);
 	        
+	        // Note that for each iteration, we are intending to
+	        // update the underlying main document part, 
+	        // which we intend to have already been updated in the
+	        // previous iteration. If this doesn't work, then
+	        // first workaround is to explicitly replace mdpW3C
+	        // at the end of each loop
 	        NodeList nodeList = (NodeList)xpath.evaluate(mdpW3C, XPathConstants.NODESET);
 	        
 	        Boolean correctOffsetForCommentReference = false;
@@ -1141,25 +1176,84 @@ public class Mediator {
 	        }
 	        //log.Debug("RESULT: " + parent.OuterXml);
 
-	        // Here is where we have to replace the relevant xml node in the
-	        // part, and then unmarshall that to update the underlying
-	        // JAXB Part (and then do whatever we need to so that
-	        // docx4all updates its model of that part) - here we need to be dealing 
-	        // with the current parts (as opposed to stateDocx copy).
-	        // CONSIDER - when does the stateDocx copy get updated???	        	        
 	        
-	        Node replacementNode = pkgB.PkgXmlDocument.ImportNode(parent, true);  // pkgB.PkgXmlDocument.ImportNode(n, true);
-	        try
-	        {
-	            Node nodeToReplace = pkgB.extractParts()[partName].XmlNode;
-	            nodeToReplace.getParentNode().replaceChild(replacementNode, nodeToReplace);
-	        }
-	        catch (KeyNotFoundException knfe)
-	        {
-	            // This is a new part, so just add it
-	            pkgB.PkgXmlDocument.DocumentElement.AppendChild(replacementNode);
+	        // .. Get the part; (where the local part exists, the local SequencedPart
+	        // object wraps it, so we can either get it that way, or go back to
+	        // using the underlying package.  If the local part doesn't exist
+	        // though, we'd have to go back to the underlying package to create
+	        // it. So we may as well operate at that level right from the start...)
+	        
+	        org.docx4j.openpackaging.parts.Part p = docx4jParts.get( new PartName(partName) );
+	        JaxbXmlPart jPart;
+	        if (p == null ) {
+	        	// This is a new part ie one which is present on the server,
+	        	// but not available locally.
+	        	// So we need to add it to the package. 
+	        	
+	        		log.error(partName + " does not exist .. creating");
+	        		PartName pn = new PartName(partName);
+	        	       if (partName.equals("/word/_rels/document.xml.rels"))
+	        	        {
+	        	    	   jPart = new RelationshipsPart( pn );
+	        	        }
+	        	        else if (partName.equals("/word/comments.xml"))
+	        	        {	
+	        	        	jPart = new CommentsPart( pn );
+	        	        }	        	
+	        	     // TODO	
+//	        	        else if (partName.equals("/word/footnotes.xml")
+//        	                    | partName.equals("/word/endnotes.xml")
+	        	        else {
+	        	        	log.warn("TODO: handle " + partName);
+	        	        	jPart = null;
+	        	        }
+	        	       
+	        	       docx4jParts.put(pn, jPart);
+	        	       log.debug("Added new part " + partName);
+	        	       
+	        	    // (But it should already be
+	   	        	// present in the document rels, courtesy of some other
+	   	        	// iteration through this loop)
+	        	       
+	        	    // What about [Content_Types].xml?
+	        		
+	        } else {
+		        // It is safe (?) to assume we are dealing with a JAXB part, since
+		        // each of the sequenceableParts are that:
+		        // 
+		        // 		/word/_rels/document.xml.rels
+		        // 		/word/comments.xml
+		        //		/word/footnotes.xml
+		        //		/word/endnotes.xml	 
+		        
+		        		// TODO - convert footnotes & endnotes to JAXB XML parts!
+		        
+		        jPart = (JaxbXmlPart)p;
+		        jPart.unmarshal((Element)parent);
 	        }
 	    }
+	    
+	    // In the loop above, we updated each of the sequencable parts.
+	    // But we still have to do the main document part itself:
+	    mdp.unmarshal( (Element)mdpW3C );
+	    
+        // Now we need for docx4all to update its model of the document. 
+	    //  see WordMLEditor.synchEditorView? That seems to 
+        // replace just the mdp; but perhaps everything else follows
+        // from that?
+	    // See WordMLDocument.applyFilter
+		org.docx4j.wml.Document wmlDoc = 
+			(org.docx4j.wml.Document)
+				mdp.getJaxbElement();
+		doc.replaceBodyML(new BodyML(wmlDoc.getBody()));
+		
+//		Need: ?
+//    	editorView.validate();
+//    	editorView.repaint();
+
+	    
+        // CONSIDER also, for docx4all and Word client - when/how does the stateDocx copy get updated???	        	        
+	    
 	}
 	
 
@@ -1275,14 +1369,23 @@ public class Mediator {
 
 			resultCode = t.apply(this, stateDocx.getStateChunks());
 			t.setApplied(true);
-	        scanSdtForIdref(t);		
-	        changedChunks.put( t.getId(), t.getId() );  // TODO, what if it is already there?	        
+	        try {
+				scanSdtForIdref(t);
+			} catch (XPathExpressionException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}		
+	        changedChunks.put( t.getId().getVal().toString(), t.getId().getVal().toString() );  
+	        	// TODO, what if it is already there?	        
 			log.debug(t.getSequenceNumber() + " applied ("
 					+ t.getClass().getName() + ")");
 			
-	        // 2009 02 05 - Add it to currentStateChunks, so it is there
+	        // Word Add-In 2009 02 05 - Add it to currentStateChunks, so it is there
 	        // for updateRelatedParts
-	        currentStateChunks.put(t.getId(), stateDocx.getStateChunks().get(t.getId()));			
+	        //currentStateChunks.put(t.getId(), stateDocx.getStateChunks().get(t.getId()));
+			// TODO We do the above in the Word Add-In, but how to do it here
+			// (since there is no currentStateChunks as such)?
+			// And is it even necessary??
 
 			if (resultCode >= 0) {
 				this.sdtChangeTypes.put(idStr,
@@ -1351,13 +1454,17 @@ public class Mediator {
 				this.sdtIdUndead.put(idStr, idStr);
 			}
 			
-	        // 2009 02 05 - Add it to currentStateChunks, so it is there
+	        // Word Add-In 2009 02 05 - Add it to currentStateChunks, so it is there
 	        // for updateRelatedParts
-	        try
-	        {
-	            currentStateChunks.Remove(t.getId());
-	        }
-	        catch (KeyNotFoundException knf) { }			
+//	        try
+//	        {
+//	            currentStateChunks.Remove(t.getId());
+//	        }
+//	        catch (KeyNotFoundException knf) { }	
+			// TODO We do the above in the Word Add-In, but how to do it here
+			// (since there is no currentStateChunks as such)?
+			// And is it even necessary??
+	        
 
 			log.debug(t.getSequenceNumber() + " applied ("
 					+ t.getClass().getName() + ")");
@@ -1451,8 +1558,14 @@ public class Mediator {
 
 			resultCode = t.apply(this, stateDocx.getStateChunks());
 			t.setApplied(true);
-	        scanSdtForIdref(t);
-	        changedChunks.Add(t.getId(), t.getId());  // TODO, what if it is already there?
+	        try {
+				scanSdtForIdref(t);
+			} catch (XPathExpressionException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	        changedChunks.put( t.getId().getVal().toString(), t.getId().getVal().toString() );  
+	        	// TODO, what if it is already there?
 
 			log.debug(t.getSequenceNumber() + " applied ("
 					+ t.getClass().getName() + ")");
@@ -1465,9 +1578,12 @@ public class Mediator {
 						TrackedChangeType.OtherUserChange);
 			}
 			
-	        // 2009 02 05 - Add it to currentStateChunks, so it is there
+	        // Word Add-In 2009 02 05 - Add it to currentStateChunks, so it is there
 	        // for updateRelatedParts
-	        currentStateChunks.put(t.getId(), stateDocx.StateChunks[t.getId()]);			
+//	        currentStateChunks.put(t.getId(), stateDocx.StateChunks[t.getId()]);			
+			// TODO We do the above in the Word Add-In, but how to do it here
+			// (since there is no currentStateChunks as such)?
+			// And is it even necessary??
 
 			return resultCode;
 
@@ -1520,11 +1636,12 @@ public class Mediator {
 		
 	    // If all that has happened is that Word has renumbered the rel id's,
 	    // we don't flag that
-	    if (currentStateChunk.RelReferencesDropped.equals(stateDocxSC.RelReferencesDropped))
-	    {
-	        log.debug("Match with RelReferencesDropped.");
-	        return false;
-	    }
+		// TODO - do we need a docx4all equivalent?
+//	    if (currentStateChunk.RelReferencesDropped.equals(stateDocxSC.RelReferencesDropped))
+//	    {
+//	        log.debug("Match with RelReferencesDropped.");
+//	        return false;
+//	    }
 		
 		return true;
 
@@ -1558,23 +1675,24 @@ public class Mediator {
 	/// </summary>
 	HashMap<String, String> changedChunks;
 
-	void scanSdtForIdref(TransformAbstract t)
+	void scanSdtForIdref(TransformAbstract t) throws XPathExpressionException
 	{
 	    // Look at this Insert | Update, to see
 	    // whether it contains any of these 
 	    // id's which Word renumbers in document order
-	    XmlNodeList nodeList;
+	    NodeList nodeList;
 
-	    XmlNode sdt = t.SDT;
-	    XmlNamespaceManager nsmgr = new XmlNamespaceManager(sdt.OwnerDocument.NameTable);
-	    nsmgr.AddNamespace("w", Namespaces.WORDML_NAMESPACE);
-	    nsmgr.AddNamespace("r", Namespaces.RELATIONSHIPS_NAMESPACE);
+	    Node sdt = XmlUtils.marshaltoW3CDomDocument(t.getSdt());
 
 	    if (!fetchParts[PART_COMMENTS])
 	    {
 	        // <w:commentReference w:id="1" />
-	        nodeList = sdt.SelectNodes("//w:commentReference", nsmgr);
-	        if (nodeList.Count > 0)
+	    	
+			// xpaths[1] =  xPath.compile(".//w:commentReference/@w:id | .//w:commentRangeStart/@w:id | .//w:commentRangeEnd/@w:id");
+	    	
+	        //nodeList = sdt.SelectNodes("//w:commentReference", nsmgr);
+	    	nodeList = (NodeList)xpaths[1].evaluate(sdt, XPathConstants.NODESET);
+	        if (nodeList.getLength() > 0)
 	        {
 	            fetchParts[PART_COMMENTS] = true;
 	            log.debug("Detected comment");
@@ -1587,8 +1705,10 @@ public class Mediator {
 	    if (!fetchParts[PART_FOOTNOTES])
 	    {
 	        // <w:footnoteReference w:id="3" />
-	        nodeList = sdt.SelectNodes("//w:footnoteReference", nsmgr);
-	        if (nodeList.Count > 0)
+	    	
+			// xpaths[2] =  xPath.compile(".//w:footnoteReference/@w:id");
+	    	nodeList = (NodeList)xpaths[2].evaluate(sdt, XPathConstants.NODESET);
+	        if (nodeList.getLength() > 0)
 	        {
 	            fetchParts[PART_FOOTNOTES] = true;
 	            log.debug("Detected footnote");
@@ -1602,8 +1722,10 @@ public class Mediator {
 	    if (!fetchParts[PART_ENDNOTES])
 	    {
 	        // <w:endnoteReference w:id="2" />
-	        nodeList = sdt.SelectNodes("//w:endnoteReference", nsmgr);
-	        if (nodeList.Count > 0)
+	    	
+			// xpaths[3] =  xPath.compile(".//w:endnoteReference/@w:id");
+	    	nodeList = (NodeList)xpaths[3].evaluate(sdt, XPathConstants.NODESET);
+	        if (nodeList.getLength() > 0)
 	        {
 	            fetchParts[PART_ENDNOTES] = true;
 	            log.debug("Detected endnote");
@@ -1616,29 +1738,19 @@ public class Mediator {
 	    if (!fetchParts[PART_RELS] )
 	    {
 	        // Only perform this test, if we don't already require this part
+	    	
+			// xpathRelTest = xPath.compile(" .//@r:link | .//@r:id ");
+	    	nodeList = (NodeList)xpathRelTest.evaluate(sdt, XPathConstants.NODESET);
 
-	        // references to rels part
-	        // - images
-	        nodeList = sdt.SelectNodes("//@r:link", nsmgr);  
 	            /* We only expect @r:link, since all
 	             * @r:embed would have been converted when the 
 	             * sdt containing the image was transmitted
 	             * to the server by the other client. */
 
-	        if (nodeList.Count > 0)
+	        if (nodeList.getLength() > 0)
 	        {
 	            fetchParts[PART_RELS] = true;
-	            log.debug("Detected @r:embed");
-	        }
-	        else
-	        {
-	            // - hyperlinks (and w:object/v:imagedata, w:object/o:OLEObject)
-	            nodeList = sdt.SelectNodes("//@r:id", nsmgr);
-	            if (nodeList.Count > 0)
-	            {
-	                fetchParts[PART_RELS] = true;
-	                log.debug("Detected hyperlink");
-	            }
+	            log.debug("Detected @r");
 	        }
 
 	    }
@@ -1734,11 +1846,12 @@ public class Mediator {
 		
 	    // We also have to actually save them on the server before
 	    // they will be available to the replaced document below!
-	    foreach (DetachedImagePart dip in detachedImages)
-	    {
-	        log.debug( ws.injectPart(stateDocx.DocID, 
-	            dip.Name, "0", dip.ContentType, dip.Data) );
-	    }
+		// TODO
+//	    foreach (DetachedImagePart dip in detachedImages)
+//	    {
+//	        log.debug( ws.injectPart(stateDocx.DocID, 
+//	            dip.Name, "0", dip.ContentType, dip.Data) );
+//	    }
 	
 	    /*
 	     * Handle remote deleted chunks.
@@ -1855,32 +1968,32 @@ public class Mediator {
 
 	    Skeleton serverSkeleton = new Skeleton(serverSkeletonStr);
 	    
-	    // Added to docx4all 2009 03 05
-	    boolean structuralTransformsPending = !serverSkeleton.init(
-	            stateDocx.getTransforms().getTSequenceNumberHighestFetched() );
-
-
-	        /* When we detect a difference, we need to know whether
-	         * this is a local change, or a remote one which we haven't
-	         * applied yet.
-	         * 
-	         * Given that we have to work with the latest server skeleton,
-	         * we have to rely on it to be able to tell us that.
-	         * (If we could use an older one, then that ambiguity 
-	         *  would go away.  And we could keep the old one around
-	         *  for this purpose, but code which used the old one to
-	         *  resolve such ambiguities would probably be a little
-	         *  harder to understand - though with the advantage that
-	         *  maybe we could continue - TODO think this through ..)
-	         * 
-	         * So, if there are any pending remote moves/inserts/deletes,
-	         * require the user to apply these before transmitting:
-	         */
-	        if (structuralTransformsPending)
-	        {
-	            worker.setProgress(0, "Please fetch remote updates, then try again.");
-	            return;
-	        }
+	    // TODO - Add to docx4all 2009 03 05
+//	    boolean structuralTransformsPending = !serverSkeleton.init(
+//	            stateDocx.getTransforms().getTSequenceNumberHighestFetched() );
+//
+//
+//	        /* When we detect a difference, we need to know whether
+//	         * this is a local change, or a remote one which we haven't
+//	         * applied yet.
+//	         * 
+//	         * Given that we have to work with the latest server skeleton,
+//	         * we have to rely on it to be able to tell us that.
+//	         * (If we could use an older one, then that ambiguity 
+//	         *  would go away.  And we could keep the old one around
+//	         *  for this purpose, but code which used the old one to
+//	         *  resolve such ambiguities would probably be a little
+//	         *  harder to understand - though with the advantage that
+//	         *  maybe we could continue - TODO think this through ..)
+//	         * 
+//	         * So, if there are any pending remote moves/inserts/deletes,
+//	         * require the user to apply these before transmitting:
+//	         */
+//	        if (structuralTransformsPending)
+//	        {
+//	            worker.setProgress(0, "Please fetch remote updates, then try again.");
+//	            return false;
+//	        }
 	    
 	
 	    // OK, compare the inferredSkeleton to serverSkeleton
@@ -1920,12 +2033,13 @@ public class Mediator {
 					org.docx4j.wml.SdtBlock sdt = 
 						(org.docx4j.wml.SdtBlock) ml.getDocxObject();
 					StateChunk chunkCurrent = new StateChunk(sdt);
-					
-		            if (chunkCurrent.IsNew)
-		            {
-		                log.debug(chunkCurrent.getIdAsString() + " IsNew, so ignoring");
-		                continue;
-		            }					
+
+					// TODO
+//		            if (chunkCurrent.IsNew)
+//		            {
+//		                log.debug(chunkCurrent.getIdAsString() + " IsNew, so ignoring");
+//		                continue;
+//		            }					
 					
 					String sdtId = chunkCurrent.getIdAsString();
 
@@ -2496,19 +2610,33 @@ public class Mediator {
 		}
 	}
 	
-	void transmitOtherUpdates()
+	void transmitOtherUpdates() throws RemoteException
 	{
-	    HashMap<String, Part> knownParts = stateDocx.Parts;
+	    HashMap<String, org.plutext.client.partWrapper.Part> knownParts = stateDocx.getParts();
 
-	    HashMap<String, Part> discoveredParts = currentPkg.extractParts();
+	    HashMap<String, org.plutext.client.partWrapper.Part> discoveredParts 
+	    	= Util.extractParts( getWordMLDocument() );
 
+	    Map.Entry pairs;
+	    org.plutext.client.partWrapper.Part knownPart;
+	    org.plutext.client.partWrapper.Part discoveredPart;
+	    
 	    // DELETED PART - are there any KnownParts which have now gone?
-	    foreach (KeyValuePair<String, Part> kvp in knownParts)
-	    {
-	        Part knownPart = kvp.Value; 
+		Iterator knownPartsIterator = knownParts.entrySet().iterator();
+	    while (knownPartsIterator.hasNext()) {
+	        pairs = (Map.Entry)knownPartsIterator.next();
+	        
+	        if(pairs.getKey()==null) {
+	        	log.warn("Skipped null key");
+	        	pairs = (Map.Entry)knownPartsIterator.next();
+	        }
+	    
+	        knownPart 
+	        	= (org.plutext.client.partWrapper.Part)pairs.getValue(); 
 	        // do we know about it?
 	        
-            Part discoveredPart = discoveredParts[knownPart.Name];
+	        discoveredPart 
+	        	= discoveredParts.get(knownPart.getName() );
 
             // So we do know about it
             // That's fine - the foreach below will see whether it has
@@ -2516,36 +2644,46 @@ public class Mediator {
             
             if (discoveredPart==null) {	        {
 	            // This part has been deleted
-	            log.Warn(knownPart.Name + " no longer present locally; delete it on server?");
+	            log.warn(knownPart.getName() + " no longer present locally; delete it on server?");
 	            // TODO removePart(PartName)
 	        }
 	    }
 
 
 	    // INSERTED/UPDATED parts
-	    foreach (KeyValuePair<String, Part> kvp in discoveredParts)
-	    {
-	        Part discoveredPart = kvp.Value;
-	        log.Error("Considering " + discoveredPart.Name);
+		Iterator discoveredPartsIterator = discoveredParts.entrySet().iterator();
+	    while (discoveredPartsIterator.hasNext()) {
+	        pairs = (Map.Entry)discoveredPartsIterator.next();
+	        
+	        if(pairs.getKey()==null) {
+	        	log.warn("Skipped null key");
+	        	pairs = (Map.Entry)knownPartsIterator.next();
+	        }
+	    //foreach (KeyValuePair<String, Part> kvp in discoveredParts)
+	    //{
+	        discoveredPart = (org.plutext.client.partWrapper.Part)pairs.getValue(); 
+	        log.error("Considering " + discoveredPart.getName() );
 	        // do we know about it?
-            Part knownPart = knownParts[discoveredPart.Name];
+            knownPart = knownParts.get(discoveredPart.getName());
             
             if (knownPart==null) {
             	
 	            // This must be a new part, so version is 0.
-	            string resultingVersion = ws.injectPart(stateDocx.DocID, discoveredPart.Name, 
-	                "0", discoveredPart.ContentType, discoveredPart.UnwrappedXml);
+	            String resultingVersion = ws.injectPart(stateDocx.getDocID(), 
+	            		discoveredPart.getName(), 
+	                "0", discoveredPart.getContentType(), discoveredPart.getUnwrappedXml());
 
 	            // expect that to be 1?  well, no: the first version on the server will be numbered 0.
-	            if (!resultingVersion.Equals("0"))
+	            if (!resultingVersion.equals("0"))
 	            {
-	                log.Error("expected this be to version 0 ?!");
+	                log.error("expected this be to version 0 ?!");
 	            }
-	            stateDocx.PartVersionList.setVersion(discoveredPart.Name, resultingVersion);
+	            stateDocx.getPartVersionList().setVersion(discoveredPart.getName(), 
+	            		resultingVersion);
 
 	            // and update our record of the part in StateDocx
 	            // (since any change from this new baseline is something we will want to transmit)
-	            stateDocx.Parts.Add(discoveredPart.Name, discoveredPart);
+	            stateDocx.getParts().put(discoveredPart.getName(), discoveredPart);
 
 	            // note that _rels of this which is a target will get handled 
 	            // automatically, because we will have detected a change to that part as well,
@@ -2555,9 +2693,11 @@ public class Mediator {
 
 	            // So we do know about it
 	            // - has it changed?
-	            if (knownPart.Xml.Equals(discoveredPart.Xml))
+	            //if (knownPart.Xml.Equals(discoveredPart.Xml))
+            	// docx4all uses unwrapped here
+            	if (knownPart.getUnwrappedXml().equals(discoveredPart.getUnwrappedXml()))
 	            {
-	                log.Debug("No changes detected in: " + knownPart.Name);
+	                log.debug("No changes detected in: " + knownPart.getName() );
 	            }
 	            else
 	            {
@@ -2566,21 +2706,23 @@ public class Mediator {
 	                // All being well, the server will respond with a new version
 	                // number.
 
-	                string localVersion = stateDocx.PartVersionList.getVersion(
-	                    discoveredPart.Name);
+	                String localVersion = stateDocx.getPartVersionList().getVersion(
+	                    discoveredPart.getName() );
 
-	                string resultingVersion = ws.injectPart(stateDocx.DocID, 
-	                    discoveredPart.Name, localVersion, discoveredPart.ContentType, discoveredPart.UnwrappedXml);
-	                stateDocx.PartVersionList.setVersion(discoveredPart.Name, resultingVersion);
+	                String resultingVersion = ws.injectPart(stateDocx.getDocID(), 
+	                    discoveredPart.getName(), localVersion, 
+	                    discoveredPart.getContentType(), discoveredPart.getUnwrappedXml() );
+	                stateDocx.getPartVersionList().setVersion(discoveredPart.getName(), 
+	                		resultingVersion);
 
 	                // and update our record of the part in StateDocx
 	                // (since any change from this new baseline is something we will want to transmit)
-	                knownParts[discoveredPart.Name] = discoveredPart;
+	                knownParts.put(discoveredPart.getName(), discoveredPart );
 	            }
 
 	        }
 	    }
-	            
+	    }
 	}
 	
 

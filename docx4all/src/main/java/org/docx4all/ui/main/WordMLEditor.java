@@ -486,6 +486,11 @@ public class WordMLEditor extends SingleFrameApplication {
 
     	// TODO - only do this if the font is available.
     	Font font = new Font ( "Arial Unicode MS", Font.PLAIN, 12 ) ;
+    	
+    	System.out.println( font.getFamily() );
+    	System.out.println( font.getFontName() );
+    	System.out.println( font.getPSName() );
+    	
     	sourceView.setFont(font);
     	//sourceView.setFont(FontManager.getInstance().getFontInAction(attrs));
 

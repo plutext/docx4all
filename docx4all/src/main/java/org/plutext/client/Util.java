@@ -38,6 +38,7 @@ import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.DocPropsCustomPart;
 import org.docx4j.openpackaging.parts.PartName;
 import org.docx4j.openpackaging.parts.Parts;
+import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
 import org.plutext.client.state.StateChunk;
@@ -181,9 +182,10 @@ public class Util {
     	// TODO - check this isn't called repeatedly!!
 
     	HashMap<String, org.plutext.client.partWrapper.Part> parts = new HashMap<String, org.plutext.client.partWrapper.Part>();
-
-        
-        WordprocessingMLPackage wmlp = ((DocumentML)doc.getDefaultRootElement()).getWordprocessingMLPackage();
+       
+ 		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();    	
+ 		WordprocessingMLPackage wmlp = 
+    		((DocumentML) root.getElementML()).getWordprocessingMLPackage();
         
         HashMap docx4jParts = wmlp.getParts().getParts();
 		Iterator partsIterator = docx4jParts.entrySet().iterator();

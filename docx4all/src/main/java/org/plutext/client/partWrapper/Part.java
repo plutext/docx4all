@@ -1,5 +1,6 @@
 package org.plutext.client.partWrapper;
 
+import java.io.StringReader;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -9,6 +10,7 @@ import org.docx4j.openpackaging.parts.JaxbXmlPart;
 import org.docx4j.openpackaging.parts.relationships.Namespaces;
 import org.plutext.client.Mediator;
 import org.w3c.dom.Node;
+import org.xml.sax.InputSource;
 
 public class Part {
 	
@@ -44,52 +46,73 @@ public class Part {
 	
 	
 	// Handle XML String we get from the server
-    public static Part factory(String partXml)
-    {    	
-		javax.xml.parsers.DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		dbf.setNamespaceAware(true);
-		org.w3c.dom.Document doc = null;
-		try {
-			doc = dbf.newDocumentBuilder().parse(partXml);
-		} catch (Exception e) {
-			log.error(e);
-		}
-        return factory(doc);
-    }
+//    public static Part factory(String partXml)
+//    {    	
+//		javax.xml.parsers.DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+//		dbf.setNamespaceAware(true);
+//		org.w3c.dom.Document doc = null;
+//		try {
+//			doc = dbf.newDocumentBuilder().parse(partXml);
+//		} catch (Exception e) {
+//			log.error(e);
+//		}
+//        return factoryWorker(doc);
+//    }
 
     public static Part factory(org.docx4j.openpackaging.parts.JaxbXmlPart docx4jPart)
     {
         // marshal JaxbXmlPart
-        return factory(
-        		org.docx4j.XmlUtils.marshaltoW3CDomDocument( 
-        				docx4jPart.getJaxbElement() ));
+    	// to a string, so we can capture string representation
+    	String partXml = org.docx4j.XmlUtils.marshaltoString(docx4jPart.getJaxbElement(), true); // suppressDeclaration
+    	
+    	return factory(partXml, docx4jPart.getPartName().getName() );
+    	
+//        return factoryWorker(
+//        		org.docx4j.XmlUtils.marshaltoW3CDomDocument( 
+//        				docx4jPart.getJaxbElement() ));
     }
     
-
-    public static Part factory(org.w3c.dom.Document doc)
-    {
+	// TODO - Handle XML String we get from the server!
+    // Unlike the JAXB XML, this is wrapped in a part element
+    // Need to handle both
+    
+    
+    
+    public static Part factory(String partXml, String partName)
+    {   
+    	log.debug(partName + " : " + partXml);
     	
-    	
+		javax.xml.parsers.DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setNamespaceAware(true);
+		org.w3c.dom.Document doc = null;
+		try {
+			doc = dbf.newDocumentBuilder().parse(
+					new InputSource(
+							new StringReader(partXml)));
+		} catch (Exception e) {
+			log.error(e);
+		}
     	
         log.debug("documentElemnet: " + doc.getDocumentElement().getNodeName() );
         
         Node xmlNode = (Node)doc.getDocumentElement().getFirstChild();
 
-        String name = xmlNode.getAttributes().getNamedItemNS("name", 
-        		Namespaces.PKG_XML).getNodeValue();
+//        String name = xmlNode.getAttributes().getNamedItemNS("name", 
+//        		Namespaces.PKG_XML).getNodeValue();
 
-        log.debug("part: " + name );
+        log.debug("part: " + partName );
 
-        if (name.equals("/word/_rels/document.xml.rels"))
+        Part part = null;
+        if (partName.equals("/word/_rels/document.xml.rels"))
         {
-            return new SequencedPartRels(doc);
+            part = new SequencedPartRels(doc, partXml);
         }
-        else if (name.equals("/word/footnotes.xml")
-                    | name.equals("/word/endnotes.xml")
-                    | name.equals("/word/comments.xml"))
+        else if (partName.equals("/word/footnotes.xml")
+                    | partName.equals("/word/endnotes.xml")
+                    | partName.equals("/word/comments.xml"))
         {
-            return new SequencedPart(doc);
-        } else if (name.startsWith("/customXml") )
+        	part = new SequencedPart(doc, partXml);
+        } else if (partName.startsWith("/customXml") )
         {
 //            XmlNode n = xmlNode.FirstChild.FirstChild;
 //            log.Debug("customXml contains: " + n.Name);
@@ -103,23 +126,25 @@ public class Part {
             //}
             //else
             //{
-                return new Part(doc);
+        	part = new Part(doc, partXml);
             //}
         } else 
         {
-            return new Part(doc);
+        	part = new Part(doc, partXml);
         } 
+        part.name = partName;
+        return part;
     }
 
     public Part()
     { }
 
-    public Part(org.w3c.dom.Document doc)
+    public Part(org.w3c.dom.Document doc, String partXml)
     {
-        init(doc);
+        init(doc, partXml);
     }
 
-    public void init(org.w3c.dom.Document doc)
+    public void init(org.w3c.dom.Document doc, String partXml)
     {
         /*
          * <pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml" pkg:padding="512">
@@ -129,7 +154,7 @@ public class Part {
          * <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
          */
     	
-    	this.jxp = jxp;
+    	//this.jxp = jxp;
 
         // Record XML for the purposes of detecting changes we 
         // may have to transmit.  Note that although fetching updates
@@ -150,13 +175,15 @@ public class Part {
 //
 //        this.xmlNode = xmlNode;
 //
-    	name = xmlNode.getAttributes().getNamedItemNS("name", 
-        		Namespaces.PKG_XML).getNodeValue();
-//        contentType = xmlNode.Attributes.GetNamedItem("contentType", Namespaces.PKG_NAMESPACE).Value;
+    	unwrappedXml = partXml;
+    	
+    	
+//        contentType = xmlNode.getAttributes().getNamedItemNS("contentType", 
+//        		Namespaces.PKG_XML).getNodeValue();
 
     }
     
-    JaxbXmlPart jxp;
+    //JaxbXmlPart jxp;
 
 //    // Reference to original node.
 //    // Not of any use if the constructor took a string rather than the node!
@@ -172,30 +199,27 @@ public class Part {
 //        set { xml = value; }
 //    }
 //
-//    // pkg:part/pkg:xmlData/ZZZ, where ZZZ is what we
-//    // want to be able to transmit to the server;
-//    // or pkg:part/pkg:binaryData/ZZZ
-//    // Hmm, better if we send the xmlData|binaryData
-//    // node?  No, since then we have to strip that tag.
-//    private String unwrappedXml = null;
-//    public String UnwrappedXml
-//    {
-//        get { return unwrappedXml; }
-//        set { unwrappedXml = value; }
-//    }
-//
-//
+    
+    // pkg:part/pkg:xmlData/ZZZ, where ZZZ is what we
+    // want to be able to transmit to the server;
+    // or pkg:part/pkg:binaryData/ZZZ
+    // Hmm, better if we send the xmlData|binaryData
+    // node?  No, since then we have to strip that tag.
+    private String unwrappedXml = null;
+    public String getUnwrappedXml() {
+    	return unwrappedXml;
+    }
+
     protected String name;
       public String getName() {
     	  return name;
       }
-//
-//    protected string contentType;
-//    public string ContentType
-//    {
-//        get { return contentType; }
-//        set { contentType = value; }
-//    }
+
+    // TODO - 
+    protected String contentType;
+    public String getContentType() {
+        return contentType; 
+    }
 
 
 }

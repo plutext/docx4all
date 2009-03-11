@@ -127,6 +127,8 @@ public class FetchRemoteEditsWorker extends SwingWorker<Void, Void> implements I
     		//This is because the last message is meaningful to user.
     		//See: plutextClient.applyRemoteChanges();
     		setProgress(FetchProgress.DONE, getProgressMessage(FetchProgress.APPLYING_DONE));
+//    	} catch (Exception e) {
+//    		e.printStackTrace();
     	} finally {
     		plutextClient.endSession();
     		editor.endContentControlEdit();
@@ -196,7 +198,8 @@ public class FetchRemoteEditsWorker extends SwingWorker<Void, Void> implements I
     	START_APPLYING_UPDATES (50),
     	COMPARING_DOC_STRUCTURES (60),
     	APPLYING_UPDATES (70),
-    	APPLYING_DONE (90),
+    	APPLYING_DONE (80),
+    	LINKS (90),
     	
     	DONE (100);
     	
