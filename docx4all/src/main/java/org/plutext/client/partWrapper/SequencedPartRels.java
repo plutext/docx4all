@@ -49,9 +49,9 @@ FIXED_RELS_SUFFIX:
 
     	private static Logger log = Logger.getLogger(SequencedPartRels.class);
 
-        public SequencedPartRels(org.w3c.dom.Document doc, String partXml)
+        public SequencedPartRels(org.w3c.dom.Document doc)
         {
-            init(doc, partXml);
+            init(doc);
 
             // pkg:part/pkg:xmlData/Relationships
             log.debug("List element: " + xmlNode.getFirstChild().getFirstChild().getLocalName() );
@@ -105,6 +105,11 @@ FIXED_RELS_SUFFIX:
 
         public Node getNodeById(String id)
         {
+        	log.debug("Request for " + id);
+        	// TMP DEBUG
+        	if (nodesMap.get(id)==null) {
+        		log.warn("null!!");
+        	}
             return nodesMap.get(id);
         }
 

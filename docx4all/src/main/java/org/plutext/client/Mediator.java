@@ -43,6 +43,7 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 import org.alfresco.webservice.authentication.AuthenticationFault;
+import org.alfresco.webservice.util.AuthenticationDetails;
 import org.alfresco.webservice.util.AuthenticationUtils;
 import org.apache.log4j.Logger;
 import org.docx4all.swing.CheckinCommentDialog;
@@ -197,6 +198,9 @@ public class Mediator {
 	 * SESSION MANAGEMENT 
 	 ******************************************************
 	 */
+	
+    AuthenticationDetails authDetails; 
+	
 	public void startSession() throws ServiceException {
         try {
 			WordMLDocument doc = getWordMLDocument();
@@ -222,7 +226,17 @@ public class Mediator {
             // rather than tester%40public
             
             AuthenticationUtils.startSession(java.net.URLDecoder.decode(uri.getUsername(),"UTF-8"), uri.getPassword());
-            
+            /*
+             * NB - that stores the session in ThreadLocal<AuthenticationDetails> authenticationDetails.
+             * 
+             * The practical effect of this is that all web service calls must be from the
+             * same thread! ie you can't do some in a background thread, and others in
+             * the event dispatching thread.
+             * 
+             * A workaround for this is to store the AuthenticationDetails here, so that
+             * they can be set on other threads as necessary.
+             */
+            authDetails = AuthenticationUtils.getAuthenticationDetails();
 		      
             PlutextService_ServiceLocator locator = 
             	new PlutextService_ServiceLocator(
@@ -262,8 +276,8 @@ public class Mediator {
 
 	public void endSession() {
 		log.info("Ending session.");
-		Throwable t = new Throwable();
-		t.printStackTrace();
+		
+		
 		AuthenticationUtils.endSession();
 		currentClientSkeleleton = null;
 		ws = null;
@@ -571,15 +585,14 @@ public class Mediator {
 	        | fetchParts[PART_ENDNOTES])
 	    {
 	        try {
-	        	log.error("Related parts need updating..");
-				updateRelatedParts(worker);
+	        	//log.error("Related parts need updating..");
+	        	updateRelatedParts(worker);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 	    }
 		
-
 		this.oldServer = null;
 	}
 	
@@ -592,7 +605,7 @@ public class Mediator {
 	/// <param name="pkg"></param>
 	/// <param name="currentStateChunks"></param>
 	/// <param name="bw"></param>
-	private void updateRelatedParts(FetchRemoteEditsWorker worker) throws Exception
+	public void updateRelatedParts(FetchRemoteEditsWorker worker) throws Exception
 	{
 	    worker.setProgress(FetchProgress.LINKS, "Links");
 
@@ -626,8 +639,14 @@ public class Mediator {
 	    // invoke web service - returns the part and its version number.
 	    log.debug("invoking web service");
 	    //this.startSession();
+	    
+	    // Since this method updateRelatedParts is performed
+	    // in the event dispatching thread, as opposed to
+	    // Swing Worker's background thread, we need to 
+	    // let this thread know the Auth details..
+	    AuthenticationUtils.setAuthenticationDetails(authDetails);
+	    
 	    String[][] weirdParts = ws.getParts(stateDocx.getDocID(), partNames);
-	    log.debug("web service call done...");
 
 	    log.debug("number of weird parts: " + weirdParts.length);
 
@@ -650,8 +669,9 @@ public class Mediator {
 	        {
 
 	            SequencedPart sp = (SequencedPart)org.plutext.client.partWrapper.Part.factory(
-	            		itemField[1], partNames[i] );
+	            		itemField[1] );
 	            serverSequencedParts[i] = sp;
+	            log.debug("Set serverSequencedParts[" + i );
 	                        
 
 	            // In anticipation of success in what follows, 
@@ -681,6 +701,8 @@ public class Mediator {
 	        {
 	            //localSequencedParts[i] = (SequencedPartRels)stateDocx.Parts[partName];
 	            localSequencedParts[i] = (SequencedPartRels)localParts.get(partName);
+	            log.debug("Set localSequencedParts[" + i + " as rels");
+	            
 	        }
 	        else
 	        {
@@ -700,9 +722,15 @@ public class Mediator {
 	                // (in which case the numbers are going to be aligned, and
 	                //  much of the following code would be unnecessary in that case;
 	                //  however, it does take care of adding the part for us...)
+		            log.debug("Set localSequencedParts[" + i + " using server part. ");	            	
+	            } else {
+		            log.debug("Set localSequencedParts[" + i + " ");	            	
 	            }
 	        }
-	    }
+	        if ( localSequencedParts[i]==null ) {
+	        	log.error("but it is null!!");
+	        }
+	      }
 
 
 
@@ -722,20 +750,21 @@ public class Mediator {
 	    // the data we want
 	    
 	    WordMLDocument doc = getWordMLDocument();
-		DocumentML documentML = (DocumentML) doc.getDefaultRootElement();
-        WordprocessingMLPackage wmlp = documentML.getWordprocessingMLPackage();        		
-		MainDocumentPart mdp = documentML.getWordprocessingMLPackage().getMainDocumentPart();
+ 		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();    	
+ 		WordprocessingMLPackage wmlp = 
+    		((DocumentML) root.getElementML()).getWordprocessingMLPackage();
+		MainDocumentPart mdp = wmlp.getMainDocumentPart();
 		
 		org.w3c.dom.Document mdpW3C = XmlUtils.marshaltoW3CDomDocument( mdp.getJaxbElement() );
 		
 		java.io.InputStream xslt = org.docx4j.utils.ResourceUtils.getResource("org/plutext/client/ReferenceMap.xslt");		
 		javax.xml.transform.dom.DOMResult domResult = new javax.xml.transform.dom.DOMResult();
-		
 		XmlUtils.transform(mdpW3C, xslt, null, domResult);
 		
-//	    XmlDocument referenceMap = pkgB.getReferenceMap();
-//	    log.Debug("referenceMap: " + referenceMap.OuterXml);
-
+//		javax.xml.transform.stream.StreamResult debugStream =
+//			new javax.xml.transform.stream.StreamResult(System.out);		
+//		XmlUtils.transform(mdpW3C, xslt, null, debugStream);
+		
 	    /* Something like:
 	     * 
 	     * 
@@ -769,9 +798,9 @@ public class Mediator {
 	                </sdt>
 	     */
 
-	    //XmlNodeList sdts = referenceMap.FirstChild.ChildNodes;
+		//log.debug(domResult.getNode().getNodeName() ); --> #document		
+		NodeList sdts = domResult.getNode().getFirstChild().getChildNodes();
 		
-		NodeList sdts = domResult.getNode().getChildNodes();
 		
 	    // nb: std's aren't sdt's as such - see the example XML above.
 
@@ -791,10 +820,12 @@ public class Mediator {
             {
             	
             	Node sdt = sdts.item(nli);
-	            //log.Debug(sdt.OuterXml);
+	            //log.debug(sdt.getNodeName());
+	            //log.debug(sdt.getFirstChild().getNodeName());
             	
-	            String sdtId = sdt.getFirstChild().getNodeValue();
-	            log.debug(sdtId);
+	            String sdtId = sdt.getFirstChild().getFirstChild().getNodeValue();
+	            	// getFirstChild().getNodeValue() is the value of the #text child
+	            //log.debug(sdtId);
 
                 Object dummy = changedChunks.get(sdtId);
                 if (dummy == null) {
@@ -813,13 +844,13 @@ public class Mediator {
 	                    {
 	                        constructedContent[i].add(
 	                            ((SequencedPartRels)localSequencedParts[i]).getNodeById(
-	                                idref.getNodeValue()).cloneNode(true));
+	                                idref.getFirstChild().getNodeValue()).cloneNode(true));
 	                    }
 	                    else
 	                    {
 	                        constructedContent[i].add(
 	                            localSequencedParts[i].getNodeByIndex(
-	                            		Integer.parseInt(idref.getNodeValue())
+	                            		Integer.parseInt(idref.getFirstChild().getNodeValue())
 	                                ));
 	                        log.debug("Added to constructedContent[" + i);
 	                    }
@@ -841,7 +872,7 @@ public class Mediator {
 	                    {
 	                        constructedContent[i].add(
 	                            ((SequencedPartRels)serverSequencedParts[i]).getNodeById(
-	                                idref.getNodeValue()).cloneNode(true));
+	                                idref.getFirstChild().getNodeValue()).cloneNode(true));
 	                        // Clone, so that if there 2 references to the same image,
 	                        // we get distinct copies of the rel node, which we can 
 	                        // number as we choose.  Without the distinct copies,
@@ -852,7 +883,7 @@ public class Mediator {
 	                    {
 	                        constructedContent[i].add(
 	                            serverSequencedParts[i].getNodeByIndex(
-	                                Integer.parseInt(idref.getNodeValue())
+	                                Integer.parseInt(idref.getFirstChild().getNodeValue())
 	                                ));
 	                        log.debug("Added to constructedContent[" + i);
 	                    }
@@ -895,7 +926,12 @@ public class Mediator {
 	    // We need the real underlying parts, so we can update them
 	    // at the end of each loop
         HashMap<PartName, org.docx4j.openpackaging.parts.Part> docx4jParts 
-        	= wmlp.getParts().getParts();	    
+        	= wmlp.getParts().getParts();
+	    // The Parts list doesn't include rels parts,
+	    // but we need "/word/_rels/document.xml.rels"
+        // so add it
+        RelationshipsPart relsPart = wmlp.getMainDocumentPart().getRelationshipsPart();
+        docx4jParts.put(relsPart.getPartName(), relsPart);
 
 	    // for each of the parts we are dealing with, 
 	    for (int i = 0; i < max; i++)
@@ -972,7 +1008,7 @@ public class Mediator {
 
 	                    String rel_comment_id_new = "rId" + idNum;
 	                    
-	                    // WRONG! String rel_comment_id_old = nodeList[k].Attributes.GetNamedItem("id", Namespaces.WORDML_NAMESPACE).Value;
+	                    // WRONG! String rel_comment_id_old = nodeList[k].Attributes.GetNamedItem(Namespaces.WORDML_NAMESPACE, "id").Value;
 	                    // log.Debug("rel_comment_id_old: " + rel_comment_id_old);
 
 	                    rel_comment = ((SequencedPartRels)(localSequencedParts[i])).getNodeByType("comments");
@@ -1034,7 +1070,7 @@ public class Mediator {
 
 	                // Number the constructed content the same
 	                Node n = (Node)constructedContent[i].get(k + 2);
-	                n.getAttributes().getNamedItemNS("id", Namespaces.WORDML_NAMESPACE).setNodeValue( Integer.toString(k + 2) );
+	                n.getAttributes().getNamedItemNS(Namespaces.WORDML_NAMESPACE, "id").setNodeValue( Integer.toString(k + 2) );
 	            }
 	            else  // comments, and hmm, what might else this catch all catch?
 	            {
@@ -1063,7 +1099,7 @@ public class Mediator {
 	                if (cid == (k / 3))
 	                {
 	                    Node n = (Node)constructedContent[i].get(cid);
-	                    n.getAttributes().getNamedItemNS("id", Namespaces.WORDML_NAMESPACE).setNodeValue(
+	                    n.getAttributes().getNamedItemNS(Namespaces.WORDML_NAMESPACE, "id").setNodeValue(
 	                    		Integer.toString(cid));
 	                }
 
@@ -1229,13 +1265,13 @@ public class Mediator {
 		        		// TODO - convert footnotes & endnotes to JAXB XML parts!
 		        
 		        jPart = (JaxbXmlPart)p;
-		        jPart.unmarshal((Element)parent);
+		        jPart.unmarshal((Element)listParent);  
 	        }
 	    }
 	    
 	    // In the loop above, we updated each of the sequencable parts.
 	    // But we still have to do the main document part itself:
-	    mdp.unmarshal( (Element)mdpW3C );
+	    mdp.unmarshal( mdpW3C.getDocumentElement() );
 	    
         // Now we need for docx4all to update its model of the document. 
 	    //  see WordMLEditor.synchEditorView? That seems to 
@@ -1662,12 +1698,12 @@ public class Mediator {
 	}
 	
 	
-	boolean [] fetchParts = new boolean[4];
+	public boolean [] fetchParts = new boolean[4];
 
-	static int PART_RELS = 0;
-	static int PART_COMMENTS = 1;
-	static int PART_FOOTNOTES = 2;
-	static int PART_ENDNOTES = 3;
+	public static int PART_RELS = 0;
+	public static int PART_COMMENTS = 1;
+	public static int PART_FOOTNOTES = 2;
+	public static int PART_ENDNOTES = 3;
 
 	/// <summary>
 	/// Sdt's which are altered through the application of a transform, 

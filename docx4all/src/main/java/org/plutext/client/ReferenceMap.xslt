@@ -37,10 +37,17 @@
 
     <xsl:output method="xml" encoding="utf-8" omit-xml-declaration="no" indent="yes" />
 
+	<!--  Word Add-In entry point -->
     <xsl:template match="/pkg:package">
+		<!-- invoke docx4all entry point -->
+          <xsl:apply-templates select="pkg:part/pkg:xmlData/w:document"/>
+    </xsl:template>
+
+	<!--  docx4all entry point -->
+    <xsl:template match="/w:document">
       <ReferenceMap>
 
-          <xsl:apply-templates select="pkg:part/pkg:xmlData/w:document/w:body/w:sdt"/>
+          <xsl:apply-templates select="w:body/w:sdt"/>
 
       </ReferenceMap>
     </xsl:template>

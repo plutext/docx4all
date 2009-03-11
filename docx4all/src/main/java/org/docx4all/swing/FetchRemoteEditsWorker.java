@@ -64,6 +64,7 @@ public class FetchRemoteEditsWorker extends SwingWorker<Void, Void> implements I
 	
     /*
      * Main task. Executed in background thread.
+     * 
      */
     @Override
     public Void doInBackground() {
@@ -103,7 +104,10 @@ public class FetchRemoteEditsWorker extends SwingWorker<Void, Void> implements I
     }
     
     /*
-     * Executed in event dispatching thread
+     * Executed in event dispatching thread.
+     * Since this is a different thread, if you want to use
+     * the web service, you need to set the auth details on it
+     * first.  (See for example, Mediator's updateRelatedParts) 
      */
     @Override
     public void done() {

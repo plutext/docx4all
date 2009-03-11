@@ -6,6 +6,8 @@ import java.util.List;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.log4j.Logger;
+import org.docx4j.convert.out.xmlPackage.XmlPackage;
+import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.parts.JaxbXmlPart;
 import org.docx4j.openpackaging.parts.relationships.Namespaces;
 import org.plutext.client.Mediator;
@@ -42,6 +44,17 @@ public class Part {
 	 * But all things considered, its better to keep the
 	 * code similar to the Word Add-In, so that means
 	 * XML DOM level. 
+	 * 
+	 * 	 Handle XML String we get from the server!
+     Unlike the JAXB XML, this is wrapped in a part element
+     Need to handle both.
+     Should we standardise on wrapped or unwrapped?
+     1. ws.injectPart in transmitOtherUpdates() sends unwrapped
+     But we have to parse the XML String we get from the server,
+     to get its content type (and of course its content proper).
+     So lets wrap the JAXB XML, so that it can be processed by 
+     the same method.
+
 	 */
 	
 	
@@ -59,28 +72,46 @@ public class Part {
 //        return factoryWorker(doc);
 //    }
 
+	
+	
     public static Part factory(org.docx4j.openpackaging.parts.JaxbXmlPart docx4jPart)
     {
+    	/*
         // marshal JaxbXmlPart
     	// to a string, so we can capture string representation
-    	String partXml = org.docx4j.XmlUtils.marshaltoString(docx4jPart.getJaxbElement(), true); // suppressDeclaration
+    	 * 
+    	 * There are 2 ways we can do this.
+    	 * The first is simply to marshal it to a string, then
+    	 * wrap it in part xml.
+    	 * 
+    	 * The second would be to use XmlPackage's createRawXmlPart,
+    	 * then marshal that to a string. But that would involve
+    	 * marshalling twice, so we'll go for the other option.
+    	 */
+    	String partXml;
+    	if (docx4jPart instanceof org.docx4j.openpackaging.parts.relationships.RelationshipsPart) {
+    		// Use Context.jcRelationships
+    		partXml = org.docx4j.XmlUtils.marshaltoString(docx4jPart.getJaxbElement(), true,
+    				Context.jcRelationships);
+    	} else {
+    		partXml = org.docx4j.XmlUtils.marshaltoString(docx4jPart.getJaxbElement(), true); // suppressDeclaration
+    	}
     	
-    	return factory(partXml, docx4jPart.getPartName().getName() );
+    	return factory(
+    			XmlPackage.wrapInXmlPart(partXml, docx4jPart.getPartName().getName(), 
+    					docx4jPart.getContentType() ) );
     	
 //        return factoryWorker(
 //        		org.docx4j.XmlUtils.marshaltoW3CDomDocument( 
 //        				docx4jPart.getJaxbElement() ));
     }
     
-	// TODO - Handle XML String we get from the server!
-    // Unlike the JAXB XML, this is wrapped in a part element
-    // Need to handle both
     
     
     
-    public static Part factory(String partXml, String partName)
+    public static Part factory(String partXml)
     {   
-    	log.debug(partName + " : " + partXml);
+    	log.debug( partXml);
     	
 		javax.xml.parsers.DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		dbf.setNamespaceAware(true);
@@ -95,23 +126,26 @@ public class Part {
     	
         log.debug("documentElemnet: " + doc.getDocumentElement().getNodeName() );
         
-        Node xmlNode = (Node)doc.getDocumentElement().getFirstChild();
+        Node xmlNode = (Node)doc.getDocumentElement(); //.getFirstChild();
 
-//        String name = xmlNode.getAttributes().getNamedItemNS("name", 
-//        		Namespaces.PKG_XML).getNodeValue();
+        // eg <pkg:part pkg:name="/word/comments.xml" 
+        //				pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml" 
+        //				xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+        String partName = xmlNode.getAttributes().getNamedItemNS( 
+        		Namespaces.PKG_XML, "name").getNodeValue();
 
         log.debug("part: " + partName );
 
         Part part = null;
         if (partName.equals("/word/_rels/document.xml.rels"))
         {
-            part = new SequencedPartRels(doc, partXml);
+            part = new SequencedPartRels(doc);
         }
         else if (partName.equals("/word/footnotes.xml")
                     | partName.equals("/word/endnotes.xml")
                     | partName.equals("/word/comments.xml"))
         {
-        	part = new SequencedPart(doc, partXml);
+        	part = new SequencedPart(doc);
         } else if (partName.startsWith("/customXml") )
         {
 //            XmlNode n = xmlNode.FirstChild.FirstChild;
@@ -126,25 +160,38 @@ public class Part {
             //}
             //else
             //{
-        	part = new Part(doc, partXml);
+        	part = new Part(doc);
             //}
         } else 
         {
-        	part = new Part(doc, partXml);
+        	part = new Part(doc);
         } 
         part.name = partName;
+        
+       //part.xml = partXml;
+        
+        
+        //
+//                // pkg:part/pkg:xmlData/ZZZ, where ZZZ is what we
+//                // want to be able to transmit to the server
+//                unwrappedXml = xmlNode.FirstChild.FirstChild.OuterXml;
+        //
+//                this.xmlNode = xmlNode;
+        //
+        //part.unwrappedXml = xmlNode.FirstChild.FirstChild.OuterXml;
+        
         return part;
     }
 
     public Part()
     { }
 
-    public Part(org.w3c.dom.Document doc, String partXml)
+    public Part(org.w3c.dom.Document doc)
     {
-        init(doc, partXml);
+        init(doc);
     }
 
-    public void init(org.w3c.dom.Document doc, String partXml)
+    public void init(org.w3c.dom.Document doc)
     {
         /*
          * <pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml" pkg:padding="512">
@@ -155,42 +202,32 @@ public class Part {
          */
     	
     	//this.jxp = jxp;
-
-        // Record XML for the purposes of detecting changes we 
-        // may have to transmit.  Note that although fetching updates
-        // can create a Part object out of XML sent by the
-        // server, the Part objects examined in transmission
-        // are each generated by Word.  (And in any case, the
-        // ones sent by the server are never marshalled/unmarshalled
-        // as at 2008 12 18)
     	
-    	xmlNode = (Node)doc.getDocumentElement().getFirstChild();
+    	xmlNode = (Node)doc.getDocumentElement();
     	
-    	
-//        xml = xmlNode.OuterXml;
-//
-//        // pkg:part/pkg:xmlData/ZZZ, where ZZZ is what we
-//        // want to be able to transmit to the server
-//        unwrappedXml = xmlNode.FirstChild.FirstChild.OuterXml;
-//
-//        this.xmlNode = xmlNode;
-//
-    	unwrappedXml = partXml;
-    	
-    	
-//        contentType = xmlNode.getAttributes().getNamedItemNS("contentType", 
-//        		Namespaces.PKG_XML).getNodeValue();
+        contentType = xmlNode.getAttributes().getNamedItemNS( 
+        		Namespaces.PKG_XML, "contentType").getNodeValue();
 
     }
     
     //JaxbXmlPart jxp;
 
 //    // Reference to original node.
-//    // Not of any use if the constructor took a string rather than the node!
     protected Node xmlNode;
     public Node getXmlNode() {
     	return xmlNode;    	
     }
+    
+    // Record XML - wrapped or unwrapped (or as a node?) - for  
+    // the purposes of detecting changes we 
+    // may have to transmit.  Note that although fetching updates
+    // can create a Part object out of XML sent by the
+    // server, the Part objects examined in transmission
+    // are each generated by Word.  (And in any case, the
+    // ones sent by the server are never marshalled/unmarshalled
+    // as at 2008 12 18)
+
+    
 //
 //    private String xml = null;
 //    public String Xml

@@ -45,9 +45,9 @@ public class SequencedPart extends Part {
         public SequencedPart()
         {
         }
-        public SequencedPart(org.w3c.dom.Document doc, String partXml)
+        public SequencedPart(org.w3c.dom.Document doc)
         {
-            init(doc, partXml);
+            init(doc);
             log.debug("List element: " + xmlNode.getFirstChild().getFirstChild().getLocalName() );
             sequencedElements = xmlNode.getFirstChild().getFirstChild().getChildNodes();
         }

@@ -39,6 +39,7 @@ import org.docx4j.openpackaging.parts.DocPropsCustomPart;
 import org.docx4j.openpackaging.parts.PartName;
 import org.docx4j.openpackaging.parts.Parts;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
+import org.docx4j.openpackaging.parts.relationships.RelationshipsPart;
 import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
 import org.plutext.client.state.StateChunk;
@@ -188,6 +189,13 @@ public class Util {
     		((DocumentML) root.getElementML()).getWordprocessingMLPackage();
         
         HashMap docx4jParts = wmlp.getParts().getParts();
+        
+	    // The Parts list doesn't include rels parts,
+	    // but we need "/word/_rels/document.xml.rels"
+        // so add it
+        RelationshipsPart relsPart = wmlp.getMainDocumentPart().getRelationshipsPart();
+        docx4jParts.put(relsPart.getPartName(), relsPart);
+        
 		Iterator partsIterator = docx4jParts.entrySet().iterator();
 	    while (partsIterator.hasNext()) {
 	        Map.Entry pairs = (Map.Entry)partsIterator.next();
@@ -198,9 +206,13 @@ public class Util {
 	        }
 	        
 	        PartName partName = (PartName)pairs.getKey();
+	        	        
 	        org.docx4j.openpackaging.parts.Part docx4jPart
 	        	= (org.docx4j.openpackaging.parts.Part)pairs.getValue();
 
+	        log.debug("name: " + partName.getName() + " -- " +
+	        		docx4jPart.getClass().getName() );
+	        
             if (docx4jPart instanceof org.docx4j.openpackaging.parts.JaxbXmlPart
             		&& SequencedPart.getSequenceableParts().contains( partName.getName() ) )
             {
@@ -215,6 +227,8 @@ public class Util {
             //    log.Debug("set partVersionList");
             //}
         }
+	    // Return the Parts object to its original state
+	    docx4jParts.remove(relsPart.getPartName());
 
         return parts;
     }	
