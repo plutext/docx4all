@@ -93,7 +93,7 @@
         </xsl:for-each>
       </footnotes>
       <endnotes>
-        <xsl:for-each select=".//endnoteReference">
+        <xsl:for-each select=".//w:endnoteReference">
           <idref>
             <xsl:value-of select="@w:id"/>
           </idref>
