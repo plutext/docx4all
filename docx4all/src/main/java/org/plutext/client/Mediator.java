@@ -812,8 +812,23 @@ public class Mediator {
 	    {
 	        String partName = serverSequencedParts[i].getName(); // as good a way as any to get the part name
 	        log.debug("Constructing content for Part: " + i + " .. " + partName);
-
+	        
 	        constructedContent[i] = new ArrayList();
+
+	        if (partName.equals("/word/footnotes.xml")
+	                || partName.equals("/word/endnotes.xml"))
+	        {
+	            // footnotes & endnotes 0 & 1 are artificial;
+	            // - add these; it doesn't matter whether we use the server or local copy
+	            // We don't actually read these entries again, we just 
+	            // have to fill the slots so later references to 
+	            // (constructedContent[i])[k + 2] work!
+	            log.debug("Adding  artificial entries.." );
+	            constructedContent[i].add(
+	                serverSequencedParts[i].getNodeByIndex(0));
+	            constructedContent[i].add(
+	                serverSequencedParts[i].getNodeByIndex(1));
+	        }	        
 
 	        //foreach (XmlNode sdt in sdts)
             for (int nli=0 ; nli < sdts.getLength() ; nli++ )
