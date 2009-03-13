@@ -54,7 +54,8 @@ FIXED_RELS_SUFFIX:
             init(doc);
 
             // pkg:part/pkg:xmlData/Relationships
-            log.debug("List element: " + xmlNode.getFirstChild().getFirstChild().getLocalName() );
+            log.debug("List element: " 
+            		+ xmlNode.getFirstChild().getFirstChild().getLocalName() );
             
             NodeList nl = xmlNode.getFirstChild().getFirstChild().getChildNodes();            
             for (int i=0 ; i < nl.getLength() ; i++ )
@@ -70,6 +71,9 @@ FIXED_RELS_SUFFIX:
             for (int i=1 ; i <= nodesMap.size(); i++) {
 
                 Node n = nodesMap.get("rId" + i);
+                if (n==null) {
+                	log.error("Missing rId" + i);
+                }
                 String type = n.getAttributes().getNamedItem("Type").getNodeValue();  
                 type = type.substring(type.lastIndexOf("/") +1);
                 log.debug("Inspecting  rId" + i + " of " + type);

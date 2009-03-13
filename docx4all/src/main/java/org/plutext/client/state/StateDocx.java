@@ -97,8 +97,9 @@ public class StateDocx {
 	        }
 	        
 	        PartName partName = (PartName)pairs.getKey();
+	        log.debug(partName.getName() );
 
-            if (partName.getName().startsWith("/customXml") )            	
+            if (pairs.getValue() instanceof CustomXmlDataStoragePart)             	
             {
             	CustomXmlDataStoragePart docx4jPart
 	        		= (CustomXmlDataStoragePart)pairs.getValue();
