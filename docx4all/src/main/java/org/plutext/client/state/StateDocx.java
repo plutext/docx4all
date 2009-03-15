@@ -88,6 +88,7 @@ public class StateDocx {
         // Find our version list CustomXml part
         HashMap docx4jParts = wordMLPackage.getParts().getParts();
 		Iterator partsIterator = docx4jParts.entrySet().iterator();
+		PartName toBeRemovedPartName = null; 
 	    while (partsIterator.hasNext()) {
 	        Map.Entry pairs = (Map.Entry)partsIterator.next();
 	        
@@ -115,13 +116,18 @@ public class StateDocx {
                     partVersionList = new PartVersionList(customXmlDoc);
                     log.debug("set partVersionList");
                     
-                    // TODO - now delete this part from the package,
+                    // now delete this part from the package,
                     // including its entry in the doc's rels.
-            		
+                    toBeRemovedPartName = partName;
             	}
             	
             }
         }
+	    
+	    if (toBeRemovedPartName!=null) {
+	    	wordMLPackage.getMainDocumentPart().getRelationshipsPart().removePart(toBeRemovedPartName);
+	    	log.debug("Removed tmp part " + toBeRemovedPartName.getName() );
+	    }
 		
         parts = Util.extractParts(doc);
 
