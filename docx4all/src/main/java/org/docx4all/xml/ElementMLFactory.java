@@ -58,7 +58,7 @@ public class ElementMLFactory {
 
 		DocumentML docML = null;
 		try {
-			LoadFromVFSZipFile loader = new LoadFromVFSZipFile();
+			LoadFromVFSZipFile loader = new LoadFromVFSZipFile(true);
 			WordprocessingMLPackage wordMLPackage = 
 				(WordprocessingMLPackage) 
 					loader.getPackageFromFileObject(f);

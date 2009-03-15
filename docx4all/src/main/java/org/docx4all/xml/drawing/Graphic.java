@@ -21,12 +21,16 @@ package org.docx4all.xml.drawing;
 
 import java.awt.Toolkit;
 
+import org.apache.log4j.Logger;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 
 /**
  *	@author Jojada Tirtowidjojo - 15/12/2008
  */
 public class Graphic {
+	
+	private static Logger log = Logger.getLogger(Graphic.class);
+	
 	private org.docx4j.dml.Graphic graphic;
 	
 	public Graphic(org.docx4j.dml.Graphic graphic) {
@@ -48,12 +52,19 @@ public class Graphic {
 		
 		org.docx4j.dml.Pic pic = getPic();
 		String rId = pic.getBlipFill().getBlip().getEmbed();
+		if (rId.equals("")) {
+			rId = pic.getBlipFill().getBlip().getLink();
+		}
+		log.debug("Image rel id: " + rId);
 		org.docx4j.relationships.Relationship rel = 
 			wmlPkg.getMainDocumentPart().getRelationshipsPart().getRelationshipByID(rId);
 		if (rel != null) {
 			org.docx4j.openpackaging.parts.Part part = 
 				wmlPkg.getMainDocumentPart().getRelationshipsPart().getPart(rel);
-			if (part instanceof org.docx4j.openpackaging.parts.WordprocessingML.BinaryPart) {
+			if (part == null) {
+				log.error("Couldn't get Part!");
+			} else if (part instanceof org.docx4j.openpackaging.parts.WordprocessingML.BinaryPart) {
+				log.debug("getting bytes...");
 				org.docx4j.openpackaging.parts.WordprocessingML.BinaryPart binaryPart =
 					(org.docx4j.openpackaging.parts.WordprocessingML.BinaryPart) part;
 				java.nio.ByteBuffer bb = binaryPart.getBuffer();
@@ -62,7 +73,11 @@ public class Graphic {
     	        bb.get(bytes, 0, bytes.length);
 
 				theImage = Toolkit.getDefaultToolkit().createImage(bytes);
+			} else {				
+				log.error("Part was a " + part.getClass().getName() );
 			}
+		} else {
+			log.error("Couldn't find rel " + rId);
 		}
 		
 		return theImage;
