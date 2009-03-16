@@ -47,7 +47,7 @@
     <xsl:template match="/w:document">
       <ReferenceMap>
 
-          <xsl:apply-templates select="w:body/w:sdt"/>
+          <xsl:apply-templates select="w:body/*"/>
 
       </ReferenceMap>
     </xsl:template>
@@ -63,10 +63,14 @@
     </xsl:template>
 
         
-    <xsl:template match="w:sdt">
+    <xsl:template match="w:sdt|w:p|w:tbl">
+    	<!--  p & tbl is so that we catch things which aren't in an sdt yet -->
       <sdt>
         <id>
-        <xsl:value-of select="w:sdtPr/w:id/@w:val"/>
+        	<xsl:choose>
+        		<xsl:when test="self::w:sdt"><xsl:value-of select="w:sdtPr/w:id/@w:val"/></xsl:when>
+        		<xsl:otherwise>OUTSIDE_SDT</xsl:otherwise>
+        	</xsl:choose>
       </id>
       <rels>
         <xsl:for-each select=".//@r:embed | .//@r:link | .//@r:id">
