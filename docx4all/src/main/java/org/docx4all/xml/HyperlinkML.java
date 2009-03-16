@@ -31,6 +31,7 @@ import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.commons.vfs.FileObject;
 import org.apache.commons.vfs.FileSystemException;
+import org.apache.log4j.Logger;
 import org.docx4all.swing.text.WordMLStyleConstants;
 import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
@@ -40,6 +41,8 @@ import org.docx4j.openpackaging.parts.relationships.Namespaces;
  *	@author Jojada Tirtowidjojo - 20/11/2008
  */
 public class HyperlinkML extends ElementML {
+	
+	private static Logger log = Logger.getLogger(HyperlinkML.class);	
 	
 	public final static String encodeTarget(
 		HyperlinkML ml, FileObject sourceFile, boolean inFriendlyFormat) {
@@ -173,6 +176,9 @@ public class HyperlinkML extends ElementML {
 		return canSet;
 	}
 	
+	public final static java.lang.CharSequence space = (new String(" ")).subSequence(0, 1);
+	public final static java.lang.CharSequence encodedSpace = (new String("%20")).subSequence(0, 3);	
+	
 	public void setTarget(String s) {
 		org.docx4j.openpackaging.packages.WordprocessingMLPackage wmlPkg =
 			getWordprocessingMLPackage();
@@ -183,10 +189,18 @@ public class HyperlinkML extends ElementML {
 				org.docx4j.relationships.Relationship rel = 
 					part.getRelationshipByID(getId());
 				if (rel == null) {
+					log.debug("Creating new rel for hyperlink");
 					org.docx4j.relationships.ObjectFactory factory =
 						new org.docx4j.relationships.ObjectFactory();
 					rel = factory.createRelationship();
 					rel.setType( Namespaces.HYPERLINK  );
+					
+					// Word says the document is corrupt if @Target contains
+					// spaces, so encode as %20
+					if (s.indexOf(" ")>-1) {			               
+			               s = s.replace(space, encodedSpace);					               
+					}
+					
 					rel.setTarget(s);
 					rel.setTargetMode("External");  
 					part.addRelationship(rel);//id is auto generated
