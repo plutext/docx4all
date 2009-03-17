@@ -23,6 +23,7 @@ import java.math.BigInteger;
 
 import javax.swing.text.StyleConstants;
 
+import org.apache.log4j.Logger;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.StyleDefinitionsPart;
@@ -34,6 +35,9 @@ import org.docx4j.wml.JcEnumeration;
  *	@author Jojada Tirtowidjojo - 02/01/2008
  */
 public class ObjectFactory {
+	
+	protected static Logger log = Logger.getLogger(ObjectFactory.class);
+	
 	private final static org.docx4j.wml.ObjectFactory _jaxbFactory = 
 		new org.docx4j.wml.ObjectFactory();
 
@@ -72,6 +76,7 @@ public class ObjectFactory {
 		} else if (textContent != null) {
 			org.docx4j.wml.Text text = _jaxbFactory.createText();
 			text.setValue(textContent);
+			text.setSpace("preserve");
 			r.getRunContent().add(text);
 			text.setParent(r);
 		}
@@ -97,6 +102,7 @@ public class ObjectFactory {
 	public final static org.docx4j.wml.Text createT(String textContent) {
 		org.docx4j.wml.Text text = _jaxbFactory.createText();
 		text.setValue(textContent);
+		text.setSpace("preserve");		
 		return text;
 	}
 	
@@ -118,6 +124,7 @@ public class ObjectFactory {
 				
 		// Create a styles part
 		StyleDefinitionsPart stylesPart = new StyleDefinitionsPart();
+		log.debug("Unmarshalling default styles..");
 			stylesPart.unmarshalDefaultStyles();
 			
 			// Add the styles part to the main document part relationships
