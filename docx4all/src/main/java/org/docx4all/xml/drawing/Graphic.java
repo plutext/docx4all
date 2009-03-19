@@ -23,6 +23,7 @@ import java.awt.Toolkit;
 
 import org.apache.log4j.Logger;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
+import org.docx4j.openpackaging.parts.WordprocessingML.BinaryPartAbstractImage;
 
 /**
  *	@author Jojada Tirtowidjojo - 15/12/2008
@@ -42,50 +43,20 @@ public class Graphic {
 	}
 	
 	public java.awt.Image getImage(WordprocessingMLPackage wmlPkg) {
-		if (wmlPkg == null 
-			|| wmlPkg.getMainDocumentPart() == null
-			|| wmlPkg.getMainDocumentPart().getRelationshipsPart() == null) {
-			return null;
-		}
 		
-		java.awt.Image theImage = null;
-		
-		org.docx4j.dml.Pic pic = getPic();
-		String rId = pic.getBlipFill().getBlip().getEmbed();
-		if (rId.equals("")) {
-			rId = pic.getBlipFill().getBlip().getLink();
-		}
-		log.debug("Image rel id: " + rId);
-		org.docx4j.relationships.Relationship rel = 
-			wmlPkg.getMainDocumentPart().getRelationshipsPart().getRelationshipByID(rId);
-		if (rel != null) {
-			org.docx4j.openpackaging.parts.Part part = 
-				wmlPkg.getMainDocumentPart().getRelationshipsPart().getPart(rel);
-			if (part == null) {
-				log.error("Couldn't get Part!");
-			} else if (part instanceof org.docx4j.openpackaging.parts.WordprocessingML.BinaryPart) {
-				log.debug("getting bytes...");
-				org.docx4j.openpackaging.parts.WordprocessingML.BinaryPart binaryPart =
-					(org.docx4j.openpackaging.parts.WordprocessingML.BinaryPart) part;
-				java.nio.ByteBuffer bb = binaryPart.getBuffer();
-    	        bb.clear();
-    	        byte[] bytes = new byte[bb.capacity()];
-    	        bb.get(bytes, 0, bytes.length);
-
-				theImage = Toolkit.getDefaultToolkit().createImage(bytes);
-			} else {				
-				log.error("Part was a " + part.getClass().getName() );
-			}
-		} else {
-			log.error("Couldn't find rel " + rId);
-		}
-		
-		return theImage;
+		java.awt.Image theImage = null;	
+    	byte[] bytes = BinaryPartAbstractImage.getImage(wmlPkg, graphic);
+    	if (bytes!=null) {
+    		theImage = Toolkit.getDefaultToolkit().createImage(bytes);		
+    		return theImage;
+    	} else {
+    		return null;
+    	}
 	}
 
-	private org.docx4j.dml.Pic getPic() {
-		return this.graphic.getGraphicData().getPic();
-	}
+//	private org.docx4j.dml.Pic getPic() {
+//		return this.graphic.getGraphicData().getPic();
+//	}
 }// Graphic class
 
 
