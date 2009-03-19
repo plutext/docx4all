@@ -21,6 +21,7 @@ package org.docx4all.ui.menu;
 
 import java.awt.Dimension;
 import java.util.List;
+import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
 import javax.swing.JEditorPane;
@@ -54,6 +55,7 @@ import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.HyperlinkML;
 import org.docx4all.xml.ParagraphML;
+import org.docx4j.XmlUtils;
 import org.docx4j.openpackaging.exceptions.InvalidFormatException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.jdesktop.application.Action;
@@ -481,7 +483,14 @@ public class HyperlinkMenu extends UIMenu {
 					if (recordAsLastOpenUrl) {
 						Preferences prefs = Preferences.userNodeForPackage(FileMenu.class);
 						String lastFileUri = fo.getName().getURI();
+						System.setProperty("javax.xml.transform.TransformerFactory", 
+								XmlUtils.TRANSFORMER_FACTORY_ORIGINAL);    	 										
 						prefs.put(Constants.LAST_OPENED_FILE, lastFileUri);
+						try {
+							prefs.flush();
+						} catch (BackingStoreException e) {
+							e.printStackTrace();
+						}
 					}
 
 					log.info("\n\n Opening " + fo.getName().getURI());
@@ -540,7 +549,14 @@ public class HyperlinkMenu extends UIMenu {
 			if (recordAsLastOpenUrl) {
 				Preferences prefs = Preferences.userNodeForPackage(FileMenu.class);
 				String lastFileUri = theFile.getName().getURI();
+				System.setProperty("javax.xml.transform.TransformerFactory", 
+						XmlUtils.TRANSFORMER_FACTORY_ORIGINAL);    	 								
 				prefs.put(Constants.LAST_OPENED_FILE, lastFileUri);
+				try {
+					prefs.flush();
+				} catch (BackingStoreException e) {
+					e.printStackTrace();
+				}
 			}
 
 			log.info("\n\n Opening " + theFile.getName().getURI());
@@ -551,6 +567,7 @@ public class HyperlinkMenu extends UIMenu {
 			//Get user to authenticate himself.
 			String title = rm.getString(callerActionName + ".Action.text");
 			String errMsg = null;
+			Preferences prefs = Preferences.userNodeForPackage(FileMenu.class);
 			try {
 				theFile = AuthenticationUtil.userAuthenticationChallenge(editor, vfsWebdavUrl, title);
 				if (theFile == null) {
@@ -562,7 +579,6 @@ public class HyperlinkMenu extends UIMenu {
 				} else if (theFile.exists()) {
 					String lastFileUri = theFile.getName().getURI();
 					if (recordAsLastOpenUrl) {
-						Preferences prefs = Preferences.userNodeForPackage(FileMenu.class);
 						prefs.put(Constants.LAST_OPENED_FILE, lastFileUri);
 					}
 
@@ -582,8 +598,6 @@ public class HyperlinkMenu extends UIMenu {
 					if (success) {
 						String lastFileUri = theFile.getName().getURI();
 						if (recordAsLastOpenUrl) {
-							Preferences prefs = 
-								Preferences.userNodeForPackage(FileMenu.class);
 							prefs.put(Constants.LAST_OPENED_FILE, lastFileUri);
 						}
 
@@ -618,6 +632,14 @@ public class HyperlinkMenu extends UIMenu {
 					rm.getString(
 						callerActionName + ".file.io.error.message", 
 						vfsWebdavUrl);
+			} finally {
+				try {
+					System.setProperty("javax.xml.transform.TransformerFactory", 
+							XmlUtils.TRANSFORMER_FACTORY_ORIGINAL);    	 										
+					prefs.flush();
+				} catch (BackingStoreException e) {
+					e.printStackTrace();
+				}				
 			}
 			
 			if (errMsg != null) {

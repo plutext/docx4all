@@ -25,6 +25,7 @@ import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
 import javax.swing.JEditorPane;
@@ -61,7 +62,8 @@ import org.docx4all.util.XmlUtil;
 import org.docx4all.vfs.FileNameExtensionFilter;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
-import org.docx4j.convert.out.xmlPackage.XmlPackage;
+import org.docx4j.XmlUtils;
+import org.docx4j.convert.out.pdf.PdfConversion;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.io.SaveToVFSZipFile;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
@@ -405,7 +407,15 @@ public class FileMenu extends UIMenu {
 			FileObject file = getSelectedFile(chooser, Constants.DOCX_STRING);
 			if (file != null) {
 				lastFileUri = file.getName().getURI();
+				
+				System.setProperty("javax.xml.transform.TransformerFactory", 
+						XmlUtils.TRANSFORMER_FACTORY_ORIGINAL);    	 				
 				prefs.put(Constants.LAST_OPENED_FILE, lastFileUri);
+				try {
+					prefs.flush();
+				} catch (BackingStoreException e) {
+					e.printStackTrace();
+				}
 				if (file.getName().getScheme().equals(("file"))) {
 					prefs.put(Constants.LAST_OPENED_LOCAL_FILE, lastFileUri);
 				}
@@ -532,9 +542,16 @@ public class FileMenu extends UIMenu {
 						+ VFSUtils.getFriendlyName(selectedPath));
 				}
 				
+				System.setProperty("javax.xml.transform.TransformerFactory", 
+						XmlUtils.TRANSFORMER_FACTORY_ORIGINAL);    	 								
 				prefs.put(Constants.LAST_OPENED_FILE, selectedPath);
 				if (selectedFile.getName().getScheme().equals("file")) {
 					prefs.put(Constants.LAST_OPENED_LOCAL_FILE, selectedPath);
+				}
+				try {
+					prefs.flush();
+				} catch (BackingStoreException e) {
+					e.printStackTrace();
 				}
 				
 				boolean success = false;
@@ -546,6 +563,11 @@ public class FileMenu extends UIMenu {
 						prefs.put(Constants.LAST_OPENED_FILE, selectedPath);
 						if (selectedPath.startsWith("file:")) {
 							prefs.put(Constants.LAST_OPENED_LOCAL_FILE, selectedPath);
+							try {
+								prefs.flush();
+							} catch (BackingStoreException e) {
+								e.printStackTrace();
+							}
 						}
 						log.info("saveAsFile(): Opening " + VFSUtils.getFriendlyName(selectedPath));
 						editor.createInternalFrame(selectedFile);
@@ -709,8 +731,10 @@ public class FileMenu extends UIMenu {
 			// java.nio.ByteBuffer buf = java.nio.ByteBuffer.allocate(15000);
 			// //15kb
 			// OutputStream os = newOutputStream(buf);
-
-			wordMLPackage.pdf(os);
+		
+			PdfConversion c = new org.docx4j.convert.out.pdf.viaHTML.Conversion(wordMLPackage);
+				// can change from viaHTML to viaIText or viaXSLFO
+			c.output(os);
 
 			os.close();
 

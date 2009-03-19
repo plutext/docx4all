@@ -122,7 +122,16 @@ public class WordMLEditor extends SingleFrameApplication {
 	private ToolBarStates _toolbarStates;
 	private JApplet _applet;
 	
+	public static String TRANSFORMER_FACTORY_DEFAULT;
+	
 	public static void main(String[] args) {
+		
+//		// Whenever we flush Preferences on Linux, we need *not* to use
+//		// our Xalan jar (which we need 
+//		javax.xml.transform.TransformerFactory tfactory = javax.xml.transform.TransformerFactory.newInstance();			
+//		TRANSFORMER_FACTORY_DEFAULT = tfactory.getClass().getName();
+//		log.debug("Set TRANSFORMER_FACTORY_DEFAULT to " + TRANSFORMER_FACTORY_DEFAULT);
+				
         launch(WordMLEditor.class, args);
 	}
 
