@@ -50,8 +50,11 @@ public class LabelView extends javax.swing.text.LabelView {
     	
     	ElementML parent = 
     		((DocumentElement) getElement().getParentElement()).getElementML();
+    	String rStyle = 
+    		(String) getAttributes().getAttribute(WordMLStyleConstants.RStyleAttribute);
+    		
     	if (parent instanceof RunML
-    		&& getAttributes().getAttribute(WordMLStyleConstants.RStyleAttribute) == null) {
+    		&&  (rStyle == null || parent.getStyleSheet().getIDStyle(rStyle) == null)) {
     		if (parent.getParent() instanceof RunInsML) {
     			foreground = Color.RED;
     			impliedUnderline = true;
