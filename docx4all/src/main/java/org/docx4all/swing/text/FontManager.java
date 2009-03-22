@@ -35,8 +35,8 @@ import javax.swing.text.StyleConstants;
 import org.apache.log4j.Logger;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.ui.main.WordMLEditor;
-import org.docx4j.fonts.Substituter;
-import org.docx4j.fonts.Substituter.FontMapping;
+import org.docx4j.fonts.BestMatchingMapper;
+import org.docx4j.fonts.PhysicalFont;
 import org.docx4j.fonts.microsoft.MicrosoftFonts;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.FontTablePart;
@@ -56,7 +56,7 @@ public class FontManager {
 	
 	private final static FontManager _instance = new FontManager();
 	
-	private final static Substituter substituter;
+	private final static BestMatchingMapper mapper;
 	
 	private final static String[] AVAILABLE_FONT_SIZES = new String[] {
 		UNKNOWN_FONT_SIZE,
@@ -72,7 +72,7 @@ public class FontManager {
 		//Prepare available fonts that are listed in font combobox.
         log.info("Initialising fonts nameList.");
 		Map<String, MicrosoftFonts.Font> msFontsFilenames = 
-			Substituter.getMsFontsFilenames();
+			BestMatchingMapper.getMsFontsFilenames();
 		List<String> nameList = new ArrayList<String>();
 		for (Map.Entry<String, MicrosoftFonts.Font> entry: msFontsFilenames.entrySet()) {
 			MicrosoftFonts.Font font = entry.getValue();
@@ -125,7 +125,7 @@ public class FontManager {
         		
 		// Initialise substituter with all available font family names
         log.info("Initialising substituter.");
-		substituter = new Substituter();
+		mapper = new BestMatchingMapper();
 
 		Map<String, String> fontsInUse = 
 			new HashMap<String, String>(nameList.size());
@@ -151,7 +151,7 @@ public class FontManager {
 			// NB, the above won't have any effect, since there are no
 			// embedded fonts in the default part which we just unmarshalled
 			
-			substituter.populateFontMappings(fontsInUse, tablePartDefaultFonts);
+			mapper.populateFontMappings(fontsInUse, tablePartDefaultFonts);
 		} catch (Exception exc) {
 			throw new RuntimeException(exc);
 		}
@@ -254,24 +254,23 @@ public class FontManager {
 			fontTablePart.processEmbeddings();
 			
 			//3. For each font, find the closest match on the system 
-			substituter.populateFontMappings(fontsInUse, fonts);
+			mapper.populateFontMappings(fontsInUse, fonts);
 			
 			if (log.isDebugEnabled()) {
 				int i = 0;
-				Map fontMappings = substituter.getFontMappings();
+				Map fontMappings = mapper.getFontMappings();
 				Iterator fontMappingsIterator = fontMappings.entrySet()
 						.iterator();
 				while (fontMappingsIterator.hasNext()) {
 					Map.Entry pairs = (Map.Entry) fontMappingsIterator.next();
 
 					String key = pairs.getKey().toString();
-					FontMapping fm = (FontMapping) pairs.getValue();
+					PhysicalFont pf = (PhysicalFont) pairs.getValue();
 
 					log.debug("FontMapping[" + (i++) + "]: key=" + key
 //							+ " tripletName=" + fm.getPostScriptName() + " -->> "
 //							+ fm.getEmbeddedFile());
-							+ " physicalFontMapKey=" + fm.getPhysicalFont().getName() + " -->> "
-							+ fm.getPhysicalFont().getEmbeddedFile());
+							+ " -->> "+ pf.getEmbeddedFile());
 				}
 			}
 			
@@ -307,27 +306,27 @@ public class FontManager {
 		return getFontInAction(family, style, size);
 	}
     
-	public Font getFontInAction(String family, int style, int size) {
-		_fontTableKey.setValue(family, style, size);
+	public Font getFontInAction(String fontname, int style, int size) {
+		_fontTableKey.setValue(fontname, style, size);
 		Font theFont = _fontTable.get(_fontTableKey);
 		
 		if (theFont == null) {
 			//Not in cache.
 			//Derive from Substituter.FontMapping
-			String fmKey = Substituter.normalise(family);
-			FontMapping fm = 
-				(FontMapping) substituter.getFontMappings().get(fmKey);
+//			String fmKey = SubstituterImplPanose.normalise(family);
+			PhysicalFont pf = 
+				(PhysicalFont) mapper.getFontMappings().get(fontname);
 			String path = null;
-			if (fm != null && fm.getPhysicalFont() != null 
-					&& fm.getPhysicalFont().getEmbeddedFile() != null) {
-				path = fm.getPhysicalFont().getEmbeddedFile();
+			if (pf != null  
+					&& pf.getEmbeddedFile() != null) {
+				path = pf.getEmbeddedFile();
 				
 				// Strip file:, and replace %20 with spaces
 				path = org.docx4j.fonts.FontUtils.pathFromURL(path);
 				
 				if (log.isDebugEnabled()) {
-					log.debug("family=" + family 
-							+ " fmKey=" + fmKey 
+					log.debug("family=" + fontname 
+//							+ " fmKey=" + fmKey 
 //							+ " --> FontMapping=" + fm
 							+ " - " + path);
 				}
@@ -344,7 +343,7 @@ public class FontManager {
 		            	theFont = sun.font.FontManager.getCompositeFontUIResource(theFont);
 		            }
 		            
-		            FontTableKey key = new FontTableKey(family, style, size);
+		            FontTableKey key = new FontTableKey(fontname, style, size);
 					_fontTable.put(key, theFont);
 
 				} catch (Exception exc) {
@@ -352,8 +351,8 @@ public class FontManager {
 					throw new RuntimeException(exc);
 				}
 			} else {
-				log.warn("Cannot create font '" + family + "', using key '" + fmKey + "'");
-				if (fm==null) {
+				log.warn("Cannot create font '" + fontname + "'");
+				if (pf==null) {
 					log.warn(".. no mapping for that key.");
 				} else {
 					log.warn(".. found a mapping, but getEmbeddedFile returned null!");					
