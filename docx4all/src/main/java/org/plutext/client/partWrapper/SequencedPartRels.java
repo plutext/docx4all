@@ -61,6 +61,7 @@ FIXED_RELS_SUFFIX:
             for (int i=0 ; i < nl.getLength() ; i++ )
             {
                 String id = nl.item(i).getAttributes().getNamedItem("Id").getNodeValue();  
+            	log.error(" rId: " + id);
                 nodesMap.put(id, nl.item(i) );
 
             }
@@ -73,6 +74,7 @@ FIXED_RELS_SUFFIX:
                 Node n = nodesMap.get("rId" + i);
                 if (n==null) {
                 	log.error("Missing rId" + i);
+                	continue;
                 }
                 String type = n.getAttributes().getNamedItem("Type").getNodeValue();  
                 type = type.substring(type.lastIndexOf("/") +1);
@@ -102,6 +104,16 @@ FIXED_RELS_SUFFIX:
                 }
 
             }
+            
+            // Handle case where we never left the prefix
+            // (eg if the only rel is to styles .. Word
+            //  never produces minimal documents like this,
+            //  but docx4all does)
+            if (inPrefix) {
+            	prefixedRelsCount = nodesMap.size();	
+            }
+            
+            log.debug("prefixedRelsCount = " + prefixedRelsCount);
 
         }
 
