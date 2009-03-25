@@ -126,6 +126,9 @@ public class StateDocx {
 	    
 	    if (toBeRemovedPartName!=null) {
 	    	wordMLPackage.getMainDocumentPart().getRelationshipsPart().removePart(toBeRemovedPartName);
+	    	// Ensure that if we create any more parts (eg a hyperlink), there isn't
+	    	// a gap in the sequence.
+	    	wordMLPackage.getMainDocumentPart().getRelationshipsPart().resetIdAllocator();
 	    	log.debug("Removed tmp part " + toBeRemovedPartName.getName() );
 	    }
 		
