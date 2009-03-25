@@ -62,6 +62,7 @@ public class BodyML extends ElementML {
 		
 	public void addChild(int idx, ElementML child, boolean adopt) {
 		if (!(child instanceof ParagraphML)
+			&& !(child instanceof TableML)
 			&& !(child instanceof SdtBlockML)) {
 			throw new IllegalArgumentException("Child type = " + child.getClass().getSimpleName());
 		}
