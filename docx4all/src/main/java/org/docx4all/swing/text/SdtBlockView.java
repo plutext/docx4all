@@ -24,6 +24,7 @@ import java.awt.Graphics;
 import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.Shape;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.text.BadLocationException;
@@ -65,10 +66,15 @@ public class SdtBlockView extends BoxView {
     	
     	if (isBorderVisible()) {
     		try {
-    			Polygon border = getBorderOutline(allocation);
+    			Shape border = getBorderOutline(allocation);
     			Color orig = g.getColor();
     			g.setColor(Color.BLUE);
-    			g.drawPolygon(border);
+    			if (border instanceof Polygon) {
+    				g.drawPolygon((Polygon) border);
+    			} else {
+    				Rectangle rect = SwingUtil.getBounds(border);
+    				g.drawRect(rect.x, rect.y, rect.width, rect.height);
+    			}
     			g.setColor(orig);
     		} catch (BadLocationException exc) {
     			;//ignore
@@ -103,61 +109,53 @@ public class SdtBlockView extends BoxView {
     	List<View> rowsList = SwingUtil.getParagraphRowViews(this);
     	
     	View row = rowsList.get(0);
-		Rectangle start = 
-			SwingUtil.getBounds(
-				modelToView(row.getStartOffset(), allocation, Position.Bias.Forward));
-		int leftMost = start.x;
-		Rectangle end = 
-			SwingUtil.getBounds(
-				modelToView(row.getEndOffset(), allocation, Position.Bias.Backward));
-		int rightMost = end.x;
+    	
+    	Rectangle tempRect = getRowBorderOutline(row, allocation);
+		int leftMost = tempRect.x;
+		int rightMost = tempRect.x + tempRect.width;
 		
 		for (int i=1; i < rowsList.size() - 1; i++) {
 			row = (View) rowsList.get(i);
-			start = 
-				SwingUtil.getBounds(
-					modelToView(row.getStartOffset(), allocation, Position.Bias.Forward));
-			leftMost = Math.min(leftMost, start.x);
-			end = 
-				SwingUtil.getBounds(
-					modelToView(row.getEndOffset(), allocation, Position.Bias.Backward));
-			rightMost = Math.max(rightMost, end.x);
+	    	
+			tempRect = getRowBorderOutline(row, allocation);
+			leftMost = Math.min(leftMost, tempRect.x);
+			rightMost = Math.max(rightMost, tempRect.x + tempRect.width);
 		}
 		
 		if (rowsList.size() > 1) {
 			//the last row is processed separately
 			row = (View) rowsList.get(rowsList.size() - 1);
-			start = 
-				SwingUtil.getBounds(
-					modelToView(row.getStartOffset(), allocation, Position.Bias.Forward));
-			end = 
-				SwingUtil.getBounds(
-					modelToView(row.getEndOffset(), allocation, Position.Bias.Backward));
+
+			tempRect = getRowBorderOutline(row, allocation);
+			int startX = tempRect.x;
+			int endX = tempRect.x + tempRect.width;
+			int endY = tempRect.y;
+			int endHeight = tempRect.height;
 			
 			int alignment = StyleConstants.getAlignment(row.getAttributes());
 			if (alignment == StyleConstants.ALIGN_LEFT) {
 				//Construct a border with 6 vertices
-				leftMost = Math.min(leftMost, start.x);
-				rightMost = Math.max(rightMost, end.x);
+				leftMost = Math.min(leftMost, startX);
+				rightMost = Math.max(rightMost, endX);
 				
 				leftMost -= getLeftInset();
 				rightMost += (getRightInset() - 1);
 				
 				theOutline.addPoint(leftMost, alloc.y); //vertice #1
 				theOutline.addPoint(rightMost, alloc.y);//vertice #2
-				theOutline.addPoint(rightMost, end.y); //vertice #3
-				theOutline.addPoint(end.x + getRightInset() - 1, end.y); //vertice #4
+				theOutline.addPoint(rightMost, endY); //vertice #3
+				theOutline.addPoint(endX + getRightInset() - 1, endY); //vertice #4
 				theOutline.addPoint(
-					end.x + getRightInset() - 1, 
-					end.y + end.height + getBottomInset()); //vertice #5
+					endX + getRightInset() - 1, 
+					endY + endHeight + getBottomInset()); //vertice #5
 				theOutline.addPoint(
 					leftMost, 
-					end.y + end.height + getBottomInset()); //vertice #6
+					endY + endHeight + getBottomInset()); //vertice #6
 				
 			} else {
 				//Border is simply a rectangle
-				leftMost = Math.min(leftMost, start.x);
-				rightMost = Math.max(rightMost, end.x);
+				leftMost = Math.min(leftMost, startX);
+				rightMost = Math.max(rightMost, endX);
 				leftMost -= getLeftInset();
 				rightMost += (getRightInset() - 1);
 				theOutline.addPoint(leftMost, alloc.y);
@@ -178,6 +176,26 @@ public class SdtBlockView extends BoxView {
 		return theOutline;
     }
     
+    private Rectangle getRowBorderOutline(View v, Shape allocation)  throws BadLocationException {
+    	Rectangle theRect = null;
+    	if (v instanceof TableView.TableRowView) {
+    		TableView table = (TableView) v.getParent();
+    		int idx = getViewIndex(table.getStartOffset(), Position.Bias.Forward);
+    		Shape alloc = getChildAllocation(idx, allocation);
+    		
+    		idx = table.getViewIndex(v.getStartOffset(), Position.Bias.Forward);
+    		theRect = table.getChildAllocation(idx, alloc).getBounds();
+    	} else {
+    		theRect = 
+    			SwingUtil.getBounds(
+    				modelToView(v.getStartOffset(), allocation, Position.Bias.Forward));
+    		Rectangle r = 
+    			SwingUtil.getBounds(
+    				modelToView(v.getEndOffset(), allocation, Position.Bias.Backward));
+    		theRect.width = r.x - theRect.x;
+    	}
+    	return theRect;
+    }
 }// SdtBlockView class
 
 
