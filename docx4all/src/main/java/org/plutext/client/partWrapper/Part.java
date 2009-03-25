@@ -1,12 +1,19 @@
 package org.plutext.client.partWrapper;
 
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import org.apache.log4j.Logger;
-import org.docx4j.convert.out.xmlPackage.XmlPackage;
+import org.docx4j.XmlUtils;
+import org.docx4j.convert.out.xmlPackage.XmlPackageCreator;
 import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.parts.JaxbXmlPart;
 import org.docx4j.openpackaging.parts.relationships.Namespaces;
@@ -98,7 +105,7 @@ public class Part {
     	}
     	
     	return factory(
-    			XmlPackage.wrapInXmlPart(partXml, docx4jPart.getPartName().getName(), 
+    			XmlPackageCreator.wrapInXmlPart(partXml, docx4jPart.getPartName().getName(), 
     					docx4jPart.getContentType() ) );
     	
 //        return factoryWorker(
@@ -111,7 +118,7 @@ public class Part {
     
     public static Part factory(String partXml)
     {   
-    	log.debug( partXml);
+    	log.debug( "Part xml: " + partXml);
     	
 		javax.xml.parsers.DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		dbf.setNamespaceAware(true);
@@ -244,6 +251,15 @@ public class Part {
     // node?  No, since then we have to strip that tag.
     private String unwrappedXml = null;
     public String getUnwrappedXml() {
+    	
+    	if (unwrappedXml==null) {
+    		
+    		Node unwrappedNode = xmlNode.getFirstChild().getFirstChild();    		
+    		unwrappedXml = XmlUtils.w3CDomNodeToString(unwrappedNode);
+    		
+			log.debug("unwrapped:" + unwrappedXml);
+    		
+    	}
     	return unwrappedXml;
     }
 
@@ -252,7 +268,6 @@ public class Part {
     	  return name;
       }
 
-    // TODO - 
     protected String contentType;
     public String getContentType() {
         return contentType; 
