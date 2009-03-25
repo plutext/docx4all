@@ -43,6 +43,7 @@ import org.apache.log4j.Logger;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.ImpliedParagraphView;
 import org.docx4all.swing.text.SdtBlockView;
+import org.docx4all.swing.text.TableView;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
@@ -164,7 +165,7 @@ public class SwingUtil {
     public final static List<View> getParagraphRowViews(View v) {
     	List<View> theList = new ArrayList<View>();
     	
-    	boolean isRow = (v instanceof ImpliedParagraphView);
+    	boolean isRow = (v instanceof ImpliedParagraphView || v instanceof TableView);
     	for (int i=0; i < v.getViewCount(); i++) {
     		View temp = v.getView(i);
     		if (isRow) {
