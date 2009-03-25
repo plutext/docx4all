@@ -64,7 +64,8 @@
 
         
     <xsl:template match="w:sdt|w:p|w:tbl">
-    	<!--  p & tbl is so that we catch things which aren't in an sdt yet -->
+    	<!--  p & tbl is so that we catch things which aren't in an sdt yet;
+    	      though this is only relevant in the Word Add-In, not docx4all -->
       <sdt>
         <id>
         	<xsl:choose>
