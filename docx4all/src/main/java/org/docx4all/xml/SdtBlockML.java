@@ -109,7 +109,8 @@ public class SdtBlockML extends ElementML {
 	public boolean canAddChild(int idx, ElementML child) {
 		boolean canAdd = true;
 
-		if (!(child instanceof ParagraphML)) {
+		if (!(child instanceof ParagraphML
+				|| child instanceof TableML)) {
 			canAdd = false;
 		} else {
 			canAdd = super.canAddChild(idx, child);
@@ -119,8 +120,9 @@ public class SdtBlockML extends ElementML {
 	}
 
 	public void addChild(int idx, ElementML child, boolean adopt) {
-		if (!(child instanceof ParagraphML)) {
-			throw new IllegalArgumentException("NOT a ParagraphML");
+		if (!(child instanceof ParagraphML
+				|| child instanceof TableML)) {
+			throw new IllegalArgumentException("NOT a ParagraphML nor a TableML");
 		}
 		if (child.getParent() != null) {
 			throw new IllegalArgumentException("Not an orphan.");
@@ -222,12 +224,14 @@ public class SdtBlockML extends ElementML {
 		if (!list.isEmpty()) {
 			this.children = new ArrayList<ElementML>(list.size());
 			for (Object obj : list) {
+				Object value = JAXBIntrospector.getValue(obj);
+				
 				ElementML ml = null;
-				//if (obj instanceof org.docx4j.wml.Tbl) {
-					//unsupported yet
-				//} else {
+				if (value instanceof org.docx4j.wml.Tbl) {
+					ml = new TableML(obj);
+				} else {
 					ml = new ParagraphML(obj);
-				//}
+				}
 				
 				ml.setParent(SdtBlockML.this);
 				this.children.add(ml);
