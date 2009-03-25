@@ -67,6 +67,8 @@ import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.JaxbXmlPart;
 import org.docx4j.openpackaging.parts.PartName;
 import org.docx4j.openpackaging.parts.WordprocessingML.CommentsPart;
+import org.docx4j.openpackaging.parts.WordprocessingML.EndnotesPart;
+import org.docx4j.openpackaging.parts.WordprocessingML.FootnotesPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.openpackaging.parts.relationships.RelationshipsPart;
 import org.docx4j.wml.Tag;
@@ -383,7 +385,6 @@ public class Mediator {
 			updatesObj = (org.plutext.transforms.Updates) u
 					.unmarshal(new java.io.StringReader(updates));
 		} catch (JAXBException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -436,7 +437,6 @@ public class Mediator {
     		transformsObj = (org.plutext.transforms.Transforms) u
     					.unmarshal(new java.io.StringReader(transforms));
     	} catch (JAXBException e) {
-    		// TODO Auto-generated catch block
     		e.printStackTrace();
     	}
 
@@ -588,7 +588,6 @@ public class Mediator {
 	        	//log.error("Related parts need updating..");
 	        	updateRelatedParts(worker);
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 	    }
@@ -629,6 +628,7 @@ public class Mediator {
 	    {
 	        if (fetchParts[i])
 	        {
+	        	log.debug("Will fetch " + fetchParts[i]);
 	            partNames[j] = SequencedPart.getSequenceableParts().get(i);
 	            mapping.put(j, i);
 	            j++;
@@ -662,7 +662,8 @@ public class Mediator {
 	            // Part doesn't exist on server
 	            // This should not happen.
 
-	            log.error(i + " : " + SequencedPart.getSequenceableParts().get(mapping.get(i)) + " doesn't exist on server!  INVESTIGATE");
+	            log.error(i + " : " + SequencedPart.getSequenceableParts().get(mapping.get(i)) 
+	            		+ " doesn't exist on server!  INVESTIGATE");
 
 	        }
 	        else
@@ -807,7 +808,9 @@ public class Mediator {
 	    ArrayList[] constructedContent = new ArrayList[max]; // or XmlNodeList[] ?
 
 	    // for each of the parts we are dealing with, 
-	    // get referenced objects from local | remote part as appropriate
+	    // get referenced objects from local | remote part as appropriate.
+	    // We do this to get the reference content (as opposed to the ids of
+	    // that referenced content, which we will renumber in due course).
 	    for (int i = 0; i < max; i++)
 	    {
 	        String partName = serverSequencedParts[i].getName(); // as good a way as any to get the part name
@@ -981,7 +984,9 @@ public class Mediator {
 	                {
 	                    log.error("Invalid assumption - prefixed rels have changed!");
 
-	                    // TODO - dump the 2 parts
+	                    // dump the 2 parts..	                    
+	                    log.debug( XmlUtils.w3CDomNodeToString(serverSequencedParts[i].getXmlNode() ));
+	                    log.debug( XmlUtils.w3CDomNodeToString(localSequencedParts[i].getXmlNode() ));
 	                }
 	                // Hope the sanity check was ok; if it wasn't, its better to use the local _rels
 	                // since its for that that we actually have the matching parts
@@ -1143,7 +1148,7 @@ public class Mediator {
 	            {
 	                log.error("Invalid assumption - suffixed rels have changed!");
 
-	                // TODO - dump the 2 parts
+	                //  dump the 2 parts?
 	            }
 
 	            // Keep FIXED_RELS_PREFIX and FIXED_RELS_SUFFIX,
@@ -1243,18 +1248,15 @@ public class Mediator {
 	        	
 	        		log.error(partName + " does not exist .. creating");
 	        		PartName pn = new PartName(partName);
-	        	       if (partName.equals("/word/_rels/document.xml.rels"))
-	        	        {
+	        	       if (partName.equals("/word/_rels/document.xml.rels")) {
 	        	    	   jPart = new RelationshipsPart( pn );
-	        	        }
-	        	        else if (partName.equals("/word/comments.xml"))
-	        	        {	
+	        	        } else if (partName.equals("/word/comments.xml")) {	
 	        	        	jPart = new CommentsPart( pn );
-	        	        }	        	
-	        	     // TODO	
-//	        	        else if (partName.equals("/word/footnotes.xml")
-//        	                    | partName.equals("/word/endnotes.xml")
-	        	        else {
+	        	        } else if (partName.equals("/word/footnotes.xml")) {	        	        	
+	        	        	jPart = new FootnotesPart( pn );	        	        	
+	        	        } else if (partName.equals("/word/endnotes.xml")) {
+	        	        	jPart = new EndnotesPart( pn );
+	        	        } else {
 	        	        	log.warn("TODO: handle " + partName);
 	        	        	jPart = null;
 	        	        }
@@ -1269,16 +1271,14 @@ public class Mediator {
 	        	    // What about [Content_Types].xml?
 	        		
 	        } else {
-		        // It is safe (?) to assume we are dealing with a JAXB part, since
+		        // It is safe to assume we are dealing with a JAXB part, since
 		        // each of the sequenceableParts are that:
 		        // 
 		        // 		/word/_rels/document.xml.rels
 		        // 		/word/comments.xml
 		        //		/word/footnotes.xml
 		        //		/word/endnotes.xml	 
-		        
-		        		// TODO - convert footnotes & endnotes to JAXB XML parts!
-		        
+		        		        
 		        jPart = (JaxbXmlPart)p;
 		        jPart.unmarshal((Element)listParent);  
 	        }
@@ -1892,12 +1892,14 @@ public class Mediator {
 		
 		// See TransmitLocalEditsWorker.preTransmit()
 		
-		// When an image is added, making that External needs to
-		// be done there. See Word Add-In line ~ 2019
-		
-	    // We also have to actually save them on the server before
-	    // they will be available to the replaced document below!
-		// TODO
+		// TODO When an image is added, making that External needs to
+		// be done here. See Word Add-In line ~ 2019
+		// But this work can be defered until such time as it is
+		// possible to add a new image in docx4all ..
+		// and it would be best if the code used for adding
+		// an image took care of making it external		
+	    // (which includes actually saving them on the server)
+				
 //	    foreach (DetachedImagePart dip in detachedImages)
 //	    {
 //	        log.debug( ws.injectPart(stateDocx.DocID, 
@@ -2170,7 +2172,13 @@ public class Mediator {
 				}
 			}// for (idx) loop
 			
-	        transmitOtherUpdates();  // TODO - move this, since its a separate ws call.			
+	        try {
+				transmitOtherUpdates(); // TODO - move this, since its a separate ws call.			
+			} catch (Exception e1) {
+				log.error(e1);
+				e1.printStackTrace();
+				throw e1;
+			}
 	    
 			if (transformsToSend.isEmpty()) {
 				boolean success = false;
@@ -2746,8 +2754,14 @@ public class Mediator {
 	            // - has it changed?
 	            //if (knownPart.Xml.Equals(discoveredPart.Xml))
             	// docx4all uses unwrapped here
-            	if (knownPart.getUnwrappedXml().equals(discoveredPart.getUnwrappedXml()))
+            	if (knownPart.getXmlNode().isEqualNode(discoveredPart.getXmlNode()) )
 	            {
+            		// that's a DOM Level 3 feature - if Eclipse says it is undefined,
+            		// go into Build Path > Order and Export > and make sure
+            		// your (>JDK 5) system library precedes anything else
+            		// which defines DOM APIs
+            		// (TODO - why do we have XML APIs 1.0 beta 2 ??)
+            		
 	                log.debug("No changes detected in: " + knownPart.getName() );
 	            }
 	            else
@@ -2827,8 +2841,8 @@ public class Mediator {
 			org.docx4j.xmlPackage.Package xmlPackage 
 				= (org.docx4j.xmlPackage.Package)((JAXBElement<?>)o).getValue();
 					
-			org.docx4j.convert.in.XmlPackage inWorker = 
-				new org.docx4j.convert.in.XmlPackage(xmlPackage);
+			org.docx4j.convert.in.XmlPackageImporter inWorker = 
+				new org.docx4j.convert.in.XmlPackageImporter(xmlPackage);
 			
 			theHistory = (WordprocessingMLPackage) inWorker.get();
 			
@@ -2860,8 +2874,8 @@ public class Mediator {
 			org.docx4j.xmlPackage.Package xmlPackage 
 				= (org.docx4j.xmlPackage.Package)((JAXBElement<?>)o).getValue();
 					
-			org.docx4j.convert.in.XmlPackage inWorker = 
-				new org.docx4j.convert.in.XmlPackage(xmlPackage);
+			org.docx4j.convert.in.XmlPackageImporter inWorker = 
+				new org.docx4j.convert.in.XmlPackageImporter(xmlPackage);
 			
 			theReport = (WordprocessingMLPackage) inWorker.get();
 			theReport = XmlUtil.export(theReport);
