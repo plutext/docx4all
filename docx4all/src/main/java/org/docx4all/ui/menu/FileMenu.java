@@ -22,6 +22,7 @@ package org.docx4all.ui.menu;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.event.ActionEvent;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -35,6 +36,8 @@ import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.text.Document;
 import javax.swing.text.EditorKit;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 
 import net.sf.vfsjfilechooser.VFSJFileChooser;
 import net.sf.vfsjfilechooser.VFSJFileChooser.RETURN_TYPE;
@@ -57,13 +60,17 @@ import org.docx4all.ui.main.Constants;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.util.DocUtil;
+import org.docx4all.util.PreferenceUtil;
 import org.docx4all.util.SwingUtil;
 import org.docx4all.util.XmlUtil;
 import org.docx4all.vfs.FileNameExtensionFilter;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4j.XmlUtils;
+import org.docx4j.convert.in.XmlPackageImporter;
 import org.docx4j.convert.out.pdf.PdfConversion;
+import org.docx4j.convert.out.xmlPackage.XmlPackageCreator;
+import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.io.SaveToVFSZipFile;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
@@ -408,17 +415,11 @@ public class FileMenu extends UIMenu {
 			if (file != null) {
 				lastFileUri = file.getName().getURI();
 				
-				System.setProperty("javax.xml.transform.TransformerFactory", 
-						XmlUtils.TRANSFORMER_FACTORY_ORIGINAL);    	 				
 				prefs.put(Constants.LAST_OPENED_FILE, lastFileUri);
-				try {
-					prefs.flush();
-				} catch (BackingStoreException e) {
-					e.printStackTrace();
-				}
 				if (file.getName().getScheme().equals(("file"))) {
 					prefs.put(Constants.LAST_OPENED_LOCAL_FILE, lastFileUri);
 				}
+				PreferenceUtil.flush(prefs);
 				log.info("\n\n Opening " + VFSUtils.getFriendlyName(lastFileUri));
 				editor.createInternalFrame(file);
 			}
@@ -481,8 +482,13 @@ public class FileMenu extends UIMenu {
 			boolean error = false;
 			boolean newlyCreatedFile = false;
 			
-			//Check selectedFile's existence and ask user confirmation when needed.
-			if (selectedFile != null) {
+			if (selectedFile == null) {
+				
+				// Should never happen, whether the file exists or not
+				
+			} else {
+				
+				//Check selectedFile's existence and ask user confirmation when needed.
 				try {
 					boolean selectedFileExists = selectedFile.exists();
 					if (!selectedFileExists) {
@@ -542,17 +548,11 @@ public class FileMenu extends UIMenu {
 						+ VFSUtils.getFriendlyName(selectedPath));
 				}
 				
-				System.setProperty("javax.xml.transform.TransformerFactory", 
-						XmlUtils.TRANSFORMER_FACTORY_ORIGINAL);    	 								
 				prefs.put(Constants.LAST_OPENED_FILE, selectedPath);
 				if (selectedFile.getName().getScheme().equals("file")) {
 					prefs.put(Constants.LAST_OPENED_LOCAL_FILE, selectedPath);
 				}
-				try {
-					prefs.flush();
-				} catch (BackingStoreException e) {
-					e.printStackTrace();
-				}
+				PreferenceUtil.flush(prefs);
 				
 				boolean success = false;
 				if (EXPORT_AS_NON_SHARED_DOC_ACTION_NAME.equals(callerActionName)) {
@@ -563,19 +563,16 @@ public class FileMenu extends UIMenu {
 						prefs.put(Constants.LAST_OPENED_FILE, selectedPath);
 						if (selectedPath.startsWith("file:")) {
 							prefs.put(Constants.LAST_OPENED_LOCAL_FILE, selectedPath);
-							try {
-								prefs.flush();
-							} catch (BackingStoreException e) {
-								e.printStackTrace();
-							}
 						}
+						PreferenceUtil.flush(prefs);						
 						log.info("saveAsFile(): Opening " + VFSUtils.getFriendlyName(selectedPath));
 						editor.createInternalFrame(selectedFile);
 					}
 				} else {
 					success = save(iframe, selectedPath, callerActionName);
 					if (success) {
-						if (Constants.DOCX_STRING.equals(fileType)) {
+						if (Constants.DOCX_STRING.equals(fileType)
+								|| Constants.FLAT_OPC_STRING.equals(fileType)) {
 							//If saving as .docx then update the document dirty flag 
 							//of toolbar states as well as internal frame title.
 							editor.getToolbarStates().setDocumentDirty(iframe, false);
@@ -634,16 +631,6 @@ public class FileMenu extends UIMenu {
      * @param desiredFileType File extension
      * @return a File whose extension is desiredFileType.
      */
-    /**
-     * If user types in a filename JFileChooser does not append the file extension
-     * displayed by its FileFilter to it.
-     * This method appends desiredFileType parameter as file extension
-     * if JFileChooser's selected file does not have it.
-     * 
-     * @param chooser JFileChooser instance
-     * @param desiredFileType File extension
-     * @return a File whose extension is desiredFileType.
-     */
     public FileObject getSelectedFile(VFSJFileChooser chooser, String desiredFileType) {
     	FileObject theFile = chooser.getSelectedFile();
 		
@@ -651,12 +638,20 @@ public class FileMenu extends UIMenu {
     	if (desiredFileType.equalsIgnoreCase(theFile.getName().getExtension())) {
 			//user may type in the file extension in the JFileChooser dialog.
 			//Therefore worth checking file extension case insensitively
-    		int dot = uri.lastIndexOf(Constants.DOT);
-    		uri = new StringBuffer(uri.substring(0, dot));
+//    		int dot = uri.lastIndexOf(Constants.DOT);
+//    		uri = new StringBuffer(uri.substring(0, dot));
+    		
+    		// Do nothing
+    		
+    	} else if (Constants.DOCX_STRING.equals(desiredFileType) // also allow .xml
+    			&& Constants.FLAT_OPC_STRING.equalsIgnoreCase(theFile.getName().getExtension())) {
+
+    		// Do nothing
+    		
+    	} else {
+			uri.append(Constants.DOT);
+			uri.append(desiredFileType);
     	}
-		uri.append(Constants.DOT);
-		uri.append(desiredFileType);
-		
 		try {
 			theFile = VFSUtils.getFileSystemManager().resolveFile(uri.toString());
 		} catch (FileSystemException exc) {
@@ -824,7 +819,7 @@ public class FileMenu extends UIMenu {
         } else {
         	desc = resourceMap.getString(Constants.VFSJFILECHOOSER_DOCX_FILTER_DESC);
         	if (desc == null || desc.length() == 0) {
-        		desc = "Docx Files (.docx)";
+        		desc = "Docx Files (.docx, .xml)";
         	}
         }
         
@@ -845,7 +840,13 @@ public class FileMenu extends UIMenu {
         	}
         }
     	
-    	FileNameExtensionFilter filter = new FileNameExtensionFilter(desc, filteredFileExtension);        
+    	FileNameExtensionFilter filter;
+    	if (Constants.DOCX_STRING.equals(filteredFileExtension)) { 
+    		// Add .xml as well
+    		filter = new FileNameExtensionFilter(desc, filteredFileExtension, Constants.FLAT_OPC_STRING);    		
+    	} else {
+    		filter = new FileNameExtensionFilter(desc, filteredFileExtension);
+    	}
     	chooser.addChoosableFileFilter(filter);
         chooser.setCurrentDirectory(showedDir);
         
@@ -923,7 +924,8 @@ public class FileMenu extends UIMenu {
     			success = save(wmlPackage, saveAsFilePath, callerActionName);
 
     			if (success) {
-    				if (saveAsFilePath.endsWith(Constants.DOCX_STRING)) {
+    				if (saveAsFilePath.endsWith(Constants.DOCX_STRING)
+    						|| saveAsFilePath.endsWith(Constants.FLAT_OPC_STRING)) {
     					doc.putProperty(WordMLDocument.FILE_PATH_PROPERTY,
 							saveAsFilePath);
     					iframe.putClientProperty(WordMLDocument.FILE_PATH_PROPERTY,
@@ -1003,8 +1005,38 @@ public class FileMenu extends UIMenu {
        		if (saveAsFilePath.endsWith(Constants.DOCX_STRING)) {
        			SaveToVFSZipFile saver = new SaveToVFSZipFile(wmlPackage);
        			saver.save(saveAsFilePath);
-       			
-       		} else if (saveAsFilePath.endsWith(Constants.HTML_STRING)) {
+       		} else if (saveAsFilePath.endsWith(Constants.FLAT_OPC_STRING)) {
+
+				XmlPackageCreator xmlPackageCreator = new XmlPackageCreator(
+						wmlPackage);
+				org.docx4j.xmlPackage.Package flatOPC = xmlPackageCreator.get();
+
+				FileObject fo = VFSUtils.getFileSystemManager().resolveFile(
+						saveAsFilePath);
+				OutputStream fos = fo.getContent().getOutputStream();
+
+				Marshaller m = Context.jcXmlPackage.createMarshaller();
+				try {
+					m.setProperty("com.sun.xml.bind.namespacePrefixMapper",
+							new org.docx4j.jaxb.NamespacePrefixMapper());
+					m.setProperty("jaxb.formatted.output", true);
+				} catch (javax.xml.bind.PropertyException cnfe) {
+					log.error(cnfe);
+					log
+							.info("attempting to use com.sun.xml.INTERNAL.bind.namespacePrefixMapper");
+					m.setProperty(
+							"com.sun.xml.internal.bind.namespacePrefixMapper",
+							new org.docx4j.jaxb.NamespacePrefixMapper());
+				}
+				m.marshal(flatOPC, fos);
+				try {
+					//just in case
+					fos.close();
+				} catch (IOException exc) {
+					;//ignore
+				}
+
+			} else if (saveAsFilePath.endsWith(Constants.HTML_STRING)) {
        			FileObject fo = VFSUtils.getFileSystemManager().resolveFile(saveAsFilePath);
        			OutputStream fos = fo.getContent().getOutputStream();
        			javax.xml.transform.stream.StreamResult result = 

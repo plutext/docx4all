@@ -49,6 +49,7 @@ import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.ui.menu.enabler.CaretUpdateEnabler;
 import org.docx4all.util.AuthenticationUtil;
 import org.docx4all.util.DocUtil;
+import org.docx4all.util.PreferenceUtil;
 import org.docx4all.util.XmlUtil;
 import org.docx4all.vfs.FileNameExtensionFilter;
 import org.docx4all.xml.ElementML;
@@ -483,14 +484,8 @@ public class HyperlinkMenu extends UIMenu {
 					if (recordAsLastOpenUrl) {
 						Preferences prefs = Preferences.userNodeForPackage(FileMenu.class);
 						String lastFileUri = fo.getName().getURI();
-						System.setProperty("javax.xml.transform.TransformerFactory", 
-								XmlUtils.TRANSFORMER_FACTORY_ORIGINAL);    	 										
 						prefs.put(Constants.LAST_OPENED_FILE, lastFileUri);
-						try {
-							prefs.flush();
-						} catch (BackingStoreException e) {
-							e.printStackTrace();
-						}
+						PreferenceUtil.flush(prefs);
 					}
 
 					log.info("\n\n Opening " + fo.getName().getURI());
@@ -549,14 +544,8 @@ public class HyperlinkMenu extends UIMenu {
 			if (recordAsLastOpenUrl) {
 				Preferences prefs = Preferences.userNodeForPackage(FileMenu.class);
 				String lastFileUri = theFile.getName().getURI();
-				System.setProperty("javax.xml.transform.TransformerFactory", 
-						XmlUtils.TRANSFORMER_FACTORY_ORIGINAL);    	 								
 				prefs.put(Constants.LAST_OPENED_FILE, lastFileUri);
-				try {
-					prefs.flush();
-				} catch (BackingStoreException e) {
-					e.printStackTrace();
-				}
+				PreferenceUtil.flush(prefs);
 			}
 
 			log.info("\n\n Opening " + theFile.getName().getURI());
@@ -633,13 +622,7 @@ public class HyperlinkMenu extends UIMenu {
 						callerActionName + ".file.io.error.message", 
 						vfsWebdavUrl);
 			} finally {
-				try {
-					System.setProperty("javax.xml.transform.TransformerFactory", 
-							XmlUtils.TRANSFORMER_FACTORY_ORIGINAL);    	 										
-					prefs.flush();
-				} catch (BackingStoreException e) {
-					e.printStackTrace();
-				}				
+				PreferenceUtil.flush(prefs);
 			}
 			
 			if (errMsg != null) {

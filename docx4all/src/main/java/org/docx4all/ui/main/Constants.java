@@ -29,6 +29,8 @@ public interface Constants {
 	public final static String HTML_STRING = "html";
 	
 	public final static String DOCX_STRING = "docx";
+
+	public final static String FLAT_OPC_STRING = "xml";
 	
 	public final static String EMPTY_STRING = "";
 	

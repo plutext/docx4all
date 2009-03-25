@@ -20,13 +20,19 @@
 package org.docx4all.xml;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 import javax.swing.text.AttributeSet;
+import javax.xml.bind.Unmarshaller;
 
 import org.apache.commons.vfs.FileObject;
+import org.apache.log4j.Logger;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.util.XmlUtil;
+import org.docx4j.XmlUtils;
+import org.docx4j.convert.in.XmlPackageImporter;
+import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.io.LoadFromVFSZipFile;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
@@ -37,6 +43,9 @@ import org.docx4j.wml.Document;
  *	@author Jojada Tirtowidjojo - 30/11/2007
  */
 public class ElementMLFactory {
+	
+	private static Logger log = Logger.getLogger(ElementMLFactory.class);		
+	
 	public final static DocumentML createEmptyDocumentML() {
 		WordprocessingMLPackage docPackage = ObjectFactory.createEmptyDocumentPackage();
 		return new DocumentML(docPackage);
@@ -52,21 +61,48 @@ public class ElementMLFactory {
 	}
 	
 	public final static DocumentML createDocumentML(FileObject f, boolean applyFilter) throws IOException {
-		if (f == null || !Constants.DOCX_STRING.equalsIgnoreCase(f.getName().getExtension())) {
-			throw new IllegalArgumentException("Not a .docx file."); 
+		if (f == null || 
+				! ( Constants.DOCX_STRING.equalsIgnoreCase(f.getName().getExtension())
+						|| Constants.FLAT_OPC_STRING.equalsIgnoreCase(f.getName().getExtension() )
+					)
+				) {
+			throw new IllegalArgumentException("Not a .docx (or .xml) file."); 
 		}
 
 		DocumentML docML = null;
 		try {
-			LoadFromVFSZipFile loader = new LoadFromVFSZipFile(true);
-			WordprocessingMLPackage wordMLPackage = 
-				(WordprocessingMLPackage) 
-					loader.getPackageFromFileObject(f);
+			WordprocessingMLPackage wordMLPackage;
+			if ( Constants.DOCX_STRING.equalsIgnoreCase(f.getName().getExtension()) ) {
+				// .docx
+				LoadFromVFSZipFile loader = new LoadFromVFSZipFile(true);
+				wordMLPackage = 
+					(WordprocessingMLPackage) 
+						loader.getPackageFromFileObject(f);
+			} else {
+				// .xml
+				
+				// First get the Flat OPC package from the File Object
+				InputStream is = f.getContent().getInputStream();				
+					
+				Unmarshaller u = Context.jcXmlPackage.createUnmarshaller();
+				u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());
+
+				javax.xml.bind.JAXBElement j  = (javax.xml.bind.JAXBElement)u.unmarshal(is);
+				org.docx4j.xmlPackage.Package flatOpc = (org.docx4j.xmlPackage.Package)j.getValue();
+				System.out.println("unmarshalled ");
+
+				// Now convert it to a docx4j WordML Package				
+				XmlPackageImporter importer = new XmlPackageImporter(flatOpc);
+				wordMLPackage = (WordprocessingMLPackage)importer.get();
+			}
+			
 			if (applyFilter) {
 				wordMLPackage = XmlUtil.applyFilter(wordMLPackage);
 			}
 			docML = new DocumentML(wordMLPackage);
 		} catch (Docx4JException exc) {
+			throw new IOException(exc);
+		} catch (Exception exc) {
 			throw new IOException(exc);
 		}
 		

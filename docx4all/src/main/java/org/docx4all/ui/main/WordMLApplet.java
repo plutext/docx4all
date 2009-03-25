@@ -33,6 +33,7 @@ import org.apache.commons.vfs.FileSystemException;
 import org.apache.log4j.Logger;
 import org.docx4all.ui.menu.FileMenu;
 import org.docx4all.ui.menu.HyperlinkMenu;
+import org.docx4all.util.PreferenceUtil;
 import org.docx4j.XmlUtils;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.jdesktop.application.ResourceMap;
@@ -112,15 +113,9 @@ public class WordMLApplet extends JApplet {
 			if (fo.exists()) {
 		        Preferences prefs = Preferences.userNodeForPackage(FileMenu.class);
 		        localFileUrl = fo.getName().getURI();
-				System.setProperty("javax.xml.transform.TransformerFactory", 
-						XmlUtils.TRANSFORMER_FACTORY_ORIGINAL); 		        
 				prefs.put(Constants.LAST_OPENED_FILE, localFileUrl);
 				prefs.put(Constants.LAST_OPENED_LOCAL_FILE, localFileUrl);
-				try {
-					prefs.flush();
-				} catch (BackingStoreException e) {
-					e.printStackTrace();
-				}
+				PreferenceUtil.flush(prefs);
 				log.info("\n\n Opening " + urlParam);
 				editor.createInternalFrame(fo);
 			} else {
