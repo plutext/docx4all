@@ -41,8 +41,8 @@ import javax.swing.text.View;
 
 import org.apache.log4j.Logger;
 import org.docx4all.xml.ElementML;
-import org.docx4j.listnumbering.Emulator;
-import org.docx4j.listnumbering.Emulator.ResultTriple;
+import org.docx4j.model.listnumbering.Emulator;
+import org.docx4j.model.listnumbering.Emulator.ResultTriple;
 import org.docx4j.wml.PPrBase;
 
 import sun.swing.SwingUtilities2;
