@@ -27,7 +27,9 @@ public class PreferenceUtil {
 	
 	public static void flush(Preferences prefs) {
 		
-		if (System.getProperty("os.name").toLowerCase().indexOf("linux")>-1) {
+		if (System.getProperty("os.name").toLowerCase().indexOf("linux")>-1
+				&& System.getProperty("java.version").startsWith("1.6")
+				&& System.getProperty("java.vendor").startsWith("Sun") ) {
 			System.setProperty("javax.xml.transform.TransformerFactory", 
 					XmlUtils.TRANSFORMER_FACTORY_ORIGINAL);  
 			
