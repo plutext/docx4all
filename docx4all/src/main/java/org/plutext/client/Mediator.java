@@ -35,6 +35,8 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.namespace.QName;
 import javax.xml.rpc.ServiceException;
+import javax.xml.transform.Source;
+import javax.xml.transform.Templates;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
@@ -595,6 +597,8 @@ public class Mediator {
 		this.oldServer = null;
 	}
 	
+	static Templates xsltReferenceMap;		
+	
 	/// <summary>
 	/// If any of the transforms we just applied insert/update another part, then we need to do
 	/// two things:
@@ -758,9 +762,12 @@ public class Mediator {
 		
 		org.w3c.dom.Document mdpW3C = XmlUtils.marshaltoW3CDomDocument( mdp.getJaxbElement() );
 		
-		java.io.InputStream xslt = org.docx4j.utils.ResourceUtils.getResource("org/plutext/client/ReferenceMap.xslt");		
+		if (xsltReferenceMap==null) {
+			Source xsltSource  = new StreamSource( org.docx4j.utils.ResourceUtils.getResource("org/plutext/client/ReferenceMap.xslt"));
+			xsltReferenceMap = XmlUtils.getTransformerTemplate(xsltSource);			
+		}
 		javax.xml.transform.dom.DOMResult domResult = new javax.xml.transform.dom.DOMResult();
-		XmlUtils.transform(mdpW3C, xslt, null, domResult);
+		XmlUtils.transform(mdpW3C, xsltReferenceMap, null, domResult);
 		
 //		javax.xml.transform.stream.StreamResult debugStream =
 //			new javax.xml.transform.stream.StreamResult(System.out);		

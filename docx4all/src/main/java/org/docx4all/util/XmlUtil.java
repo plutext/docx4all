@@ -19,6 +19,7 @@
 
 package org.docx4all.util;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
@@ -35,6 +36,9 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.namespace.QName;
+import javax.xml.transform.Source;
+import javax.xml.transform.Templates;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.stream.StreamSource;
 
 import org.apache.log4j.Logger;
@@ -72,6 +76,7 @@ public class XmlUtil {
 	
     
 	protected static Logger log = Logger.getLogger(XmlUtil.class);
+		
     
 	/**
 	 * Serialise the WordprocessingMLPackage in pkg:package format
@@ -581,49 +586,71 @@ public class XmlUtil {
 		}
 	}
 	
+	static Templates xsltApplyRemoteChanges;	
+	
 	public final static void applyRemoteRevisions(
 			javax.xml.transform.Source src, javax.xml.transform.Result result) {
 
 		try {
-			java.io.InputStream xslt = org.docx4j.utils.ResourceUtils
-					.getResource("org/docx4all/util/ApplyRemoteChanges.xslt");
-			org.docx4j.XmlUtils.transform(src, xslt, null, result);
+			if (xsltApplyRemoteChanges == null) {
+				Source xsltSource = new StreamSource(
+						org.docx4j.utils.ResourceUtils
+								.getResource("org/docx4all/util/ApplyRemoteChanges.xslt"));
+				xsltApplyRemoteChanges = XmlUtils
+						.getTransformerTemplate(xsltSource);
+			}
+			org.docx4j.XmlUtils.transform(src, xsltApplyRemoteChanges, null,
+					result);
 		} catch (Exception exc) {
 			exc.printStackTrace();
 		}
 	}
+
+	static Templates xsltDiscardRemoteChanges;
 
 	public final static void discardRemoteRevisions(
 			javax.xml.transform.Source src, javax.xml.transform.Result result) {
 
 		try {
-			java.io.InputStream xslt = org.docx4j.utils.ResourceUtils
-					.getResource("org/docx4all/util/DiscardRemoteChanges.xslt");
-			org.docx4j.XmlUtils.transform(src, xslt, null, result);
+			if (xsltDiscardRemoteChanges == null) {
+				Source xsltSource = new StreamSource(
+						org.docx4j.utils.ResourceUtils
+								.getResource("org/docx4all/util/DiscardRemoteChanges.xslt"));
+				xsltDiscardRemoteChanges = XmlUtils
+						.getTransformerTemplate(xsltSource);
+			}
+			org.docx4j.XmlUtils.transform(src, xsltDiscardRemoteChanges, null,
+					result);
 		} catch (Exception exc) {
 			exc.printStackTrace();
 		}
 	}
-	
-	public final static WordprocessingMLPackage export(WordprocessingMLPackage source) {
+
+	static Templates xsltExport;
+
+	public final static WordprocessingMLPackage export(
+			WordprocessingMLPackage source) {
 		WordprocessingMLPackage theResult = null;
-		
+
 		try {
 			boolean copyMainDocumentPart = true;
 			boolean copyStyleDefPart = true;
 			boolean copyDocPropsCustomPart = false;
-			theResult = 
-				createNewPackage(
-					source, copyMainDocumentPart, copyStyleDefPart, copyDocPropsCustomPart);
-			java.io.InputStream xslt = org.docx4j.utils.ResourceUtils
-					.getResource("org/docx4all/util/Export.xslt");
-			theResult.transform(xslt, null);
-			
+			theResult = createNewPackage(source, copyMainDocumentPart,
+					copyStyleDefPart, copyDocPropsCustomPart);
+			if (xsltExport == null) {
+				Source xsltSource = new StreamSource(
+						org.docx4j.utils.ResourceUtils
+								.getResource("org/docx4all/util/Export.xslt"));
+				xsltExport = XmlUtils.getTransformerTemplate(xsltSource);
+			}
+			theResult.transform(xsltExport, null);
+
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			theResult = null;
 		}
-		
+
 		return theResult;
 	}
 
@@ -740,6 +767,8 @@ public class XmlUtil {
 		return markupAsDeletion(xml, xsltParameters);
 	}
 
+	static Templates xsltMarkupAsDeletion;	
+	
 	public final static org.docx4j.wml.SdtBlock markupAsDeletion(
 		String sdtXmlString,
 		Map<String, Object> xsltParameters) throws Exception {
@@ -750,9 +779,13 @@ public class XmlUtil {
 			new javax.xml.bind.util.JAXBResult(
 				org.docx4j.jaxb.Context.jc);
 		
-		java.io.InputStream xslt = org.docx4j.utils.ResourceUtils
-					.getResource("org/docx4all/util/MarkupAsDeletion.xslt");
-		org.docx4j.XmlUtils.transform(src, xslt, xsltParameters, result);
+		if (xsltMarkupAsDeletion == null) {
+			Source xsltSource = new StreamSource(org.docx4j.utils.ResourceUtils
+					.getResource("org/docx4all/util/MarkupAsDeletion.xslt"));
+			xsltMarkupAsDeletion = XmlUtils.getTransformerTemplate(xsltSource);
+		}
+		org.docx4j.XmlUtils.transform(src, xsltMarkupAsDeletion,
+				xsltParameters, result);
 
 		org.docx4j.wml.SdtBlock newSdt = (org.docx4j.wml.SdtBlock) result.getResult();
 		
@@ -777,19 +810,24 @@ public class XmlUtil {
 		return markupAsInsertion(xml, xsltParameters);
 	}
 
+	static Templates xsltMarkupAsInsertion;	
+	
 	public final static org.docx4j.wml.SdtBlock markupAsInsertion(
 		String sdtXmlString,
 		Map<String, Object> xsltParameters) throws Exception {
 		
 		StreamSource src = new StreamSource(new StringReader(sdtXmlString));
 
-		javax.xml.bind.util.JAXBResult result = 
-			new javax.xml.bind.util.JAXBResult(
+		javax.xml.bind.util.JAXBResult result = new javax.xml.bind.util.JAXBResult(
 				org.docx4j.jaxb.Context.jc);
-		
-		java.io.InputStream xslt = org.docx4j.utils.ResourceUtils
-					.getResource("org/docx4all/util/MarkupAsInsertion.xslt");
-		org.docx4j.XmlUtils.transform(src, xslt, xsltParameters, result);
+
+		if (xsltMarkupAsInsertion == null) {
+			Source xsltSource = new StreamSource(org.docx4j.utils.ResourceUtils
+					.getResource("org/docx4all/util/MarkupAsInsertion.xslt"));
+			xsltMarkupAsInsertion = XmlUtils.getTransformerTemplate(xsltSource);
+		}
+		org.docx4j.XmlUtils.transform(src, xsltMarkupAsInsertion,
+				xsltParameters, result);
 
 		org.docx4j.wml.SdtBlock newSdt = (org.docx4j.wml.SdtBlock) result.getResult();
 		

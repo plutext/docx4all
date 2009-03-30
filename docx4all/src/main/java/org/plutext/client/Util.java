@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import javax.xml.transform.Source;
+import javax.xml.transform.Templates;
 import javax.xml.transform.stream.StreamSource;
 
 import org.apache.log4j.Logger;
@@ -254,9 +256,13 @@ public class Util {
 				.getDocxObject();
 		String srcString = XmlUtils.marshaltoString(docx4jDoc, false);
 
-		java.io.InputStream xslt = org.docx4j.utils.ResourceUtils
-				.getResource("org/plutext/client/PreTransmit.xslt");
-
+		if (xsltPreTransmit==null) {
+			Source xsltSource  = new StreamSource(
+ org.docx4j.utils.ResourceUtils
+				.getResource("org/plutext/client/PreTransmit.xslt"));
+			xsltPreTransmit = XmlUtils.getTransformerTemplate(xsltSource);			
+		}
+		
 		Map<String, Object> xsltParameters = new HashMap<String, Object>(1);
 		String chunking = 
 			getCustomDocumentProperty(
@@ -273,12 +279,15 @@ public class Util {
 		javax.xml.bind.util.JAXBResult result = new javax.xml.bind.util.JAXBResult(
 				org.docx4j.jaxb.Context.jc);
 
-		org.docx4j.XmlUtils.transform(src, xslt, xsltParameters, result);
+		org.docx4j.XmlUtils.transform(src, xsltPreTransmit, xsltParameters, result);
 
 		docx4jDoc = (org.docx4j.wml.Document) result.getResult();
 
 		return docx4jDoc;
 	}
+	
+	static Templates xsltPreTransmit;	
+	
 
 }// Util class
 

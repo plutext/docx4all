@@ -18,9 +18,13 @@
  */
 package org.plutext.client.state;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.Map;
 
+import javax.xml.transform.Source;
+import javax.xml.transform.Templates;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.stream.StreamSource;
 
 import org.apache.log4j.Logger;
@@ -120,16 +124,43 @@ public class StateChunk
 
     }
 
+	static Templates xsltChangesAccept;	    
     public void acceptTrackedChanges()
     {
-        transform("ChangesAccept.xslt");
+    	if (xsltChangesAccept==null) {
+    		try {
+    			Source xsltSource  = new StreamSource(
+    					org.docx4j.utils.ResourceUtils.getResource(
+    							"org/plutext/client/state/ChangesAccept.xslt"));
+    			xsltChangesAccept = XmlUtils.getTransformerTemplate(xsltSource);
+    		} catch (IOException e) {
+    			e.printStackTrace();
+    		} catch (TransformerConfigurationException e) {
+    			e.printStackTrace();
+    		}
+    	}
+        transform(xsltChangesAccept);
     }
+    
+	static Templates xsltChangesReject;	        
     public void rejectTrackedChanges()
     {
-        transform("ChangesReject.xslt");
+    	if (xsltChangesReject==null) {
+    		try {
+    			Source xsltSource  = new StreamSource(
+    					org.docx4j.utils.ResourceUtils.getResource(
+    							"org/plutext/client/state/ChangesReject.xslt"));
+    			xsltChangesReject = XmlUtils.getTransformerTemplate(xsltSource);
+    		} catch (IOException e) {
+    			e.printStackTrace();
+    		} catch (TransformerConfigurationException e) {
+    			e.printStackTrace();
+    		}
+    	}
+        transform(xsltChangesReject);
     }
 
-    private void transform(String stylesheet)
+    private void transform(Templates xslt)
     {
         log.debug("In: " + xml);
         
@@ -139,9 +170,6 @@ public class StateChunk
         
 		try {
 			StreamSource src = new StreamSource(new StringReader(xml));
-			java.io.InputStream xslt = 
-				org.docx4j.utils.ResourceUtils.getResource("org/plutext/client/state/" + stylesheet);
-				//org.docx4j.utils.ResourceUtils.getResource("org/docx4j/diff/diffx2html.xslt");
 			Map<String, Object> transformParameters = new java.util.HashMap<String, Object>();
 			XmlUtils.transform(src, xslt, transformParameters, result);
 			
@@ -154,7 +182,7 @@ public class StateChunk
         // Ouptut
         xml = sw.toString();
 
-        log.debug("Transformed (" + stylesheet + "): " + xml);
+        log.debug("Transformed: " + xml);
     }
 
 
