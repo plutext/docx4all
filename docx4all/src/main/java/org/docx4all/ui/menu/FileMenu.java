@@ -68,6 +68,9 @@ import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4j.XmlUtils;
 import org.docx4j.convert.in.XmlPackageImporter;
+import org.docx4j.convert.out.html.AbstractHtmlExporter;
+import org.docx4j.convert.out.html.HtmlExporter;
+import org.docx4j.convert.out.html.HtmlExporterNG;
 import org.docx4j.convert.out.pdf.PdfConversion;
 import org.docx4j.convert.out.xmlPackage.XmlPackageCreator;
 import org.docx4j.jaxb.Context;
@@ -1042,7 +1045,8 @@ public class FileMenu extends UIMenu {
        			javax.xml.transform.stream.StreamResult result = 
 					new javax.xml.transform.stream.StreamResult(fos);
        			//wmlPackage.html(result);
-       			org.docx4j.convert.out.html.HtmlExporter.html(wmlPackage, result, saveAsFilePath + "_files");
+    			AbstractHtmlExporter exporter = new HtmlExporter(); 			       			
+    			exporter.html(wmlPackage, result, saveAsFilePath + "_files");
        			       			
 				try {
 					//just in case
