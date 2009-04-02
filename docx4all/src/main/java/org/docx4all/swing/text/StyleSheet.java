@@ -563,21 +563,24 @@ public class StyleSheet extends StyleContext {
 	}
 	
 	public final static boolean hasUnderlineSet(RPr rPr) {
-		boolean hasUnderlineSet = false;
 		
 		U u = rPr.getU();
-		if (u != null) {
-			String none = null;
-			String s = u.getVal().value();
-			//for (String s : u.getVal()) {
-				if (s.equalsIgnoreCase("none")) {
-					none = s;
-				}
-			//}
-			hasUnderlineSet = (none == null && u.getVal()!=null);
+		if (u == null) {
+			return false;
+		} else {
+			if (u.getVal()==null) {
+				// This does happen eg <w:u w:color="FF0000"/>
+				return true;
+			} else {
+				String s = u.getVal().value();
+				//for (String s : u.getVal()) {
+					if (s.equalsIgnoreCase("none")) {
+						return false;
+					}
+				//}
+				return true;
+			}
 		}
-		
-		return hasUnderlineSet;
 	}
 
 	private final static void addJc(MutableAttributeSet attrs, Jc jc) {
