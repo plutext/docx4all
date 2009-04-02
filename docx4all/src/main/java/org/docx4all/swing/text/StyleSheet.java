@@ -888,6 +888,12 @@ public class StyleSheet extends StyleContext {
 				if (type.equals(parentType)) {
 					if (PARAGRAPH_ATTR_VALUE.equals(type)
 						|| CHARACTER_ATTR_VALUE.equals(type)) {
+						
+						// docx4all uses MutableAttributeSet's resolve function
+						// to climb the style hierarchy.  It seems to work 
+						// well.  (docx4j has a PropertyResolver class which
+						// does this as well, but docx4all doesn't use it)
+						
 						style.setResolveParent(parent);
 					}
 				}
