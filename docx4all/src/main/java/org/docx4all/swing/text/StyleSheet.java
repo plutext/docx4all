@@ -804,7 +804,7 @@ public class StyleSheet extends StyleContext {
 			
 			//Override font family name setting with that provided by Docx4j.
 			//Docx4j tries to mimic the algorithm of MS Word 2007 in finding font name from style.
-			String tmpStr = getWordprocessingMLPackage().getMainDocumentPart().getFontnameFromStyle(st);
+			String tmpStr = getWordprocessingMLPackage().getMainDocumentPart().getPropertyResolver().getFontnameFromStyle(st);
 			if (tmpStr != null) {
 				StyleConstants.setFontFamily(tmpStyle, tmpStr);
 			}
