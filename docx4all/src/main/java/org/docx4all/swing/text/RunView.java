@@ -40,6 +40,25 @@ public class RunView extends CompositeView {
 		return super.getViewAtPosition(pos, null);
 	}
 	
+    public void setParent(View parent) {
+    	super.setParent(parent);
+    	
+    	//Because javax.swing.text.View.setParent()
+    	//resets the parent field of all children
+    	//when 'parent' is null we passes on
+    	//the new parent to all children.
+    	//This behaviour is specifically needed when 
+    	//'parent' is javax.swing.text.FlowView$LogicalView;
+    	//ie: parent.getParent() instanceof ImpliedParagraphView.
+    	if (parent != null
+    		&& parent.getParent() instanceof ImpliedParagraphView) {
+    		for (int i=0; i < getViewCount(); i++) {
+    			View v = getView(i);
+    			v.setParent(this);
+    		}
+    	}
+    }
+    
     public float getPreferredSpan(int axis) {
 		float maxpref = 0;
 		float pref = 0;
