@@ -882,8 +882,6 @@ public class ImpliedParagraphView extends FlowView implements TabExpander {
 
 		Row(Element elem) {
 			super(elem, View.X_AXIS);
-			childAlloc = new Rectangle();
-			rowTempRect = new Rectangle();
 		}
 
 		/**
@@ -891,69 +889,6 @@ public class ImpliedParagraphView extends FlowView implements TabExpander {
 		 * row with its needed children.
 		 */
 		protected void loadChildren(ViewFactory f) {
-		}
-
-	    protected Rectangle getInsideAllocation(Shape a) {
-			if (a != null) {
-				// get the bounds, hopefully without allocating
-				// a new rectangle. The Shape argument should
-				// not be modified... we copy it into the
-				// child allocation.
-				Rectangle alloc;
-				if (a instanceof Rectangle) {
-					alloc = (Rectangle) a;
-				} else {
-					alloc = a.getBounds();
-				}
-
-				childAlloc.setBounds(alloc);
-				childAlloc.x += getLeftInset();
-				childAlloc.y += getTopInset();
-				childAlloc.width -= getLeftInset() + getRightInset();
-				childAlloc.height -= getTopInset() + getBottomInset();
-				return childAlloc;
-			}
-			return null;
-		}
-
-	    protected void childAllocation(int index, Rectangle alloc) {
-	    	alloc.x += getOffset(X_AXIS, index);
-	    	alloc.y += getOffset(Y_AXIS, index);
-	    	alloc.width = getSpan(X_AXIS, index);
-	    	alloc.height = getSpan(Y_AXIS, index);
-	    }
-	    
-	    public void paint(Graphics g, Shape allocation) {
-			Rectangle alloc = (allocation instanceof Rectangle) ? (Rectangle) allocation
-					: allocation.getBounds();
-			int n = getViewCount();
-			int x = alloc.x + getLeftInset();
-			int y = alloc.y + getTopInset();
-			Rectangle clip = g.getClipBounds();
-			
-			if (getStartOffset() == 6) {
-				int zz = 0;
-				zz += 0;
-			}
-			for (int i = 0; i < n; i++) {
-				rowTempRect.x = x + getOffset(X_AXIS, i);
-				rowTempRect.y = y + getOffset(Y_AXIS, i);
-				rowTempRect.width = getSpan(X_AXIS, i);
-				rowTempRect.height = getSpan(Y_AXIS, i);
-				int trx0 = rowTempRect.x, trx1 = trx0 + rowTempRect.width;
-				int try0 = rowTempRect.y, try1 = try0 + rowTempRect.height;
-				int crx0 = clip.x, crx1 = crx0 + clip.width;
-				int cry0 = clip.y, cry1 = cry0 + clip.height;
-				// We should paint views that intersect with clipping region
-				// even if the intersection has no inside points (is a line).
-				// This is needed for supporting views that have zero width,
-				// like
-				// views that contain only combining marks.
-				if ((trx1 >= crx0) && (try1 >= cry0) && (crx1 >= trx0)
-						&& (cry1 >= try0)) {
-					paintChild(g, rowTempRect, i);
-				}
-			}
 		}
 
 		/**
@@ -1226,17 +1161,6 @@ public class ImpliedParagraphView extends FlowView implements TabExpander {
 	        return r;
 	    }
 
-	    private boolean isFirstRow() {
-	    	boolean isFirst = true;
-	    	
-	    	View parent = getParent();
-	    	if (parent != null) {
-	    		isFirst = (this == parent.getView(0));
-	    	}
-	    	
-	    	return isFirst;
-	    }
-	    
 	    private boolean isLastRow() {
 	    	boolean isLast = true;
 	    	
@@ -1481,8 +1405,6 @@ public class ImpliedParagraphView extends FlowView implements TabExpander {
 	    private SizeRequirements minorRequest;
 	    private Rectangle childAlloc;
 	    
-	    /** used in paint. */
-	    private Rectangle rowTempRect;
 	} //Row inner class
 	
 	static class FlowStrategy extends javax.swing.text.FlowView.FlowStrategy {
