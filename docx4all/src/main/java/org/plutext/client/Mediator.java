@@ -2848,8 +2848,8 @@ public class Mediator {
 			org.docx4j.xmlPackage.Package xmlPackage 
 				= (org.docx4j.xmlPackage.Package)((JAXBElement<?>)o).getValue();
 					
-			org.docx4j.convert.in.XmlPackageImporter inWorker = 
-				new org.docx4j.convert.in.XmlPackageImporter(xmlPackage);
+			org.docx4j.convert.in.FlatOpcXmlImporter inWorker = 
+				new org.docx4j.convert.in.FlatOpcXmlImporter(xmlPackage);
 			
 			theHistory = (WordprocessingMLPackage) inWorker.get();
 			
@@ -2881,8 +2881,8 @@ public class Mediator {
 			org.docx4j.xmlPackage.Package xmlPackage 
 				= (org.docx4j.xmlPackage.Package)((JAXBElement<?>)o).getValue();
 					
-			org.docx4j.convert.in.XmlPackageImporter inWorker = 
-				new org.docx4j.convert.in.XmlPackageImporter(xmlPackage);
+			org.docx4j.convert.in.FlatOpcXmlImporter inWorker = 
+				new org.docx4j.convert.in.FlatOpcXmlImporter(xmlPackage);
 			
 			theReport = (WordprocessingMLPackage) inWorker.get();
 			theReport = XmlUtil.export(theReport);

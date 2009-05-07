@@ -67,12 +67,12 @@ import org.docx4all.vfs.FileNameExtensionFilter;
 import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4j.XmlUtils;
-import org.docx4j.convert.in.XmlPackageImporter;
+import org.docx4j.convert.in.FlatOpcXmlImporter;
+import org.docx4j.convert.out.flatOpcXml.FlatOpcXmlCreator;
 import org.docx4j.convert.out.html.AbstractHtmlExporter;
 import org.docx4j.convert.out.html.HtmlExporter;
 import org.docx4j.convert.out.html.HtmlExporterNG;
 import org.docx4j.convert.out.pdf.PdfConversion;
-import org.docx4j.convert.out.xmlPackage.XmlPackageCreator;
 import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.io.SaveToVFSZipFile;
@@ -1010,7 +1010,7 @@ public class FileMenu extends UIMenu {
        			saver.save(saveAsFilePath);
        		} else if (saveAsFilePath.endsWith(Constants.FLAT_OPC_STRING)) {
 
-				XmlPackageCreator xmlPackageCreator = new XmlPackageCreator(
+				FlatOpcXmlCreator xmlPackageCreator = new FlatOpcXmlCreator(
 						wmlPackage);
 				org.docx4j.xmlPackage.Package flatOPC = xmlPackageCreator.get();
 

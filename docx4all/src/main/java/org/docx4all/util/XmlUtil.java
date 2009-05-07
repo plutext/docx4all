@@ -51,7 +51,7 @@ import org.docx4all.xml.PropertiesContainerML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
 import org.docx4j.XmlUtils;
-import org.docx4j.convert.out.xmlPackage.XmlPackageCreator;
+import org.docx4j.convert.out.flatOpcXml.FlatOpcXmlCreator;
 import org.docx4j.diff.ParagraphDifferencer;
 import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.contenttype.ContentTypeManager;
@@ -87,7 +87,7 @@ public class XmlUtil {
 	public final static void serialize(WordprocessingMLPackage wmlPackage, OutputStream out) {
         try {
 
-    		XmlPackageCreator worker = new XmlPackageCreator(wmlPackage);
+    		FlatOpcXmlCreator worker = new FlatOpcXmlCreator(wmlPackage);
     		org.docx4j.xmlPackage.Package pkg = worker.get();
         	
     		JAXBContext jc = Context.jcXmlPackage;
@@ -166,7 +166,7 @@ public class XmlUtil {
 					new javax.xml.transform.stream.StreamSource(in));
 			
 			org.docx4j.xmlPackage.Package wmlPackageEl = (org.docx4j.xmlPackage.Package)je.getValue(); 
-			org.docx4j.convert.in.XmlPackageImporter xmlPackage = new org.docx4j.convert.in.XmlPackageImporter( wmlPackageEl); 
+			org.docx4j.convert.in.FlatOpcXmlImporter xmlPackage = new org.docx4j.convert.in.FlatOpcXmlImporter( wmlPackageEl); 
 
 			ContentTypeManager ctm = new ContentTypeManagerImpl();
 			

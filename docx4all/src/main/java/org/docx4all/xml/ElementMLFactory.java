@@ -31,7 +31,7 @@ import org.apache.log4j.Logger;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
-import org.docx4j.convert.in.XmlPackageImporter;
+import org.docx4j.convert.in.FlatOpcXmlImporter;
 import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.io.LoadFromVFSZipFile;
@@ -92,7 +92,7 @@ public class ElementMLFactory {
 				System.out.println("unmarshalled ");
 
 				// Now convert it to a docx4j WordML Package				
-				XmlPackageImporter importer = new XmlPackageImporter(flatOpc);
+				FlatOpcXmlImporter importer = new FlatOpcXmlImporter(flatOpc);
 				wordMLPackage = (WordprocessingMLPackage)importer.get();
 			}
 			

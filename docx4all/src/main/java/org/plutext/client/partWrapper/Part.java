@@ -13,7 +13,7 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.apache.log4j.Logger;
 import org.docx4j.XmlUtils;
-import org.docx4j.convert.out.xmlPackage.XmlPackageCreator;
+import org.docx4j.convert.out.flatOpcXml.FlatOpcXmlCreator;
 import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.parts.JaxbXmlPart;
 import org.docx4j.openpackaging.parts.relationships.Namespaces;
@@ -105,7 +105,7 @@ public class Part {
     	}
     	
     	return factory(
-    			XmlPackageCreator.wrapInXmlPart(partXml, docx4jPart.getPartName().getName(), 
+    			FlatOpcXmlCreator.wrapInXmlPart(partXml, docx4jPart.getPartName().getName(), 
     					docx4jPart.getContentType() ) );
     	
 //        return factoryWorker(
