@@ -2761,7 +2761,7 @@ public class Mediator {
 	            // - has it changed?
 	            //if (knownPart.Xml.Equals(discoveredPart.Xml))
             	// docx4all uses unwrapped here
-            	if (knownPart.getXmlNode().isEqualNode(discoveredPart.getXmlNode()) )
+            	if (knownPart.getXmlNode().equals(discoveredPart.getXmlNode()) )
 	            {
             		// that's a DOM Level 3 feature - if Eclipse says it is undefined,
             		// go into Build Path > Order and Export > and make sure
