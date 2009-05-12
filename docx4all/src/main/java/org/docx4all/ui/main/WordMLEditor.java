@@ -584,6 +584,7 @@ public class WordMLEditor extends SingleFrameApplication {
     				wp.getMainDocumentPart().getJaxbElement();
     		
     		WordMLDocument historyDoc = (WordMLDocument) theView.getDocument();
+    		historyDoc.setDocumentFilter(new WordMLDocumentFilter());
     		historyDoc.replaceBodyML(new BodyML(wmlDoc.getBody()));
             	
        	} catch (Exception exc) {
@@ -615,6 +616,7 @@ public class WordMLEditor extends SingleFrameApplication {
     				wp.getMainDocumentPart().getJaxbElement();
 
     		WordMLDocument doc = (WordMLDocument) theView.getDocument();
+        	doc.setDocumentFilter(new WordMLDocumentFilter());
     		doc.replaceBodyML(new BodyML(wmlDoc.getBody()));
 			
 		} catch (Exception exc) {
