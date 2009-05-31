@@ -192,8 +192,8 @@ public class ImpliedParagraphView extends FlowView implements TabExpander {
 			}
 			
 	    	short firstLineIndent = 0;
-	    	if (!attr.isDefined(StyleConstants.FirstLineIndent)
-	    		&& indByNumPr != null) {
+	    	if (attr.getAttribute(StyleConstants.FirstLineIndent) == null
+		    	&& indByNumPr != null) {
 	    		//FirstLineIndent attribute defined in attr
 	    		//takes precedence over that in indByNumPr.
 	    		//Therefore, process FirstLineIndent in indByNumPr 
@@ -1595,9 +1595,9 @@ public class ImpliedParagraphView extends FlowView implements TabExpander {
 			int n = 0;
 
 			viewBuffer.clear();
-			 
-			if (rowIndex == 0 && ((ImpliedParagraphView) fv).numberingView != null) {
-				viewBuffer.add(((ImpliedParagraphView) fv).numberingView);
+			
+			View numberingView = ((ImpliedParagraphView) fv).numberingView;
+			if (rowIndex == 0 && numberingView != null) {
 				float chunkSpan = 
 					((ImpliedParagraphView) fv).numberingView.getPreferredSpan(flowAxis);
 				spanLeft -= chunkSpan;
@@ -1654,6 +1654,10 @@ public class ImpliedParagraphView extends FlowView implements TabExpander {
 				n++;
 			}
 
+			if (rowIndex == 0 && numberingView != null) {
+				viewBuffer.add(0, numberingView);
+			}
+			
 			View[] views = new View[viewBuffer.size()];
 			viewBuffer.toArray(views);
 			row.replace(0, row.getViewCount(), views);
