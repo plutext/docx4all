@@ -733,8 +733,10 @@ public class XmlUtil {
 		// changeDate.setTime(RFC3339_FORMAT.parse(changeset.getDate()));
 		Calendar changeDate = null;
 
-		ParagraphDifferencer.diff(leftSdt.getSdtContent(), rightSdt
-				.getSdtContent(), result, changeset.getModifier(), changeDate);
+		ParagraphDifferencer pd = new ParagraphDifferencer();
+		pd.diff(leftSdt.getSdtContent(), rightSdt
+				.getSdtContent(), result, changeset.getModifier(), changeDate,
+				null, null);
 
 		// SdtContentBlock markedUpContent = (SdtContentBlock)
 		// result.getResult();
