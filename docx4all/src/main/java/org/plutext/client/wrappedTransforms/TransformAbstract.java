@@ -27,6 +27,7 @@ import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
 import org.docx4j.wml.Tag;
 import org.plutext.client.Mediator;
+import org.plutext.client.SdtWrapper;
 import org.plutext.client.state.StateChunk;
 import org.plutext.transforms.Changesets.Changeset;
 import org.plutext.transforms.Transforms.T;
@@ -37,6 +38,8 @@ public abstract class TransformAbstract {
 
 	protected SdtBlock sdt = null;
 	protected org.docx4j.wml.SdtBlock markedUpSdt = null;
+	
+    private SdtWrapper sdtWrapper;	
 	
 	public SdtBlock getSdt() {
 		return sdt;
@@ -54,26 +57,31 @@ public abstract class TransformAbstract {
 		changesetNumber = t.getChangeset();
 		
 		sdt = t.getSdt();
+		
 
 		if (t.getIdref() != null) {
 			// Case: Delete
+			sdtWrapper = new SdtWrapper();
 
 			// Convert the idref to an id object
-			org.docx4j.wml.ObjectFactory factory = new org.docx4j.wml.ObjectFactory();
-			id = factory.createId();
-			id.setVal(BigInteger.valueOf(t.getIdref()));
+//			org.docx4j.wml.ObjectFactory factory = new org.docx4j.wml.ObjectFactory();
+//			id = factory.createId();
+//			id.setVal(BigInteger.valueOf(t.getIdref()));
+			
+			sdtWrapper.setId( t.getIdref().toString() );
 
 		} else if (t.getOp().equals("style")) {
 
 			// No ID
-
+			sdtWrapper = new SdtWrapper();
+			
 		} else {
 
 			// Case: Update, Insert
-
-			id = sdt.getSdtPr().getId();
-
-			tag = sdt.getSdtPr().getTag();
+			sdtWrapper = new SdtWrapper(sdt);
+			
+//			id = sdt.getSdtPr().getId();
+//			tag = sdt.getSdtPr().getTag();
 
 		}
 
@@ -81,27 +89,31 @@ public abstract class TransformAbstract {
 
 	}
 
-	protected Id id;
 
-	public Id getId() {
-		return id;
+	public String getId() {
+		return sdtWrapper.getId();
 	}
 
-	public void setId(Id id) {
-		this.id = id;
-	}
+//	public void setId(Id id) {
+//		sdtWrapper.setId(id);
+////		this.id = id;
+//	}
 
-	// The tag of the wrapped SDT
-	protected Tag tag;
+
+//	public xxxTag getVersion() {
+//		return sdtWrapper.getVersionNumber();
+//	}
+
+//	public void setVersion(Tag tag) {
+//		//this.tag = tag;
+//		sdtWrapper.setVersionNumber(versionNumber);
+//	}
 
 	public Tag getTag() {
-		return tag;
+		return sdtWrapper.getTag();
 	}
-
-	public void setTag(Tag tag) {
-		this.tag = tag;
-	}
-
+	
+	
 	// Has this transform been applied to the document yet?
 	Boolean applied = false;
 

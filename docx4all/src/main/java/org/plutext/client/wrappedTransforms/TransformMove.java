@@ -50,7 +50,7 @@ public class TransformMove extends TransformAbstract {
     }
 
 	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
-		String idStr = getId().getVal().toString();
+		String idStr = getId();
 
 		log.debug("apply(): Moving SdtBlock = " + getSdt() + " - ID=" + idStr);
 
@@ -104,7 +104,7 @@ public class TransformMove extends TransformAbstract {
 
 		if (elemMLAtMoveToIndex instanceof SdtBlockML) {
 			SdtBlockML sdtML = (SdtBlockML) elemMLAtMoveToIndex;
-			if (sdtML.getSdtProperties().getIdValue().equals(getId().getVal())) {
+			if (sdtML.getSdtProperties().getIdValue().toString().equals(getId() )) {
 				log.debug("apply(): Need not to move."
 						+ " moveToIndex == currentIndex == " + idx);
 				return sequenceNumber;				

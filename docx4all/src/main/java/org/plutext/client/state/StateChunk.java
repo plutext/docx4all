@@ -32,6 +32,7 @@ import org.docx4j.XmlUtils;
 import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
 import org.docx4j.wml.Tag;
+import org.plutext.client.SdtWrapper;
 
 /* Represent the state of a chunk.
  * 
@@ -45,36 +46,37 @@ import org.docx4j.wml.Tag;
 public class StateChunk 
 {
 	
-	// TODO - have to be able to update the SdtBlock,
-	// I expect.
-	
-
 	private static Logger log = Logger.getLogger(StateChunk.class);
 
     public StateChunk(SdtBlock cc) {
 		this.cc = cc;
+		sdtWrapper = new SdtWrapper(cc); 
 		xml = getContentControlXML(cc);    	
     }
     
-	SdtBlock cc;
+    private SdtWrapper sdtWrapper;
+    
+	private SdtBlock cc;
     public SdtBlock getSdt() {
     	return cc; 
     }
     
 	public String getIdAsString() {
-		return getId().getVal().toString();
+//		return getId().getVal().toString();
+		return sdtWrapper.getId();
 	}
 	
-	public Id getId() {
-		return cc.getSdtPr().getId();
+	public long getIdAsLong() {
+		//return cc.getSdtPr().getId();
+		return Long.parseLong(sdtWrapper.getId());
 	}
 
-	public Tag getTag() {
-		return cc.getSdtPr().getTag();
+	public long getVersionAsLong() {
+		return Long.parseLong(sdtWrapper.getVersionNumber());
 	}
 	
-	public String getTagAsString() {
-		return getTag().getVal();
+	public String getVersionAsString() {
+		return sdtWrapper.getVersionNumber();
 	}
 	
     private String xml = null;

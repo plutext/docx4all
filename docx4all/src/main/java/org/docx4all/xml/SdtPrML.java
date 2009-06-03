@@ -46,16 +46,16 @@ public class SdtPrML  extends ElementML {
 		return value;
 	}
 	
-	public void setIdValue(BigInteger val) {
-		org.docx4j.wml.SdtPr sdtPr = getDocxSdtPr();
-		org.docx4j.wml.Id id = sdtPr.getId();
-		if (id == null) {
-			id = ObjectFactory.createId(val);
-			sdtPr.setId(id);
-		} else {
-			id.setVal(val);
-		}
-	}
+//	public void setIdValue(BigInteger val) {
+//		org.docx4j.wml.SdtPr sdtPr = getDocxSdtPr();
+//		org.docx4j.wml.Id id = sdtPr.getId();
+//		if (id == null) {
+//			id = ObjectFactory.createId(val);
+//			sdtPr.setId(id);
+//		} else {
+//			id.setVal(val);
+//		}
+//	}
 	
 	public String getTagValue() {
 		org.docx4j.wml.SdtPr sdtPr = getDocxSdtPr();

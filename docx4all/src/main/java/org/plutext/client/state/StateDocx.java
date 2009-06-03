@@ -285,7 +285,7 @@ public class StateDocx {
 
                 for (TransformAbstract ta : transformsBySeqNum)
                 {
-                    if (ta.getId().getVal().toString().equals(id))
+                    if (ta.getId().equals(id))
                         {
                             if (!ta.isLocal() || includeLocals)
                             {

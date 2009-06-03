@@ -61,6 +61,7 @@ import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.DocPropsCustomPart;
 import org.docx4j.openpackaging.parts.JaxbXmlPart;
 import org.docx4j.openpackaging.parts.Part;
+import org.docx4j.openpackaging.parts.relationships.RelationshipsPart;
 import org.docx4j.wml.SdtBlock;
 import org.docx4j.wml.SdtContentBlock;
 import org.plutext.transforms.Changesets.Changeset;
@@ -736,7 +737,8 @@ public class XmlUtil {
 		ParagraphDifferencer pd = new ParagraphDifferencer();
 		pd.diff(leftSdt.getSdtContent(), rightSdt
 				.getSdtContent(), result, changeset.getModifier(), changeDate,
-				null, null);
+				new RelationshipsPart(), new RelationshipsPart() );
+			// TODO - feed it the correct relationships parts!
 
 		// SdtContentBlock markedUpContent = (SdtContentBlock)
 		// result.getResult();

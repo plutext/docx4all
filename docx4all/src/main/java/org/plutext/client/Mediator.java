@@ -1406,7 +1406,7 @@ public class Mediator {
 		log.debug("applyUpdate " + t.getClass().getName() + " - "
 				+ t.getSequenceNumber());
 
-		String idStr = t.getId().getVal().toString();
+		String idStr = t.getId();
 
 		StateChunk currentChunk = 
 			Util.getStateChunk(getWordMLDocument(), idStr);
@@ -1433,7 +1433,7 @@ public class Mediator {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}		
-	        changedChunks.put( t.getId().getVal().toString(), t.getId().getVal().toString() );  
+	        changedChunks.put( t.getId(), t.getId() );  
 	        	// TODO, what if it is already there?	        
 			log.debug(t.getSequenceNumber() + " applied ("
 					+ t.getClass().getName() + ")");
@@ -1622,7 +1622,7 @@ public class Mediator {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-	        changedChunks.put( t.getId().getVal().toString(), t.getId().getVal().toString() );  
+	        changedChunks.put( t.getId(), t.getId() );  
 	        	// TODO, what if it is already there?
 
 			log.debug(t.getSequenceNumber() + " applied ("
@@ -2139,7 +2139,7 @@ public class Mediator {
 					// That tells us whether the server
                     // version is newer:
                     // <ns3:rib ns3:version="2" ns3:id="1773260365">
-					Long localVersionNumber = Long.valueOf(chunkCurrent.getTag().getVal());
+					Long localVersionNumber = Long.valueOf(chunkCurrent.getVersionAsLong() );
 					if (serverSkeleton.getVersion(sdtId) == null) {
                         // Shouldn't need to worry about the std not being
                         // present in the skeleton, since:
@@ -2173,7 +2173,7 @@ public class Mediator {
 
 					T t = transformsFactory.createTransformsT();
 					t.setOp("update");
-					t.setIdref(chunkCurrent.getId().getVal().longValue());
+					t.setIdref(chunkCurrent.getIdAsLong() );
 					t.setSdt(chunkCurrent.getSdt());
 					transformsToSend.add(t);
 				}
@@ -2324,10 +2324,9 @@ public class Mediator {
 						if (ta instanceof TransformUpdate) {
 							// Set the in-document tag to match the one we got back
 							// ?? the actual sdt or the state chunk?
-							updateLocalContentControlTag(ta.getId().getVal()
-								.toString(), ta.getTag());
+							updateLocalContentControlTag(ta.getId(), ta.getTag());
 							this.stateDocx.getStateChunks().put(
-								ta.getId().getVal().toString(),
+								ta.getId(),
 								new StateChunk(ta.getSdt()));
 						} else {
 							// Assumption is that chunking is done locally,
@@ -2520,7 +2519,7 @@ public class Mediator {
 						T t = transformsFactory.createTransformsT();
 						t.setOp("insert");
 						t.setPosition(adjPos);
-						t.setIdref(sc.getId().getVal().longValue());
+						t.setIdref(sc.getIdAsLong() );
 						t.setSdt(sc.getSdt());
 						transformsToSend.add(t);
 
@@ -2594,7 +2593,7 @@ public class Mediator {
 						T t = transformsFactory.createTransformsT();
 						t.setOp("move");
 						t.setPosition(adjPos);
-						t.setIdref(sc.getId().getVal().longValue());
+						t.setIdref(sc.getIdAsLong() );
 						// t.setSdt( sc.getSdt() );
 						transformsToSend.add(t);
 

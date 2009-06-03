@@ -49,7 +49,7 @@ public class TransformUpdate extends TransformAbstract {
 		log.debug("markupChanges(): Marking up SdtBlock = " 
 			+ getSdt() 
 			+ " - ID="
-			+ getId().getVal().toString());
+			+ getId() );
 		log.debug("markupChanges(): 'original' param = " + original);
 		
     	try {
@@ -77,10 +77,10 @@ public class TransformUpdate extends TransformAbstract {
     }
     
 	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
-		String idStr = getId().getVal().toString();
+		String idStr = getId();
 
-		log.debug("apply(): Updating SdtBlock = " + getSdt() + " - ID=" + idStr
-				+ " - TAG=" + getTag().getVal());
+		log.debug("apply(): Updating SdtBlock = " + getSdt() + " - ID=" + idStr );
+//				+ " - TAG=" + getVersion().getVal());
 
 		if (stateChunks.get(idStr) == null) {
 			log.error("apply(): Could not find SDT Id=" + idStr + " snapshot.");

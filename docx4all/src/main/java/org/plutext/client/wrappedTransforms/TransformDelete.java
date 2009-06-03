@@ -48,7 +48,7 @@ public class TransformDelete extends TransformAbstract {
 	/* Markup the existing sdt with one containing w:ins or w:del*/
 	@Override
     public String markupChanges(String sdtParam, Changeset changeset) {
-		String idStr = getId().getVal().toString();
+		String idStr = getId();
 		
 		log.debug("markupChanges(): THIS SdtBlock = " 
 			+ getSdt()
@@ -77,7 +77,7 @@ public class TransformDelete extends TransformAbstract {
     }
     
 	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
-		String idStr = getId().getVal().toString();
+		String idStr = getId();
 
 		log.debug("apply(): Deleting SdtBlock = " + getSdt()
 				+ " - ID=" + idStr);
