@@ -69,7 +69,13 @@
       <sdt>
         <id>
         	<xsl:choose>
-        		<xsl:when test="self::w:sdt"><xsl:value-of select="w:sdtPr/w:id/@w:val"/></xsl:when>
+        		<xsl:when test="self::w:sdt">
+        			<!--xsl:value-of select="w:sdtPr/w:id/@w:val"/-->
+					<xsl:variable name="tag" select="string(w:sdtPr/w:tag/@w:val)"/>        			
+				  	<xsl:value-of 
+						select="java:org.plutext.client.SdtWrapper.getPlutextId($tag)" />					
+        			
+        		</xsl:when>
         		<xsl:otherwise>OUTSIDE_SDT</xsl:otherwise>
         	</xsl:choose>
       </id>

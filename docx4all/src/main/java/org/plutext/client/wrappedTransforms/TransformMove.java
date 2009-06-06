@@ -38,6 +38,25 @@ public class TransformMove extends TransformAbstract {
 	public TransformMove(T t) {
 		super(t);
 	}
+	
+	String idref;	
+	
+	@Override
+	public String getId() {
+		
+		// Transmitting
+		if (sdtWrapper!=null)   {
+			return sdtWrapper.getId();
+		}
+		
+		// Receiving
+		if (idref ==null) {			
+			idref = Long.toString(t.getIdref() );
+		}
+		
+		return idref;
+	}
+	
 
 	 /* Compare the updated sdt to the original, replacing the
      * updated one with containing w:ins and w:del */

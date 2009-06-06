@@ -39,7 +39,7 @@ public abstract class TransformAbstract {
 	protected SdtBlock sdt = null;
 	protected org.docx4j.wml.SdtBlock markedUpSdt = null;
 	
-    private SdtWrapper sdtWrapper;	
+    protected SdtWrapper sdtWrapper;	
 	
 	public SdtBlock getSdt() {
 		return sdt;
@@ -61,19 +61,19 @@ public abstract class TransformAbstract {
 
 		if (t.getIdref() != null) {
 			// Case: Delete
-			sdtWrapper = new SdtWrapper();
+			//sdtWrapper = new SdtWrapper();
 
 			// Convert the idref to an id object
 //			org.docx4j.wml.ObjectFactory factory = new org.docx4j.wml.ObjectFactory();
 //			id = factory.createId();
 //			id.setVal(BigInteger.valueOf(t.getIdref()));
 			
-			sdtWrapper.setId( t.getIdref().toString() );
+			//sdtWrapper.setId( t.getIdref().toString() );
 
 		} else if (t.getOp().equals("style")) {
 
 			// No ID
-			sdtWrapper = new SdtWrapper();
+			//sdtWrapper = new SdtWrapper();
 			
 		} else {
 

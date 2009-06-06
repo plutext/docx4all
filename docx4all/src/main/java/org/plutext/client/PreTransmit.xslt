@@ -76,8 +76,12 @@
                 </xsl:when>
                 <xsl:otherwise>
                   <xsl:variable name="generatedId"  select="java:org.plutext.client.Mediator.generateId()" />
-                  <w:tag w:val="0"/>
                   <w:id  w:val="{$generatedId}" />
+                  
+                  <!--  Use extension function to get tag -->
+				  <xsl:variable name="tag" 
+					select="java:org.plutext.client.SdtWrapper.generateTag($generatedId, '0')" />					
+                  <w:tag w:val="{$tag}"/>                  
                 </xsl:otherwise>
               </xsl:choose>
             </w:sdtPr>
@@ -167,8 +171,13 @@
 
               <w:sdt>
                 <w:sdtPr>
-                  <w:tag w:val="0"/>
                   <w:id  w:val="{$generatedId}" />
+                  
+                  <!--  Use extension function to get tag -->
+				  <xsl:variable name="tag" 
+					select="java:org.plutext.client.SdtWrapper.generateTag($generatedId, '0')" />					
+                  <w:tag w:val="{$tag}"/>                  
+                  
                 </w:sdtPr>
                 <w:sdtContent>
                   <xsl:apply-templates select="."  mode="dropSdt" />

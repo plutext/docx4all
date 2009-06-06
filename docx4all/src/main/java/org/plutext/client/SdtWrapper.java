@@ -1,5 +1,9 @@
 package org.plutext.client;
 
+import java.util.HashMap;
+
+import org.apache.log4j.Logger;
+import org.docx4j.model.sdt.QueryString;
 import org.docx4j.wml.Id;
 import org.docx4j.wml.ObjectFactory;
 import org.docx4j.wml.SdtBlock;
@@ -24,9 +28,20 @@ import org.docx4j.wml.Tag;
  */
 public class SdtWrapper {
 	
+	private static Logger log = Logger.getLogger(SdtWrapper.class);
+	
+	private final static String PLUTEXT_ID     ="p:id";
+	private final static String PLUTEXT_VERSION="p:v";
+	
 	public SdtWrapper(SdtBlock sdt) {
 		this.sdt = sdt;
-		id = sdt.getSdtPr().getId().getVal().toString();
+		//id = sdt.getSdtPr().getId().getVal().toString();
+		
+		HashMap map = QueryString.parseQueryString( sdt.getSdtPr().getTag().getVal() );
+		
+		id = (String)map.get(PLUTEXT_ID);
+		version = (String)map.get(PLUTEXT_VERSION);
+		
 	}
 
 	// In TransformAbstract, this is convenient
@@ -37,8 +52,6 @@ public class SdtWrapper {
 	// This is what we use to track the chunk
 	// through Word editing sessions.
 	private String id;
-		
-	
 	public String getId() {
 		return id;
 	}
@@ -51,34 +64,31 @@ public class SdtWrapper {
 //		sdt.getSdtPr().setId(id);
 //	}
 	
-	public void setId(String id) {
-		this.id = id;
-		
-		if (sdt!=null) {
-			// and set it in the underlying SDT! 
-			sdt.getSdtPr().getId().setVal(java.math.BigInteger.valueOf( Long.valueOf(id) ));
-		}
-	}
+//	public void setId(String id) {
+//		this.id = id;
+//		
+//		if (sdt!=null) {
+//			// and set it in the underlying SDT! 
+//			sdt.getSdtPr().getId().setVal(java.math.BigInteger.valueOf( Long.valueOf(id) ));
+//		}
+//	}
 	
 	public void setVersionNumber(long versionNumber) {
 		
-		ObjectFactory factory = new ObjectFactory();
-		
+		version = Long.toString(versionNumber);
+				
+		ObjectFactory factory = new ObjectFactory();		
 		Tag tag = factory.createTag();
-		tag.setVal(  Long.toString(versionNumber) ); 
+		tag.setVal( generateTag(id, version)  ); 
+		
+		log.debug("Setting tag: "+ tag.getVal() );
 		 
 		sdt.getSdtPr().setTag(tag);
 	}
 
+	private String version;	
 	public String getVersionNumber() {  
-		// TODO: decide whether to use string or long
-		
-		if (sdt.getSdtPr().getTag()==null) {
-			return null;
-		} else {
-			return sdt.getSdtPr().getTag().getVal();
-		}
-		
+		return version;
 	}
 	
 	public Tag getTag() {
@@ -92,4 +102,18 @@ public class SdtWrapper {
 	}
 	
 
+	// Extension function for XSLT, also used above
+	public static String generateTag(String id, String version) {
+		
+		HashMap<String, String> map = new HashMap<String, String>();
+		map.put(PLUTEXT_ID, id);
+		map.put(PLUTEXT_VERSION, version );
+		return QueryString.create(map);	
+		
+	}
+
+	public static String getPlutextId(String tag) {
+		HashMap map = QueryString.parseQueryString( tag );
+		return (String)map.get(PLUTEXT_ID);		
+	}	
 }

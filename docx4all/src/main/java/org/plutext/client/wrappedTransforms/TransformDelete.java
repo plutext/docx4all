@@ -43,7 +43,16 @@ public class TransformDelete extends TransformAbstract {
 	
 	public TransformDelete(T t) {
 		super(t);
+		idref = Long.toString(t.getIdref() );
 	}
+	
+	String idref;
+	
+	@Override
+	public String getId() {
+		return idref;
+	}
+	
 
 	/* Markup the existing sdt with one containing w:ins or w:del*/
 	@Override
