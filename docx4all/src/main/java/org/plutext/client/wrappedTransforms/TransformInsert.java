@@ -48,7 +48,7 @@ public class TransformInsert extends TransformAbstract {
 		log.debug("markupChanges(): Marking up SdtBlock = " 
 			+ getSdt() 
 			+ " - ID="
-			+ getId() );
+			+ getPlutextId() );
 		log.debug("markupChanges(): 'original' param = " + original);
 		
     	try {
@@ -76,7 +76,7 @@ public class TransformInsert extends TransformAbstract {
     }
     
     public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
-		String idStr = getId();
+		String idStr = getPlutextId();
 
 		log.debug("apply(): Inserting SdtBlock = " + getSdt() + " - ID="
 				+ idStr);

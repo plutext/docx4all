@@ -63,12 +63,12 @@ public class StateChunk
     
 	public String getIdAsString() {
 //		return getId().getVal().toString();
-		return sdtWrapper.getId();
+		return sdtWrapper.getPlutextId();
 	}
 	
 	public long getIdAsLong() {
 		//return cc.getSdtPr().getId();
-		return Long.parseLong(sdtWrapper.getId());
+		return Long.parseLong(sdtWrapper.getPlutextId());
 	}
 
 	public long getVersionAsLong() {

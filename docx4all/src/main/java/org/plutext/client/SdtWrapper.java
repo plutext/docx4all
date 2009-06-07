@@ -7,6 +7,7 @@ import org.docx4j.model.sdt.QueryString;
 import org.docx4j.wml.Id;
 import org.docx4j.wml.ObjectFactory;
 import org.docx4j.wml.SdtBlock;
+import org.docx4j.wml.SdtPr;
 import org.docx4j.wml.Tag;
 
 /**
@@ -22,7 +23,7 @@ import org.docx4j.wml.Tag;
  * NB: TransformMove and several other places
  * do SdtBlockML .getSdtProperties().getIdValue().
  * 
- * We'll also need to change that to extract the id
+ * We'll also need to change that to extract the plutextId
  * from our tag.
  *
  */
@@ -30,16 +31,16 @@ public class SdtWrapper {
 	
 	private static Logger log = Logger.getLogger(SdtWrapper.class);
 	
-	private final static String PLUTEXT_ID     ="p:id";
-	private final static String PLUTEXT_VERSION="p:v";
+	public final static String PLUTEXT_ID     ="p:id";
+	public final static String PLUTEXT_VERSION="p:v";
 	
 	public SdtWrapper(SdtBlock sdt) {
 		this.sdt = sdt;
-		//id = sdt.getSdtPr().getId().getVal().toString();
+		//plutextId = sdt.getSdtPr().getId().getVal().toString();
 		
 		HashMap map = QueryString.parseQueryString( sdt.getSdtPr().getTag().getVal() );
 		
-		id = (String)map.get(PLUTEXT_ID);
+		plutextId = (String)map.get(PLUTEXT_ID);
 		version = (String)map.get(PLUTEXT_VERSION);
 		
 	}
@@ -51,25 +52,25 @@ public class SdtWrapper {
 	
 	// This is what we use to track the chunk
 	// through Word editing sessions.
-	private String id;
-	public String getId() {
-		return id;
+	private String plutextId;
+	public String getPlutextId() {
+		return plutextId;
 	}
 	
 	
-//	public void setId(Id id) {
-//		this.id = id.getVal().toString();
+//	public void setId(Id plutextId) {
+//		this.id = plutextId.getVal().toString();
 //		
 //		// and set it in the underlying SDT! 
-//		sdt.getSdtPr().setId(id);
+//		sdt.getSdtPr().setId(plutextId);
 //	}
 	
-//	public void setId(String id) {
-//		this.id = id;
+//	public void setId(String plutextId) {
+//		this.id = plutextId;
 //		
 //		if (sdt!=null) {
 //			// and set it in the underlying SDT! 
-//			sdt.getSdtPr().getId().setVal(java.math.BigInteger.valueOf( Long.valueOf(id) ));
+//			sdt.getSdtPr().getId().setVal(java.math.BigInteger.valueOf( Long.valueOf(plutextId) ));
 //		}
 //	}
 	
@@ -79,7 +80,7 @@ public class SdtWrapper {
 				
 		ObjectFactory factory = new ObjectFactory();		
 		Tag tag = factory.createTag();
-		tag.setVal( generateTag(id, version)  ); 
+		tag.setVal( generateTag(plutextId, version)  ); 
 		
 		log.debug("Setting tag: "+ tag.getVal() );
 		 
@@ -115,5 +116,12 @@ public class SdtWrapper {
 	public static String getPlutextId(String tag) {
 		HashMap map = QueryString.parseQueryString( tag );
 		return (String)map.get(PLUTEXT_ID);		
-	}	
+	}
+	
+	public static String getPlutextId(SdtPr sdtPr) {
+		
+		HashMap map = QueryString.parseQueryString( sdtPr.getTag().getVal() );		
+		return (String)map.get(PLUTEXT_ID);
+		
+	}
 }

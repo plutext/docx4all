@@ -1139,7 +1139,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
             				Mediator client = editor.getWordMLEditorKit().getPlutextClient();
             				if (client != null
             					&& !XmlUtil.containsTrackedChanges(sdt.getDocxObject())) {
-            					String id = sdt.getSdtProperties().getIdValue().toString();
+            					String id = sdt.getSdtProperties().getPlutextId();
             					client.removeTrackedChangeType(id);
             				}
 
@@ -1215,7 +1215,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
             				Mediator client = editor.getWordMLEditorKit().getPlutextClient();
             				if (client != null
             					&& !XmlUtil.containsTrackedChanges(sdt.getDocxObject())) {
-            					String id = sdt.getSdtProperties().getIdValue().toString();
+            					String id = sdt.getSdtProperties().getPlutextId();
             					client.removeTrackedChangeType(id);
             				}
 
@@ -1303,7 +1303,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
             				Mediator client = editor.getWordMLEditorKit().getPlutextClient();
             				if (client != null
             					&& !XmlUtil.containsTrackedChanges(sdt.getDocxObject())) {
-            					temp = sdt.getSdtProperties().getIdValue().toString();
+            					temp = sdt.getSdtProperties().getPlutextId();
             					client.removeTrackedChangeType(temp);
             				}
 
@@ -1389,7 +1389,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
             				Mediator client = editor.getWordMLEditorKit().getPlutextClient();
             				if (client != null
             					&& !XmlUtil.containsTrackedChanges(sdt.getDocxObject())) {
-            					temp = sdt.getSdtProperties().getIdValue().toString();
+            					temp = sdt.getSdtProperties().getPlutextId();
             					client.removeTrackedChangeType(temp);
             				}
 

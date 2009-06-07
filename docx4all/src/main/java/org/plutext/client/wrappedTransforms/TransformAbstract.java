@@ -90,8 +90,8 @@ public abstract class TransformAbstract {
 	}
 
 
-	public String getId() {
-		return sdtWrapper.getId();
+	public String getPlutextId() {
+		return sdtWrapper.getPlutextId();
 	}
 
 //	public void setId(Id id) {

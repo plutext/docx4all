@@ -37,6 +37,7 @@ import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.io.LoadFromVFSZipFile;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.Document;
+import org.plutext.client.SdtWrapper;
 
 
 /**
@@ -199,8 +200,9 @@ public class ElementMLFactory {
 		org.docx4j.wml.SdtPr sdtPr = ObjectFactory.createSdtPr();
 		org.docx4j.wml.SdtContentBlock content = ObjectFactory.createSdtContentBlock();
 		
-		sdtPr.setId();
-		sdtPr.setTag(ObjectFactory.createTag("0"));
+		String id = sdtPr.setId().toString();
+		sdtPr.setTag(ObjectFactory.createTag(
+				SdtWrapper.generateTag(id, "0")  ));
 		sdtBlock.setSdtPr(sdtPr);
 		sdtBlock.setSdtContent(content);
 

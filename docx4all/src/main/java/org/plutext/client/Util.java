@@ -85,7 +85,7 @@ public class Util {
 //	}
 
 	public static DocumentElement getDocumentElement(WordMLDocument doc,
-			String sdtBlockId) {
+			String plutextId) {
 
 		DocumentElement elem = null;
 
@@ -100,8 +100,8 @@ public class Util {
 				ElementML ml = elem.getElementML();
 				if (ml instanceof SdtBlockML) {
 					SdtBlockML sdtBlockML = (SdtBlockML) ml;
-					if (sdtBlockId.equals(sdtBlockML.getSdtProperties()
-							.getIdValue().toString())) {
+					if (plutextId.equals(sdtBlockML.getSdtProperties()
+							.getPlutextId() )) {
 						;// got it
 					} else {
 						elem = null;

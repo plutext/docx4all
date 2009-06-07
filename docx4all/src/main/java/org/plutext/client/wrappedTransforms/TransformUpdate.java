@@ -49,7 +49,7 @@ public class TransformUpdate extends TransformAbstract {
 		log.debug("markupChanges(): Marking up SdtBlock = " 
 			+ getSdt() 
 			+ " - ID="
-			+ getId() );
+			+ getPlutextId() );
 		log.debug("markupChanges(): 'original' param = " + original);
 		
     	try {
@@ -77,7 +77,7 @@ public class TransformUpdate extends TransformAbstract {
     }
     
 	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
-		String idStr = getId();
+		String idStr = getPlutextId();
 
 		log.debug("apply(): Updating SdtBlock = " + getSdt() + " - ID=" + idStr );
 //				+ " - TAG=" + getVersion().getVal());

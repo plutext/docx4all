@@ -42,11 +42,11 @@ public class TransformMove extends TransformAbstract {
 	String idref;	
 	
 	@Override
-	public String getId() {
+	public String getPlutextId() {
 		
 		// Transmitting
 		if (sdtWrapper!=null)   {
-			return sdtWrapper.getId();
+			return sdtWrapper.getPlutextId();
 		}
 		
 		// Receiving
@@ -69,9 +69,9 @@ public class TransformMove extends TransformAbstract {
     }
 
 	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
-		String idStr = getId();
+		String plutextId = getPlutextId();
 
-		log.debug("apply(): Moving SdtBlock = " + getSdt() + " - ID=" + idStr);
+		log.debug("apply(): Moving SdtBlock = " + getSdt() + " - ID=" + plutextId);
 
 		Long moveToIndex = null;
 		if (this.t.getPosition() == null || this.t.getPosition() < 0) {
@@ -97,15 +97,15 @@ public class TransformMove extends TransformAbstract {
 
 		WordMLDocument doc = 
 			(WordMLDocument) mediator.getWordMLTextPane().getDocument();
-		DocumentElement elem = Util.getDocumentElement(doc, idStr);
+		DocumentElement elem = Util.getDocumentElement(doc, plutextId);
 		if (elem == null) {
 			// should not happen.
-			log.error("apply(): DocumentElement NOT FOUND. Sdt Id=" + idStr);
+			log.error("apply(): DocumentElement NOT FOUND. Sdt Plutext Id=" + plutextId);
 			// TODO - throw error
 			return -1;
 		}
 		
-		log.debug("apply(): DocumentElement of Sdt Id=" + idStr
+		log.debug("apply(): DocumentElement of Sdt Plutext Id=" + plutextId
 			+ " is "
 			+ elem);
 
@@ -123,7 +123,7 @@ public class TransformMove extends TransformAbstract {
 
 		if (elemMLAtMoveToIndex instanceof SdtBlockML) {
 			SdtBlockML sdtML = (SdtBlockML) elemMLAtMoveToIndex;
-			if (sdtML.getSdtProperties().getIdValue().toString().equals(getId() )) {
+			if (sdtML.getSdtProperties().getPlutextId().equals(getPlutextId() )) {
 				log.debug("apply(): Need not to move."
 						+ " moveToIndex == currentIndex == " + idx);
 				return sequenceNumber;				
@@ -135,8 +135,8 @@ public class TransformMove extends TransformAbstract {
 		// 2 insert new element
 
 		// So
-		mediator.getDivergences().delete(idStr);
-		mediator.getDivergences().insert(idStr, moveToIndex);
+		mediator.getDivergences().delete(plutextId);
+		mediator.getDivergences().insert(plutextId, moveToIndex);
 
 		//Move SdtBlock by first deleting the block.
 		SdtBlockML copy = (SdtBlockML) elem.getElementML().clone();

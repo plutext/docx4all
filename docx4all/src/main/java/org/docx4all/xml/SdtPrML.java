@@ -20,10 +20,13 @@
 package org.docx4all.xml;
 
 import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.docx4j.XmlUtils;
+import org.docx4j.model.sdt.QueryString;
+import org.plutext.client.SdtWrapper;
 
 /**
  *	@author Jojada Tirtowidjojo - 16/04/2008
@@ -39,11 +42,13 @@ public class SdtPrML  extends ElementML {
 		super(sdtPr, isDummy);
 	}
 
-	public BigInteger getIdValue() {
-		org.docx4j.wml.SdtPr sdtPr = getDocxSdtPr();
-		org.docx4j.wml.Id id = sdtPr.getId();
-		BigInteger value = (id == null) ? null : id.getVal();
-		return value;
+	public String getPlutextId() {
+//		org.docx4j.wml.SdtPr sdtPr = getDocxSdtPr();		
+//		org.docx4j.wml.Id id = sdtPr.getId();
+//		BigInteger value = (id == null) ? null : id.getVal();
+//		return value;
+		
+		return SdtWrapper.getPlutextId(getDocxSdtPr());
 	}
 	
 //	public void setIdValue(BigInteger val) {

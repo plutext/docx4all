@@ -27,6 +27,7 @@ import javax.xml.bind.JAXBIntrospector;
 import org.apache.log4j.Logger;
 import org.docx4j.XmlUtils;
 import org.docx4j.jaxb.Context;
+import org.plutext.client.SdtWrapper;
 
 /**
  *	@author Jojada Tirtowidjojo - 16/04/2008
@@ -84,10 +85,16 @@ public class SdtBlockML extends ElementML {
 			org.docx4j.wml.SdtBlock sdtBlock = 
 				(org.docx4j.wml.SdtBlock) JAXBIntrospector.getValue(obj);
 			org.docx4j.wml.SdtPr pr = sdtBlock.getSdtPr();
-			if (pr != null) {
-				pr.setId();
-				pr.setTag(ObjectFactory.createTag("0"));
-			}			
+			
+			log.warn("If this is a copy/paste, TODO generate new id");
+			// TODO .. do the following if the document contains another element with this id
+			// (eg copy/paste, as opposed to cut/paste, or TransformMove)
+			// 
+//			if (pr != null) {
+//				String id = pr.setId().toString();
+//				pr.setTag(ObjectFactory.createTag(
+//						SdtWrapper.generateTag(id, "0")  ));				
+//			}			
 		}
 
 		return new SdtBlockML(obj, this.isDummy);
@@ -140,7 +147,7 @@ public class SdtBlockML extends ElementML {
 	public String toString() {
 		StringBuffer sb = new StringBuffer(super.toString());
 		sb.append(" - Id=");
-		sb.append(getSdtProperties().getIdValue());
+		sb.append(getSdtProperties().getPlutextId());
 		sb.append(" - Tag=");
 		sb.append(getSdtProperties().getTagValue());
 		

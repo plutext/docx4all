@@ -575,7 +575,7 @@ public class WordMLEditor extends SingleFrameApplication {
           	DocumentElement elem = 
           		(DocumentElement) editorViewDoc.getSdtBlockMLElement(pos);
            	SdtBlockML sdt = (SdtBlockML) elem.getElementML();
-           	String sdtId = sdt.getSdtProperties().getIdValue().toString();
+           	String sdtId = sdt.getSdtProperties().getPlutextId();
            	
            	plutextClient.startSession();
        		WordprocessingMLPackage wp = plutextClient.getVersionHistory(sdtId);

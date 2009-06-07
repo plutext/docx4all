@@ -262,8 +262,7 @@ public class Mediator {
 				ElementML ml = elem.getElementML();
 				if (ml instanceof SdtBlockML) {
 					SdtBlockML sdt = (SdtBlockML) ml;
-					String sdtId = sdt.getSdtProperties().getIdValue()
-							.toString();
+					String sdtId = sdt.getSdtProperties().getPlutextId();
 					TextLine rib = new TextLine(sdtId);
 					currentClientSkeleleton.getRibs().add(rib);
 				}
@@ -1406,10 +1405,10 @@ public class Mediator {
 		log.debug("applyUpdate " + t.getClass().getName() + " - "
 				+ t.getSequenceNumber());
 
-		String idStr = t.getId();
+		String plutextId = t.getPlutextId();
 
 		StateChunk currentChunk = 
-			Util.getStateChunk(getWordMLDocument(), idStr);
+			Util.getStateChunk(getWordMLDocument(), plutextId);
 		
 		boolean virgin = (currentChunk == null);
 
@@ -1433,7 +1432,7 @@ public class Mediator {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}		
-	        changedChunks.put( t.getId(), t.getId() );  
+	        changedChunks.put( t.getPlutextId(), t.getPlutextId() );  
 	        	// TODO, what if it is already there?	        
 			log.debug(t.getSequenceNumber() + " applied ("
 					+ t.getClass().getName() + ")");
@@ -1446,14 +1445,14 @@ public class Mediator {
 			// And is it even necessary??
 
 			if (resultCode >= 0) {
-				this.sdtChangeTypes.put(idStr,
+				this.sdtChangeTypes.put(plutextId,
 						TrackedChangeType.OtherUserChange);
 			}
 
 			return resultCode;
 			
 		} else if (t instanceof TransformDelete) {
-			StateChunk stateDocxSC = stateDocx.getStateChunks().get(idStr);
+			StateChunk stateDocxSC = stateDocx.getStateChunks().get(plutextId);
 			if (currentChunk == null) {
 				// It is missing from current StateChunks, and the
 				// reason for this is an insert and a delete transform
@@ -1485,7 +1484,7 @@ public class Mediator {
 
 						// You need to accept/reject revisions before all
 						// remote changes can be applied
-						this.sdtChangeTypes.put(idStr,
+						this.sdtChangeTypes.put(plutextId,
 								TrackedChangeType.Conflict);
 						return CANT_OVERWRITE;
 						
@@ -1507,9 +1506,9 @@ public class Mediator {
 			t.setApplied(true);
 
 			if (resultCode >= 0) {
-				this.sdtChangeTypes.put(idStr,
+				this.sdtChangeTypes.put(plutextId,
 						TrackedChangeType.OtherUserChange);
-				this.sdtIdUndead.put(idStr, idStr);
+				this.sdtIdUndead.put(plutextId, plutextId);
 			}
 			
 	        // Word Add-In 2009 02 05 - Add it to currentStateChunks, so it is there
@@ -1532,7 +1531,7 @@ public class Mediator {
 			resultCode = t.apply(this, stateDocx.getStateChunks());
 			t.setApplied(true);
 			if (resultCode >= 0) {
-				this.sdtChangeTypes.put(idStr,
+				this.sdtChangeTypes.put(plutextId,
 						TrackedChangeType.OtherUserChange);
 			}
 
@@ -1556,7 +1555,7 @@ public class Mediator {
 		} else if ((t instanceof TransformUpdate)
 				|| (t instanceof TransformInsert)) {
 
-			StateChunk stateDocxSC = stateDocx.getStateChunks().get(idStr);
+			StateChunk stateDocxSC = stateDocx.getStateChunks().get(plutextId);
 			boolean conflict = false;
 
 			if (currentChunk == null) {
@@ -1595,7 +1594,7 @@ public class Mediator {
 
 						// You need to accept/reject revisions before all
 						// remote changes can be applied
-						this.sdtChangeTypes.put(idStr,
+						this.sdtChangeTypes.put(plutextId,
 								TrackedChangeType.Conflict);
 						return CANT_OVERWRITE;
 
@@ -1622,17 +1621,17 @@ public class Mediator {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-	        changedChunks.put( t.getId(), t.getId() );  
+	        changedChunks.put( t.getPlutextId(), t.getPlutextId() );  
 	        	// TODO, what if it is already there?
 
 			log.debug(t.getSequenceNumber() + " applied ("
 					+ t.getClass().getName() + ")");
 
 			if (conflict) {
-				this.sdtChangeTypes.put(idStr, TrackedChangeType.Conflict);
+				this.sdtChangeTypes.put(plutextId, TrackedChangeType.Conflict);
 				log.debug("set state to CONFLICTED");
 			} else {
-				this.sdtChangeTypes.put(idStr,
+				this.sdtChangeTypes.put(plutextId,
 						TrackedChangeType.OtherUserChange);
 			}
 			
@@ -1852,12 +1851,12 @@ public class Mediator {
 				.containsValue(TrackedChangeType.OtherUserChange);
 	}
 
-	public TrackedChangeType getTrackedChangeType(String sdtBlockId) {
-		return this.sdtChangeTypes.get(sdtBlockId);
+	public TrackedChangeType getTrackedChangeType(String plutextId) {
+		return this.sdtChangeTypes.get(plutextId);
 	}
 
-	public TrackedChangeType removeTrackedChangeType(String sdtBlockId) {
-		return this.sdtChangeTypes.remove(sdtBlockId);
+	public TrackedChangeType removeTrackedChangeType(String plutextId) {
+		return this.sdtChangeTypes.remove(plutextId);
 	}
 
 	public List<String> getIdsOfNonConflictingChanges() {
@@ -1867,10 +1866,10 @@ public class Mediator {
 				.entrySet().iterator();
 		while (it.hasNext()) {
 			Map.Entry<String, TrackedChangeType> entry = it.next();
-			String id = entry.getKey();
+			String plutextId = entry.getKey();
 			TrackedChangeType type = entry.getValue();
 			if (type == TrackedChangeType.OtherUserChange) {
-				nonConflictingChanges.add(id);
+				nonConflictingChanges.add(plutextId);
 			}
 		}
 
@@ -2324,9 +2323,9 @@ public class Mediator {
 						if (ta instanceof TransformUpdate) {
 							// Set the in-document tag to match the one we got back
 							// ?? the actual sdt or the state chunk?
-							updateLocalContentControlTag(ta.getId(), ta.getTag());
+							updateLocalContentControlTag(ta.getPlutextId(), ta.getTag());
 							this.stateDocx.getStateChunks().put(
-								ta.getId(),
+								ta.getPlutextId(),
 								new StateChunk(ta.getSdt()));
 						} else {
 							// Assumption is that chunking is done locally,

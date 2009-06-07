@@ -49,7 +49,7 @@ public class TransformDelete extends TransformAbstract {
 	String idref;
 	
 	@Override
-	public String getId() {
+	public String getPlutextId() {
 		return idref;
 	}
 	
@@ -57,7 +57,7 @@ public class TransformDelete extends TransformAbstract {
 	/* Markup the existing sdt with one containing w:ins or w:del*/
 	@Override
     public String markupChanges(String sdtParam, Changeset changeset) {
-		String idStr = getId();
+		String idStr = getPlutextId();
 		
 		log.debug("markupChanges(): THIS SdtBlock = " 
 			+ getSdt()
@@ -86,7 +86,7 @@ public class TransformDelete extends TransformAbstract {
     }
     
 	public long apply(Mediator mediator, HashMap<String, StateChunk> stateChunks) {
-		String idStr = getId();
+		String idStr = getPlutextId();
 
 		log.debug("apply(): Deleting SdtBlock = " + getSdt()
 				+ " - ID=" + idStr);
