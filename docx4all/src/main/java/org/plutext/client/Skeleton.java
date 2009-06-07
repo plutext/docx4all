@@ -169,6 +169,7 @@ public class Skeleton implements IDiffList<TextLine> {
 	}
 	
 	public boolean removeRib(TextLine rib) {
+//    	debugRibs();
 		return ribs.remove(rib);
 	}
 
@@ -176,7 +177,11 @@ public class Skeleton implements IDiffList<TextLine> {
         return versions.get(ribId);
     }
 
-
+//    private void debugRibs() {    	
+//    	for (TextLine rib : ribs) {    		
+//    		log.info("'" + rib.getLine() + "'");
+//    	}
+//    }
 
 }// Skeleton class
 

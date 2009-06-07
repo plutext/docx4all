@@ -206,6 +206,9 @@ public class Mediator {
     AuthenticationDetails authDetails; 
 	
 	public void startSession() throws ServiceException {
+		
+		log.info("starting session");
+		
         try {
 			WordMLDocument doc = getWordMLDocument();
 			WebdavUri uri =
@@ -278,8 +281,7 @@ public class Mediator {
 	}
 
 	public void endSession() {
-		log.info("Ending session.");
-		
+		log.info("Ending session.");		
 		
 		AuthenticationUtils.endSession();
 		currentClientSkeleleton = null;
@@ -1970,6 +1972,7 @@ public class Mediator {
 	    while (it.hasNext()) {
 	    	Map.Entry<String, String> entry = it.next(); 
 	    	StateChunk currentChunk = Util.getStateChunk(doc, entry.getKey());
+	    	log.debug("Inspecting undead: " + entry.getKey() );
 	    	if (currentChunk == null) {
 	    		//The applied TransformDelete must have been accepted.
 	            log.debug(".. really kill.");
@@ -1980,8 +1983,10 @@ public class Mediator {
 	            // Remove it from inferredSkeleton and currentStateChunks
 	            // but keep in document.
 	            log.debug(".. still in limbo.");
-	            this.currentClientSkeleleton.removeRib(
-	            	new TextLine(entry.getKey()));
+	            if (!this.currentClientSkeleleton.removeRib(
+	            	  new TextLine(entry.getKey())) ) {
+	            	log.error("Couldn't find '" + entry.getKey() + "' to remove!");
+	            }
 	            
 	        } else {
 	            // The delete was  rejected

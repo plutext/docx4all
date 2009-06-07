@@ -41,6 +41,20 @@ public class TextLine implements Comparable<TextLine> {
 		Integer objHash = Integer.valueOf(obj._hash);
 		return thisHash.compareTo(objHash);
 	}
+	
+	public boolean equals(Object other){
+		  if ( this == other ) {
+			  return true;
+		  }
+		  if ( !(other instanceof TextLine) ) {
+			  return false;
+		  }
+		  if (compareTo( (TextLine)other)==0) {
+			  return true;
+		  } else {
+			  return false;
+		  }
+	}
 
 }// TextLine class
 
