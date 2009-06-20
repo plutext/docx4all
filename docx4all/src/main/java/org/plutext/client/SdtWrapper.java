@@ -4,7 +4,6 @@ import java.util.HashMap;
 
 import org.apache.log4j.Logger;
 import org.docx4j.model.sdt.QueryString;
-import org.docx4j.wml.Id;
 import org.docx4j.wml.ObjectFactory;
 import org.docx4j.wml.SdtBlock;
 import org.docx4j.wml.SdtPr;
@@ -119,9 +118,18 @@ public class SdtWrapper {
 	}
 	
 	public static String getPlutextId(SdtPr sdtPr) {
-		
 		HashMap map = QueryString.parseQueryString( sdtPr.getTag().getVal() );		
 		return (String)map.get(PLUTEXT_ID);
-		
 	}
+	
+	public static String getVersionNumber(SdtPr sdtPr) {
+		HashMap map = QueryString.parseQueryString( sdtPr.getTag().getVal() );		
+		return (String) map.get(PLUTEXT_VERSION);
+	}
+	
+	public static String getVersionNumber(String tag) {
+		HashMap map = QueryString.parseQueryString( tag );
+		return (String) map.get(PLUTEXT_VERSION);		
+	}
+	
 }
