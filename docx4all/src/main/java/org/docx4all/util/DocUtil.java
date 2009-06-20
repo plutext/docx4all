@@ -55,7 +55,9 @@ import org.docx4all.swing.text.SdtBlockInfo;
 import org.docx4all.swing.text.StyleSheet;
 import org.docx4all.swing.text.TextSelector;
 import org.docx4all.swing.text.WordMLDocument;
+import org.docx4all.swing.text.WordMLFragment;
 import org.docx4all.swing.text.WordMLStyleConstants;
+import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4all.xml.DocumentML;
@@ -73,6 +75,7 @@ import org.docx4all.xml.RunPropertiesML;
 import org.docx4all.xml.SdtBlockML;
 import org.docx4j.XmlUtils;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
+import org.plutext.client.Mediator;
 
 /**
  *	@author Jojada Tirtowidjojo - 27/11/2007
@@ -459,10 +462,11 @@ public class DocUtil {
 	public static final boolean hasSdt(WordMLDocument doc, int offs, int length) {
 		boolean hasSdt = false;
 		
-		final DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
 		try {
 			doc.readLock();
 	
+			final DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+			
 			int pos = offs;
 			length = Math.max(length, 1);
 			
@@ -487,6 +491,46 @@ public class DocUtil {
 		}
 		
 		return hasSdt;
+	}
+	
+	public static final void setUniqueSdtBlockId(
+		WordMLDocument doc, 
+		WordMLFragment fragment) {
+		
+		List<ElementMLRecord> paragraphRecords = 
+			fragment.getParagraphRecords();
+		if (paragraphRecords == null) {
+			return;
+		}
+		
+		try {
+			doc.readLock();
+			
+			final DocumentElement root = (DocumentElement) doc.getDefaultRootElement();
+			DocumentML docML = (DocumentML) root.getElementML();
+			Set<BigInteger> idSet = docML.getSdtBlockIdSet();
+			
+			for (ElementMLRecord rec : paragraphRecords) {
+				ElementML ml = rec.getElementML();
+				if (ml instanceof SdtBlockML) {
+					SdtBlockML sdt = (SdtBlockML) ml;
+					BigInteger id = 
+						BigInteger.valueOf(
+							Long.valueOf(sdt.getSdtProperties().getPlutextId()));
+					if (idSet.contains(id)) {
+						while (idSet.contains(id)) {
+							//This while loop won't go for long.
+							String s = Mediator.generateId();
+							id = BigInteger.valueOf(Long.valueOf(s));							
+						}
+						sdt.getSdtProperties().setPlutextId(id.toString());						
+					}
+					idSet.add(id);
+				}
+			}
+		} finally {
+			doc.readUnlock();
+		}
 	}
 	
 	public static final DocumentElement getElementToPasteAsSibling(
