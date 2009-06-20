@@ -19,8 +19,11 @@
 
 package org.docx4all.xml;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.xml.bind.JAXBIntrospector;
 
@@ -32,6 +35,8 @@ import org.docx4j.XmlUtils;
  */
 public class BodyML extends ElementML {
 	private static Logger log = Logger.getLogger(BodyML.class);
+	
+	Set<BigInteger> sdtBlockIdSet;
 	
 	public BodyML(Object docxObject) {
 		this(docxObject, false);
@@ -70,6 +75,28 @@ public class BodyML extends ElementML {
 			throw new IllegalArgumentException("Not an orphan.");
 		}
 		super.addChild(idx, child, adopt);
+		
+		if (child instanceof SdtBlockML) {
+			SdtBlockML sdt = (SdtBlockML) child;
+			String id = sdt.getSdtProperties().getPlutextId();
+			if (sdtBlockIdSet == null) {
+				sdtBlockIdSet = new HashSet<BigInteger>();
+			}
+			sdtBlockIdSet.add(BigInteger.valueOf(Long.valueOf(id)));
+		}
+	}
+	
+	public void deleteChild(ElementML child) {
+		super.deleteChild(child);
+		
+		if (child instanceof SdtBlockML) {
+			SdtBlockML sdt = (SdtBlockML) child;
+			String id = sdt.getSdtProperties().getPlutextId();
+			sdtBlockIdSet.remove(BigInteger.valueOf(Long.valueOf(id)));
+			if (sdtBlockIdSet.isEmpty()) {
+				sdtBlockIdSet = null;
+			}
+		}
 	}
 	
 	public boolean canAddSibling(ElementML elem, boolean after) {
@@ -78,6 +105,10 @@ public class BodyML extends ElementML {
 	
 	public void addSibling(ElementML elem, boolean after) {
 		throw new UnsupportedOperationException("BodyML cannot have sibling.");
+	}
+	
+	public Set<BigInteger> getSdtBlockIdSet() {
+		return new HashSet<BigInteger>(sdtBlockIdSet);
 	}
 	
 	public void setParent(ElementML parent) {
@@ -115,6 +146,8 @@ public class BodyML extends ElementML {
 	}
 
 	private void initChildren(org.docx4j.wml.Body body) {
+		sdtBlockIdSet = null;
+		
 		if (body == null) {
 			return;
 		}
@@ -128,7 +161,14 @@ public class BodyML extends ElementML {
 				Object value = JAXBIntrospector.getValue(obj);
 				
 				if (value instanceof org.docx4j.wml.SdtBlock) {
-					ml = new SdtBlockML(obj);
+					SdtBlockML sdt = new SdtBlockML(obj);
+					String id = sdt.getSdtProperties().getPlutextId();
+					if (sdtBlockIdSet == null) {
+						sdtBlockIdSet = new HashSet<BigInteger>();
+					}
+					sdtBlockIdSet.add(BigInteger.valueOf(Long.valueOf(id)));
+					
+					ml = sdt;
 				} else if (value instanceof org.docx4j.wml.Tbl) {
 					ml = new TableML(obj);
 				} else {
