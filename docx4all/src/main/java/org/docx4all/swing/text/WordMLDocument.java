@@ -576,16 +576,14 @@ public class WordMLDocument extends DefaultStyledDocument {
 			writeUnlock();
 		}
 	}
-    
+  
 	public void insertFragment(int offset, WordMLFragment fragment, AttributeSet attrs) 
 		throws BadLocationException {
 		
-		List<ElementMLRecord> paraContentRecords = null;
-		List<ElementMLRecord> paragraphRecords = null;
-		if (fragment != null) {
-			paraContentRecords = fragment.getParagraphContentRecords();
-			paragraphRecords = fragment.getParagraphRecords();
-		}		
+		List<ElementMLRecord> paraContentRecords = 
+			fragment.getParagraphContentRecords();
+		List<ElementMLRecord> paragraphRecords = 
+			fragment.getParagraphRecords();
 						
 		if (paraContentRecords == null && paragraphRecords == null) {
 			if (log.isDebugEnabled()) {
@@ -657,6 +655,8 @@ public class WordMLDocument extends DefaultStyledDocument {
 
 				snapshots = getSnapshots(blockStart, (getLength() - blockEnd) - blockStart);				
 			}
+			
+			DocUtil.setUniqueSdtBlockId(this, fragment);
 			
 			DocumentElement targetE = (DocumentElement) getParagraphMLElement(offset, false);
 			if (targetE.getEndOffset() == rootE.getEndOffset()) {
@@ -774,7 +774,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 						targetML.addSibling(newParaML, false);
 					} else if (targetML instanceof SdtBlockML) {
 						SdtBlockML newSdtBlockML = ElementMLFactory.createSdtBlockML();
-						newSdtBlockML.addChild(newParaML, true);
+						newSdtBlockML.addChild(newParaML, true);						
 						targetML.addSibling(newSdtBlockML, false);
 					} else {
 						//Do not know how to accommodate newParaML 
@@ -1056,7 +1056,7 @@ public class WordMLDocument extends DefaultStyledDocument {
 				target.addSibling(ml, true);
 				target = ml;
 			} else {
-				//ml must be a ParagraphML
+				//ml must be a block 
 				if (!(target instanceof ParagraphML)) {
 					target = runContentML.getParent().getParent();
 				}
