@@ -47,6 +47,7 @@ public class WordMLTextPane extends JEditorPane {
 	public WordMLTextPane() {
 		super();
 		getEditorKit().install(this);
+		//setUI(new BasicEditorPaneUI());
 		_filterApplied = false;
 	}
 	
@@ -165,12 +166,17 @@ public class WordMLTextPane extends JEditorPane {
             return;
         }
     	
+        if (fragment == null) {
+        	replaceSelection((String) null);
+        	return;
+        }
+        
     	int start = getSelectionStart();
     	int end = getSelectionEnd();
     	
         WordMLDocument doc = (WordMLDocument) getDocument();
         
-        if (doc != null && (start < end || fragment != null)) {
+        if (doc != null) {
 			try {
 				saveCaretText();
 				
