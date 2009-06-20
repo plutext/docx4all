@@ -29,6 +29,7 @@ import org.apache.log4j.Logger;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.xml.DocumentML;
+import org.docx4j.model.datastorage.Dom4jCustomXmlDataStorage;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.CustomXmlDataStoragePart;
 import org.docx4j.openpackaging.parts.PartName;
@@ -106,7 +107,9 @@ public class StateDocx {
 	        		= (CustomXmlDataStoragePart)pairs.getValue();
             	
             	// dom4j document :-(
-            	Document customXmlDoc = docx4jPart.getDocument();
+            	//Document customXmlDoc = docx4jPart.getDocument();            	
+            	Document customXmlDoc = ((Dom4jCustomXmlDataStorage)docx4jPart.getData()).getDom4jDocument();
+            		// since in ElementMLFactory, LoadFromVFSZipFile is set to use this 
             	
             	log.debug(customXmlDoc.getRootElement().getName());
             	
