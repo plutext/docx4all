@@ -19,8 +19,10 @@
 
 package org.docx4all.xml;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.docx4all.swing.text.StyleSheet;
@@ -129,6 +131,11 @@ public class DocumentML extends ElementML {
 		throw new UnsupportedOperationException("DocumentML cannot have sibling.");
 	}
 	
+	public Set<BigInteger> getSdtBlockIdSet() {
+		BodyML bodyML = (BodyML) getChild(0);
+		return bodyML.getSdtBlockIdSet();
+	}
+
 	public void setDocxParent(Object docxParent) {
 		throw new UnsupportedOperationException("DocumentML is root.");
 	}
