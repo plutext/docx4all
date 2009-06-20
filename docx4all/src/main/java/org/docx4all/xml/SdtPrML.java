@@ -20,12 +20,11 @@
 package org.docx4all.xml;
 
 import java.math.BigInteger;
-import java.util.HashMap;
 import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.docx4j.XmlUtils;
-import org.docx4j.model.sdt.QueryString;
+import org.docx4j.wml.Id;
 import org.plutext.client.SdtWrapper;
 
 /**
@@ -43,24 +42,20 @@ public class SdtPrML  extends ElementML {
 	}
 
 	public String getPlutextId() {
-//		org.docx4j.wml.SdtPr sdtPr = getDocxSdtPr();		
-//		org.docx4j.wml.Id id = sdtPr.getId();
-//		BigInteger value = (id == null) ? null : id.getVal();
-//		return value;
-		
 		return SdtWrapper.getPlutextId(getDocxSdtPr());
 	}
 	
-//	public void setIdValue(BigInteger val) {
-//		org.docx4j.wml.SdtPr sdtPr = getDocxSdtPr();
-//		org.docx4j.wml.Id id = sdtPr.getId();
-//		if (id == null) {
-//			id = ObjectFactory.createId(val);
-//			sdtPr.setId(id);
-//		} else {
-//			id.setVal(val);
-//		}
-//	}
+	public void setPlutextId(String id) {
+		org.docx4j.wml.SdtPr sdtPr = getDocxSdtPr();
+		String version = SdtWrapper.getVersionNumber(sdtPr);
+
+		Id sdtId = new Id();
+		sdtId.setVal(BigInteger.valueOf(Long.valueOf(id).longValue()));
+		sdtPr.setId(sdtId);
+		
+		String tagValue = SdtWrapper.generateTag(id, version);
+		sdtPr.setTag(ObjectFactory.createTag(tagValue));
+	}
 	
 	public String getTagValue() {
 		org.docx4j.wml.SdtPr sdtPr = getDocxSdtPr();
