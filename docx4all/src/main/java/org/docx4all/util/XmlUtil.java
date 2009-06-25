@@ -52,7 +52,7 @@ import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunML;
 import org.docx4j.XmlUtils;
 import org.docx4j.convert.out.flatOpcXml.FlatOpcXmlCreator;
-import org.docx4j.diff.ParagraphDifferencer;
+import org.docx4j.diff.Differencer;
 import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.contenttype.ContentTypeManager;
 import org.docx4j.openpackaging.contenttype.ContentTypeManagerImpl;
@@ -734,7 +734,7 @@ public class XmlUtil {
 		// changeDate.setTime(RFC3339_FORMAT.parse(changeset.getDate()));
 		Calendar changeDate = null;
 
-		ParagraphDifferencer pd = new ParagraphDifferencer();
+		Differencer pd = new Differencer();
 		pd.diff(leftSdt.getSdtContent(), rightSdt
 				.getSdtContent(), result, changeset.getModifier(), changeDate,
 				new RelationshipsPart(), new RelationshipsPart() );
