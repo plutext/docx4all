@@ -24,7 +24,7 @@
 	
     <path id="MavenDependencies.libraryclasspath">
         <pathelement location="${m2Repository}/dom4j/dom4j/1.6.1/dom4j-1.6.1.jar"/>
-        <pathelement location="${m2Repository}/xml-apis/xml-apis/1.0.b2/xml-apis-1.0.b2.jar"/>
+        <!-- pathelement location="${m2Repository}/xml-apis/xml-apis/1.0.b2/xml-apis-1.0.b2.jar"/ -->
         <pathelement location="${m2Repository}/log4j/log4j/1.2.13/log4j-1.2.13.jar"/>
         <pathelement location="${m2Repository}/jaxen/jaxen/1.1.1/jaxen-1.1.1.jar"/>
         <pathelement location="${m2Repository}/jdom/jdom/1.0/jdom-1.0.jar"/>
@@ -77,8 +77,8 @@
         <pathelement location="${m2Repository}/bouncycastle/bcprov-jdk16-unsigned/136/bcprov-jdk16-unsigned-136.jar"/>
         <pathelement location="${m2Repository}/com/topologi/diffx/0.61/diffx-0.61.jar"/>
 
-        <pathelement location="/home/dev/workspace/Alfresco/JASONH/root/projects/3rd-party/lib/jaxb-api-2.1.jar"/>
-        <pathelement location="/home/dev/workspace/Alfresco/JASONH/root/projects/3rd-party/lib/jaxb-impl-2.1.7.jar"/>
+        <pathelement location="/home/dev/workspace/Alfresco/HEAD/root/projects/3rd-party/lib/jaxb-api-2.1.jar"/>
+        <pathelement location="/home/dev/workspace/Alfresco/HEAD/root/projects/3rd-party/lib/jaxb-impl-2.1.7.jar"/>
         
     </path>
 	
