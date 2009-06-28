@@ -49,7 +49,7 @@
 
   <xsl:template match="w:r">
     <xsl:variable name="id" 
-        select="java:org.docx4j.diff.ParagraphDifferencer.getId()" />
+        select="java:org.docx4j.diff.Differencer.getId()" />
   
     <w:del w:id="{$id}" w:author="{$author}"  w:date="{$date}">  <!--  w:date is optional -->
         <xsl:copy>
