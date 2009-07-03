@@ -189,6 +189,8 @@ public class WordMLEditor extends SingleFrameApplication {
     private void initVFSJFileChooser() {
         ResourceMap rm = getContext().getResourceMap(WordMLEditor.class);
     	String uri = rm.getString(Constants.VFSJFILECHOOSER_DEFAULT_FOLDER_URI);
+    	System.out.println(Constants.VFSJFILECHOOSER_DEFAULT_FOLDER_URI + ":"
+    			+ uri);
 		if (uri != null && uri.length() > 0) {
 			uri = uri.trim();
     		try {
@@ -207,6 +209,7 @@ public class WordMLEditor extends SingleFrameApplication {
     			}
     			
     		} catch (FileSystemException exc) {
+    			exc.printStackTrace();
     			StringBuilder sb = new StringBuilder();
     			sb.append("Bad ");
     			sb.append(Constants.VFSJFILECHOOSER_DEFAULT_FOLDER_URI);
@@ -302,9 +305,18 @@ public class WordMLEditor extends SingleFrameApplication {
         	
         	if (iframe.getUI() instanceof BasicInternalFrameUI) {
         		BasicInternalFrameUI ui = (BasicInternalFrameUI) iframe.getUI();
-        		ui.getNorthPane().addMouseMotionListener(_titleBarMouseListener);
-        	} else {
-        		//TODO: How about in Mac ?
+        		javax.swing.JComponent northPane = ui.getNorthPane();
+        		if (northPane==null) {
+        			// Happens on Mac OSX: Google for "osx java getNorthPane"
+        			// Fix is it.businesslogic.ireport.gui.JMDIFrame
+        			javax.swing.plaf.basic.BasicInternalFrameUI aUI = new javax.swing.plaf.basic.BasicInternalFrameUI(iframe);
+        			iframe.setUI(aUI);
+        			
+        			// Try again
+        			ui = (BasicInternalFrameUI) iframe.getUI();
+        			northPane = ((javax.swing.plaf.basic.BasicInternalFrameUI)ui).getNorthPane();        			
+        		}         		
+        		northPane.addMouseMotionListener(_titleBarMouseListener);
         	}
         	
         	JEditorPane editorView = createEditorView(f);
