@@ -514,18 +514,20 @@ public class DocUtil {
 				ElementML ml = rec.getElementML();
 				if (ml instanceof SdtBlockML) {
 					SdtBlockML sdt = (SdtBlockML) ml;
-					BigInteger id = 
-						BigInteger.valueOf(
-							Long.valueOf(sdt.getSdtProperties().getPlutextId()));
-					if (idSet.contains(id)) {
-						while (idSet.contains(id)) {
-							//This while loop won't go for long.
-							String s = Mediator.generateId();
-							id = BigInteger.valueOf(Long.valueOf(s));							
+					String idStr = sdt.getSdtProperties().getPlutextId();
+					if (idStr != null) {
+						BigInteger id = 
+							BigInteger.valueOf(Long.valueOf(idStr));
+						if (idSet.contains(id)) {
+							while (idSet.contains(id)) {
+								//This while loop won't go for long.
+								String s = Mediator.generateId();
+								id = BigInteger.valueOf(Long.valueOf(s));							
+							}
+							sdt.getSdtProperties().setPlutextId(id.toString());						
 						}
-						sdt.getSdtProperties().setPlutextId(id.toString());						
+						idSet.add(id);
 					}
-					idSet.add(id);
 				}
 			}
 		} finally {
