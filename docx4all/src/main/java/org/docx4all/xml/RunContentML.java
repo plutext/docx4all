@@ -125,6 +125,9 @@ public class RunContentML extends ElementML {
 			} else if (value instanceof org.docx4j.wml.R.Cr) {
 				this.textContent = Constants.NEWLINE;
 
+			} else if (value instanceof org.docx4j.wml.R.Tab) {
+				this.textContent = Constants.TAB;
+				
 			//} else if (value instanceof org.docx4j.wml.R.NoBreakHyphen) {
 				// Unsupported yet
 
