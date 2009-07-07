@@ -36,7 +36,7 @@ import org.docx4j.XmlUtils;
 public class BodyML extends ElementML {
 	private static Logger log = Logger.getLogger(BodyML.class);
 	
-	Set<BigInteger> sdtBlockIdSet;
+	Set<BigInteger> sdtBlockIdSet = new HashSet<BigInteger>();
 	
 	public BodyML(Object docxObject) {
 		this(docxObject, false);
@@ -79,10 +79,9 @@ public class BodyML extends ElementML {
 		if (child instanceof SdtBlockML) {
 			SdtBlockML sdt = (SdtBlockML) child;
 			String id = sdt.getSdtProperties().getPlutextId();
-			if (sdtBlockIdSet == null) {
-				sdtBlockIdSet = new HashSet<BigInteger>();
+			if (id != null) {
+				sdtBlockIdSet.add(BigInteger.valueOf(Long.valueOf(id)));
 			}
-			sdtBlockIdSet.add(BigInteger.valueOf(Long.valueOf(id)));
 		}
 	}
 	
@@ -92,9 +91,9 @@ public class BodyML extends ElementML {
 		if (child instanceof SdtBlockML) {
 			SdtBlockML sdt = (SdtBlockML) child;
 			String id = sdt.getSdtProperties().getPlutextId();
-			sdtBlockIdSet.remove(BigInteger.valueOf(Long.valueOf(id)));
-			if (sdtBlockIdSet.isEmpty()) {
-				sdtBlockIdSet = null;
+			if (id != null) {
+				sdtBlockIdSet.remove(
+					BigInteger.valueOf(Long.valueOf(id)));
 			}
 		}
 	}
@@ -146,8 +145,6 @@ public class BodyML extends ElementML {
 	}
 
 	private void initChildren(org.docx4j.wml.Body body) {
-		sdtBlockIdSet = null;
-		
 		if (body == null) {
 			return;
 		}
@@ -163,11 +160,10 @@ public class BodyML extends ElementML {
 				if (value instanceof org.docx4j.wml.SdtBlock) {
 					SdtBlockML sdt = new SdtBlockML(obj);
 					String id = sdt.getSdtProperties().getPlutextId();
-					if (sdtBlockIdSet == null) {
-						sdtBlockIdSet = new HashSet<BigInteger>();
+					if (id != null) {
+						sdtBlockIdSet.add(
+							BigInteger.valueOf(Long.valueOf(id)));
 					}
-					sdtBlockIdSet.add(BigInteger.valueOf(Long.valueOf(id)));
-					
 					ml = sdt;
 				} else if (value instanceof org.docx4j.wml.Tbl) {
 					ml = new TableML(obj);
