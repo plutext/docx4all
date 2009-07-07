@@ -32,6 +32,7 @@ import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
+import javax.swing.text.TabStop;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBIntrospector;
 import javax.xml.namespace.QName;
@@ -43,6 +44,7 @@ import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.BooleanDefaultTrue;
 import org.docx4j.wml.CTHeight;
 import org.docx4j.wml.CTShd;
+import org.docx4j.wml.CTTabStop;
 import org.docx4j.wml.CTTblCellMar;
 import org.docx4j.wml.CTTrPrBase;
 import org.docx4j.wml.CTVerticalJc;
@@ -56,6 +58,9 @@ import org.docx4j.wml.RPr;
 import org.docx4j.wml.RStyle;
 import org.docx4j.wml.STBorder;
 import org.docx4j.wml.STShd;
+import org.docx4j.wml.STTabJc;
+import org.docx4j.wml.STTabTlc;
+import org.docx4j.wml.Tabs;
 import org.docx4j.wml.TblBorders;
 import org.docx4j.wml.TblPr;
 import org.docx4j.wml.TblWidth;
@@ -99,6 +104,45 @@ public class StyleSheet extends StyleContext {
     	//Therefore, one twip = dpi/1440 pixels.
     	float conversionFactor = 1440f / SCREEN_RESOLUTION_DPI;
     	return (int) (pixels * conversionFactor);
+    }
+    
+    private static final int toSwingTabStopAlignment(STTabJc stTabJc) {
+    	int align = TabStop.ALIGN_LEFT;
+    	if (stTabJc == STTabJc.BAR) {
+    		align = TabStop.ALIGN_BAR;
+    	} else if (stTabJc == STTabJc.CENTER) {
+    		align = TabStop.ALIGN_CENTER;
+    	} else if (stTabJc == STTabJc.DECIMAL) {
+    		align = TabStop.ALIGN_DECIMAL;
+    	} else if (stTabJc == STTabJc.LEFT) {
+    		//align = TabStop.ALIGN_LEFT;
+    	} else if (stTabJc == STTabJc.RIGHT) {
+    		align = TabStop.ALIGN_RIGHT;
+    	} else {
+    		//not supported. 
+    		//Default to TabStop.ALIGN_LEFT
+    	}
+    	
+    	return align;
+    }
+    
+    private static final int toSwingTabStopLeader(STTabTlc stTabTlc) {
+    	int lead = TabStop.LEAD_NONE;
+    	if (stTabTlc == STTabTlc.DOT) {
+    		lead = TabStop.LEAD_DOTS;
+    	} else if (stTabTlc == STTabTlc.HEAVY) {
+    		lead = TabStop.LEAD_THICKLINE;
+    	} else if (stTabTlc == STTabTlc.HYPHEN) {
+    		lead = TabStop.LEAD_HYPHENS;
+    	} else if (stTabTlc == STTabTlc.NONE) {
+    		//lead = TabStop.LEAD_NONE;
+    	} else if (stTabTlc == STTabTlc.UNDERSCORE) {
+    		lead = TabStop.LEAD_UNDERLINE;
+    	} else {
+    		//not supported STTabTlc.MIDDLE_DOT
+    		//Default to TabStop.LEAD_NONE
+    	}
+    	return lead;
     }
     
     public static final int emuToTwips(int emus) {
@@ -450,7 +494,12 @@ public class StyleSheet extends StyleContext {
 		}
 		numPr = null;
 		
-		//INDENTATION attribute
+		addIndentationAttributes(attrs, pPr);
+		addSpacingAttributes(attrs, pPr);
+		addTabsAttributes(attrs, pPr);
+	}
+	
+	public final static void addIndentationAttributes(MutableAttributeSet attrs, PPr pPr) {
 		PPrBase.Ind ind = pPr.getInd();
 		if (ind != null) {
 			if (ind.getHanging() != null) {
@@ -476,10 +525,10 @@ public class StyleSheet extends StyleContext {
 				int i = toPixels(ind.getRight().intValue());
 				StyleConstants.setRightIndent(attrs, i);
 			}
-			ind = null;
 		}
-		
-		//SPACING attribute
+	}
+	
+	public final static void addSpacingAttributes(MutableAttributeSet attrs, PPr pPr) {
 		PPrBase.Spacing spacing = pPr.getSpacing();
 		if (spacing != null) {
 			//if (spacing.getAfterLines() != null
@@ -518,7 +567,33 @@ public class StyleSheet extends StyleContext {
 				attrs.addAttribute(WordMLStyleConstants.STLineSpacingRuleAttribute, rule);
 				*/
 			}
-			spacing = null;
+		}	
+	}
+	
+	public final static void addTabsAttributes(MutableAttributeSet attrs, PPr pPr) {
+		Tabs tabs = pPr.getTabs();
+		if (tabs != null) {
+			List<CTTabStop> list = tabs.getTab();
+			if (!list.isEmpty()) {
+				javax.swing.text.TabStop[] tabStops =
+					new javax.swing.text.TabStop[list.size()];
+				for (Integer i=0; i < list.size(); i++) {
+					CTTabStop ctts = list.get(i);
+					BigInteger pos = ctts.getPos();
+					STTabTlc leader = ctts.getLeader();
+					STTabJc val = ctts.getVal();
+				
+					tabStops[i] = 
+						new javax.swing.text.TabStop(
+							toPixels(pos.intValue()),
+							toSwingTabStopAlignment(val),
+							toSwingTabStopLeader(leader));
+				}
+			
+				javax.swing.text.TabSet tabSet =  
+					new javax.swing.text.TabSet(tabStops);
+				StyleConstants.setTabSet(attrs, tabSet);
+			}
 		}
 	}
 	
