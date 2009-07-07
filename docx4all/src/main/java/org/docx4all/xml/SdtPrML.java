@@ -42,7 +42,12 @@ public class SdtPrML  extends ElementML {
 	}
 
 	public String getPlutextId() {
-		return SdtWrapper.getPlutextId(getDocxSdtPr());
+		String id = null;
+		org.docx4j.wml.SdtPr sdtPr = getDocxSdtPr();
+		if (sdtPr.getTag() != null) {
+			id = SdtWrapper.getPlutextId(getDocxSdtPr());
+		}
+		return id;
 	}
 	
 	public void setPlutextId(String id) {
