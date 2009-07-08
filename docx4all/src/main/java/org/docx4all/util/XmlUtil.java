@@ -55,7 +55,6 @@ import org.docx4j.convert.out.flatOpcXml.FlatOpcXmlCreator;
 import org.docx4j.diff.Differencer;
 import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.contenttype.ContentTypeManager;
-import org.docx4j.openpackaging.contenttype.ContentTypeManagerImpl;
 import org.docx4j.openpackaging.exceptions.InvalidFormatException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.DocPropsCustomPart;
@@ -169,7 +168,7 @@ public class XmlUtil {
 			org.docx4j.xmlPackage.Package wmlPackageEl = (org.docx4j.xmlPackage.Package)je.getValue(); 
 			org.docx4j.convert.in.FlatOpcXmlImporter xmlPackage = new org.docx4j.convert.in.FlatOpcXmlImporter( wmlPackageEl); 
 
-			ContentTypeManager ctm = new ContentTypeManagerImpl();
+			ContentTypeManager ctm = new ContentTypeManager();
 			
 			Part tmpDocPart = xmlPackage.getRawPart(ctm,  "/word/document.xml");
 			Part tmpStylesPart = xmlPackage.getRawPart(ctm,  "/word/styles.xml");
