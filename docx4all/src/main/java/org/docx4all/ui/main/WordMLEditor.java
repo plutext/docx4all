@@ -308,7 +308,7 @@ public class WordMLEditor extends SingleFrameApplication {
         		javax.swing.JComponent northPane = ui.getNorthPane();
         		if (northPane==null) {
         			// Happens on Mac OSX: Google for "osx java getNorthPane"
-        			// Fix is it.businesslogic.ireport.gui.JMDIFrame
+        			// Fix is from it.businesslogic.ireport.gui.JMDIFrame
         			javax.swing.plaf.basic.BasicInternalFrameUI aUI = new javax.swing.plaf.basic.BasicInternalFrameUI(iframe);
         			iframe.setUI(aUI);
         			
