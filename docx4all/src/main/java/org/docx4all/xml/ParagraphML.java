@@ -231,16 +231,38 @@ public class ParagraphML extends ElementML {
 								
 				if (value instanceof org.docx4j.wml.RunIns) {
 					ml = new RunInsML(value, this.isDummy);
+					ml.setParent(ParagraphML.this);
+					this.children.add(ml);
 				} else if (value instanceof org.docx4j.wml.RunDel) {
 					ml = new RunDelML(value, this.isDummy);
+					ml.setParent(ParagraphML.this);
+					this.children.add(ml);
 				} else if (value instanceof org.docx4j.wml.P.Hyperlink) {
 					ml = new HyperlinkML(value, this.isDummy);
+					ml.setParent(ParagraphML.this);
+					this.children.add(ml);
+					
+				} else if (value instanceof org.docx4j.wml.CTSmartTagRun) {
+					InlineTransparentML transparent =
+						new InlineTransparentML(value, this.isDummy);
+					//Current implementation is using InlineTransparentML
+					//as surrogate container.
+					if (transparent.getChildrenCount() > 0) {
+						List<ElementML> list = 
+							new ArrayList<ElementML>(
+								transparent.getChildren());
+						for (ElementML elem: list) {
+							elem.delete();
+							elem.setParent(ParagraphML.this);
+							this.children.add(elem);
+						}
+					}
 				} else {
 					ml = new RunML(o, this.isDummy);
+					ml.setParent(ParagraphML.this);
+					this.children.add(ml);
 				}
 				
-				ml.setParent(ParagraphML.this);
-				this.children.add(ml);
 			}
 		}
 	}// initChildren()
