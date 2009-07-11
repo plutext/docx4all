@@ -56,6 +56,16 @@ public class ObjectFactory {
 		return p;
 	}
 	
+	public final static org.docx4j.wml.CTSmartTagRun createCTSmartTagRun(String textContent) {
+		org.docx4j.wml.CTSmartTagRun ct = _jaxbFactory.createCTSmartTagRun();
+		if (textContent != null) {
+			org.docx4j.wml.R r = createR(textContent);
+			ct.getParagraphContent().add(r);
+			r.setParent(ct);
+		}
+		return ct;
+	}
+	
 	public final static org.docx4j.wml.PPr createPPr() {
 		return _jaxbFactory.createPPr();
 	}
