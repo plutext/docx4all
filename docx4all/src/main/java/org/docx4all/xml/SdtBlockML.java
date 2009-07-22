@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.bind.JAXBIntrospector;
+import javax.xml.namespace.QName;
 
 import org.apache.log4j.Logger;
 import org.docx4j.XmlUtils;
@@ -222,12 +223,28 @@ public class SdtBlockML extends ElementML {
 				ElementML ml = null;
 				if (value instanceof org.docx4j.wml.Tbl) {
 					ml = new TableML(obj);
+					ml.setParent(SdtBlockML.this);
+					this.children.add(ml);
+					
+				} else if (value instanceof org.docx4j.wml.CTMarkupRange) {
+					//suppress <w:bookmarkStart> and <w:bookmarkEnd>
+					JAXBIntrospector inspector = Context.jc.createJAXBIntrospector();
+					QName name = inspector.getElementName(obj);
+					if (name != null 
+						&& (name.getLocalPart() == "bookmarkStart" 
+							|| name.getLocalPart() == "bookmarkEnd")) {
+						//suppress
+					} else {
+						ml = new ParagraphML(obj);
+						ml.setParent(SdtBlockML.this);
+						this.children.add(ml);
+					}
+					
 				} else {
 					ml = new ParagraphML(obj);
+					ml.setParent(SdtBlockML.this);
+					this.children.add(ml);
 				}
-				
-				ml.setParent(SdtBlockML.this);
-				this.children.add(ml);
 			}
 		}
 	}// initChildren()

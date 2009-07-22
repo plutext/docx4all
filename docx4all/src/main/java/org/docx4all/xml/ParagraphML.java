@@ -257,12 +257,24 @@ public class ParagraphML extends ElementML {
 							this.children.add(elem);
 						}
 					}
+				} else if (value instanceof org.docx4j.wml.CTMarkupRange) {
+					//suppress <w:bookmarkStart> and <w:bookmarkEnd>
+					JAXBIntrospector inspector = Context.jc.createJAXBIntrospector();
+					QName name = inspector.getElementName(o);
+					if (name != null 
+						&& (name.getLocalPart() == "bookmarkStart" 
+							|| name.getLocalPart() == "bookmarkEnd")) {
+						//suppress
+					} else {
+						ml = new RunML(o, this.isDummy);
+						ml.setParent(ParagraphML.this);
+						this.children.add(ml);
+					}
 				} else {
 					ml = new RunML(o, this.isDummy);
 					ml.setParent(ParagraphML.this);
 					this.children.add(ml);
 				}
-				
 			}
 		}
 	}// initChildren()

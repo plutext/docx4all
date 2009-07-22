@@ -26,9 +26,11 @@ import java.util.List;
 import java.util.Set;
 
 import javax.xml.bind.JAXBIntrospector;
+import javax.xml.namespace.QName;
 
 import org.apache.log4j.Logger;
 import org.docx4j.XmlUtils;
+import org.docx4j.jaxb.Context;
 
 /**
  *	@author Jojada Tirtowidjojo - 08/01/2008
@@ -165,14 +167,32 @@ public class BodyML extends ElementML {
 							BigInteger.valueOf(Long.valueOf(id)));
 					}
 					ml = sdt;
+					ml.setParent(BodyML.this);
+					this.children.add(ml);
+					
 				} else if (value instanceof org.docx4j.wml.Tbl) {
 					ml = new TableML(obj);
+					ml.setParent(BodyML.this);
+					this.children.add(ml);
+					
+				} else if (value instanceof org.docx4j.wml.CTMarkupRange) {
+					//suppress <w:bookmarkStart> and <w:bookmarkEnd>
+					JAXBIntrospector inspector = Context.jc.createJAXBIntrospector();
+					QName name = inspector.getElementName(obj);
+					if (name != null 
+						&& (name.getLocalPart() == "bookmarkStart" 
+							|| name.getLocalPart() == "bookmarkEnd")) {
+						//suppress
+					} else {
+						ml = new ParagraphML(obj);
+						ml.setParent(BodyML.this);
+						this.children.add(ml);
+					}
 				} else {
 					ml = new ParagraphML(obj);
+					ml.setParent(BodyML.this);
+					this.children.add(ml);
 				}
-				
-				ml.setParent(BodyML.this);
-				this.children.add(ml);
 			}
 		}
 	}// initChildren()
