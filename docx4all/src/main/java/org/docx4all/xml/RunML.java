@@ -244,6 +244,8 @@ public class RunML extends ElementML {
 						child.setParent(RunML.this);
 						this.children.add(child);
 					}
+				} else if (value instanceof org.docx4j.wml.R.LastRenderedPageBreak) {
+					//suppress
 				} else {
 					child = new RunContentML(o, this.isDummy);
 					child.setParent(RunML.this);
