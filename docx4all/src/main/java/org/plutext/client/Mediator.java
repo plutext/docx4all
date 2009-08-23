@@ -32,8 +32,6 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.namespace.NamespaceContext;
-import javax.xml.namespace.QName;
 import javax.xml.rpc.ServiceException;
 import javax.xml.transform.Source;
 import javax.xml.transform.Templates;
@@ -64,7 +62,7 @@ import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.SdtBlockML;
 import org.docx4j.XmlUtils;
-import org.docx4j.jaxb.NamespacePrefixMapper;
+import org.docx4j.jaxb.NamespacePrefixMappings;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.JaxbXmlPart;
 import org.docx4j.openpackaging.parts.PartName;
@@ -74,8 +72,6 @@ import org.docx4j.openpackaging.parts.WordprocessingML.FootnotesPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.openpackaging.parts.relationships.RelationshipsPart;
 import org.docx4j.wml.Tag;
-import org.docx4j.xmlPackage.Part;
-import org.jaxen.SimpleNamespaceContext;
 import org.plutext.Context;
 import org.plutext.client.diffengine.DiffEngine;
 import org.plutext.client.diffengine.DiffResultSpan;
@@ -179,9 +175,8 @@ public class Mediator {
 		XPathFactory factory = XPathFactory.newInstance();
 		XPath xPath = factory.newXPath();
 		
-		NamespacePrefixMapper nsContext = new NamespacePrefixMapper(); 
-		
-		xPath.setNamespaceContext(nsContext);
+		xPath.setNamespaceContext(new NamespacePrefixMappings());
+				
 		
 		xpaths = new XPathExpression[4];
 	    try {
