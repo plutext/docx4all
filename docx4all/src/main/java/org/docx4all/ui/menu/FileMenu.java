@@ -74,6 +74,7 @@ import org.docx4j.convert.out.html.HtmlExporter;
 import org.docx4j.convert.out.html.HtmlExporterNG;
 import org.docx4j.convert.out.pdf.PdfConversion;
 import org.docx4j.jaxb.Context;
+import org.docx4j.jaxb.NamespacePrefixMapperUtils;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.io.SaveToVFSZipFile;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
@@ -1020,16 +1021,12 @@ public class FileMenu extends UIMenu {
 
 				Marshaller m = Context.jcXmlPackage.createMarshaller();
 				try {
-					m.setProperty("com.sun.xml.bind.namespacePrefixMapper",
-							new org.docx4j.jaxb.NamespacePrefixMapper());
+					NamespacePrefixMapperUtils.setProperty(m, 
+							NamespacePrefixMapperUtils.getPrefixMapper());			
+					
 					m.setProperty("jaxb.formatted.output", true);
 				} catch (javax.xml.bind.PropertyException cnfe) {
 					log.error(cnfe);
-					log
-							.info("attempting to use com.sun.xml.INTERNAL.bind.namespacePrefixMapper");
-					m.setProperty(
-							"com.sun.xml.internal.bind.namespacePrefixMapper",
-							new org.docx4j.jaxb.NamespacePrefixMapper());
 				}
 				m.marshal(flatOPC, fos);
 				try {
