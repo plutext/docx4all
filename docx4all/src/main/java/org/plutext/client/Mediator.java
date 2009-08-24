@@ -291,6 +291,12 @@ public class Mediator {
 
 	private Skeleton oldServer;
 
+	/**
+	 * Fetch updates
+	 * 
+	 * @param worker
+	 * @throws RemoteException
+	 */
 	public void fetchUpdates(FetchRemoteEditsWorker worker) throws RemoteException {
 		
 		worker.setProgress(FetchProgress.START_FETCHING, "Fetch updates");
@@ -302,6 +308,21 @@ public class Mediator {
 		String[] updates = ws.getTransforms(stateDocx.getDocID(), stateDocx
 				.getTransforms().getTSequenceNumberHighestFetched());
 
+        /* Returns an array containing the current sequence number, and an XML document:
+         * 
+         * <ns6:updates >
+         *      <ns6:transforms>
+         *          <ns6:t ns6:op="update" ns6:changeset="1" ns6:snum="1" ns6:tstamp="1218269730469">
+         *              <w:sdt><w:sdtPr><w:id w:val="759551861"/><w:tag w:val="1"/></w:sdtPr><w:sdtContent><w:p><w:r><w:t>So now .. </w:t></w:r></w:p></w:sdtContent></w:sdt>
+         *          </ns6:t>
+         *      </ns6:transforms>
+         *      <ns6:changesets>
+         *          <ns6:changeset ns6:modifier="jharrop" ns6:number="1">edited</ns6:changeset>
+         *      </ns6:changesets>
+         * </ns6:updates> 
+         * 
+         */ 
+		
 		log.debug(" sequence = " + updates[0]);
 		if (updates.length < 2) {
 			log.error(stateDocx.getDocID() + " ERROR!!!");
@@ -309,20 +330,6 @@ public class Mediator {
 		} else {
 			log.debug(stateDocx.getDocID() + " transforms = " + updates[1]);
 
-            /* eg
-             * 
-             * <ns6:updates >
-             *      <ns6:transforms>
-             *          <ns6:t ns6:op="update" ns6:changeset="1" ns6:snum="1" ns6:tstamp="1218269730469">
-             *              <w:sdt><w:sdtPr><w:id w:val="759551861"/><w:tag w:val="1"/></w:sdtPr><w:sdtContent><w:p><w:r><w:t>So now .. </w:t></w:r></w:p></w:sdtContent></w:sdt>
-             *          </ns6:t>
-             *      </ns6:transforms>
-             *      <ns6:changesets>
-             *          <ns6:changeset ns6:modifier="jharrop" ns6:number="1">edited</ns6:changeset>
-             *      </ns6:changesets>
-             * </ns6:updates> 
-             * 
-             */ 
 			
             Boolean needToFetchSkel = false;
             
@@ -418,6 +425,15 @@ public class Mediator {
         return result;
     }
 
+    /**
+     * Put transforms received from server into the transforms collection.
+     * 
+     * @param transforms
+     * @param setApplied
+     * @param setLocal
+     * @param updateHighestFetched
+     * @return
+     */
     public boolean registerTransforms(
         String transforms, 
         Boolean setApplied, 
@@ -454,14 +470,16 @@ public class Mediator {
 		boolean result = false;
 		for (T t : transformsObj.getT()) {
 			TransformAbstract ta = TransformHelper.construct(t);
-            // Check for structural change, which will mean we
-            // need to refresh our copy of the server skeleton
-			result = 
+			if (
 				ta instanceof TransformInsert
 				|| ta instanceof TransformDelete
-				|| ta instanceof TransformMove;
-
+				|| ta instanceof TransformMove ) {
+	            // Check for structural change, which will mean we
+	            // need to refresh our copy of the server skeleton
+				result = true;
+			}
 			registerTransform(ta, setApplied, setLocal, updateHighestFetched);
+			
 		}
 		return result;
 	}
@@ -511,84 +529,89 @@ public class Mediator {
 		//Too close to the next message. Therefore, comment this.
 		//worker.setProgress(FetchProgress.START_APPLYING_UPDATES, "Start to apply remote edits");
 
-		if (this.oldServer == null 
-			|| this.changeSets == null
-			|| this.changeSets.isEmpty()) {
-			//applyRemoteChanges() is preceded with fetchUpdates().
-			//If fetchUpdates() ends up with error or does not
-			//fetch any new transform then nothing to be applied
-			//in this method.
-			worker.setProgress(FetchProgress.APPLYING_DONE, "No remote updates");
-			return;
-		}
+//		if (this.oldServer == null 
+//			|| this.changeSets == null
+//			|| this.changeSets.isEmpty()) {
+//			//applyRemoteChanges() is preceded with fetchUpdates().
+//			//If fetchUpdates() ends up with error or does not
+//			//fetch any new transform then nothing to be applied
+//			//in this method.
+//			worker.setProgress(FetchProgress.APPLYING_DONE, "No remote updates");
+//			return;
+//		}
 		
-		/*
-		 * Create a DiffReport object, which tells us the difference between
-		 * what Sdts are actually in the document, and what its state should be,
-		 * given the last round of server updates.
-		 * 
-		 * We'll use this to adjust the insert position of new sdt's.
-		 * 
-		 * As we perform any insert/delete transform, we'll update the
-		 * DiffReport object.
-		 * 
-		 * Note that if this document contains text which is not inside a
-		 * content control, then we won't know whether to insert before that or
-		 * after it. This is an ambiguous situation, but at least the user will
-		 * be able to see where the insertion has occurred, since it will be
-		 * (TODO) marked up.
-		 */
-
-		// TODO - this is a bit expensive, and it is only necessary
-		// if the updates include insertions, so look at them first
-		// if (updatesIncludeInsertions)
-		// {
-		
-		worker.setProgress(
-			FetchProgress.COMPARING_DOC_STRUCTURES, 
-			"Making allowances for local differences");
-		DiffEngine drift = new DiffEngine();
-		drift.processDiff(this.oldServer, this.currentClientSkeleleton);
-		divergences = new Divergences(drift);
-
-		/*
-		 * For example
-		 * 
-		 * 1324568180 1324568180 (no change)
-		 * 1911345834 1911345834 (no change)
-		 * ---        293467343   not at this location in source <---- if user deletes
-		 * 884169107  884169107  (no change) 528989532 528989532 (no change)
-		 */
-
-		// }
-
-		worker.setProgress(FetchProgress.APPLYING_UPDATES, "Applying updates");
-		
-	    fetchParts[PART_RELS] = false;
-	    fetchParts[PART_COMMENTS] = false;
-	    fetchParts[PART_FOOTNOTES] = false;
-	    fetchParts[PART_ENDNOTES] = false;
-	    // applyUpdates may tell us otherwise ...
-
+	    String msg = "";
 	    changedChunks = new HashMap<String, String>();		
-		
-		applyUpdates(worker);
-		
-	    // update references to other parts
-	    //
-	    // if any of the transforms we just applied insert | update another part, 
-	    if (fetchParts[PART_RELS]
-	        | fetchParts[PART_COMMENTS]
-	        | fetchParts[PART_FOOTNOTES]
-	        | fetchParts[PART_ENDNOTES])
+	    stylemapUpdates = new List<string>();
+	    if (stateDocx.Transforms.TransformsBySeqNum.Count > 0)
 	    {
-	        try {
-	        	//log.error("Related parts need updating..");
-	        	updateRelatedParts(worker);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+	        // Use that test, rather than just the result of fetchUpdates,
+	        // since there might be some transforms left over from before,
+	        // which couldn't be applied until the user had resolved
+	        // pre-existing conflicts.
+	        
+		
+			/*
+			 * Create a DiffReport object, which tells us the difference between
+			 * what Sdts are actually in the document, and what its state should be,
+			 * given the last round of server updates.
+			 * 
+			 * We'll use this to adjust the insert position of new sdt's.
+			 * 
+			 * As we perform any insert/delete transform, we'll update the
+			 * DiffReport object.
+			 * 
+			 * Note that if this document contains text which is not inside a
+			 * content control, then we won't know whether to insert before that or
+			 * after it. This is an ambiguous situation, but at least the user will
+			 * be able to see where the insertion has occurred, since it will be
+			 * (TODO) marked up.
+			 */
+	
+			// TODO - this is a bit expensive, and it is only necessary
+			// if the updates include insertions, so look at them first
+			// if (updatesIncludeInsertions)
+			// {
+			
+			worker.setProgress(
+				FetchProgress.COMPARING_DOC_STRUCTURES, 
+				"Making allowances for local differences");
+			DiffEngine drift = new DiffEngine();
+			drift.processDiff(this.oldServer, this.currentClientSkeleleton);
+			divergences = new Divergences(drift);
+	
+			/*
+			 * For example
+			 * 
+			 * 1324568180 1324568180 (no change)
+			 * 1911345834 1911345834 (no change)
+			 * ---        293467343   not at this location in source <---- if user deletes
+			 * 884169107  884169107  (no change) 528989532 528989532 (no change)
+			 */
+	
+			// }
+	
+			worker.setProgress(FetchProgress.APPLYING_UPDATES, "Applying updates");
+			
+//		    fetchParts[PART_RELS] = false;
+//		    fetchParts[PART_COMMENTS] = false;
+//		    fetchParts[PART_FOOTNOTES] = false;
+//		    fetchParts[PART_ENDNOTES] = false;
+//		    // applyUpdates may tell us otherwise ...
+	
+			
+			applyUpdates(worker);
+		
 	    }
+		
+	    // Update references to other parts - these might have changed,
+	    // even if no content control changed.
+        try {
+        	//log.error("Related parts need updating..");
+        	updateRelatedParts(worker);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		
 		this.oldServer = null;
 	}
@@ -608,54 +631,193 @@ public class Mediator {
 	{
 	    worker.setProgress(FetchProgress.LINKS, "Links");
 
-	    // 1. update that part
+	    // Get PartVersionsList
+	    string[] partNamePVL = new string[1];
+	    partNamePVL[0] = "/part-versions.xml";
+	    WebReference.ArrayOf_xsd_string[] pvlArray = ws.getParts(stateDocx.DocID, partNamePVL);
+	    string[] itemFieldz = pvlArray[0].item;
+	    log.Debug(itemFieldz[0]); //what is this?
+	    log.Debug(itemFieldz[1]);
+	    PartVersionList serverPVL = new PartVersionList(itemFieldz[1]);
+	    serverPVL.setVersions();
 
-	    // array of part names we need
-	    // how many to get?
-	    int max = 0;
-	    for (int i = 0; i < 4; i++)
+	    // See what has been updated
+	    List<String> relevantParts = serverPVL.partsNewerOnServer(StateDocx.PartVersionList);
+
+	    if (relevantParts.Count == 0)
 	    {
-	        if (fetchParts[i])
-	        {
-	            max++;
-	        }
-	    }
-	    String[] partNames = new String[max];
-	    String[] parts = new String[max];
-	    int j = 0;
-	    HashMap<Integer, Integer> mapping = new HashMap<Integer, Integer>();
-	    for (int i = 0; i < 4; i++)
-	    {
-	        if (fetchParts[i])
-	        {
-	        	log.debug("Will fetch " + fetchParts[i]);
-	            partNames[j] = SequencedPart.getSequenceableParts().get(i);
-	            mapping.put(j, i);
-	            j++;
-	        }
+	        log.Debug("No second or third class parts need updating.");
+	        return;
 	    }
 
-
+	    // Fetch those
 	    // invoke web service - returns the part and its version number.
-	    log.debug("invoking web service");
-	    //this.startSession();
-	    
-	    // Since this method updateRelatedParts is performed
-	    // in the event dispatching thread, as opposed to
-	    // Swing Worker's background thread, we need to 
-	    // let this thread know the Auth details..
-	    AuthenticationUtils.setAuthenticationDetails(authDetails);
-	    
-	    String[][] weirdParts = ws.getParts(stateDocx.getDocID(), partNames);
+	    WebReference.ArrayOf_xsd_string[] weirdParts = ws.getParts(stateDocx.DocID,
+	        relevantParts.ToArray());
+	    log.Debug("number of weird parts: " + weirdParts.Length);
 
-	    log.debug("number of weird parts: " + weirdParts.length);
+	    // First handle our second class citizens .. 
+	    // These are the Sequenced Parts;
+	    // we compose a new part out of what is on the server,
+	    // and what the user has locally.
+	    updateSequencedParts(pkg, currentStateChunks, bw,
+	        relevantParts, weirdParts, serverPVL);
 
-	    SequencedPart[] serverSequencedParts = new SequencedPart[max];
-	    for (int i = 0; i < max; i++)
+	    updateThirdClassParts(bw,
+	        relevantParts, weirdParts, serverPVL);
+
+	}
+
+	/// <summary>
+	/// Replace headers/footers etc with anything newer on server,
+	/// overwriting local changes, if any.
+	/// </summary>
+	/// <param name="pkg"></param>
+	/// <param name="currentStateChunks"></param>
+	/// <param name="bw"></param>
+	/// <param name="relevantParts"></param>
+	/// <param name="weirdParts"></param>
+	/// <param name="serverPVL"></param>
+	private void updateThirdClassParts(
+	    System.ComponentModel.BackgroundWorker bw,
+	    List<String> relevantParts,
+	    WebReference.ArrayOf_xsd_string[] weirdParts,
+	    PartVersionList serverPVL
+	    )
+	{
+
+	    for (int i = 0; i < weirdParts.Length; i++) 
 	    {
-	        String[] itemField = weirdParts[i];
+	        if (PartVersionList.SequenceableParts.Contains(
+	               relevantParts[i]))
+	        {
+	            // SequenceableParts are handled elsewhere
+	            continue;
+	        }
 
-	        log.debug("weirdParts[" + i + "] length = " + itemField.length );
+	        // We've got something to do
+	        string[] itemField = weirdParts[i].item;
+
+        if (itemField[1].Equals(""))
+        {
+            // Part doesn't exist on server
+            // This should not happen.
+            log.Error(i + " : doesn't exist on server!  INVESTIGATE");
+        }
+        else
+        {
+            // 1. Attach this to our pkg
+            // We need an XmlNode; this is an easy way to get it
+            Part part = Part.factory(itemField[1]);
+            log.Debug("Attaching third class part: " + part.Name);
+            pkgB.attachPart(part.Name, part.XmlNode);
+
+            // 2. Update PVL
+            // In anticipation of success in what follows, 
+            // set the version of this part in StateDocx 
+            stateDocx.PartVersionList.setVersion(part.Name, itemField[0]);
+
+            // 3. update our record of the part in StateDocx
+            // (since any change from this is something we want to transmit)
+            try
+            {
+                stateDocx.Parts[part.Name] = part;
+            }
+            catch (KeyNotFoundException knfe)
+            {
+                stateDocx.Parts.Add(part.Name, part);
+            }
+        }
+    }
+}
+
+
+int parseIdref(String idref)
+{
+
+    log.Debug("Attempting to parse: " + idref);
+
+    if (idref.StartsWith("rId"))
+    {
+        idref = idref.Substring(3);
+        log.Debug(".. now .. " + idref);
+    }
+
+    try
+    {
+        return int.Parse(idref);
+    }
+    catch (System.FormatException fe)
+    {
+        log.Error("Couldn't parse " + idref);
+        throw fe;
+    }
+
+}
+
+/// <summary>
+/// Update document rels, comments, footnotes/endnotes, by composing
+/// a new part.
+/// </summary>
+/// <param name="pkg"></param>
+/// <param name="currentStateChunks"></param>
+/// <param name="bw"></param>
+/// <param name="relevantParts"></param>
+/// <param name="weirdParts"></param>
+/// <param name="serverPVL"></param>
+private void updateSequencedParts(Pkg pkg, Dictionary<string, StateChunk> currentStateChunks, 
+    System.ComponentModel.BackgroundWorker bw,
+    List<String> relevantParts,
+    WebReference.ArrayOf_xsd_string[] weirdParts,
+    PartVersionList serverPVL
+    )
+{
+
+    // First handle our second class citizens .. 
+    // These are the Sequenced Parts.
+
+    // Our local relIds should be correct already,
+    // UNLESS an updated/inserted/removed cc disrupted them,
+    // in which case the relevant server part MUST have changed.
+    // So it is sufficient to deal with just the ones
+    // for which we have an updated server part.
+
+    // Set up this useful little mapping.
+    // To do it, first we need values for fetchParts[i]
+    int j = 0;
+    int ii = 0;
+    Dictionary<int, int> mapping = new Dictionary<int, int>();
+    foreach (string s in PartVersionList.SequenceableParts)
+    {
+        if (relevantParts.Contains(s)  // what used to be fetchParts[i]
+            ) {
+            mapping.Add(j, ii);
+            j++;
+        }
+        ii++;
+    }
+    // How many of these are there?
+    int max = j;
+
+    //Dictionary<string, SequencedPart> serverSequencedParts = 
+    //    new Dictionary<string,SequencedPart>();
+    SequencedPart[] serverSequencedParts = new SequencedPart[max];
+    j = -1;
+    for (int i = 0; i < weirdParts.Length; i++) // could say && j<max, coz otherwise we've found them all
+    {
+        if (!PartVersionList.SequenceableParts.Contains(
+               relevantParts[i]))
+        {
+            continue;
+        }
+        else
+        {
+            j++;
+        }
+
+        string[] itemField = weirdParts[i].item;
+
+        log.Debug("weirdParts[" + i + "] length = " + itemField.Length);
 
 	        if (itemField[1].equals(""))
 	        {
@@ -869,10 +1031,11 @@ public class Mediator {
 	                    }
 	                    else
 	                    {
+	                    	
+	                        int idx = parseIdref(idref.getFirstChild().getNodeValue());
+	                    	
 	                        constructedContent[i].add(
-	                            localSequencedParts[i].getNodeByIndex(
-	                            		Integer.parseInt(idref.getFirstChild().getNodeValue())
-	                                ));
+	                            localSequencedParts[i].getNodeByIndex(idx ));
 	                        log.debug("Added to constructedContent[" + i);
 	                    }
 	                }
@@ -902,10 +1065,9 @@ public class Mediator {
 	                    }
 	                    else
 	                    {
+	                        int idx = parseIdref(idref.getFirstChild().getNodeValue());
 	                        constructedContent[i].add(
-	                            serverSequencedParts[i].getNodeByIndex(
-	                                Integer.parseInt(idref.getFirstChild().getNodeValue())
-	                                ));
+	                            serverSequencedParts[i].getNodeByIndex(idx);
 	                        log.debug("Added to constructedContent[" + i);
 	                    }
 	                }
@@ -1305,9 +1467,22 @@ public class Mediator {
 //    	editorView.validate();
 //    	editorView.repaint();
 
-	    
-        // CONSIDER also, for docx4all and Word client - when/how does the stateDocx copy get updated???	        	        
-	    
+	    // Now update local PartVersionList with the new 2nd class part versions
+	    for (int i = 0; i < max; i++)
+	    {
+	        // Get the relevant part name
+	        String partName = serverSequencedParts[i].Name;
+
+	        // Find the server version
+	        String newVersion = serverPVL.getVersion(partName);
+
+	        // Update it in local PartVersionList (adding if nec)
+	        StateDocx.PartVersionList.setVersion(partName, newVersion);
+	    }	 
+		
+		// Note that we don't update our record of these parts in StateDocx,
+	    // because we want to detect these as changes to be transmitted
+	    // when the user next presses transmit.
 	}
 	
 
@@ -1657,6 +1832,10 @@ public class Mediator {
 	/// <param name="stateDocxSC"></param>
 	/// <returns></returns>	
 	boolean isConflict(StateChunk currentStateChunk, StateChunk stateDocxSC) {
+		
+		
+// STILL REQUIRED?  MOVED?		
+		
 
 		boolean conflict = !(currentStateChunk.getXml().equals(stateDocxSC
 				.getXml()));
@@ -1716,12 +1895,12 @@ public class Mediator {
 	}
 	
 	
-	public boolean [] fetchParts = new boolean[4];
-
-	public static int PART_RELS = 0;
-	public static int PART_COMMENTS = 1;
-	public static int PART_FOOTNOTES = 2;
-	public static int PART_ENDNOTES = 3;
+//	public boolean [] fetchParts = new boolean[4];
+//
+//	public static int PART_RELS = 0;
+//	public static int PART_COMMENTS = 1;
+//	public static int PART_FOOTNOTES = 2;
+//	public static int PART_ENDNOTES = 3;
 
 	/// <summary>
 	/// Sdt's which are altered through the application of a transform, 
@@ -1729,87 +1908,87 @@ public class Mediator {
 	/// </summary>
 	HashMap<String, String> changedChunks;
 
-	void scanSdtForIdref(TransformAbstract t) throws XPathExpressionException
-	{
-	    // Look at this Insert | Update, to see
-	    // whether it contains any of these 
-	    // id's which Word renumbers in document order
-	    NodeList nodeList;
-
-	    Node sdt = XmlUtils.marshaltoW3CDomDocument(t.getSdt());
-
-	    if (!fetchParts[PART_COMMENTS])
-	    {
-	        // <w:commentReference w:id="1" />
-	    	
-			// xpaths[1] =  xPath.compile(".//w:commentReference/@w:id | .//w:commentRangeStart/@w:id | .//w:commentRangeEnd/@w:id");
-	    	
-	        //nodeList = sdt.SelectNodes("//w:commentReference", nsmgr);
-	    	nodeList = (NodeList)xpaths[1].evaluate(sdt, XPathConstants.NODESET);
-	        if (nodeList.getLength() > 0)
-	        {
-	            fetchParts[PART_COMMENTS] = true;
-	            log.debug("Detected comment");
-	            // TODO: iff this is the first comment, we need to adjust the rels part.
-	            // But for now:
-	            fetchParts[PART_RELS] = true;
-	        }
-	    }
-
-	    if (!fetchParts[PART_FOOTNOTES])
-	    {
-	        // <w:footnoteReference w:id="3" />
-	    	
-			// xpaths[2] =  xPath.compile(".//w:footnoteReference/@w:id");
-	    	nodeList = (NodeList)xpaths[2].evaluate(sdt, XPathConstants.NODESET);
-	        if (nodeList.getLength() > 0)
-	        {
-	            fetchParts[PART_FOOTNOTES] = true;
-	            log.debug("Detected footnote");
-	            // TODO: iff this is the first footnote, we need to adjust the rels part.
-	            // But for now:
-	            fetchParts[PART_RELS] = true;
-	        }
-	    }
-
-
-	    if (!fetchParts[PART_ENDNOTES])
-	    {
-	        // <w:endnoteReference w:id="2" />
-	    	
-			// xpaths[3] =  xPath.compile(".//w:endnoteReference/@w:id");
-	    	nodeList = (NodeList)xpaths[3].evaluate(sdt, XPathConstants.NODESET);
-	        if (nodeList.getLength() > 0)
-	        {
-	            fetchParts[PART_ENDNOTES] = true;
-	            log.debug("Detected endnote");
-	            // TODO: iff this is the first endnote, we need to adjust the rels part.
-	            // But for now:
-	            fetchParts[PART_RELS] = true;
-	        }
-	    }				
-
-	    if (!fetchParts[PART_RELS] )
-	    {
-	        // Only perform this test, if we don't already require this part
-	    	
-			// xpathRelTest = xPath.compile(" .//@r:link | .//@r:id ");
-	    	nodeList = (NodeList)xpathRelTest.evaluate(sdt, XPathConstants.NODESET);
-
-	            /* We only expect @r:link, since all
-	             * @r:embed would have been converted when the 
-	             * sdt containing the image was transmitted
-	             * to the server by the other client. */
-
-	        if (nodeList.getLength() > 0)
-	        {
-	            fetchParts[PART_RELS] = true;
-	            log.debug("Detected @r");
-	        }
-
-	    }
-
-	}
+//	void scanSdtForIdref(TransformAbstract t) throws XPathExpressionException
+//	{
+//	    // Look at this Insert | Update, to see
+//	    // whether it contains any of these 
+//	    // id's which Word renumbers in document order
+//	    NodeList nodeList;
+//
+//	    Node sdt = XmlUtils.marshaltoW3CDomDocument(t.getSdt());
+//
+//	    if (!fetchParts[PART_COMMENTS])
+//	    {
+//	        // <w:commentReference w:id="1" />
+//	    	
+//			// xpaths[1] =  xPath.compile(".//w:commentReference/@w:id | .//w:commentRangeStart/@w:id | .//w:commentRangeEnd/@w:id");
+//	    	
+//	        //nodeList = sdt.SelectNodes("//w:commentReference", nsmgr);
+//	    	nodeList = (NodeList)xpaths[1].evaluate(sdt, XPathConstants.NODESET);
+//	        if (nodeList.getLength() > 0)
+//	        {
+//	            fetchParts[PART_COMMENTS] = true;
+//	            log.debug("Detected comment");
+//	            // TODO: iff this is the first comment, we need to adjust the rels part.
+//	            // But for now:
+//	            fetchParts[PART_RELS] = true;
+//	        }
+//	    }
+//
+//	    if (!fetchParts[PART_FOOTNOTES])
+//	    {
+//	        // <w:footnoteReference w:id="3" />
+//	    	
+//			// xpaths[2] =  xPath.compile(".//w:footnoteReference/@w:id");
+//	    	nodeList = (NodeList)xpaths[2].evaluate(sdt, XPathConstants.NODESET);
+//	        if (nodeList.getLength() > 0)
+//	        {
+//	            fetchParts[PART_FOOTNOTES] = true;
+//	            log.debug("Detected footnote");
+//	            // TODO: iff this is the first footnote, we need to adjust the rels part.
+//	            // But for now:
+//	            fetchParts[PART_RELS] = true;
+//	        }
+//	    }
+//
+//
+//	    if (!fetchParts[PART_ENDNOTES])
+//	    {
+//	        // <w:endnoteReference w:id="2" />
+//	    	
+//			// xpaths[3] =  xPath.compile(".//w:endnoteReference/@w:id");
+//	    	nodeList = (NodeList)xpaths[3].evaluate(sdt, XPathConstants.NODESET);
+//	        if (nodeList.getLength() > 0)
+//	        {
+//	            fetchParts[PART_ENDNOTES] = true;
+//	            log.debug("Detected endnote");
+//	            // TODO: iff this is the first endnote, we need to adjust the rels part.
+//	            // But for now:
+//	            fetchParts[PART_RELS] = true;
+//	        }
+//	    }				
+//
+//	    if (!fetchParts[PART_RELS] )
+//	    {
+//	        // Only perform this test, if we don't already require this part
+//	    	
+//			// xpathRelTest = xPath.compile(" .//@r:link | .//@r:id ");
+//	    	nodeList = (NodeList)xpathRelTest.evaluate(sdt, XPathConstants.NODESET);
+//
+//	            /* We only expect @r:link, since all
+//	             * @r:embed would have been converted when the 
+//	             * sdt containing the image was transmitted
+//	             * to the server by the other client. */
+//
+//	        if (nodeList.getLength() > 0)
+//	        {
+//	            fetchParts[PART_RELS] = true;
+//	            log.debug("Detected @r");
+//	        }
+//
+//	    }
+//
+//	}
 
 	/* ****************************************************************************************
 	*          ACCEPT REMOTE CHANGES
@@ -1890,6 +2069,17 @@ public class Mediator {
     boolean transmitContentUpdates(TransmitLocalEditsWorker worker) throws RemoteException {
 		log.debug(stateDocx.getDocID() + ".. .. transmitContentUpdates");
 	
+	    // 2009 07 13: make sure there are no revisions, since we don't
+	    // want to transmit a set of document rels which includes a reference
+	    // from a content control which we refuse to transmit (because it
+	    // contains revisions)
+	    if (myDoc.Revisions.Count > 0)
+	    {
+	        log.Debug(myDoc.Revisions.Count + " revisions found, so aborting transmitContentUpdates");
+	        bw.ReportProgress(0, "Please accept/reject all revisions first, then try again.");
+	        return;
+	    }		
+		
 		// The list of transforms to be transmitted
 		List<T> transformsToSend = new ArrayList<T>();
 		
@@ -1974,7 +2164,8 @@ public class Mediator {
 	            // All we do here is remove it from sdtIdUndead
 	            bornAgain.add(entry.getKey());
 	            
-	    	} else if (currentChunk.containsTrackedChanges()) {
+	    	} else if (currentChunk.containsTrackedChanges()) // 2009 07 13: shouldn't happen
+	    	{
 	            // Remove it from inferredSkeleton and currentStateChunks
 	            // but keep in document.
 	            log.debug(".. still in limbo.");
@@ -2032,21 +2223,61 @@ public class Mediator {
 //	            stateDocx.getTransforms().getTSequenceNumberHighestFetched() );
 //
 //
-//	        /* When we detect a difference, we need to know whether
-//	         * this is a local change, or a remote one which we haven't
-//	         * applied yet.
-//	         * 
-//	         * Given that we have to work with the latest server skeleton,
-//	         * we have to rely on it to be able to tell us that.
-//	         * (If we could use an older one, then that ambiguity 
-//	         *  would go away.  And we could keep the old one around
-//	         *  for this purpose, but code which used the old one to
-//	         *  resolve such ambiguities would probably be a little
-//	         *  harder to understand - though with the advantage that
-//	         *  maybe we could continue - TODO think this through ..)
-//	         * 
-//	         * So, if there are any pending remote moves/inserts/deletes,
-//	         * require the user to apply these before transmitting:
+	    /* When we detect a difference, we need to know whether
+         * this is a local change, or a remote one which we haven't
+         * applied yet.
+         * 
+         * Given that we have to work with the latest server skeleton,
+         * we have to rely on it to be able to tell us that.
+         * (If we could use an older one, then that ambiguity 
+         *  would go away.  And we could keep the old one around
+         *  for this purpose, but code which used the old one to
+         *  resolve such ambiguities would probably be a little
+         *  harder to understand - though with the advantage that
+         *  maybe we could continue - TODO think this through ..)
+         * 
+         * So, if there are any pending remote moves/inserts/deletes,
+         * require the user to apply these before transmitting:
+	     * 
+	     * ALSO
+	     * 
+	     * If a content control contains new rels or removes an old one, 
+	     * you must be able to transmit the rels part as well (ie the 
+	     * document must be uptodate(more specifically, any content controls 
+	     * containing rels must not have changed their rels), including the 
+	     * rels part).  
+	     * 
+	     * Put another way, we�ll be transmitting the rels part, if cc rels 
+	     * have �changed� in any of the cc�s being transmitted.  
+	     * 
+	     * In this case, we require the document to be up to date before 
+	     * transmission, where up to date means:
+	     * 
+	     * 1. Cc�s are up to date (ie we have all transforms, not just
+	     * structural ones - transformsPending above now tests this
+	     * stronger condition), and 
+	     * 
+	     * 2. Changes accepted.  More specifically:
+	     *    a. Tracked changed in cc being transmitted have been accepted/rejected 
+	     *    (of course)
+	     *    b. Any tracked changes in the document which reference a rel, 
+	     *    have been accepted or rejected 
+	     *    
+	     *    This is tested at the start of this method.
+	     *    
+	     * 3. We have the current rels part (according to part version list).  
+	     * If the cc�s are up to date (as per 1), we will have the current document rels, 
+	     * and no other 2nd or 3rd class part is likely to have changed on 
+	     * the server (certainly not document rels, though the styles part 
+	     * or a header/footer could have (since you can change those without 
+	     * changing the document), as could a comment/footnote or endnote - though 
+	     * just an edit, not add/delete). Given this, we don�t bother fetching PVL to
+	     * test those parts are uptodate (but we will refuse to transmit an update 
+	     * to them if they aren�t).
+	     * 
+	     * So we need a quick way to determine whether the document is uptodate.  
+	     * Since we just did getSkeletonDocument above, we'll use that.
+	     */
 //	         */
 //	        if (structuralTransformsPending)
 //	        {
@@ -2386,6 +2617,161 @@ public class Mediator {
     	return success;
 	}
 
+	/**
+	 * Transmit changes to 2nd and 3rd class parts
+	 * 
+	 * @throws RemoteException
+	 */
+	boolean transmitOtherUpdates() throws RemoteException
+	{
+	    log.debug("In transmitOtherUpdates");
+	    boolean stuffTransmitted = false;		
+		
+	    HashMap<String, org.plutext.client.partWrapper.Part> knownParts = stateDocx.getParts();
+
+	    HashMap<String, org.plutext.client.partWrapper.Part> discoveredParts 
+	    	= Util.extractParts( getWordMLDocument() );
+	    // See PartVersionList.relevant for definition of parts we update;
+
+	    Map.Entry pairs;
+	    org.plutext.client.partWrapper.Part knownPart;
+	    org.plutext.client.partWrapper.Part discoveredPart;
+	    
+	    // DELETED PART - are there any KnownParts which have now gone?
+		Iterator knownPartsIterator = knownParts.entrySet().iterator();
+	    while (knownPartsIterator.hasNext()) {
+	        pairs = (Map.Entry)knownPartsIterator.next();
+	        
+	        if(pairs.getKey()==null) {
+	        	log.warn("Skipped null key");
+	        	pairs = (Map.Entry)knownPartsIterator.next();
+	        }
+	    
+	        knownPart 
+	        	= (org.plutext.client.partWrapper.Part)pairs.getValue(); 
+	        // do we know about it?
+	        
+	        discoveredPart 
+	        	= discoveredParts.get(knownPart.getName() );
+
+            // So we do know about it
+            // That's fine - the foreach below will see whether it has
+			// changed?
+            
+            if (discoveredPart==null) {	        {
+	            // This part has been deleted
+	            log.warn(knownPart.getName() + " no longer present locally; delete it on server?");
+	            // TODO removePart(PartName)
+	        }
+	    }
+
+
+	    // INSERTED/UPDATED parts
+		Iterator discoveredPartsIterator = discoveredParts.entrySet().iterator();
+	    while (discoveredPartsIterator.hasNext()) {
+	        pairs = (Map.Entry)discoveredPartsIterator.next();
+	        
+	        if(pairs.getKey()==null) {
+	        	log.warn("Skipped null key");
+	        	pairs = (Map.Entry)knownPartsIterator.next();
+	        }
+	    //foreach (KeyValuePair<String, Part> kvp in discoveredParts)
+	    //{
+	        discoveredPart = (org.plutext.client.partWrapper.Part)pairs.getValue(); 
+	        log.error("Considering " + discoveredPart.getName() );
+	        // do we know about it?
+            knownPart = knownParts.get(discoveredPart.getName());
+            
+            if (knownPart==null) {
+            	
+	            // This must be a new part, so version is 0.
+	            String resultingVersion = ws.injectPart(stateDocx.getDocID(), 
+	            		discoveredPart.getName(), 
+	                "0", discoveredPart.getContentType(), discoveredPart.getUnwrappedXml());
+	            stuffTransmitted = true;
+
+	            // expect that to be 1?  well, no: the first version on the server will be numbered 0.
+	            if (!resultingVersion.equals("0"))
+	            {
+	                log.error("expected this be to version 0 ?!");
+	            }
+	            stateDocx.getPartVersionList().setVersion(discoveredPart.getName(), 
+	            		resultingVersion);
+
+	            // and update our record of the part in StateDocx
+	            // (since any change from this new baseline is something we will want to transmit)
+	            stateDocx.getParts().put(discoveredPart.getName(), discoveredPart);
+
+	            // note that _rels of this which is a target will get handled 
+	            // automatically, because we will have detected a change to that part as well,
+	            // and sent it ...            
+            
+            } else {
+
+	            // So we do know about it
+	            // - has it changed?
+	            //if (knownPart.Xml.Equals(discoveredPart.Xml))
+            	// docx4all uses unwrapped here
+            	if (knownPart.getXmlNode().equals(discoveredPart.getXmlNode()) )
+	            {
+            		// that's a DOM Level 3 feature - if Eclipse says it is undefined,
+            		// go into Build Path > Order and Export > and make sure
+            		// your (>JDK 5) system library precedes anything else
+            		// which defines DOM APIs
+            		// (TODO - why do we have XML APIs 1.0 beta 2 ??)
+            		
+	                log.debug("No changes detected in: " + knownPart.getName() );
+	            }
+	            else
+	            {
+	                // Similar to what we do when we send an update to an SDT,
+	                // we send this with our current version number.
+	                // All being well, the server will respond with a new version
+	                // number.
+
+	                String localVersion = stateDocx.getPartVersionList().getVersion(
+	                    discoveredPart.getName() );
+
+	                /*
+	                 * NB: We don't test localVersionIsCurrent(discoveredPart.Name, localVersion)
+	                 * and if not, abort the updates, because an entry condition
+	                 * is that the cc's are up to date.  See above, around line 2417.
+	                 * 
+	                 * Given that they are up to date, no 2nd or 3rd class part
+	                 * should have changed on the server (certainly not document rels,
+	                 * though the styles part or a header/footer could have (since you can 
+	                 * change those without changing the document), as could a comment/footnote
+	                 * or endnote - though just an edit, not add/delete).
+	                 * 
+	                 * (Given that we don't need to worry about document rels) we can 
+	                 * allow the server to reject an update (without untoward consequences),
+	                 * which is better than overwriting a newer version with an older one.
+	                 * 
+	                 * TODO: warn user though, so they know  to fetch updates and try again
+	                 */
+
+	                //log.Debug("Transmitting updated " + discoveredPart.Name + ": " + discoveredPart.UnwrappedXml);
+	                
+	                String resultingVersion = ws.injectPart(stateDocx.getDocID(), 
+	                    discoveredPart.getName(), localVersion, 
+	                    discoveredPart.getContentType(), discoveredPart.getUnwrappedXml() );
+	                stuffTransmitted = true;
+	                stateDocx.getPartVersionList().setVersion(discoveredPart.getName(), 
+	                		resultingVersion);
+
+	                // and update our record of the part in StateDocx
+	                // (since any change from this new baseline is something we will want to transmit)
+	                knownParts.put(discoveredPart.getName(), discoveredPart );
+	            }
+
+	        }
+	    }
+	    }
+	    return stuffTransmitted;
+	    
+	}
+    
+    
 	void createTransformsForStructuralChanges(
 		List<T> transformsToSend,
 		Skeleton inferredSkeleton, 
@@ -2674,126 +3060,6 @@ public class Mediator {
 		}
 	}
 	
-	void transmitOtherUpdates() throws RemoteException
-	{
-	    HashMap<String, org.plutext.client.partWrapper.Part> knownParts = stateDocx.getParts();
-
-	    HashMap<String, org.plutext.client.partWrapper.Part> discoveredParts 
-	    	= Util.extractParts( getWordMLDocument() );
-
-	    Map.Entry pairs;
-	    org.plutext.client.partWrapper.Part knownPart;
-	    org.plutext.client.partWrapper.Part discoveredPart;
-	    
-	    // DELETED PART - are there any KnownParts which have now gone?
-		Iterator knownPartsIterator = knownParts.entrySet().iterator();
-	    while (knownPartsIterator.hasNext()) {
-	        pairs = (Map.Entry)knownPartsIterator.next();
-	        
-	        if(pairs.getKey()==null) {
-	        	log.warn("Skipped null key");
-	        	pairs = (Map.Entry)knownPartsIterator.next();
-	        }
-	    
-	        knownPart 
-	        	= (org.plutext.client.partWrapper.Part)pairs.getValue(); 
-	        // do we know about it?
-	        
-	        discoveredPart 
-	        	= discoveredParts.get(knownPart.getName() );
-
-            // So we do know about it
-            // That's fine - the foreach below will see whether it has
-			// changed?
-            
-            if (discoveredPart==null) {	        {
-	            // This part has been deleted
-	            log.warn(knownPart.getName() + " no longer present locally; delete it on server?");
-	            // TODO removePart(PartName)
-	        }
-	    }
-
-
-	    // INSERTED/UPDATED parts
-		Iterator discoveredPartsIterator = discoveredParts.entrySet().iterator();
-	    while (discoveredPartsIterator.hasNext()) {
-	        pairs = (Map.Entry)discoveredPartsIterator.next();
-	        
-	        if(pairs.getKey()==null) {
-	        	log.warn("Skipped null key");
-	        	pairs = (Map.Entry)knownPartsIterator.next();
-	        }
-	    //foreach (KeyValuePair<String, Part> kvp in discoveredParts)
-	    //{
-	        discoveredPart = (org.plutext.client.partWrapper.Part)pairs.getValue(); 
-	        log.error("Considering " + discoveredPart.getName() );
-	        // do we know about it?
-            knownPart = knownParts.get(discoveredPart.getName());
-            
-            if (knownPart==null) {
-            	
-	            // This must be a new part, so version is 0.
-	            String resultingVersion = ws.injectPart(stateDocx.getDocID(), 
-	            		discoveredPart.getName(), 
-	                "0", discoveredPart.getContentType(), discoveredPart.getUnwrappedXml());
-
-	            // expect that to be 1?  well, no: the first version on the server will be numbered 0.
-	            if (!resultingVersion.equals("0"))
-	            {
-	                log.error("expected this be to version 0 ?!");
-	            }
-	            stateDocx.getPartVersionList().setVersion(discoveredPart.getName(), 
-	            		resultingVersion);
-
-	            // and update our record of the part in StateDocx
-	            // (since any change from this new baseline is something we will want to transmit)
-	            stateDocx.getParts().put(discoveredPart.getName(), discoveredPart);
-
-	            // note that _rels of this which is a target will get handled 
-	            // automatically, because we will have detected a change to that part as well,
-	            // and sent it ...            
-            
-            } else {
-
-	            // So we do know about it
-	            // - has it changed?
-	            //if (knownPart.Xml.Equals(discoveredPart.Xml))
-            	// docx4all uses unwrapped here
-            	if (knownPart.getXmlNode().equals(discoveredPart.getXmlNode()) )
-	            {
-            		// that's a DOM Level 3 feature - if Eclipse says it is undefined,
-            		// go into Build Path > Order and Export > and make sure
-            		// your (>JDK 5) system library precedes anything else
-            		// which defines DOM APIs
-            		// (TODO - why do we have XML APIs 1.0 beta 2 ??)
-            		
-	                log.debug("No changes detected in: " + knownPart.getName() );
-	            }
-	            else
-	            {
-	                // Similar to what we do when we send an update to an SDT,
-	                // we send this with our current version number.
-	                // All being well, the server will respond with a new version
-	                // number.
-
-	                String localVersion = stateDocx.getPartVersionList().getVersion(
-	                    discoveredPart.getName() );
-
-	                String resultingVersion = ws.injectPart(stateDocx.getDocID(), 
-	                    discoveredPart.getName(), localVersion, 
-	                    discoveredPart.getContentType(), discoveredPart.getUnwrappedXml() );
-	                stateDocx.getPartVersionList().setVersion(discoveredPart.getName(), 
-	                		resultingVersion);
-
-	                // and update our record of the part in StateDocx
-	                // (since any change from this new baseline is something we will want to transmit)
-	                knownParts.put(discoveredPart.getName(), discoveredPart );
-	            }
-
-	        }
-	    }
-	    }
-	}
 	
 
 	void transmitStyleUpdates() throws RemoteException {
