@@ -44,6 +44,7 @@ import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.openpackaging.parts.relationships.RelationshipsPart;
 import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
+import org.plutext.client.state.PartVersionList;
 import org.plutext.client.state.StateChunk;
 import org.plutext.client.partWrapper.Part;
 import org.plutext.client.partWrapper.SequencedPart;
@@ -216,7 +217,7 @@ public class Util {
 	        		docx4jPart.getClass().getName() );
 	        
             if (docx4jPart instanceof org.docx4j.openpackaging.parts.JaxbXmlPart
-            		&& SequencedPart.getSequenceableParts().contains( partName.getName() ) )
+            		&& PartVersionList.getSequenceableParts().contains( partName.getName() ) )
             {
     	        Part p = Part.factory(
     	        		(org.docx4j.openpackaging.parts.JaxbXmlPart)docx4jPart);

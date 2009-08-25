@@ -27,20 +27,6 @@ public class SequencedPart extends Part {
 
     	private static Logger log = Logger.getLogger(SequencedPart.class);
 
-        static List<String> sequenceableParts;
-        public static List<String> getSequenceableParts()
-        {
-            return sequenceableParts; 
-        }
-        static
-        {
-            sequenceableParts = new ArrayList<String>();
-            sequenceableParts.add("/word/_rels/document.xml.rels");
-            sequenceableParts.add("/word/comments.xml");
-            sequenceableParts.add("/word/footnotes.xml");
-            sequenceableParts.add("/word/endnotes.xml");
-
-        }
 
         public SequencedPart()
         {
@@ -52,9 +38,6 @@ public class SequencedPart extends Part {
             sequencedElements = xmlNode.getFirstChild().getFirstChild().getChildNodes();
         }
 
-        
-
-        
         
         NodeList sequencedElements;
 

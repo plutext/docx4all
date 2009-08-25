@@ -19,6 +19,7 @@
 
 package org.plutext.client;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.rpc.ServiceException;
 import javax.xml.transform.Source;
 import javax.xml.transform.Templates;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
@@ -63,20 +65,27 @@ import org.docx4all.xml.ElementML;
 import org.docx4all.xml.SdtBlockML;
 import org.docx4j.XmlUtils;
 import org.docx4j.jaxb.NamespacePrefixMappings;
+import org.docx4j.openpackaging.exceptions.InvalidFormatException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.JaxbXmlPart;
 import org.docx4j.openpackaging.parts.PartName;
 import org.docx4j.openpackaging.parts.WordprocessingML.CommentsPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.EndnotesPart;
+import org.docx4j.openpackaging.parts.WordprocessingML.FooterPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.FootnotesPart;
+import org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
+import org.docx4j.openpackaging.parts.WordprocessingML.NumberingDefinitionsPart;
+import org.docx4j.openpackaging.parts.WordprocessingML.StyleDefinitionsPart;
 import org.docx4j.openpackaging.parts.relationships.RelationshipsPart;
 import org.docx4j.wml.Tag;
 import org.plutext.Context;
 import org.plutext.client.diffengine.DiffEngine;
 import org.plutext.client.diffengine.DiffResultSpan;
+import org.plutext.client.partWrapper.Part;
 import org.plutext.client.partWrapper.SequencedPart;
 import org.plutext.client.partWrapper.SequencedPartRels;
+import org.plutext.client.state.PartVersionList;
 import org.plutext.client.state.StateChunk;
 import org.plutext.client.state.StateDocx;
 import org.plutext.client.webservice.PlutextService_ServiceLocator;
@@ -523,6 +532,10 @@ public class Mediator {
 		// set { divergences = value; }
 	}
 
+	// Record the names of styles we have to update in the stylemap,
+	// to match changes made by transforms
+	List<String> stylemapUpdates = null;	
+	
 	public void applyRemoteChanges(FetchRemoteEditsWorker worker) {
 		// TODO: grey out if there are no remote updates to apply
 
@@ -542,8 +555,8 @@ public class Mediator {
 		
 	    String msg = "";
 	    changedChunks = new HashMap<String, String>();		
-	    stylemapUpdates = new List<string>();
-	    if (stateDocx.Transforms.TransformsBySeqNum.Count > 0)
+	    stylemapUpdates = new ArrayList<String>();
+	    if (stateDocx.getTransforms().getTransformsBySeqNum().size() > 0)
 	    {
 	        // Use that test, rather than just the result of fetchUpdates,
 	        // since there might be some transforms left over from before,
@@ -627,40 +640,40 @@ public class Mediator {
 	/// <param name="pkg"></param>
 	/// <param name="currentStateChunks"></param>
 	/// <param name="bw"></param>
-	public void updateRelatedParts(FetchRemoteEditsWorker worker) throws Exception
+	public void updateRelatedParts(FetchRemoteEditsWorker bw) throws Exception
 	{
-	    worker.setProgress(FetchProgress.LINKS, "Links");
+	    bw.setProgress(FetchProgress.LINKS, "Links");
 
 	    // Get PartVersionsList
-	    string[] partNamePVL = new string[1];
+	    String[] partNamePVL = new String[1];
 	    partNamePVL[0] = "/part-versions.xml";
-	    WebReference.ArrayOf_xsd_string[] pvlArray = ws.getParts(stateDocx.DocID, partNamePVL);
-	    string[] itemFieldz = pvlArray[0].item;
-	    log.Debug(itemFieldz[0]); //what is this?
-	    log.Debug(itemFieldz[1]);
+	    String[][] pvlArray = ws.getParts(stateDocx.getDocID(), partNamePVL);
+	    String[] itemFieldz = pvlArray[0];
+	    log.debug(itemFieldz[0]); //what is this?
+	    log.debug(itemFieldz[1]);
 	    PartVersionList serverPVL = new PartVersionList(itemFieldz[1]);
 	    serverPVL.setVersions();
 
 	    // See what has been updated
-	    List<String> relevantParts = serverPVL.partsNewerOnServer(StateDocx.PartVersionList);
+	    List<String> relevantParts = serverPVL.partsNewerOnServer(stateDocx.getPartVersionList());
 
-	    if (relevantParts.Count == 0)
+	    if (relevantParts.isEmpty())
 	    {
-	        log.Debug("No second or third class parts need updating.");
+	        log.debug("No second or third class parts need updating.");
 	        return;
 	    }
 
 	    // Fetch those
 	    // invoke web service - returns the part and its version number.
-	    WebReference.ArrayOf_xsd_string[] weirdParts = ws.getParts(stateDocx.DocID,
-	        relevantParts.ToArray());
-	    log.Debug("number of weird parts: " + weirdParts.Length);
+	    String[][] weirdParts = ws.getParts(stateDocx.getDocID(),
+	        (String[])relevantParts.toArray());
+	    log.debug("number of weird parts: " + weirdParts.length);
 
 	    // First handle our second class citizens .. 
 	    // These are the Sequenced Parts;
 	    // we compose a new part out of what is on the server,
 	    // and what the user has locally.
-	    updateSequencedParts(pkg, currentStateChunks, bw,
+	    updateSequencedParts(bw,
 	        relevantParts, weirdParts, serverPVL);
 
 	    updateThirdClassParts(bw,
@@ -679,77 +692,80 @@ public class Mediator {
 	/// <param name="weirdParts"></param>
 	/// <param name="serverPVL"></param>
 	private void updateThirdClassParts(
-	    System.ComponentModel.BackgroundWorker bw,
-	    List<String> relevantParts,
-	    WebReference.ArrayOf_xsd_string[] weirdParts,
-	    PartVersionList serverPVL
-	    )
+			FetchRemoteEditsWorker bw,
+		    List<String> relevantParts,
+		    String[][] weirdParts,
+		    PartVersionList serverPVL
+	    ) throws Exception
 	{
+		
+	    WordMLDocument doc = getWordMLDocument();
+ 		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();    	
+ 		WordprocessingMLPackage wmlp = 
+    		((DocumentML) root.getElementML()).getWordprocessingMLPackage();
+		
 
-	    for (int i = 0; i < weirdParts.Length; i++) 
+	    for (int i = 0; i < weirdParts.length; i++) 
 	    {
-	        if (PartVersionList.SequenceableParts.Contains(
-	               relevantParts[i]))
+	        if (PartVersionList.getSequenceableParts().contains(
+	               relevantParts.get(i)))
 	        {
 	            // SequenceableParts are handled elsewhere
 	            continue;
 	        }
 
 	        // We've got something to do
-	        string[] itemField = weirdParts[i].item;
+	        String[] itemField = weirdParts[i];
 
-        if (itemField[1].Equals(""))
-        {
-            // Part doesn't exist on server
-            // This should not happen.
-            log.Error(i + " : doesn't exist on server!  INVESTIGATE");
-        }
-        else
-        {
-            // 1. Attach this to our pkg
-            // We need an XmlNode; this is an easy way to get it
-            Part part = Part.factory(itemField[1]);
-            log.Debug("Attaching third class part: " + part.Name);
-            pkgB.attachPart(part.Name, part.XmlNode);
-
-            // 2. Update PVL
-            // In anticipation of success in what follows, 
-            // set the version of this part in StateDocx 
-            stateDocx.PartVersionList.setVersion(part.Name, itemField[0]);
-
-            // 3. update our record of the part in StateDocx
-            // (since any change from this is something we want to transmit)
-            try
-            {
-                stateDocx.Parts[part.Name] = part;
-            }
-            catch (KeyNotFoundException knfe)
-            {
-                stateDocx.Parts.Add(part.Name, part);
+	        if (itemField[1].equals(""))
+	        {
+	            // Part doesn't exist on server
+	            // This should not happen.
+	            log.error(i + " : doesn't exist on server!  INVESTIGATE");
+	        }
+	        else
+	        {
+	            // 1. Attach this to our pkg
+	            // We need an XmlNode; this is an easy way to get it
+	            Part part = Part.factory(itemField[1]);
+	            log.debug("Attaching third class part: " + part.getName() );
+	            //pkgB.attachPart(part.Name, part.XmlNode);
+	            updateDocx4jPart(
+	            		wmlp.getParts().getParts(),
+	            		part.getName(), part.getXmlNode() );
+	
+	            // 2. Update PVL
+	            // In anticipation of success in what follows, 
+	            // set the version of this part in StateDocx 
+	            stateDocx.getPartVersionList().setVersion(part.getName(), itemField[0]);
+	
+	            // 3. update our record of the part in StateDocx
+	            // (since any change from this is something we want to transmit)
+	                stateDocx.getParts().put(part.getName(), part);
             }
         }
     }
-}
+
 
 
 int parseIdref(String idref)
 {
 
-    log.Debug("Attempting to parse: " + idref);
+    log.debug("Attempting to parse: " + idref);
 
-    if (idref.StartsWith("rId"))
+    if (idref.startsWith("rId"))
     {
-        idref = idref.Substring(3);
-        log.Debug(".. now .. " + idref);
+        idref = idref.substring(3);
+        log.debug(".. now .. " + idref);
     }
-
+    
     try
     {
-        return int.Parse(idref);
+        return Integer.parseInt(idref);
     }
-    catch (System.FormatException fe)
+    catch (NumberFormatException fe)
     {
-        log.Error("Couldn't parse " + idref);
+        log.error("Couldn't parse " + idref);
         throw fe;
     }
 
@@ -765,12 +781,12 @@ int parseIdref(String idref)
 /// <param name="relevantParts"></param>
 /// <param name="weirdParts"></param>
 /// <param name="serverPVL"></param>
-private void updateSequencedParts(Pkg pkg, Dictionary<string, StateChunk> currentStateChunks, 
-    System.ComponentModel.BackgroundWorker bw,
+private void updateSequencedParts(//Pkg pkg, Map<String, StateChunk> currentStateChunks, 
+		FetchRemoteEditsWorker bw,
     List<String> relevantParts,
-    WebReference.ArrayOf_xsd_string[] weirdParts,
+    String[][] weirdParts,
     PartVersionList serverPVL
-    )
+    ) throws Exception
 {
 
     // First handle our second class citizens .. 
@@ -786,12 +802,12 @@ private void updateSequencedParts(Pkg pkg, Dictionary<string, StateChunk> curren
     // To do it, first we need values for fetchParts[i]
     int j = 0;
     int ii = 0;
-    Dictionary<int, int> mapping = new Dictionary<int, int>();
-    foreach (string s in PartVersionList.SequenceableParts)
+    HashMap<Integer, Integer> mapping = new HashMap<Integer, Integer>();
+    for (String s : PartVersionList.getSequenceableParts() )
     {
-        if (relevantParts.Contains(s)  // what used to be fetchParts[i]
+        if (relevantParts.contains(s)  // what used to be fetchParts[i]
             ) {
-            mapping.Add(j, ii);
+            mapping.put(j, ii);
             j++;
         }
         ii++;
@@ -803,10 +819,10 @@ private void updateSequencedParts(Pkg pkg, Dictionary<string, StateChunk> curren
     //    new Dictionary<string,SequencedPart>();
     SequencedPart[] serverSequencedParts = new SequencedPart[max];
     j = -1;
-    for (int i = 0; i < weirdParts.Length; i++) // could say && j<max, coz otherwise we've found them all
+    for (int i = 0; i < weirdParts.length; i++) // could say && j<max, coz otherwise we've found them all
     {
-        if (!PartVersionList.SequenceableParts.Contains(
-               relevantParts[i]))
+        if (!PartVersionList.getSequenceableParts().contains(
+               relevantParts.get(i)))
         {
             continue;
         }
@@ -815,16 +831,16 @@ private void updateSequencedParts(Pkg pkg, Dictionary<string, StateChunk> curren
             j++;
         }
 
-        string[] itemField = weirdParts[i].item;
+        String[] itemField = weirdParts[i];
 
-        log.Debug("weirdParts[" + i + "] length = " + itemField.Length);
+        log.debug("weirdParts[" + i + "] length = " + itemField.length);
 
 	        if (itemField[1].equals(""))
 	        {
 	            // Part doesn't exist on server
 	            // This should not happen.
 
-	            log.error(i + " : " + SequencedPart.getSequenceableParts().get(mapping.get(i)) 
+	            log.error(i + " : " + PartVersionList.getSequenceableParts().get(mapping.get(i)) 
 	            		+ " doesn't exist on server!  INVESTIGATE");
 
 	        }
@@ -920,12 +936,18 @@ private void updateSequencedParts(Pkg pkg, Dictionary<string, StateChunk> curren
 		
 		org.w3c.dom.Document mdpW3C = XmlUtils.marshaltoW3CDomDocument( mdp.getJaxbElement() );
 		
-		if (xsltReferenceMap==null) {
-			Source xsltSource  = new StreamSource( org.docx4j.utils.ResourceUtils.getResource("org/plutext/client/ReferenceMap.xslt"));
-			xsltReferenceMap = XmlUtils.getTransformerTemplate(xsltSource);			
+		javax.xml.transform.dom.DOMResult domResult = null;
+		try {
+			if (xsltReferenceMap==null) {
+				Source xsltSource  = new StreamSource( org.docx4j.utils.ResourceUtils.getResource("org/plutext/client/ReferenceMap.xslt"));
+				xsltReferenceMap = XmlUtils.getTransformerTemplate(xsltSource);			
+			}
+			domResult = new javax.xml.transform.dom.DOMResult();
+			XmlUtils.transform(mdpW3C, xsltReferenceMap, null, domResult);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		javax.xml.transform.dom.DOMResult domResult = new javax.xml.transform.dom.DOMResult();
-		XmlUtils.transform(mdpW3C, xsltReferenceMap, null, domResult);
 		
 //		javax.xml.transform.stream.StreamResult debugStream =
 //			new javax.xml.transform.stream.StreamResult(System.out);		
@@ -1067,7 +1089,7 @@ private void updateSequencedParts(Pkg pkg, Dictionary<string, StateChunk> curren
 	                    {
 	                        int idx = parseIdref(idref.getFirstChild().getNodeValue());
 	                        constructedContent[i].add(
-	                            serverSequencedParts[i].getNodeByIndex(idx);
+	                            serverSequencedParts[i].getNodeByIndex(idx));
 	                        log.debug("Added to constructedContent[" + i);
 	                    }
 	                }
@@ -1132,7 +1154,13 @@ private void updateSequencedParts(Pkg pkg, Dictionary<string, StateChunk> curren
 	        // previous iteration. If this doesn't work, then
 	        // first workaround is to explicitly replace mdpW3C
 	        // at the end of each loop
-	        NodeList nodeList = (NodeList)xpath.evaluate(mdpW3C, XPathConstants.NODESET);
+	        NodeList nodeList = null;
+			try {
+				nodeList = (NodeList)xpath.evaluate(mdpW3C, XPathConstants.NODESET);
+			} catch (XPathExpressionException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 	        
 	        Boolean correctOffsetForCommentReference = false;
 
@@ -1397,56 +1425,7 @@ private void updateSequencedParts(Pkg pkg, Dictionary<string, StateChunk> curren
 	        }
 	        //log.Debug("RESULT: " + parent.OuterXml);
 
-	        
-	        // .. Get the part; (where the local part exists, the local SequencedPart
-	        // object wraps it, so we can either get it that way, or go back to
-	        // using the underlying package.  If the local part doesn't exist
-	        // though, we'd have to go back to the underlying package to create
-	        // it. So we may as well operate at that level right from the start...)
-	        
-	        org.docx4j.openpackaging.parts.Part p = docx4jParts.get( new PartName(partName) );
-	        JaxbXmlPart jPart;
-	        if (p == null ) {
-	        	// This is a new part ie one which is present on the server,
-	        	// but not available locally.
-	        	// So we need to add it to the package. 
-	        	
-	        		log.error(partName + " does not exist .. creating");
-	        		PartName pn = new PartName(partName);
-	        	       if (partName.equals("/word/_rels/document.xml.rels")) {
-	        	    	   jPart = new RelationshipsPart( pn );
-	        	        } else if (partName.equals("/word/comments.xml")) {	
-	        	        	jPart = new CommentsPart( pn );
-	        	        } else if (partName.equals("/word/footnotes.xml")) {	        	        	
-	        	        	jPart = new FootnotesPart( pn );	        	        	
-	        	        } else if (partName.equals("/word/endnotes.xml")) {
-	        	        	jPart = new EndnotesPart( pn );
-	        	        } else {
-	        	        	log.warn("TODO: handle " + partName);
-	        	        	jPart = null;
-	        	        }
-	        	       
-	        	       docx4jParts.put(pn, jPart);
-	        	       log.debug("Added new part " + partName);
-	        	       
-	        	    // (But it should already be
-	   	        	// present in the document rels, courtesy of some other
-	   	        	// iteration through this loop)
-	        	       
-	        	    // What about [Content_Types].xml?
-	        		
-	        } else {
-		        // It is safe to assume we are dealing with a JAXB part, since
-		        // each of the sequenceableParts are that:
-		        // 
-		        // 		/word/_rels/document.xml.rels
-		        // 		/word/comments.xml
-		        //		/word/footnotes.xml
-		        //		/word/endnotes.xml	 
-		        		        
-		        jPart = (JaxbXmlPart)p;
-		        jPart.unmarshal((Element)listParent);  
-	        }
+	        updateDocx4jPart(docx4jParts, partName, listParent);
 	    }
 	    
 	    // In the loop above, we updated each of the sequencable parts.
@@ -1471,19 +1450,84 @@ private void updateSequencedParts(Pkg pkg, Dictionary<string, StateChunk> curren
 	    for (int i = 0; i < max; i++)
 	    {
 	        // Get the relevant part name
-	        String partName = serverSequencedParts[i].Name;
+	        String partName = serverSequencedParts[i].getName();
 
 	        // Find the server version
 	        String newVersion = serverPVL.getVersion(partName);
 
 	        // Update it in local PartVersionList (adding if nec)
-	        StateDocx.PartVersionList.setVersion(partName, newVersion);
+	        stateDocx.getPartVersionList().setVersion(partName, newVersion);
 	    }	 
 		
 		// Note that we don't update our record of these parts in StateDocx,
 	    // because we want to detect these as changes to be transmitted
 	    // when the user next presses transmit.
 	}
+
+private void updateDocx4jPart(
+		HashMap<PartName, org.docx4j.openpackaging.parts.Part> docx4jParts,
+		String partName, Node listParent) throws InvalidFormatException,
+		JAXBException {
+	
+    // .. Get the part; (where the local part exists, the local SequencedPart
+    // object wraps it, so we can either get it that way, or go back to
+    // using the underlying package.  If the local part doesn't exist
+    // though, we'd have to go back to the underlying package to create
+    // it. So we may as well operate at that level right from the start...)	
+	org.docx4j.openpackaging.parts.Part p = docx4jParts.get( new PartName(partName) );
+	JaxbXmlPart jPart;
+	if (p == null ) {
+		// This is a new part ie one which is present on the server,
+		// but not available locally.
+		// So we need to add it to the package. 
+		
+			log.error(partName + " does not exist .. creating");
+			PartName pn = new PartName(partName);
+		       if (partName.equals("/word/_rels/document.xml.rels")) {
+		    	   jPart = new RelationshipsPart( pn );
+		        } else if (partName.equals("/word/comments.xml")) {	
+		        	jPart = new CommentsPart( pn );
+		        } else if (partName.equals("/word/footnotes.xml")) {	        	        	
+		        	jPart = new FootnotesPart( pn );	        	        	
+		        } else if (partName.equals("/word/endnotes.xml")) {
+		        	jPart = new EndnotesPart( pn );
+		        } else if (partName.equals("/word/header.xml")) {
+		        	jPart = new HeaderPart( pn );
+		        } else if (partName.equals("/word/footer.xml")) {
+		        	jPart = new FooterPart( pn );
+		        } else if (partName.equals("/word/numbering.xml")) {
+		        	jPart = new NumberingDefinitionsPart( pn );
+		        } else if (partName.equals("/word/styles.xml")) {
+		        	jPart = new StyleDefinitionsPart( pn );
+		        } else {
+		        	log.warn("TODO: handle " + partName);
+		        	jPart = null;
+		        }		       
+		       
+		       docx4jParts.put(pn, jPart);
+		       log.debug("Added new part " + partName);
+		       
+		    // (But it should already be
+	    	// present in the document rels, courtesy of some other
+	    	// iteration through this loop)
+		       
+		    // What about [Content_Types].xml?
+			
+	} else {
+	    // It is safe to assume we are dealing with a JAXB part, since
+	    // each of the sequenceableParts are that:
+	    // 
+	    // 		/word/_rels/document.xml.rels
+	    // 		/word/comments.xml
+	    //		/word/footnotes.xml
+	    //		/word/endnotes.xml
+		// similarly, the third class parts:
+		//  headers, footers, styles, numbering
+	    		        
+	    jPart = (JaxbXmlPart)p;
+	    jPart.unmarshal((Element)listParent);  
+	}
+}
 	
 
 	/* Apply registered transforms. */
@@ -1598,12 +1642,12 @@ private void updateSequencedParts(Pkg pkg, Dictionary<string, StateChunk> curren
 
 			resultCode = t.apply(this, stateDocx.getStateChunks());
 			t.setApplied(true);
-	        try {
-				scanSdtForIdref(t);
-			} catch (XPathExpressionException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}		
+//	        try {
+//				scanSdtForIdref(t);
+//			} catch (XPathExpressionException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}		
 	        changedChunks.put( t.getPlutextId(), t.getPlutextId() );  
 	        	// TODO, what if it is already there?	        
 			log.debug(t.getSequenceNumber() + " applied ("
@@ -1787,12 +1831,12 @@ private void updateSequencedParts(Pkg pkg, Dictionary<string, StateChunk> curren
 
 			resultCode = t.apply(this, stateDocx.getStateChunks());
 			t.setApplied(true);
-	        try {
-				scanSdtForIdref(t);
-			} catch (XPathExpressionException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+//	        try {
+//				scanSdtForIdref(t);
+//			} catch (XPathExpressionException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
 	        changedChunks.put( t.getPlutextId(), t.getPlutextId() );  
 	        	// TODO, what if it is already there?
 
@@ -2073,11 +2117,12 @@ private void updateSequencedParts(Pkg pkg, Dictionary<string, StateChunk> curren
 	    // want to transmit a set of document rels which includes a reference
 	    // from a content control which we refuse to transmit (because it
 	    // contains revisions)
-	    if (myDoc.Revisions.Count > 0)
+	    //if (myDoc.Revisions.Count > 0)
+		if (!sdtChangeTypes.isEmpty()) // How to do this better??
 	    {
-	        log.Debug(myDoc.Revisions.Count + " revisions found, so aborting transmitContentUpdates");
-	        bw.ReportProgress(0, "Please accept/reject all revisions first, then try again.");
-	        return;
+	        log.debug(sdtChangeTypes.size() + " revisions found, so aborting transmitContentUpdates");
+	        worker.setProgress(0, "Please accept/reject all revisions first, then try again.");
+	        return false;
 	    }		
 		
 		// The list of transforms to be transmitted

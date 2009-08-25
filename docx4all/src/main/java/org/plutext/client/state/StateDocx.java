@@ -29,17 +29,18 @@ import org.apache.log4j.Logger;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.xml.DocumentML;
-import org.docx4j.model.datastorage.Dom4jCustomXmlDataStorage;
+import org.docx4j.model.datastorage.CustomXmlDataStorageImpl;
+import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.CustomXmlDataStoragePart;
 import org.docx4j.openpackaging.parts.PartName;
-import org.dom4j.Document;
 import org.plutext.client.CustomProperties;
 import org.plutext.client.Util;
 import org.plutext.client.partWrapper.Part;
 import org.plutext.client.partWrapper.SequencedPart;
 import org.plutext.client.wrappedTransforms.TransformAbstract;
 import org.plutext.client.wrappedTransforms.TransformComparator;
+import org.w3c.dom.Document;
 
 /* Represent the configuration of the
  * document, and certain transient
@@ -107,13 +108,20 @@ public class StateDocx {
 	        		= (CustomXmlDataStoragePart)pairs.getValue();
             	
             	// dom4j document :-(
-            	//Document customXmlDoc = docx4jPart.getDocument();            	
-            	Document customXmlDoc = ((Dom4jCustomXmlDataStorage)docx4jPart.getData()).getDom4jDocument();
-            		// since in ElementMLFactory, LoadFromVFSZipFile is set to use this 
+            	//Document customXmlDoc = ((Dom4jCustomXmlDataStorage)docx4jPart.getData()).getDom4jDocument();            	
+            	Document customXmlDoc = null;
+				try {
+					customXmlDoc = ((CustomXmlDataStorageImpl)docx4jPart.getData()).getDocument();
+            		// ElementMLFactory could set in LoadFromVFSZipFile  
+				} catch (Docx4JException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
             	
-            	log.debug(customXmlDoc.getRootElement().getName());
             	
-            	if (customXmlDoc.getRootElement().getName().equals("parts")) {
+            	log.debug(customXmlDoc.getDocumentElement().getLocalName() );
+            	
+            	if (customXmlDoc.getDocumentElement().getLocalName().equals("parts")) {
             		// ? was = PartVersionList
             		
                     partVersionList = new PartVersionList(customXmlDoc);
@@ -138,7 +146,8 @@ public class StateDocx {
         parts = Util.extractParts(doc);
 
         // For the parts we care about, record their version info.
-        partVersionList.setVersions(parts);
+//        partVersionList.setVersions(parts);
+        partVersionList.setVersions();
 
 		this.transforms = new TransformsCollection();
 		

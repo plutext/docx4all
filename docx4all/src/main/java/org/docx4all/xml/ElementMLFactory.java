@@ -77,7 +77,7 @@ public class ElementMLFactory {
 			if ( Constants.DOCX_STRING.equalsIgnoreCase(f.getName().getExtension()) ) {
 				// .docx
 				LoadFromVFSZipFile loader = new LoadFromVFSZipFile(true);
-				LoadFromVFSZipFile.setCustomXmlDataStorageClass(new org.docx4j.model.datastorage.Dom4jCustomXmlDataStorage());
+				//LoadFromVFSZipFile.setCustomXmlDataStorageClass(new org.docx4j.model.datastorage.Dom4jCustomXmlDataStorage());
 				wordMLPackage = 
 					(WordprocessingMLPackage) 
 						loader.getPackageFromFileObject(f);
