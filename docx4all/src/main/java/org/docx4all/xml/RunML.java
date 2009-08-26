@@ -40,6 +40,7 @@ public class RunML extends ElementML {
 	private static Logger log = Logger.getLogger(RunML.class);
 	
 	private RunPropertiesML rPr;
+	private org.docx4j.wml.FldChar fldChar;
 	
 	public RunML(Object docxObject) {
 		this(docxObject, false);
@@ -138,6 +139,10 @@ public class RunML extends ElementML {
 		this.parent = parent;
 	}
 	
+	public org.docx4j.wml.FldChar getFldChar() {
+		return this.fldChar;
+	}
+	
 	protected List<Object> getDocxChildren() {
 		List<Object> theChildren = null;
 		
@@ -216,7 +221,8 @@ public class RunML extends ElementML {
 	
 	private void initChildren(org.docx4j.wml.R run) {
 		this.children = null;
-
+		this.fldChar = null;
+		
 		if (run == null) {
 			return;
 		}
@@ -247,6 +253,10 @@ public class RunML extends ElementML {
 				} else if (value instanceof org.docx4j.wml.R.LastRenderedPageBreak) {
 					//suppress
 				} else {
+					if (value instanceof org.docx4j.wml.FldChar) {
+						this.fldChar = (org.docx4j.wml.FldChar) value;
+					}
+					
 					child = new RunContentML(o, this.isDummy);
 					child.setParent(RunML.this);
 					this.children.add(child);
