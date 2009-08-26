@@ -197,7 +197,7 @@ public class InlineTransparentML extends ElementML {
 	}// initChildren()
 	
 
-}// SmartTagML class
+}// InlineTransparentML class
 
 
 
