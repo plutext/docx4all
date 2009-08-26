@@ -21,6 +21,7 @@ package org.docx4all.swing.text;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 
 import javax.swing.text.AttributeSet;
 import javax.swing.text.MutableAttributeSet;
@@ -32,6 +33,7 @@ import org.docx4all.ui.main.Constants;
 import org.docx4all.xml.BodyML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLIterator;
+import org.docx4all.xml.FldComplexML;
 import org.docx4all.xml.HyperlinkML;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.PropertiesContainerML;
@@ -45,6 +47,9 @@ import org.docx4all.xml.TableML;
 import org.docx4all.xml.TableRowML;
 
 public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
+	public final static String SHOW_FLD_COMPLEX_INSTR = "1";
+	public final static String SHOW_FLD_COMPLEX_VALUE = "2";
+	
 	private List<ElementSpec> _elementSpecs = new ArrayList<ElementSpec>();
 	private MutableAttributeSet _paragraphAttrs, _runAttrs;
 	
@@ -52,8 +57,30 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	//that do not have any child will be deleted.
 	private List<ElementML> _transparentNodesToDelete = null;
 	
+	private String _fldComplexMode = 
+		ElementMLIteratorCallback.SHOW_FLD_COMPLEX_INSTR;
+	private Stack<FldComplexML> _fldComplexes = new Stack<FldComplexML>();
+	private Stack<ElementML> _ignoredElements = new Stack<ElementML>();
+		
+	public void setFldComplexMode(String mode) {
+		_fldComplexMode = 
+			ElementMLIteratorCallback.SHOW_FLD_COMPLEX_INSTR.equals(mode)
+				? ElementMLIteratorCallback.SHOW_FLD_COMPLEX_INSTR
+				: ElementMLIteratorCallback.SHOW_FLD_COMPLEX_VALUE;
+	}
+	
 	public void handleStartElement(ElementML elem) {
 		//TODO: Find a better handler
+		if (!_ignoredElements.empty()) {
+			//An indication that elem's ancestor
+			//has been ignored. 
+			//Therefore, ignore elem as well.
+			//Note that putting elem into 
+			//_ignoredElements stack is optional.
+			//_ignoredElements.push(elem);
+			return;
+		}
+		
 		if (elem instanceof RunContentML) {
 			openElementSpec((RunContentML) elem);
 			
@@ -96,6 +123,13 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	
 	public void handleEndElement(ElementML elem) {		
 		//TODO: Find a better handler
+		if (!_ignoredElements.empty()) {
+			if (_ignoredElements.peek() == elem) {
+				_ignoredElements.pop();
+			}
+			return;
+		}
+		
 		if (elem instanceof RunContentML) {
 			closeElementSpec((RunContentML) elem); 
 			
@@ -254,27 +288,81 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	}
 	
 	private void openElementSpec(RunML runML) {
-		_runAttrs = new SimpleAttributeSet();
+		boolean createSpec = true;
+
+		org.docx4j.wml.FldChar fldChar = runML.getFldChar();
+		if (fldChar != null) {
+			//Add runML as part of FldComplex.
+			org.docx4j.wml.STFldCharType type = 
+				fldChar.getFldCharType();
+			FldComplexML fldComplex;
+			if (type == org.docx4j.wml.STFldCharType.BEGIN) {
+				fldComplex = new FldComplexML();
+				_fldComplexes.add(fldComplex);
+				createSpec = 
+					(_fldComplexMode 
+						== ElementMLIteratorCallback.SHOW_FLD_COMPLEX_INSTR);			
+				
+			} else if (type == org.docx4j.wml.STFldCharType.END) {
+				fldComplex = _fldComplexes.pop();
+				createSpec = 
+					(_fldComplexMode 
+						== ElementMLIteratorCallback.SHOW_FLD_COMPLEX_INSTR);			
+				
+			} else {
+				//type == org.docx4j.wml.STFldCharType.SEPARATE
+				fldComplex = _fldComplexes.peek();
+				//Always ignore runML that holds
+				//STFldCharType.SEPARATE
+				createSpec = false;
+			}
+			fldComplex.addChild(runML);
+			
+		} else if (_fldComplexes.empty()) {
+			//createSpec = true;
+			
+		} else {
+			FldComplexML fldComplex = _fldComplexes.peek();
+			if (fldComplex.getSeparate() == null) {
+				//In FldComplex instruction part.
+				createSpec = 
+					(_fldComplexMode 
+						== ElementMLIteratorCallback.SHOW_FLD_COMPLEX_INSTR);
+			} else {
+				//In FldComplex value part.
+				createSpec = 
+					(_fldComplexMode 
+						== ElementMLIteratorCallback.SHOW_FLD_COMPLEX_VALUE);
+			}
+			fldComplex.addChild(runML);
+		}
 		
-		PropertiesContainerML pc = runML.getRunProperties();
-		if (pc != null) {
-			AttributeSet pcAttrs = pc.getAttributeSet();
-			_runAttrs.addAttributes(pcAttrs);
-			String rStyle = 
-				(String) pcAttrs.getAttribute(WordMLStyleConstants.RStyleAttribute);
-			if (rStyle != null) {
-				StyleSheet styleSheet = runML.getStyleSheet();
-				if (styleSheet != null) {
-					Style s = styleSheet.getIDStyle(rStyle);
-					if (s != null) {
-						((SimpleAttributeSet) _runAttrs).setResolveParent(s);
+		if (createSpec) {
+			_runAttrs = new SimpleAttributeSet();
+
+			PropertiesContainerML pc = runML.getRunProperties();
+			if (pc != null) {
+				AttributeSet pcAttrs = pc.getAttributeSet();
+				_runAttrs.addAttributes(pcAttrs);
+				String rStyle = (String) pcAttrs
+						.getAttribute(WordMLStyleConstants.RStyleAttribute);
+				if (rStyle != null) {
+					StyleSheet styleSheet = runML.getStyleSheet();
+					if (styleSheet != null) {
+						Style s = styleSheet.getIDStyle(rStyle);
+						if (s != null) {
+							((SimpleAttributeSet) _runAttrs)
+									.setResolveParent(s);
+						}
 					}
 				}
 			}
+
+			WordMLStyleConstants.setElementML(_runAttrs, runML);
+			openElementSpec(_runAttrs);
+		} else {
+			_ignoredElements.push(runML);
 		}
-		
-		WordMLStyleConstants.setElementML(_runAttrs, runML);
-		openElementSpec(_runAttrs);
 	}
 
 	private void closeElementSpec(RunML runML) {
@@ -282,17 +370,25 @@ public class ElementMLIteratorCallback extends ElementMLIterator.Callback {
 	}
 	
 	private void closeElementSpec(RunML runML, boolean resetAttr) {
-		closeElementSpec((AttributeSet) null);
-		//It turns out that closing ElementSpec can be done 
-		//without passing any AttributeSet.
-		//If later on this causes problem then comment out
-		//the above line and uncomment the following lines.
-		//SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
-		//WordMLStyleConstants.setElementML(elemAttrs, runML);
-		//closeElementSpec(elemAttrs);
+		if (_runAttrs != null) {
+			//Not all RunML is given an opening ElementSpec.
+			//Therefore, only create a closing ElementSpec 
+			//if ElementSpec was created for the same runML
+			//argument.
+			//See: openElementSpec(RunML).
+			
+			closeElementSpec((AttributeSet) null);
+			// It turns out that closing ElementSpec can be done
+			// without passing any AttributeSet.
+			// If later on this causes problem then comment out
+			// the above line and uncomment the following lines.
+			// SimpleAttributeSet elemAttrs = new SimpleAttributeSet();
+			// WordMLStyleConstants.setElementML(elemAttrs, runML);
+			// closeElementSpec(elemAttrs);
 
-		if (resetAttr) {
-			_runAttrs = null;
+			if (resetAttr) {
+				_runAttrs = null;
+			}
 		}
 	}
 	
