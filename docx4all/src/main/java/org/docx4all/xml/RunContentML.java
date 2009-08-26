@@ -127,7 +127,19 @@ public class RunContentML extends ElementML {
 
 			} else if (value instanceof org.docx4j.wml.R.Tab) {
 				this.textContent = Constants.TAB;
-				
+			
+			} else if (value instanceof org.docx4j.wml.FldChar) {
+				org.docx4j.wml.FldChar fldChar = 
+					(org.docx4j.wml.FldChar) value;
+				if (fldChar.getFldCharType() 
+					== org.docx4j.wml.STFldCharType.BEGIN) {
+					this.textContent = Constants.FLDCHAR_BEGIN;
+				} else if (fldChar.getFldCharType()
+					== org.docx4j.wml.STFldCharType.END) {
+					this.textContent = Constants.FLDCHAR_END;
+				} else {
+					this.textContent = Constants.FLDCHAR_SEPARATE;
+				}
 			//} else if (value instanceof org.docx4j.wml.R.NoBreakHyphen) {
 				// Unsupported yet
 
