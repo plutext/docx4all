@@ -41,6 +41,10 @@ public interface Constants {
 	public final static String NEWLINE = "\n";
 	public final static String SINGLE_SPACE = " ";
 	public final static String TAB = "\t";
+	public final static String FLDCHAR_BEGIN = "{";
+	public final static String FLDCHAR_SEPARATE = "|";
+	public final static String FLDCHAR_END = "}";
+	
 
 	public final static String LAST_OPENED_FILE  = "last.opened.file";
 	public final static String LAST_OPENED_LOCAL_FILE = "last.opened.local.file";
