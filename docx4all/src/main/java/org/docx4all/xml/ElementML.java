@@ -48,7 +48,7 @@ public abstract class ElementML implements Cloneable {
 	protected Object docxObject;
 	protected boolean isDummy;
 	protected WordML.Tag tag;
-	protected ElementML parent;
+	protected ElementML parent, godParent;
 	protected List<ElementML> children;
 	
 	public ElementML() {
@@ -66,6 +66,10 @@ public abstract class ElementML implements Cloneable {
 			}
 		}
 		init(docxObject);
+	}
+	
+	public void setGodParent(ElementML parent) {
+		this.godParent = parent;
 	}
 	
 	public abstract void setParent(ElementML parent);
@@ -325,6 +329,10 @@ public abstract class ElementML implements Cloneable {
 	
 	public ElementML getParent() {
 		return this.parent;
+	}
+	
+	public ElementML getGodParent() {
+		return this.godParent;
 	}
 	
 	public List<ElementML> getChildren() {
