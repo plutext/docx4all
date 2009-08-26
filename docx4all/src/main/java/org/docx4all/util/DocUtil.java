@@ -64,6 +64,7 @@ import org.docx4all.xml.DocumentML;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLFactory;
 import org.docx4all.xml.ElementMLIterator;
+import org.docx4all.xml.FldComplexML;
 import org.docx4all.xml.HyperlinkML;
 import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.ParagraphPropertiesML;
@@ -715,6 +716,81 @@ public class DocUtil {
 		return result;
 	}
     
+    public static final DocumentElement getFldComplexStart(
+    	WordMLDocument doc, 
+    	int offs, 
+    	int direction) {
+    	
+    	DocumentElement theElem = null;
+    	
+    	try {
+    		doc.readLock();
+    		
+    		while (theElem == null
+    			&& 0 <= offs
+    			&& offs < doc.getLength()) {
+    			theElem = getRunMLElement(doc, offs, direction);
+    			
+    			if (theElem == null) {
+    				break;
+    			}
+    			
+				RunML runML = (RunML) theElem.getElementML();
+				if (runML.getFldChar() != null
+					&& runML.getFldChar().getFldCharType() 
+						== org.docx4j.wml.STFldCharType.BEGIN) {
+					// break
+				} else {
+					offs = (direction == SwingConstants.NEXT) 
+						 ? theElem.getEndOffset() 
+						 : theElem.getStartOffset();
+					theElem = null;
+				}
+    		}
+    	} finally {
+    		doc.readUnlock();
+    	}
+    	return theElem;
+    }
+    
+    public static final DocumentElement getFldComplexEnd(
+       	WordMLDocument doc, 
+       	int offs, 
+       	int direction) {
+        	
+       	DocumentElement theElem = null;
+        	
+       	try {
+       		doc.readLock();
+        		
+       		while (theElem == null
+       			&& 0 <= offs
+       			&& offs < doc.getLength()) {
+       			theElem = getRunMLElement(doc, offs, direction);
+        			
+       			if (theElem == null) {
+       				break;
+       			}
+        			
+   				RunML runML = (RunML) theElem.getElementML();
+   				if (runML.getFldChar() != null
+   					&& runML.getFldChar().getFldCharType() 
+   						== org.docx4j.wml.STFldCharType.END) {
+   					// break
+   				} else {
+   					offs = (direction == SwingConstants.NEXT) 
+   						 ? theElem.getEndOffset() 
+   						 : theElem.getStartOffset();
+   					theElem = null;
+   				}
+       		}
+       	} finally {
+       		doc.readUnlock();
+       	}
+       	
+       	return theElem;
+    }
+        
     public static final DocumentElement getRunMLElement(WordMLDocument doc, int offs, int direction) {
 		if (offs < 0 || offs > doc.getLength()) {
 			throw new IllegalArgumentException(
@@ -991,6 +1067,7 @@ public class DocUtil {
 	public final static List<ElementML> deleteElementML(List<DocumentElement> list) {
 		List<ElementML> deletedElementMLs = new ArrayList<ElementML>(list.size());
 		
+		List<FldComplexML> fldComplexes = null;
     	for (int i=0; i < list.size(); i++) {
     		DocumentElement tempE = (DocumentElement) list.get(i);
     		if (log.isDebugEnabled()) {
@@ -999,8 +1076,48 @@ public class DocUtil {
     		ElementML ml = tempE.getElementML();
     		ml.delete();
     		deletedElementMLs.add(ml);
+    		
+    		if (ml.getGodParent() != null) {
+    			if (ml.getGodParent() instanceof FldComplexML) {
+    				FldComplexML fc = (FldComplexML) ml.getGodParent();
+    				if (fldComplexes == null) {
+    					fldComplexes = new ArrayList<FldComplexML>();
+    					fldComplexes.add(fc);
+    				} else if (fldComplexes.lastIndexOf(fc) == -1) {
+    					fldComplexes.add(fc);
+    				} else {
+    					//do nothing
+    				}
+    			}
+    			ml.getGodParent().deleteChild(ml);
+    		}
     	}
     	
+    	if (fldComplexes != null) {
+    		for (FldComplexML fc: fldComplexes) {
+    			//Those FldComplexML whose STFldCharType.BEGIN 
+    			//or STFldCharType.END have been deleted
+    			//may have hidden children.
+    			//These hidden children also have to be deleted.
+    			//Recall that FldComplexML has instruction part
+    			//and value part. If instruction part is being
+    			//rendered then value part is hidden.
+    			RunML first = (RunML) fc.getChild(0);
+    			RunML last = (RunML) fc.getChild(fc.getChildrenCount()-1);
+    			if (first.getFldChar() == null
+    				|| last.getFldChar() == null) {
+    				List<ElementML> remains = 
+    					new ArrayList<ElementML>(fc.getChildren());
+    				for (ElementML ml: remains) {
+    					//We do not put these remains
+    					//into 'deletedElementMLs'
+    					//because they are hidden.
+    					ml.delete();
+    				}
+    				fc.delete();
+    			}
+    		}
+    	}
     	return deletedElementMLs;
 	}
 
@@ -1020,6 +1137,12 @@ public class DocUtil {
 			while (!elem.isLeaf()) {
 				int idx = elem.getElementIndex(pos);
 				elem = (DocumentElement) elem.getElement(idx);
+				
+				ElementML ml = elem.getElementML();
+				if (ml.getGodParent() != null) {
+					name = ml.getGodParent().getClass().getSimpleName();
+					thePath.add(name);
+				}
 				name = elem.getElementML().getClass().getSimpleName();
 				thePath.add(name);
 			}
