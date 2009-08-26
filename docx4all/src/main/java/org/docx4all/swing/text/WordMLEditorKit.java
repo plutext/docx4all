@@ -45,6 +45,7 @@ import javax.swing.JComponent;
 import javax.swing.JEditorPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.EventListenerList;
@@ -89,6 +90,7 @@ import org.docx4all.xml.ParagraphML;
 import org.docx4all.xml.RunContentML;
 import org.docx4all.xml.RunDelML;
 import org.docx4all.xml.RunInsML;
+import org.docx4all.xml.RunML;
 import org.docx4all.xml.SdtBlockML;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.plutext.client.Mediator;
@@ -795,7 +797,7 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				
 			} catch (BadSelectionException exc) {
 				UIManager.getLookAndFeel().provideErrorFeedback(editor);
-				editor.moveCaretPosition(start);
+				editor.setCaretPosition(start);
 	    	} finally {
 	    		doc.readUnlock();
 	    	}
@@ -1923,21 +1925,58 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				int dot = caret.getDot();
 				int mark = caret.getMark();
 				
+				DocumentElement elem = 
+					(DocumentElement) doc.getCharacterElement(dot);
 				WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
-				if (kit.getCaretElement() != doc.getCharacterElement(dot)) {
+				if (kit.getCaretElement() != elem) {
 					kit.saveCaretText();
 				}
+				elem = (DocumentElement) elem.getParentElement();
 				
 				if (log.isDebugEnabled()) {
 					log.debug("DeleteNextCharAction.actionPerformed(): dot=" + dot
 						+ " doc.getLength()=" + doc.getLength());
 				}
-							
+				
 				try {
 					if (dot != mark) {
 						doc.remove(Math.min(dot, mark), Math.abs(dot - mark));
 						dot = Math.min(dot, mark);
-						
+					} else if (((RunML) elem.getElementML()).getFldChar() != null) {
+						org.docx4j.wml.FldChar fldChar =
+							((RunML) elem.getElementML()).getFldChar();
+						ElementML fldComplex = 
+							elem.getElementML().getGodParent();
+						if (fldChar.getFldCharType() 
+							== org.docx4j.wml.STFldCharType.BEGIN) {
+							ElementML ml = null;
+							while (ml != fldComplex) {
+								elem = 
+									(DocumentElement) 
+										DocUtil.getFldComplexEnd(
+											doc, 
+											elem.getEndOffset(), 
+											SwingConstants.NEXT);
+								ml = elem.getElementML().getGodParent();
+							}
+							selectLater(editor, dot, elem.getEndOffset());
+						} else if (fldChar.getFldCharType() 
+								== org.docx4j.wml.STFldCharType.END) {
+							mark = elem.getEndOffset();
+							ElementML ml = null;
+							while (ml != fldComplex) {
+								elem = 
+									(DocumentElement) 
+										DocUtil.getFldComplexStart(
+											doc, 
+											elem.getEndOffset(), 
+											SwingConstants.PREVIOUS);
+								ml = elem.getElementML().getGodParent();
+							}
+							selectLater(editor, elem.getStartOffset(), mark);
+						} else {
+							//do nothing
+						}
 					} else if (dot < doc.getLength()) {
 						int delChars = 1;
 
@@ -1960,7 +1999,17 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				}
 				
 			}//if (editor != null)
+			
 		}//actionPerformed()
+		
+		private void selectLater(final JEditorPane editor, final int start, final int end) {
+			Runnable r = new Runnable() {
+				public void run() {
+					editor.select(start, end);
+				}
+			};
+			SwingUtilities.invokeLater(r);
+		}
 	}//DeleteNextCharAction()
 
     private static class DeletePrevCharAction extends StyledTextAction {
@@ -1984,10 +2033,14 @@ public class WordMLEditorKit extends DefaultEditorKit {
 				int dot = caret.getDot();
 				int mark = caret.getMark();
 				
+				DocumentElement elem = 
+					(DocumentElement) doc.getCharacterElement(dot-1);
+				
 				WordMLEditorKit kit = (WordMLEditorKit) editor.getEditorKit();
-				if (kit.getCaretElement() != doc.getCharacterElement(dot - 1)) {
+				if (kit.getCaretElement() != elem) {
 					kit.saveCaretText();
 				}
+				elem = (DocumentElement) elem.getParentElement();
 				
 				if (log.isDebugEnabled()) {
 					log.debug("DeletePrevCharAction.actionPerformed(): dot=" + dot
@@ -1998,6 +2051,42 @@ public class WordMLEditorKit extends DefaultEditorKit {
 					if (dot != mark) {
 						doc.remove(Math.min(dot, mark), Math.abs(dot - mark));
 						dot = Math.min(dot, mark);
+						
+					} else if (((RunML) elem.getElementML()).getFldChar() != null) {
+						org.docx4j.wml.FldChar fldChar =
+							((RunML) elem.getElementML()).getFldChar();
+						ElementML fldComplex = 
+							elem.getElementML().getGodParent();
+						if (fldChar.getFldCharType() 
+							== org.docx4j.wml.STFldCharType.BEGIN) {
+							ElementML ml = null;
+							while (ml != fldComplex) {
+								elem = 
+									(DocumentElement) 
+										DocUtil.getFldComplexEnd(
+											doc, 
+											elem.getEndOffset(), 
+											SwingConstants.NEXT);
+								ml = elem.getElementML().getGodParent();
+							}
+							selectLater(editor, dot, elem.getEndOffset());
+						} else if (fldChar.getFldCharType() 
+								== org.docx4j.wml.STFldCharType.END) {
+							mark = elem.getEndOffset();
+							ElementML ml = null;
+							while (ml != fldComplex) {
+								elem = 
+									(DocumentElement) 
+										DocUtil.getFldComplexStart(
+											doc, 
+											elem.getEndOffset(), 
+											SwingConstants.PREVIOUS);
+								ml = elem.getElementML().getGodParent();
+							}
+							selectLater(editor, elem.getStartOffset(), mark);
+						} else {
+							//do nothing
+						}
 						
 					} else if (0 < dot && dot < doc.getLength()) {
 	                    int delChars = 1;
@@ -2025,6 +2114,14 @@ public class WordMLEditorKit extends DefaultEditorKit {
 			}//if (editor != null)
 		}//actionPerformed()
 		
+		private void selectLater(final JEditorPane editor, final int start, final int end) {
+			Runnable r = new Runnable() {
+				public void run() {
+					editor.select(start, end);
+				}
+			};
+			SwingUtilities.invokeLater(r);
+		}
 	}//DeletePrevCharAction class
     
     public static class ChangeIntoSdtAction extends TextAction {
