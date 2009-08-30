@@ -124,7 +124,7 @@ FIXED_RELS_SUFFIX:
         	log.debug("Request for " + id);
         	// TMP DEBUG
         	if (nodesMap.get(id)==null) {
-        		log.warn("null!!");
+        		log.warn("relId " + id + " null!!");
         	}
             return nodesMap.get(id);
         }

@@ -216,9 +216,11 @@ public class PartVersionList {
 
         // initialisation
         public void setVersions() {
+        	
+        	log.info(xmlDoc.getDocumentElement().getLocalName() );
 
         	NodeList nodes;
-            if (xmlDoc.getDocumentElement().getFirstChild().getLocalName().equals("parts"))
+            if (xmlDoc.getDocumentElement().getLocalName().equals("parts"))
             {
                 // xmlDoc from Microsoft.Office.Core.CustomXMLPart (StateDocx)
                 nodes = xmlDoc.getDocumentElement().getChildNodes();

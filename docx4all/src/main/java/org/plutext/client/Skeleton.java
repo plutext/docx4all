@@ -109,7 +109,7 @@ public class Skeleton implements IDiffList<TextLine> {
 		init(t, tSequenceNumberHighestFetched);
 	}
 	
-	private void init(Transitions t, long tSequenceNumberHighestFetched) {
+	public boolean init(Transitions t, long tSequenceNumberHighestFetched) {
         // if tSequenceNumberHighestFetched > -1, 
         // we return prematurely, with value false,
         // if an @snum > tSequenceNumberHighestFetched is found
@@ -119,19 +119,20 @@ public class Skeleton implements IDiffList<TextLine> {
             	for (Transitions.Ribs.Rib.T ribT: r.getT()) {
             		String op = ribT.getOp();
 
-                    if (op.equals("insert")
-                        || op.equals("move")
-                        || op.equals("delete")) // a structural transform
-                    {
+//                    if (op.equals("insert")
+//                        || op.equals("move")
+//                        || op.equals("delete")) // a structural transform
+//                    {
 
                     	long thisSequenceNumber = ribT.getSnum();
 
                         if (thisSequenceNumber > tSequenceNumberHighestFetched)
                         {
                             log.debug("found transform snum " + thisSequenceNumber + " > " + tSequenceNumberHighestFetched);
-                            hasStructuralTransform = true;
+                            //hasStructuralTransform = true;
+                            return false;
                         }
-                    }
+//                    }
                 }
             }
 
@@ -145,7 +146,9 @@ public class Skeleton implements IDiffList<TextLine> {
 			}
 			
 		}// for (r) loop
+		return true;
 	}// init()
+	
 	
 	private boolean hasStructuralTransform = false;
 	public boolean hasStructuralTransform() {

@@ -556,7 +556,11 @@ public class Mediator {
 	    String msg = "";
 	    changedChunks = new HashMap<String, String>();		
 	    stylemapUpdates = new ArrayList<String>();
-	    if (stateDocx.getTransforms().getTransformsBySeqNum().size() > 0)
+	    //if (stateDocx.getTransforms().getTransformsBySeqNum().size() > 0)
+	    	// we don't delete those after applying?!
+	    if (this.oldServer != null 
+				&& this.changeSets != null
+				&& !this.changeSets.isEmpty()) 	    
 	    {
 	        // Use that test, rather than just the result of fetchUpdates,
 	        // since there might be some transforms left over from before,
@@ -647,6 +651,8 @@ public class Mediator {
 	    // Get PartVersionsList
 	    String[] partNamePVL = new String[1];
 	    partNamePVL[0] = "/part-versions.xml";
+	    
+	    startSession(); // TODO, wouldn't be necessary if we deferred endSession til we've done getParts
 	    String[][] pvlArray = ws.getParts(stateDocx.getDocID(), partNamePVL);
 	    String[] itemFieldz = pvlArray[0];
 	    log.debug(itemFieldz[0]); //what is this?
@@ -662,11 +668,18 @@ public class Mediator {
 	        log.debug("No second or third class parts need updating.");
 	        return;
 	    }
+	    
+	    // Need to convert List<String> to an array.
+	    // but (String[])relevantParts.toArray() gives ClassCastException.
+	    // So ... 
+	    String[] partsWeNeed = new String[ relevantParts.size() ];
+	    for (int ip = 0 ; ip < relevantParts.size() ; ip++) {	    	
+	    	partsWeNeed[ip] = relevantParts.get(ip);	    	
+	    }
 
 	    // Fetch those
 	    // invoke web service - returns the part and its version number.
-	    String[][] weirdParts = ws.getParts(stateDocx.getDocID(),
-	        (String[])relevantParts.toArray());
+	    String[][] weirdParts = ws.getParts(stateDocx.getDocID(), partsWeNeed);
 	    log.debug("number of weird parts: " + weirdParts.length);
 
 	    // First handle our second class citizens .. 
@@ -2454,8 +2467,9 @@ private void updateDocx4jPart(
 				}
 			}// for (idx) loop
 			
+			boolean otherUpdates = false;
 	        try {
-				transmitOtherUpdates(); // TODO - move this, since its a separate ws call.			
+	        	otherUpdates = transmitOtherUpdates(); // TODO - move this, since its a separate ws call.			
 			} catch (Exception e1) {
 				log.error(e1);
 				e1.printStackTrace();
@@ -2464,19 +2478,32 @@ private void updateDocx4jPart(
 	    
 			if (transformsToSend.isEmpty()) {
 				boolean success = false;
-				if (someConflicted) {
-					String message = 
-						"Done - Conflict warning: Fetch updates then accept/reject changes before trying again.";
-					worker.setProgress(TransmitProgress.DONE, message);					
-				} else if (someTrackedConflicts) {
-					String message =
-						"Done - Conflict warning: Accept/Reject changes before trying again.";
-					worker.setProgress(TransmitProgress.DONE, message);
-				} else {
-					worker.setProgress(TransmitProgress.DONE, "Nothing to send.");
-					success = true;
-				}
+	            if (someConflicted || someTrackedConflicts)
+	            {				
+					if (someConflicted) {
+						String message = 
+							"Done - Conflict warning: Fetch updates then accept/reject changes before trying again.";
+						worker.setProgress(TransmitProgress.DONE, message);					
+					} else if (someTrackedConflicts) {
+						String message =
+							"Done - Conflict warning: Accept/Reject changes before trying again.";
+						worker.setProgress(TransmitProgress.DONE, message);
+					} 
+					return success;
+	            }
+	            
+	            if (otherUpdates)
+	            {
+	            	worker.setProgress(TransmitProgress.DONE, "Updates sent.");
+	            }
+	            else
+	            {
+	            	worker.setProgress(TransmitProgress.DONE, "Nothing to send.");
+	            }
+				
+				success = true;
 				return success;
+				
 			}
 	    
 			String checkinComment = null;
