@@ -162,7 +162,14 @@ public class BodyML extends ElementML {
 				if (value instanceof org.docx4j.wml.SdtBlock) {
 					SdtBlockML sdt = new SdtBlockML(obj);
 					String id = sdt.getSdtProperties().getPlutextId();
+					System.out.println(id); // 1,033,453,472
 					if (id != null) {
+						
+						if (sdtBlockIdSet==null) {
+							// Jo, how can this be happening??
+							log.error("sdtBlockIdSet unexpectedly null!!! <---------------------------------------");
+							sdtBlockIdSet = new HashSet<BigInteger>();
+						}						
 						sdtBlockIdSet.add(
 							BigInteger.valueOf(Long.valueOf(id)));
 					}
