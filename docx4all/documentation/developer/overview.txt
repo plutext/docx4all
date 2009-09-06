@@ -1,0 +1,50 @@
+
+    Dictionary<string, StateChunk> currentStateChunks = pkgB.extractStateChunks();
+    
+    In Java, we don't have either pkgB or currentStateChunks
+    
+    Instead, 
+
+		StateChunk currentChunk = 
+			Util.getStateChunk(getWordMLDocument(), idStr);
+    
+    
+ElementML  getWordprocessingMLPackage()   
+
+
+
+
+Things to document:
+
+- ElementML
+
+- WordMLDocument (just copy DefaultStyledDocument documentation from somewhere?)
+
+	getRootElements
+	getDefaultRootElement
+	
+We have our own DocumentElement
+
+	
+-----------
+
+Docx4all architecture/design 	
+	
+There is a WordMLDocument object.  This extends Swing's DefaultStyledDocument.
+
+When an existing docx is loaded (see WordMLEditorKit.read )
+
+1.  WordMLDocument object is created - see WordMLEditorKit.createDefaultDocument()
+
+2.  ElementMLFactory is used to create a new DocumentML object
+
+DocumentML constructor is such that it "wraps" the docx4j WordprocessingMLPackage.
+There is a method getWordprocessingMLPackage()
+
+Relationship between WordMLDocument, WordMLEditor, WordMLTextPane?
+
+
+
+ 
+
+	
