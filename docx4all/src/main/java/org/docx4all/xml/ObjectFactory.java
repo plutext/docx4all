@@ -163,6 +163,9 @@ public class ObjectFactory {
 		org.docx4j.wml.Body  body = _jaxbFactory.createBody();
 		body.getEGBlockLevelElts().add(para);
 		
+		org.docx4j.wml.SectPr sectPr = _jaxbFactory.createSectPr();
+		body.setSectPr(sectPr);
+		
 		org.docx4j.wml.Document doc = _jaxbFactory.createDocument();
 		doc.setBody(body);
 		
