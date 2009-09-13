@@ -69,14 +69,18 @@ import org.docx4j.openpackaging.exceptions.InvalidFormatException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.JaxbXmlPart;
 import org.docx4j.openpackaging.parts.PartName;
+import org.docx4j.openpackaging.parts.ThemePart;
 import org.docx4j.openpackaging.parts.WordprocessingML.CommentsPart;
+import org.docx4j.openpackaging.parts.WordprocessingML.DocumentSettingsPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.EndnotesPart;
+import org.docx4j.openpackaging.parts.WordprocessingML.FontTablePart;
 import org.docx4j.openpackaging.parts.WordprocessingML.FooterPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.FootnotesPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.NumberingDefinitionsPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.StyleDefinitionsPart;
+import org.docx4j.openpackaging.parts.WordprocessingML.WebSettingsPart;
 import org.docx4j.openpackaging.parts.relationships.RelationshipsPart;
 import org.docx4j.wml.Tag;
 import org.plutext.Context;
@@ -740,9 +744,15 @@ public class Mediator {
 	            Part part = Part.factory(itemField[1]);
 	            log.debug("Attaching third class part: " + part.getName() );
 	            //pkgB.attachPart(part.Name, part.XmlNode);
+	            Node jaxbNode = part.getXmlNode().getFirstChild().getFirstChild(); 
+	            /* eg
+	             * <pkg:part pkg:name="/word/styles.xml" ..>
+						<pkg:xmlData>
+							<w:styles 
+	             */
 	            updateDocx4jPart(
 	            		wmlp.getParts().getParts(),
-	            		part.getName(), part.getXmlNode() );
+	            		part.getName(), jaxbNode );
 	
 	            // 2. Update PVL
 	            // In anticipation of success in what follows, 
@@ -1549,12 +1559,20 @@ private void updateDocx4jPart(
 		        	jPart = new NumberingDefinitionsPart( pn );
 		        } else if (partName.equals("/word/styles.xml")) {
 		        	jPart = new StyleDefinitionsPart( pn );
+		        } else if (partName.startsWith("/word/theme/theme")) {
+		        	jPart = new ThemePart( pn );
+		        } else if (partName.startsWith("/word/settings.xml")) {
+		        	jPart = new DocumentSettingsPart( pn );
+		        } else if (partName.startsWith("/word/webSettings.xml")) {
+		        	jPart = new WebSettingsPart( pn );
+		        } else if (partName.startsWith("/word/fontTable.xml")) {
+		        	jPart = new FontTablePart( pn );
 		        } else {
 		        	log.warn("TODO: handle " + partName);
 		        	jPart = null;
 		        }		       
 		       
-		       docx4jParts.put(pn, jPart);
+		       docx4jParts.put(pn, jPart);  // That should add it to the live docxj package
 		       log.debug("Added new part " + partName);
 		       
 		    // (But it should already be
@@ -1575,8 +1593,8 @@ private void updateDocx4jPart(
 		//  headers, footers, styles, numbering
 	    		        
 	    jPart = (JaxbXmlPart)p;
-	    jPart.unmarshal((Element)listParent);  
 	}
+    jPart.unmarshal((Element)listParent);  
 }
 	
 
