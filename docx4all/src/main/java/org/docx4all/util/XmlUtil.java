@@ -175,12 +175,12 @@ public class XmlUtil {
 						(org.docx4j.wml.Document)((JaxbXmlPart)tmpDocPart).getJaxbElement());
 			} else {
 				wmlPackage.getMainDocumentPart().setJaxbElement(
-						((JaxbXmlPart)tmpDocPart).getJaxbElement());
+						(org.docx4j.wml.Document)((JaxbXmlPart)tmpDocPart).getJaxbElement());
 			}
 			
 			// That handled the Main Document Part; now set the Style part.
 			wmlPackage.getMainDocumentPart().getStyleDefinitionsPart().setJaxbElement( 
-					((JaxbXmlPart)tmpStylesPart).getJaxbElement() );
+					(org.docx4j.wml.Styles)((JaxbXmlPart)tmpStylesPart).getJaxbElement() );
 			
 		} catch (Exception exc) {
 			exc.printStackTrace();
@@ -308,7 +308,7 @@ public class XmlUtil {
 			} else {
 				jaxbElement = ObjectFactory.createEmptyDocument();
 			}
-			documentPart.setJaxbElement(jaxbElement);
+			documentPart.setJaxbElement((org.docx4j.wml.Document)jaxbElement);
 			thePack.addTargetPart(documentPart);
 			
 			//Check for source's styles part
@@ -321,7 +321,7 @@ public class XmlUtil {
 					new org.docx4j.openpackaging.parts.WordprocessingML.StyleDefinitionsPart();
 				if (copyStyleDefPart) {
 					jaxbElement = org.docx4j.XmlUtils.deepCopy(srcStylesPart.getJaxbElement());
-					stylesPart.setJaxbElement(jaxbElement);
+					stylesPart.setJaxbElement( (org.docx4j.wml.Styles)jaxbElement);
 					// Add the styles part to the main document part relationships
 					// (creating it if necessary)
 					documentPart.addTargetPart(stylesPart); // NB - add it to main doc part, not package!
@@ -342,7 +342,7 @@ public class XmlUtil {
 			if (copyDocPropsCustomPart) {
 				DocPropsCustomPart srcDocPropsCustomPart = source.getDocPropsCustomPart();
 				jaxbElement = org.docx4j.XmlUtils.deepCopy(srcDocPropsCustomPart.getJaxbElement(), Context.jcDocPropsCustom);
-				docPropsCustomPart.setJaxbElement(jaxbElement);
+				docPropsCustomPart.setJaxbElement((org.docx4j.docProps.custom.Properties)jaxbElement);
 			}
 			
 		}
