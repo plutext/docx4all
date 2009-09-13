@@ -107,6 +107,10 @@ import org.w3c.dom.NodeList;
 /**
  * This class is the real workhorse.
  */
+/**
+ * @author dev
+ *
+ */
 public class Mediator {
 	/*
 	 * Design goals:
@@ -609,14 +613,8 @@ public class Mediator {
 			// }
 	
 			worker.setProgress(FetchProgress.APPLYING_UPDATES, "Applying updates");
-			
-//		    fetchParts[PART_RELS] = false;
-//		    fetchParts[PART_COMMENTS] = false;
-//		    fetchParts[PART_FOOTNOTES] = false;
-//		    fetchParts[PART_ENDNOTES] = false;
-//		    // applyUpdates may tell us otherwise ...
-	
-			
+				
+	        docSectPrUpdated = false;			
 			applyUpdates(worker);
 		
 	    }
@@ -624,7 +622,6 @@ public class Mediator {
 	    // Update references to other parts - these might have changed,
 	    // even if no content control changed.
         try {
-        	//log.error("Related parts need updating..");
         	updateRelatedParts(worker);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -660,7 +657,7 @@ public class Mediator {
 	    PartVersionList serverPVL = new PartVersionList(itemFieldz[1]);
 	    serverPVL.setVersions();
 
-	    // See what has been updated
+	    // See what has been updated - sequenced, third, or lower caste parts
 	    List<String> relevantParts = serverPVL.partsNewerOnServer(stateDocx.getPartVersionList());
 
 	    if (relevantParts.isEmpty())
@@ -784,6 +781,16 @@ int parseIdref(String idref)
 
 }
 
+/**
+ * Flag to tell us whether one of the transforms we applied
+ * replaced the doc level sectPr.  We need this so that when
+ * we are renumbering in the document, we know whether references
+ * in the sectPr are to the local rels part, or the server
+ * rels part.
+ */
+boolean docSectPrUpdated = false;
+
+
 /// <summary>
 /// Update document rels, comments, footnotes/endnotes, by composing
 /// a new part.
@@ -828,15 +835,19 @@ private void updateSequencedParts(//Pkg pkg, Map<String, StateChunk> currentStat
     // How many of these are there?
     int max = j;
 
+    // Setup serverSequencedParts
+    log.info("Setup serverSequencedParts");    
     //Dictionary<string, SequencedPart> serverSequencedParts = 
     //    new Dictionary<string,SequencedPart>();
     SequencedPart[] serverSequencedParts = new SequencedPart[max];
     j = -1;
     for (int i = 0; i < weirdParts.length; i++) // could say && j<max, coz otherwise we've found them all
     {
+        log.info("Considering " + relevantParts.get(i) );        	
         if (!PartVersionList.getSequenceableParts().contains(
                relevantParts.get(i)))
         {
+            log.debug(".. ignoring; not sequencable." );        	
             continue;
         }
         else
@@ -879,6 +890,7 @@ private void updateSequencedParts(//Pkg pkg, Map<String, StateChunk> currentStat
 	    }
 
 	    // .. and the corresponding local parts.
+    	log.info("Setup localSequencedParts");        
 	    // We want to work with the ones corresponding to the current state of the
 	    // document, not its last recorded state (which would be stateDocx)
 	    HashMap<String, org.plutext.client.partWrapper.Part> localParts 
@@ -888,6 +900,7 @@ private void updateSequencedParts(//Pkg pkg, Map<String, StateChunk> currentStat
 	    for (int i = 0; i < max; i++)
 	    {
 	        String partName = serverSequencedParts[i].getName();
+	    	log.info(partName);        
 
 	        if (partName.equals("/word/_rels/document.xml.rels"))
 	        {
@@ -1044,9 +1057,13 @@ private void updateSequencedParts(//Pkg pkg, Map<String, StateChunk> currentStat
 	            String sdtId = sdt.getFirstChild().getFirstChild().getNodeValue();
 	            	// getFirstChild().getNodeValue() is the value of the #text child
 	            //log.debug(sdtId);
+	            
+  	            // Omitted from docx4all: "Some things might not be in an SDT at all yet. These reference local"
 
+	            
                 Object dummy = changedChunks.get(sdtId);
-                if (dummy == null) {
+                if (dummy == null
+                		|| (sdtId.equals(SECTPR_MAGIC_ID) && !docSectPrUpdated) ) {
                 	
 	                log.debug("id: " + sdtId + " - references local SequencedPart");
 
@@ -1184,20 +1201,25 @@ private void updateSequencedParts(//Pkg pkg, Map<String, StateChunk> currentStat
 
 	            if (partName.equals("/word/_rels/document.xml.rels"))
 	            {
-	                // First, a sanity check
-	                if (((SequencedPartRels)(serverSequencedParts[i])).getPrefixedRelsCount()
-	                        != ((SequencedPartRels)(localSequencedParts[i])).getPrefixedRelsCount())
-	                {
-	                    log.error("Invalid assumption - prefixed rels have changed!");
-
-	                    // dump the 2 parts..	                    
-	                    log.debug( XmlUtils.w3CDomNodeToString(serverSequencedParts[i].getXmlNode() ));
-	                    log.debug( XmlUtils.w3CDomNodeToString(localSequencedParts[i].getXmlNode() ));
-	                }
-	                // Hope the sanity check was ok; if it wasn't, its better to use the local _rels
-	                // since its for that that we actually have the matching parts
-	                // id is a 1-based index.
-	                int idNum = k + 1 + ((SequencedPartRels)(localSequencedParts[i])).getPrefixedRelsCount();
+//	                // First, a sanity check
+//	                if (((SequencedPartRels)(serverSequencedParts[i])).getPrefixedRelsCount()
+//	                        != ((SequencedPartRels)(localSequencedParts[i])).getPrefixedRelsCount())
+//	                {
+//	                    log.error("Invalid assumption - prefixed rels have changed!");
+//
+//	                    // dump the 2 parts..	                    
+//	                    log.debug( XmlUtils.w3CDomNodeToString(serverSequencedParts[i].getXmlNode() ));
+//	                    log.debug( XmlUtils.w3CDomNodeToString(localSequencedParts[i].getXmlNode() ));
+//	                }
+//	                // Hope the sanity check was ok; if it wasn't, its better to use the local _rels
+//	                // since its for that that we actually have the matching parts
+//	                // id is a 1-based index.
+//	                int idNum = k + 1 + ((SequencedPartRels)(localSequencedParts[i])).getPrefixedRelsCount();
+	            		            	
+	                // 2009 09 07.  If the server copy has more PrefixedRelsCount, use that, since
+	                // later, we'll add the extra parts present on the server (typically footnotes/endnotes,
+	                // which get added when you first add a header (!) ).	            	
+	                int idNum = k + 1 + ((SequencedPartRels)(serverSequencedParts[i])).getPrefixedRelsCount();
 
 	                log.debug(nodeList.item(k).getLocalName());
 	                if (nodeList.item(k).getLocalName().equals("commentReference"))
@@ -1250,7 +1272,7 @@ private void updateSequencedParts(//Pkg pkg, Map<String, StateChunk> currentStat
 	                    }
 	                    rel_comment.getAttributes().getNamedItem("Id").setNodeValue(rel_comment_id_new);
 	                }
-	                else
+	                else // its not a commentReference
 	                {
 	                    log.debug("Setting rId" + idNum );
 	                    // Renumber in the document
@@ -1272,7 +1294,7 @@ private void updateSequencedParts(//Pkg pkg, Map<String, StateChunk> currentStat
 	                    n.getAttributes().getNamedItem("Id").setNodeValue("rId" + idNum);  // No Namespaces.WORDML_NAMESPACE
 
 	                }
-	            }
+	            } // end rels
 	            else if (partName.equals("/word/footnotes.xml")
 	                || partName.equals("/word/endnotes.xml"))
 	            {
@@ -1341,27 +1363,40 @@ private void updateSequencedParts(//Pkg pkg, Map<String, StateChunk> currentStat
 
 	        if (partName.equals("/word/_rels/document.xml.rels"))
 	        {
-	            int localPrefixedRelsCount = ((SequencedPartRels)(localSequencedParts[i])).getPrefixedRelsCount();
-	            int localSuffixedRelsCount = ((SequencedPartRels)(localSequencedParts[i])).getSuffixedRelsCount();
-	            log.debug("localPrefixedRelsCount = " + localPrefixedRelsCount);
-	            log.debug("localSuffixedRelsCount = " + localSuffixedRelsCount);
+	            // Keep FIXED_RELS_PREFIX and FIXED_RELS_SUFFIX,
+	            // but Remove the other children 
 
-	            //log.debug(listParent.OuterXml);
+	            int prefixedRelsCount = ((SequencedPartRels)(serverSequencedParts[i])).getPrefixedRelsCount();
+	            int suffixedRelsCount = ((SequencedPartRels)(serverSequencedParts[i])).getSuffixedRelsCount();
+	            // 2009 09 07, for these we use serverSequencedParts, since we want to preserve any extras
+	            // they contain (for example, footnotes/endnotes, or glossary).
+	            // So for the rels part:
+	            parent = serverSequencedParts[i].getXmlNode();
+	            listParent = parent.getFirstChild().getFirstChild();
 
-	            // Sanity check - as good to do it here as anywhere
-	            if (((SequencedPartRels)(serverSequencedParts[i])).getSuffixedRelsCount()
-	                    != localSuffixedRelsCount)
-	            {
-	                log.error("Invalid assumption - suffixed rels have changed!");
-
-	                //  dump the 2 parts?
-	            }
+//	            int prefixedRelsCount = ((SequencedPartRels)(localSequencedParts[i])).getPrefixedRelsCount();
+//	            int suffixedRelsCount = ((SequencedPartRels)(localSequencedParts[i])).getSuffixedRelsCount();
+//	            log.debug("localPrefixedRelsCount = " + prefixedRelsCount);
+//	            log.debug("localSuffixedRelsCount = " + suffixedRelsCount);
+//
+//	            //log.debug(listParent.OuterXml);
+//
+//	            // Sanity check - as good to do it here as anywhere
+//	            if (((SequencedPartRels)(serverSequencedParts[i])).getSuffixedRelsCount()
+//	                    != suffixedRelsCount)
+//	            {
+//	                log.error("Invalid assumption - suffixed rels have changed!");
+//
+//	                //  dump the 2 parts?
+//	            }
 
 	            // Keep FIXED_RELS_PREFIX and FIXED_RELS_SUFFIX,
 	            // but Remove the other children 
 	            // These *aren't stored in order*, so we can't just do:
 	            // XmlNode deletion = listParent.ChildNodes[i2 - 1];
-	            int relCount = listParent.getChildNodes().getLength();
+	            
+	            int relCount = prefixedRelsCount + constructedContent[i].size() + suffixedRelsCount;	            
+//	            int relCount = listParent.getChildNodes().getLength();
 	            for (int i2 = relCount; i2 > 0; i2--)
 	            {
 
@@ -1370,23 +1405,23 @@ private void updateSequencedParts(//Pkg pkg, Map<String, StateChunk> currentStat
 	                int relId =  Integer.parseInt(idtmp.substring(3));
 
 	                log.debug(idtmp + " ( " + listParent.getChildNodes().item(i2 - 1).getAttributes().getNamedItem("Target").getNodeValue());
-	                if (relId <= localPrefixedRelsCount)
+	                if (relId <= prefixedRelsCount)
 	                {
 	                    // Its one of the FIXED_RELS_PREFIX,
 	                    // so just keep it
-	                    log.debug(relId + "<=" + localPrefixedRelsCount + "---> keeping");
+	                    log.debug(relId + "<=" + prefixedRelsCount + "---> keeping");
 
 	                }
 	                else if (relId >
-	                    (relCount - localSuffixedRelsCount))
+	                    (relCount - suffixedRelsCount))
 	                {
 	                    // Its one of the FIXED_RELS_SUFFIX,
 	                    // so renumber (which is all we need to do with this)
-	                    log.debug(relId + ">" + relCount + " - " + localSuffixedRelsCount);
-	                    int offset = relId - (relCount - localSuffixedRelsCount);
-	                    log.debug(localPrefixedRelsCount + " + " + (constructedContent[i]).size() + " + " + offset);
+	                    log.debug(relId + ">" + relCount + " - " + suffixedRelsCount);
+	                    int offset = relId - (relCount - suffixedRelsCount);
+	                    log.debug(prefixedRelsCount + " + " + (constructedContent[i]).size() + " + " + offset);
 
-	                    int newnum = localPrefixedRelsCount
+	                    int newnum = prefixedRelsCount
 	                        + (constructedContent[i]).size()
 	                        + offset;
 	                    if (rel_comment != null)
@@ -1418,9 +1453,9 @@ private void updateSequencedParts(//Pkg pkg, Map<String, StateChunk> currentStat
 	                listParent.appendChild(importedNode);
 	            }
 	        }
-	        else
+	        else   // non rels part
 	        {
-	            // Remove the children 
+	            // Remove all the children 
 	            for (int i2 = listParent.getChildNodes().getLength(); i2 > 0; i2--)
 	            {
 	                log.debug(i2);
@@ -1436,7 +1471,9 @@ private void updateSequencedParts(//Pkg pkg, Map<String, StateChunk> currentStat
 	            Node importedNode = parent.getOwnerDocument().importNode(n, true);  // pkgB.PkgXmlDocument.ImportNode(n, true);
 	            listParent.appendChild(importedNode);
 	        }
-	        //log.Debug("RESULT: " + parent.OuterXml);
+	        if (partName.equals("/word/_rels/document.xml.rels")) {
+	            log.debug("RESULT: " +  org.docx4j.XmlUtils.w3CDomNodeToString(parent) );
+	        }
 
 	        updateDocx4jPart(docx4jParts, partName, listParent);
 	    }
@@ -1783,6 +1820,23 @@ private void updateDocx4jPart(
 
 		} else if ((t instanceof TransformUpdate)
 				|| (t instanceof TransformInsert)) {
+			
+	        // Special handling for document level sectPr
+	        if (t.getPlutextId().equals(SECTPR_MAGIC_ID ))
+	        {
+	            // Get the sectPr
+	        	org.docx4j.wml.P p = (org.docx4j.wml.P)t.getSdt().getSdtContent().getEGContentBlockContent().get(0);
+	        	org.docx4j.wml.SectPr sectPr = (org.docx4j.wml.SectPr)p.getPPr().getSectPr();
+	        	
+	            replaceDocumentSectPr(sectPr);
+
+	            docSectPrUpdated = true;
+				t.setApplied(true);
+	            return 9999; // some number > 0
+
+	        }
+			
+			
 
 			StateChunk stateDocxSC = stateDocx.getStateChunks().get(plutextId);
 			boolean conflict = false;
@@ -2467,6 +2521,34 @@ private void updateDocx4jPart(
 				}
 			}// for (idx) loop
 			
+	        // 2009 09 09: if any are conflicted, don't send, since rel integrity may
+	        // break if a conflicted sdt contains rels.  (A slight improvement in
+	        // usability would be to refuse, only if there are rels in the conflicted sdts)
+	        if (someConflicted || someTrackedConflicts)
+	        {
+	            
+				if (someConflicted) {
+					String message = 
+						"Done - Conflict warning: Fetch updates then accept/reject changes before trying again.";
+					worker.setProgress(TransmitProgress.DONE, message);					
+				} else if (someTrackedConflicts) {
+					String message =
+						"Done - Conflict warning: Accept/Reject changes before trying again.";
+					worker.setProgress(TransmitProgress.DONE, message);
+				} 
+	            
+	            return false;  // 2009 09 09 TODO: check we didn't irreversibly change local state
+	        }
+
+	        // Has the final sectPr changed?
+	        T tSect = transformDocumentSectPr();
+	        if (tSect != null) { 
+				transformsToSend.add(tSect);
+	        }
+
+	        //bw.ReportProgress(5, "Inspecting styles");
+	        //transmitStyleUpdates(transformsToSend);
+			
 			boolean otherUpdates = false;
 	        try {
 	        	otherUpdates = transmitOtherUpdates(); // TODO - move this, since its a separate ws call.			
@@ -2477,21 +2559,7 @@ private void updateDocx4jPart(
 			}
 	    
 			if (transformsToSend.isEmpty()) {
-				boolean success = false;
-	            if (someConflicted || someTrackedConflicts)
-	            {				
-					if (someConflicted) {
-						String message = 
-							"Done - Conflict warning: Fetch updates then accept/reject changes before trying again.";
-						worker.setProgress(TransmitProgress.DONE, message);					
-					} else if (someTrackedConflicts) {
-						String message =
-							"Done - Conflict warning: Accept/Reject changes before trying again.";
-						worker.setProgress(TransmitProgress.DONE, message);
-					} 
-					return success;
-	            }
-	            
+				
 	            if (otherUpdates)
 	            {
 	            	worker.setProgress(TransmitProgress.DONE, "Updates sent.");
@@ -2500,9 +2568,7 @@ private void updateDocx4jPart(
 	            {
 	            	worker.setProgress(TransmitProgress.DONE, "Nothing to send.");
 	            }
-				
-				success = true;
-				return success;
+	            return true;
 				
 			}
 	    
@@ -2626,10 +2692,16 @@ private void updateDocx4jPart(
 						if (ta instanceof TransformUpdate) {
 							// Set the in-document tag to match the one we got back
 							// ?? the actual sdt or the state chunk?
-							updateLocalContentControlTag(ta.getPlutextId(), ta.getTag());
-							this.stateDocx.getStateChunks().put(
-								ta.getPlutextId(),
-								new StateChunk(ta.getSdt()));
+							
+			                // Set the in-document tag to match the one we got back 
+			                // unless its just the sectPr
+			                if (!ta.getPlutextId().equals(SECTPR_MAGIC_ID))
+			                {							
+								updateLocalContentControlTag(ta.getPlutextId(), ta.getTag());
+								this.stateDocx.getStateChunks().put(
+									ta.getPlutextId(),
+									new StateChunk(ta.getSdt()));
+			                }
 						} else {
 							// Assumption is that chunking is done locally,
 							// and we won't get eg an Insert back
@@ -2689,158 +2761,223 @@ private void updateDocx4jPart(
     	return success;
 	}
 
+    public static String SECTPR_MAGIC_ID = "9999";
+    final static String PLUTEXT_ID     ="p:id"; 
+    final static String PLUTEXT_VERSION="p:v"; 
+
+    T transformDocumentSectPr()
+    {
+        // Get current sectPr
+ 		DocumentElement root = (DocumentElement) getWordMLDocument().getDefaultRootElement();    			
+ 		WordprocessingMLPackage wmlp = 
+    		((DocumentML) root.getElementML()).getWordprocessingMLPackage();
+        String sectPrString = Util.extractDocumentSectPr(wmlp);
+
+        // Is it the same as stateDocx copy?
+        // If so, return null
+        if (sectPrString.equals(stateDocx.getSectPr()))
+        {
+            log.debug("sectPr: No changes detected.");
+            return null;
+        }
+
+        // Otherwise, wrap it in an sdt with magic id,
+        String sdtStr = "<w:sdt xmlns:w=\"" + Namespaces.WORDML_NAMESPACE + "\">" 
+     	+"<w:sdtPr><w:id w:val=\"" + SECTPR_MAGIC_ID + "\"/>"   
+     	+"<w:tag w:val=\"" + PLUTEXT_ID + "=" + SECTPR_MAGIC_ID + "&amp;" + PLUTEXT_VERSION + "=0\"/>" 
+     	+"</w:sdtPr>"
+        + "<w:sdtContent><w:p><w:pPr>"+ sectPrString + "</w:pPr></w:p></w:sdtContent>" 
+     	+ "</w:sdt>"; 
+
+        org.docx4j.wml.SdtBlock sdt = (org.docx4j.wml.SdtBlock)org.docx4j.XmlUtils.unmarshalString(sdtStr);
+
+        // and create a transform 
+        
+		org.plutext.transforms.ObjectFactory transformsFactory = 
+			new org.plutext.transforms.ObjectFactory();        
+		T t = transformsFactory.createTransformsT();
+		t.setOp("update");
+		t.setIdref( Long.parseLong(SECTPR_MAGIC_ID)  );
+		t.setSdt(sdt);
+		return t;
+        
+
+    }
+    
+    
 	/**
 	 * Transmit changes to 2nd and 3rd class parts
 	 * 
 	 * @throws RemoteException
 	 */
-	boolean transmitOtherUpdates() throws RemoteException
-	{
-	    log.debug("In transmitOtherUpdates");
-	    boolean stuffTransmitted = false;		
-		
-	    HashMap<String, org.plutext.client.partWrapper.Part> knownParts = stateDocx.getParts();
+	boolean transmitOtherUpdates() throws RemoteException {
+		log.debug("In transmitOtherUpdates");
+		boolean stuffTransmitted = false;
 
-	    HashMap<String, org.plutext.client.partWrapper.Part> discoveredParts 
-	    	= Util.extractParts( getWordMLDocument() );
-	    // See PartVersionList.relevant for definition of parts we update;
+		HashMap<String, org.plutext.client.partWrapper.Part> knownParts = stateDocx
+				.getParts();
 
-	    Map.Entry pairs;
-	    org.plutext.client.partWrapper.Part knownPart;
-	    org.plutext.client.partWrapper.Part discoveredPart;
-	    
-	    // DELETED PART - are there any KnownParts which have now gone?
+		HashMap<String, org.plutext.client.partWrapper.Part> discoveredParts = Util
+				.extractParts(getWordMLDocument());
+		// See PartVersionList.relevant for definition of parts we update;
+
+		Map.Entry pairs;
+		org.plutext.client.partWrapper.Part knownPart;
+		org.plutext.client.partWrapper.Part discoveredPart;
+
+		// DELETED PART - are there any KnownParts which have now gone?
 		Iterator knownPartsIterator = knownParts.entrySet().iterator();
-	    while (knownPartsIterator.hasNext()) {
-	        pairs = (Map.Entry)knownPartsIterator.next();
-	        
-	        if(pairs.getKey()==null) {
-	        	log.warn("Skipped null key");
-	        	pairs = (Map.Entry)knownPartsIterator.next();
-	        }
-	    
-	        knownPart 
-	        	= (org.plutext.client.partWrapper.Part)pairs.getValue(); 
-	        // do we know about it?
-	        
-	        discoveredPart 
-	        	= discoveredParts.get(knownPart.getName() );
+		while (knownPartsIterator.hasNext()) {
+			pairs = (Map.Entry) knownPartsIterator.next();
 
-            // So we do know about it
-            // That's fine - the foreach below will see whether it has
+			if (pairs.getKey() == null) {
+				log.warn("Skipped null key");
+				pairs = (Map.Entry) knownPartsIterator.next();
+			}
+
+			knownPart = (org.plutext.client.partWrapper.Part) pairs.getValue();
+			// do we know about it?
+
+			discoveredPart = discoveredParts.get(knownPart.getName());
+
+			// So we do know about it
+			// That's fine - the foreach below will see whether it has
 			// changed?
-            
-            if (discoveredPart==null) {	        {
-	            // This part has been deleted
-	            log.warn(knownPart.getName() + " no longer present locally; delete it on server?");
-	            // TODO removePart(PartName)
-	        }
-	    }
 
+			if (discoveredPart == null) {
+				{
+					// This part has been deleted
+					log
+							.warn(knownPart.getName()
+									+ " no longer present locally; delete it on server?");
+					// TODO removePart(PartName)
+				}
+			}
+		}
+		
+		// INSERTED/UPDATED parts
+		Iterator discoveredPartsIterator = discoveredParts.entrySet()
+				.iterator();
+		while (discoveredPartsIterator.hasNext()) {
+			pairs = (Map.Entry) discoveredPartsIterator.next();
 
-	    // INSERTED/UPDATED parts
-		Iterator discoveredPartsIterator = discoveredParts.entrySet().iterator();
-	    while (discoveredPartsIterator.hasNext()) {
-	        pairs = (Map.Entry)discoveredPartsIterator.next();
-	        
-	        if(pairs.getKey()==null) {
-	        	log.warn("Skipped null key");
-	        	pairs = (Map.Entry)knownPartsIterator.next();
-	        }
-	    //foreach (KeyValuePair<String, Part> kvp in discoveredParts)
-	    //{
-	        discoveredPart = (org.plutext.client.partWrapper.Part)pairs.getValue(); 
-	        log.error("Considering " + discoveredPart.getName() );
-	        // do we know about it?
-            knownPart = knownParts.get(discoveredPart.getName());
-            
-            if (knownPart==null) {
-            	
-	            // This must be a new part, so version is 0.
-	            String resultingVersion = ws.injectPart(stateDocx.getDocID(), 
-	            		discoveredPart.getName(), 
-	                "0", discoveredPart.getContentType(), discoveredPart.getUnwrappedXml());
-	            stuffTransmitted = true;
+			if (pairs.getKey() == null) {
+				log.warn("Skipped null key");
+				pairs = (Map.Entry) knownPartsIterator.next();
+			}
+			// foreach (KeyValuePair<String, Part> kvp in discoveredParts)
+			// {
+			discoveredPart = (org.plutext.client.partWrapper.Part) pairs
+					.getValue();
+			log.error("Considering " + discoveredPart.getName());
+			// do we know about it?
+			knownPart = knownParts.get(discoveredPart.getName());
 
-	            // expect that to be 1?  well, no: the first version on the server will be numbered 0.
-	            if (!resultingVersion.equals("0"))
-	            {
-	                log.error("expected this be to version 0 ?!");
-	            }
-	            stateDocx.getPartVersionList().setVersion(discoveredPart.getName(), 
-	            		resultingVersion);
+			if (knownPart == null) {
 
-	            // and update our record of the part in StateDocx
-	            // (since any change from this new baseline is something we will want to transmit)
-	            stateDocx.getParts().put(discoveredPart.getName(), discoveredPart);
+				// This must be a new part, so version is 0.
+				String resultingVersion = ws.injectPart(stateDocx.getDocID(),
+						discoveredPart.getName(), "0", discoveredPart
+								.getContentType(), discoveredPart
+								.getUnwrappedXml());
+				stuffTransmitted = true;
 
-	            // note that _rels of this which is a target will get handled 
-	            // automatically, because we will have detected a change to that part as well,
-	            // and sent it ...            
-            
-            } else {
+				// expect that to be 1? well, no: the first version on the
+				// server will be numbered 0.
+				if (!resultingVersion.equals("0")) {
+					log.error("expected this be to version 0 ?!");
+				}
+				stateDocx.getPartVersionList().setVersion(
+						discoveredPart.getName(), resultingVersion);
 
-	            // So we do know about it
-	            // - has it changed?
-	            //if (knownPart.Xml.Equals(discoveredPart.Xml))
-            	// docx4all uses unwrapped here
-            	if (knownPart.getXmlNode().equals(discoveredPart.getXmlNode()) )
-	            {
-            		// that's a DOM Level 3 feature - if Eclipse says it is undefined,
-            		// go into Build Path > Order and Export > and make sure
-            		// your (>JDK 5) system library precedes anything else
-            		// which defines DOM APIs
-            		// (TODO - why do we have XML APIs 1.0 beta 2 ??)
-            		
-	                log.debug("No changes detected in: " + knownPart.getName() );
-	            }
-	            else
-	            {
-	                // Similar to what we do when we send an update to an SDT,
-	                // we send this with our current version number.
-	                // All being well, the server will respond with a new version
-	                // number.
+				// and update our record of the part in StateDocx
+				// (since any change from this new baseline is something we
+				// will want to transmit)
+				stateDocx.getParts().put(discoveredPart.getName(),
+						discoveredPart);
 
-	                String localVersion = stateDocx.getPartVersionList().getVersion(
-	                    discoveredPart.getName() );
+				// note that _rels of this which is a target will get
+				// handled
+				// automatically, because we will have detected a change to
+				// that part as well,
+				// and sent it ...
 
-	                /*
-	                 * NB: We don't test localVersionIsCurrent(discoveredPart.Name, localVersion)
-	                 * and if not, abort the updates, because an entry condition
-	                 * is that the cc's are up to date.  See above, around line 2417.
-	                 * 
-	                 * Given that they are up to date, no 2nd or 3rd class part
-	                 * should have changed on the server (certainly not document rels,
-	                 * though the styles part or a header/footer could have (since you can 
-	                 * change those without changing the document), as could a comment/footnote
-	                 * or endnote - though just an edit, not add/delete).
-	                 * 
-	                 * (Given that we don't need to worry about document rels) we can 
-	                 * allow the server to reject an update (without untoward consequences),
-	                 * which is better than overwriting a newer version with an older one.
-	                 * 
-	                 * TODO: warn user though, so they know  to fetch updates and try again
-	                 */
+			} else {
 
-	                //log.Debug("Transmitting updated " + discoveredPart.Name + ": " + discoveredPart.UnwrappedXml);
-	                
-	                String resultingVersion = ws.injectPart(stateDocx.getDocID(), 
-	                    discoveredPart.getName(), localVersion, 
-	                    discoveredPart.getContentType(), discoveredPart.getUnwrappedXml() );
-	                stuffTransmitted = true;
-	                stateDocx.getPartVersionList().setVersion(discoveredPart.getName(), 
-	                		resultingVersion);
+				// So we do know about it
+				// - has it changed?
+				// if (knownPart.Xml.Equals(discoveredPart.Xml))
+				// docx4all uses unwrapped here
+				if (knownPart.getXmlNode().equals(discoveredPart.getXmlNode())) {
+					// that's a DOM Level 3 feature - if Eclipse says it is
+					// undefined,
+					// go into Build Path > Order and Export > and make sure
+					// your (>JDK 5) system library precedes anything else
+					// which defines DOM APIs
+					// (TODO - why do we have XML APIs 1.0 beta 2 ??)
 
-	                // and update our record of the part in StateDocx
-	                // (since any change from this new baseline is something we will want to transmit)
-	                knownParts.put(discoveredPart.getName(), discoveredPart );
-	            }
+					log.debug("No changes detected in: " + knownPart.getName());
+				} else {
+					// Similar to what we do when we send an update to an
+					// SDT,
+					// we send this with our current version number.
+					// All being well, the server will respond with a new
+					// version
+					// number.
 
-	        }
-	    }
-	    }
-	    return stuffTransmitted;
-	    
+					String localVersion = stateDocx.getPartVersionList()
+							.getVersion(discoveredPart.getName());
+
+					/*
+					 * NB: We don't test
+					 * localVersionIsCurrent(discoveredPart.Name, localVersion)
+					 * and if not, abort the updates, because an entry condition
+					 * is that the cc's are up to date. See above, around line
+					 * 2417.
+					 * 
+					 * Given that they are up to date, no 2nd or 3rd class part
+					 * should have changed on the server (certainly not document
+					 * rels, though the styles part or a header/footer could
+					 * have (since you can change those without changing the
+					 * document), as could a comment/footnote or endnote -
+					 * though just an edit, not add/delete).
+					 * 
+					 * (Given that we don't need to worry about document rels)
+					 * we can allow the server to reject an update (without
+					 * untoward consequences), which is better than overwriting
+					 * a newer version with an older one.
+					 * 
+					 * TODO: warn user though, so they know to fetch updates and
+					 * try again
+					 */
+
+					// log.Debug("Transmitting updated " +
+					// discoveredPart.Name + ": " +
+					// discoveredPart.UnwrappedXml);
+					String resultingVersion = ws.injectPart(stateDocx
+							.getDocID(), discoveredPart.getName(),
+							localVersion, discoveredPart.getContentType(),
+							discoveredPart.getUnwrappedXml());
+					stuffTransmitted = true;
+					stateDocx.getPartVersionList().setVersion(
+							discoveredPart.getName(), resultingVersion);
+
+					// and update our record of the part in StateDocx
+					// (since any change from this new baseline is something
+					// we will want to transmit)
+					knownParts.put(discoveredPart.getName(), discoveredPart);
+				}
+
+			}
+
+		}
+		
+	    // SPECIAL CASE:  theme
+	    // .. not required in docx4all code.		
+		
+		
+		return stuffTransmitted;
+
 	}
     
     
@@ -3284,6 +3421,22 @@ private void updateDocx4jPart(
         return false;
 	}
 	
+	/**
+	 * NB At present, docx4all has no notion of sectPr at the ML level,
+	 * so this operates solely at the docx4j level.
+	 * @param foreignSectPr
+	 */
+	public void replaceDocumentSectPr(org.docx4j.wml.SectPr foreignSectPr ) {
+		
+		WordMLDocument doc = 
+			(WordMLDocument)getWordMLTextPane().getDocument();
+ 		DocumentElement root = (DocumentElement) doc.getDefaultRootElement();    			
+ 		WordprocessingMLPackage wmlp = 
+    		((DocumentML) root.getElementML()).getWordprocessingMLPackage();
+ 		
+ 		wmlp.getMainDocumentPart().getJaxbElement().getBody().setSectPr(foreignSectPr);
+		
+	}
 	
 }// Mediator class
 

@@ -63,8 +63,11 @@
     </xsl:template>
 
         
-    <xsl:template match="w:sdt|w:p|w:tbl">
-    	<!--  p & tbl is so that we catch things which aren't in an sdt yet;
+    <xsl:template match="w:sdt|w:sectPr|w:p|w:tbl">
+    	<!--  
+          sectPr is the document level sectPr
+          
+    	p & tbl is so that we catch things which aren't in an sdt yet;
     	      though this is only relevant in the Word Add-In, not docx4all -->
       <sdt>
         <id>
@@ -76,6 +79,8 @@
 						select="java:org.plutext.client.SdtWrapper.getPlutextId($tag)" />					
         			
         		</xsl:when>
+	            <!-- SECTPR_MAGIC_ID -->
+	            <xsl:when test="self::w:sectPr">9999</xsl:when>        		
         		<xsl:otherwise>OUTSIDE_SDT</xsl:otherwise>
         	</xsl:choose>
       </id>

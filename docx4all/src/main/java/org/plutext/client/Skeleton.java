@@ -115,6 +115,15 @@ public class Skeleton implements IDiffList<TextLine> {
         // if an @snum > tSequenceNumberHighestFetched is found
 
 		for (Transitions.Ribs.Rib r: t.getRibs().getRib()) {
+			
+			
+            // We don't want our fake Sdt for document level sectPr
+            // to be diffed 
+            if ( Long.toString(r.getId()).equals(Mediator.SECTPR_MAGIC_ID) ) {
+                continue;
+            }
+			
+			
             if (tSequenceNumberHighestFetched > -1) {
             	for (Transitions.Ribs.Rib.T ribT: r.getT()) {
             		String op = ribT.getOp();

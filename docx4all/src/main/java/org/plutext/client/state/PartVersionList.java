@@ -213,6 +213,21 @@ public class PartVersionList {
             return versions.get(partname);
         }
 
+//        public boolean isPartPresent(String partname)
+//        {
+//            // We need this method in order to determine
+//            // whether we know about the theme part
+//            // (since getVersion can't tell us).
+//
+//            String x = versions.get(partname);
+//            if (x==null) {
+//                log.warn(partname + " not found in PartVersionList");
+//                return false;                	
+//            } else {
+//            	return true;
+//            }
+//        }
+        
 
         // initialisation
         public void setVersions() {
@@ -244,13 +259,13 @@ public class PartVersionList {
 			// version 0 of course ...
         }
 	
-        /// <summary>
-        /// Determine whether this part is one that we update.
-        /// These are our so-called "second" and "third class" citizens.
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="contentType"></param>
-        /// <returns></returns>
+        /**
+         * Determine whether this part is one that we update. 
+         * These are our so-called "second" and "third class" citizens and lower castes.
+         * @param name
+         * @param contentType
+         * @return
+         */
         public static boolean relevant(String name, String contentType)
         {
             if (sequenceableParts.contains(name))
@@ -274,6 +289,18 @@ public class PartVersionList {
             }
 
             // TODO: styles?, numbering?
+            // Handled by the below.
+
+            // 2009 08 31.  A docx created in docx4all contains a minimal set
+            // of parts.  Word will add others to the rels; we need to make
+            // sure these get transmitted as well.
+            // .. this code probably not relevant in docx4all, since docx4all
+            // never updates these parts?
+            if (name.startsWith("/word/")
+                && !name.equals("/word/document.xml"))
+            {
+                return true;
+            }
 
             return false;
 

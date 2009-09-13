@@ -289,6 +289,14 @@ public class Util {
 	
 	static Templates xsltPreTransmit;	
 	
+	public static String extractDocumentSectPr(WordprocessingMLPackage wordMLPackage) {
+ 		
+		boolean suppressDeclaration = true;
+ 		org.docx4j.wml.SectPr sectPr = wordMLPackage.getMainDocumentPart().getJaxbElement().getBody().getSectPr();
+		return org.docx4j.XmlUtils.marshaltoString(sectPr, suppressDeclaration);
+		
+	}
+	
 
 }// Util class
 

@@ -144,6 +144,8 @@ public class StateDocx {
 	    }
 		
         parts = Util.extractParts(doc);
+        
+        sectPr = extractDocumentSectPr();
 
         // For the parts we care about, record their version info.
 //        partVersionList.setVersions(parts);
@@ -152,6 +154,11 @@ public class StateDocx {
 		this.transforms = new TransformsCollection();
 		
 		this.stateChunks = Util.createStateChunks(doc);
+	}
+	
+	private String sectPr;
+	public String getSectPr() {
+		return sectPr;
 	}
 	
     private PartVersionList partVersionList;
@@ -216,7 +223,17 @@ public class StateDocx {
 //    		return stylemap;
 //    	}
 
+    	/**
+    	 * NB At present, docx4all has no notion of sectPr at the ML level,
+    	 * so this operates solely at the docx4j level.
+    	 * @param foreignSectPr
+    	 */
+    	public String extractDocumentSectPr() {
+    		     		
+    		return Util.extractDocumentSectPr(this.wordMLPackage);
+    	}
 
+    	
 
         /* Maintain a collection of Transforms keyed by tSequenceNumber, so we 
          * can keep track of which ones have been applied.  */
@@ -313,6 +330,7 @@ public class StateDocx {
 
 
         } //TransformsCollection inner class
+
 
     } //StateDocx class
 
