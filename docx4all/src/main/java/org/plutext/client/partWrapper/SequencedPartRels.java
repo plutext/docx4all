@@ -97,9 +97,11 @@ FIXED_RELS_SUFFIX:
                 }
 
                 if (inSuffix
-                    || (type.equals("fontTable")
-                            || type.equals("theme")))
+                    || type.equals("fontTable")
+                            || type.equals("glossaryDocument")
+                            || type.equals("theme"))
                 {
+                	inSuffix = true;
                     suffixedRelsCount++;
                 }
 

@@ -1405,8 +1405,8 @@ private void updateSequencedParts(//Pkg pkg, Map<String, StateChunk> currentStat
 	            // These *aren't stored in order*, so we can't just do:
 	            // XmlNode deletion = listParent.ChildNodes[i2 - 1];
 	            
-	            int relCount = prefixedRelsCount + constructedContent[i].size() + suffixedRelsCount;	            
-//	            int relCount = listParent.getChildNodes().getLength();
+	            //int relCount = prefixedRelsCount + constructedContent[i].size() + suffixedRelsCount;	    // wrong where there is a comment        
+	            int relCount = listParent.getChildNodes().getLength(); // correct, and simpler!
 	            for (int i2 = relCount; i2 > 0; i2--)
 	            {
 
