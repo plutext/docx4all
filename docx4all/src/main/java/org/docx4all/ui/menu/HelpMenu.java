@@ -93,12 +93,12 @@ public class HelpMenu extends UIMenu {
     	}
     	
     	String message = 
-    		"Docx4all is an open source docx-based word processor, for Windows, OSX, Linux and anywhere else J2SE 6 runs."
-    		+ "\nThis is an alpha release, not yet intended for production use. "
-    		+ "\nFor support and to provide feedback, please visit http://dev.plutext.org/forums/ or our wiki. Contributions welcome."    		
-    		+ "\ndocx4all was programmed by Jojada Tirtowidjojo (lead developer). [Your name here?] "
-    		+ "\nDocx4all is free software: you can redistribute it and/or modify it under the terms of v3 of the GNU GPL as published by the FSF."
-    		+ "\nCopyright (c) Plutext Pty. Ltd., 2007-2008";
+    		"Docx4all is a docx-based word processor, for Windows, OSX, Linux and anywhere else J2SE 6 runs."
+    		+ "\nThis is a beta release, your mileage may vary. "
+    		+ "\ndocx4all is primarily intended for people who want to co-edit a Word document in Alfresco; "
+    		+ "\nbut it can also be used for plain old editing. "
+    		+ "\nFor support and to provide feedback, please visit http://dev.plutext.org/forums/ "    		
+    		+ "\nCopyright (c) Plutext Pty. Ltd., 2007-2009";
         editor.showMessageDialog(title, message, JOptionPane.INFORMATION_MESSAGE);
 	}
 
