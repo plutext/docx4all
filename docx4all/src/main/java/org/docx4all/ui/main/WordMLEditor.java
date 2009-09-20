@@ -131,7 +131,20 @@ public class WordMLEditor extends SingleFrameApplication {
 //		javax.xml.transform.TransformerFactory tfactory = javax.xml.transform.TransformerFactory.newInstance();			
 //		TRANSFORMER_FACTORY_DEFAULT = tfactory.getClass().getName();
 //		log.debug("Set TRANSFORMER_FACTORY_DEFAULT to " + TRANSFORMER_FACTORY_DEFAULT);
-				
+		
+		// If we launch via JNLP with Java 6 JAXB (as opposed to the JAXB RI),
+		// we trip up with access denied on RuntimePermission accessDeclaredMembers
+		// (is this because NamespacePrefixMapperSunInternal extends com.sun.xml.internal.bind.marshaller.NamespacePrefixMapper?).
+		// This is despite the JNLP file seeking all-permissions.
+		// Workaround:
+		if (System.getSecurityManager()==null) {
+			System.out.println("Initial SecurityManager: null" );			
+		} else {
+			System.out.println("Initial SecurityManager: " + System.getSecurityManager().getClass().getName() );
+			System.setSecurityManager(null);
+		}
+		
+		
         launch(WordMLEditor.class, args);
 	}
 
