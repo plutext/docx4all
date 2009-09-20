@@ -45,13 +45,18 @@
         <pathelement location="${m2Repository}/xfire/opensaml/1.0.1/opensaml-1.0.1.jar"/>  
 
 <!--               
-        <pathelement location="${m2Repository}/org/docx4j/docx4j/2.1.0/docx4j-2.1.0.jar"/>
-      -->   
         <pathelement location="../docx4j/dist/docx4j.jar"/>
+      -->   
+        <pathelement location="${m2Repository}/org/docx4j/docx4j/2.2.2/docx4j-2.2.2.jar"/>
         
         <pathelement location="${m2Repository}/javax/jcr/jcr/1.0/jcr-1.0.jar"/>
         <pathelement location="${m2Repository}/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar"/>
+    	<pathelement location="${m2Repository}/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"/>        
+<!-- 
         <pathelement location="${m2Repository}/org/apache/xmlgraphics/xmlgraphics-commons/1.3/xmlgraphics-commons-1.3.jar"/>
+         -->
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/xmlgraphics-commons/1.3.757686/xmlgraphics-commons-1.3.757686.jar"/>
+        
         <pathelement location="${m2Repository}/com/lowagie/itext-unsigned/2.0.8/itext-unsigned-2.0.8.jar"/>
     	<!-- iText 2.0.8 pom dependencies:
         <pathelement location="${m2Repository}/bouncycastle/bcmail-jdk14/138/bcmail-jdk14-138.jar"/>
@@ -63,8 +68,16 @@
         <pathelement location="${m2Repository}/org/jvnet/jaxb2_commons/ppp/parent-pointer-plugin/1.0/parent-pointer-plugin-1.0.jar"/>
         <pathelement location="${m2Repository}/xhtmlrenderer/minium/0.1/minium-0.1.jar"/>
         <pathelement location="${m2Repository}/xhtmlrenderer/core-renderer/R8pre2/core-renderer-R8pre2.jar"/>
+<!--         
         <pathelement location="${m2Repository}/docx4j/fop-fonts/0.2.0/fop-fonts-0.2.0.jar"/>
         <pathelement location="${m2Repository}/org/apache/commons/commons-vfs-patched/1.1/commons-vfs-patched-1.1.jar"/>
+         -->
+        <pathelement location="${m2Repository}/org/apache/avalon/framework/avalon-framework-api/4.3.1/avalon-framework-api-4.3.1.jar"/>
+        <pathelement location="${m2Repository}/org/apache/avalon/framework/avalon-framework-impl/4.3.1/avalon-framework-impl-4.3.1.jar"/>
+         
+        <pathelement location="${m2Repository}/docx4j/fop-patched/0.95.756436/fop-patched-0.95.756436.jar"/> <!--  without Class-Path in MANIFEST -->
+        <pathelement location="${m2Repository}/org/apache/commons/commons-vfs-patched/1.9.1/commons-vfs-patched-1.9.1.jar"/>
+         
         <pathelement location="${m2Repository}/org/jdesktop/application/appframework/1.0.3/appframework-1.0.3.jar"/>
         <pathelement location="${m2Repository}/alfresco/community/alfresco-web-service-client-patched/2.9.1/alfresco-web-service-client-patched-2.9.1.jar"/>
         <pathelement location="${m2Repository}/net/java/dev/openjfx/javafxrt/1.0/javafxrt-1.0.jar"/>
@@ -75,11 +88,11 @@
         <pathelement location="${m2Repository}/net/sf/vfsjfilechooser/VFSJFileChooser-patched/0.0.32/VFSJFileChooser-patched-0.0.32.jar"/>
         <pathelement location="${m2Repository}/xml-security/xmlsec/1.4.1/xmlsec-1.4.1.jar"/>
         <pathelement location="${m2Repository}/bouncycastle/bcprov-jdk16-unsigned/136/bcprov-jdk16-unsigned-136.jar"/>
-        <pathelement location="${m2Repository}/com/topologi/diffx/0.61/diffx-0.61.jar"/>
 
+		<!-- we need this for com.sun.xml.bind.marshaller.NamespacePrefixMapper  
         <pathelement location="/home/dev/workspace/Alfresco/HEAD/root/projects/3rd-party/lib/jaxb-api-2.1.jar"/>
         <pathelement location="/home/dev/workspace/Alfresco/HEAD/root/projects/3rd-party/lib/jaxb-impl-2.1.7.jar"/>
-        
+        -->
     </path>
 	
     <path id="docx4all.classpath">
@@ -116,7 +129,8 @@
     <target depends="clean" name="cleanall"/>
     <target depends="build-subprojects,build-project" name="build"/>
     <target name="build-subprojects"/>
-    <target depends="init" name="build-project">
+    
+    <target name="build-project" depends="init" >
         <echo message="${ant.project.name}: ${ant.file}"/>
         <javac bootclasspathref="jre.libs" includeJavaRuntime="yes"
     			debug="true" debuglevel="${debuglevel}" 
@@ -137,6 +151,7 @@
             <classpath refid="docx4all.classpath"/>
         </javac>    	
     </target>
+    
     <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
     <target description="copy Eclipse compiler jars to ant lib directory" name="init-eclipse-compiler">
         <copy todir="${ant.library.dir}">
@@ -164,6 +179,10 @@
   	   
   	       ANT_OPTS="-Xmx512m -XX:MaxPermSize=256m" ant webstart  	   
   
+       Replace the servlet jar it generates with our new one from Java 6
+       (which handles if-modifies-since properly)
+       
+       
   -->
     <typedef resource="org/unintelligible/antjnlpwar/antjnlpwar.xml" format="xml" uri="org.unintelligible.antjnlpwar"/>
     <target name="webstart"  depends="clean, build-project" >
@@ -171,9 +190,7 @@
 		<property name="lib" value="./build/lib"/>
 		
         <mkdir dir="${lib}"/>
-		
-		<jar destfile="docx4all.jar" basedir="build/classes"/> <!-- somewhere other than ${lib} -->
-				
+						
 		<!-- copy all the jar files! -->
 		<copy todir="${lib}" flatten="true">
 			<!-- requires Ant 1.7.0 -->
@@ -181,6 +198,43 @@
 			    <path refid="docx4all.classpath"/>
 			</path>
 		</copy>		
+		
+		<jar destfile="docx4all.jar" basedir="build/classes" index="true">
+			<indexjars>
+				<fileset dir="${lib}" />
+			</indexjars>
+			<!--  workaround for the fact that indexjars doesn't index
+			      META-INF, with the result that class loader can't 
+			      find eg vfs-providers.xml.
+			      See ant bugzilla bug 47457 
+			      
+			      JAR is happy to have 2 entries with the same name;
+			      Unpack will fail though.
+			      
+			      -->
+			<zipfileset src="${lib}/webdavclient4j-vfs-0.9.3.jar" 
+				excludes="META-INF/MANIFEST.MF META-INF/ALIAS.* META-INF/*.txt META-INF/*.SERIALIZER META-INF/LICENSE META-INF/NOTICE"
+				includes="META-INF/**"/>
+			<!--  services/javax.script.ScriptEngineFactory -->
+			<zipfileset src="${lib}/javafxrt-1.0.jar" 
+				excludes="META-INF/MANIFEST.MF META-INF/ALIAS.* META-INF/*.txt META-INF/*.SERIALIZER META-INF/LICENSE META-INF/NOTICE"
+				includes="META-INF/**"/>
+			<!--  services/com.sun.tools.xjc.Plugin -->
+			<zipfileset src="${lib}/parent-pointer-plugin-1.0.jar" 
+				excludes="META-INF/MANIFEST.MF META-INF/ALIAS.* META-INF/*.txt META-INF/*.SERIALIZER META-INF/LICENSE META-INF/NOTICE"
+				includes="META-INF/**"/>
+			<!--  services/blagh blagh -->
+			<zipfileset src="${lib}/xmlgraphics-commons-1.3.757686.jar" 
+				excludes="META-INF/MANIFEST.MF META-INF/ALIAS.* META-INF/*.txt META-INF/*.SERIALIZER META-INF/LICENSE META-INF/NOTICE"
+				includes="META-INF/**"/>
+			<zipfileset src="${lib}/fop-patched-0.95.756436.jar" 
+				excludes="META-INF/MANIFEST.MF META-INF/ALIAS.* META-INF/*.txt META-INF/*.SERIALIZER META-INF/LICENSE META-INF/NOTICE
+				META-INF/services/org.apache.xmlgraphics.*"
+				includes="META-INF/**"/> <!--  2 copies of xmlgraphics causes unpack task to fail -->
+		</jar> 
+			<!-- somewhere other than ${lib}, docx4all does not need to be in
+			     the above; it is handled by jw:application below.  -->
+		
 					
         <!-- Create a distributable WAR archive of the application using the following attributes:
          * tofile: the destination WAR file
