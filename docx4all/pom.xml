@@ -298,6 +298,19 @@
   <groupId>org.docx4j</groupId>
   <artifactId>docx4j</artifactId>
   <version>2.2.2</version> 
+  <!-- Uncomment this if you want to run in Eclipse without
+       including -Djava.endorsed.dirs=/usr/lib/jvm/java-6-sun/jre/lib/endorsed
+       in the run dialog 
+  		<exclusions>
+  			<exclusion>
+   				<groupId>javax.xml.bind</groupId>
+   				<artifactId>jaxb-api</artifactId>
+  			</exclusion>
+  			<exclusion>
+   				<groupId>com.sun.xml.bind</groupId>
+   				<artifactId>jaxb-impl</artifactId>
+  			</exclusion>
+  		</exclusions>  -->
 </dependency>
 
 		<dependency>

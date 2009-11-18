@@ -19,7 +19,6 @@
 
 package org.plutext.client;
 
-import java.io.IOException;
 import java.io.StringReader;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
@@ -36,7 +35,6 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.rpc.ServiceException;
 import javax.xml.transform.Source;
 import javax.xml.transform.Templates;
-import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
@@ -402,11 +400,22 @@ public class Mediator {
 		// collection
         org.plutext.transforms.Updates updatesObj = null;
 		try {
+//			ClassLoader cl = org.plutext.transforms.ObjectFactory.class.getClassLoader();
+//			log.info("Classloader: " + cl.toString() );			
+//    		jcTransforms = JAXBContext.newInstance("org.plutext.transforms", cl);
+//			jcTransforms = JAXBContext.newInstance(org.plutext.transforms.Updates.class);
+//    		Unmarshaller u = jcTransforms.createUnmarshaller();
+			
 			Unmarshaller u = Context.jcTransforms.createUnmarshaller();
+				// HELP!  If it looks like org.docx4j.jaxb.Context.jc is being reused here,
+				// its because package-info is missing, which may be because of Ant 1.7.1,
+				// although our build works around that ...
+			
 			u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());
 			updatesObj = (org.plutext.transforms.Updates) u
 					.unmarshal(new java.io.StringReader(updates));
 		} catch (JAXBException e) {
+			// Shouldn't happen!!
 			e.printStackTrace();
 		}
 		
@@ -463,6 +472,8 @@ public class Mediator {
     	// collection
     	org.plutext.transforms.Transforms transformsObj = null;
     	try {
+//    		JAXBContext jcTransforms = JAXBContext.newInstance("org.plutext.transforms");
+//    		Unmarshaller u = jcTransforms.createUnmarshaller();
     		Unmarshaller u = Context.jcTransforms.createUnmarshaller();
     		u.setEventHandler(new org.docx4j.jaxb.JaxbValidationEventHandler());
     		transformsObj = (org.plutext.transforms.Transforms) u
@@ -1069,6 +1080,9 @@ private void updateSequencedParts(//Pkg pkg, Map<String, StateChunk> currentStat
 	            //log.debug(sdtId);
 	            
   	            // Omitted from docx4all: "Some things might not be in an SDT at all yet. These reference local"
+                if (sdtId.equals("OUTSIDE_SDT")){
+                	log.warn( "FIXME: " + XmlUtils.w3CDomNodeToString(sdt));
+                }
 
 	            
                 Object dummy = changedChunks.get(sdtId);
@@ -2206,7 +2220,10 @@ private void updateDocx4jPart(
 		if (!sdtChangeTypes.isEmpty()) // How to do this better??
 	    {
 	        log.debug(sdtChangeTypes.size() + " revisions found, so aborting transmitContentUpdates");
-	        worker.setProgress(0, "Please accept/reject all revisions first, then try again.");
+			String message =
+				"Please accept/reject all revisions first, then try again.";
+			worker.setProgress(TransmitProgress.DONE, message);
+	        
 	        return false;
 	    }		
 		
@@ -2614,12 +2631,15 @@ private void updateDocx4jPart(
 			transforms.getT().addAll(transformsToSend);
 			boolean suppressDeclaration = true;
 			boolean prettyprint = false;
+			
+    		//JAXBContext jcTransforms = JAXBContext.newInstance("org.plutext.transforms");
+			
 			String transformsString = 
 				org.docx4j.XmlUtils.marshaltoString(
 					transforms, 
 					suppressDeclaration, 
 					prettyprint,
-					org.plutext.Context.jcTransforms);
+					Context.jcTransforms);
 
 			log.debug("TRANSMITTING " + transformsString);
 

@@ -30,6 +30,9 @@ public class Context {
 		
 		try {		
 			jcTransforms = JAXBContext.newInstance("org.plutext.transforms");
+			// (The following would work equally well:
+			//    jcTransforms = JAXBContext.newInstance(org.plutext.transforms.Updates.class);
+			
 			jcTransitions = JAXBContext.newInstance("org.plutext.server.transitions");			
 		} catch (Exception ex) {
 			ex.printStackTrace();

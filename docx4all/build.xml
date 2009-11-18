@@ -6,6 +6,8 @@
     <property name="target" value="1.6"/>
     <property name="source" value="1.6"/>
 
+    <property name="src.main.java.dir" value="src/main/java"/>
+
 	<!-- NB before attempting to use this build file, run:
 	
 	        mvn install
@@ -44,11 +46,10 @@
         <pathelement location="${m2Repository}/org/swinglabs/swing-layout/1.0.3/swing-layout-1.0.3.jar"/>
         <pathelement location="${m2Repository}/xfire/opensaml/1.0.1/opensaml-1.0.1.jar"/>  
 
-<!--               
         <pathelement location="../docx4j/dist/docx4j.jar"/>
-      -->   
+<!--               
         <pathelement location="${m2Repository}/org/docx4j/docx4j/2.2.2/docx4j-2.2.2.jar"/>
-        
+-->        
         <pathelement location="${m2Repository}/javax/jcr/jcr/1.0/jcr-1.0.jar"/>
         <pathelement location="${m2Repository}/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar"/>
     	<pathelement location="${m2Repository}/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"/>        
@@ -120,18 +121,21 @@
             <fileset dir="src/main/resources" excludes="**/*.launch, **/*.java"/>
         </copy>
     </target>
+    
     <target name="clean">
         <delete file="./docx4all.jar"/>
         <delete file="./docx4all.war"/>
         <delete dir="build/classes"/>
         <delete dir="build/lib"/>
     </target>
+    
     <target depends="clean" name="cleanall"/>
     <target depends="build-subprojects,build-project" name="build"/>
     <target name="build-subprojects"/>
     
     <target name="build-project" depends="init" >
         <echo message="${ant.project.name}: ${ant.file}"/>
+        
         <javac bootclasspathref="jre.libs" includeJavaRuntime="yes"
     			debug="true" debuglevel="${debuglevel}" 
         	destdir="build/classes" source="${source}" target="${target}">
@@ -143,13 +147,38 @@
     			 [javac] class file for com.sun.xml.internal.bind.marshaller.NamespacePrefixMapper not found        	     
         	     
         	     See comment in org.docx4all.util.XmlUtil -->
-            <src path="src/main/java"/>
+            <src path="${src.main.java.dir}"/>
             <classpath refid="docx4all.classpath"/>        	
         </javac>
+        
         <javac debug="true" debuglevel="${debuglevel}" destdir="build/classes" source="${source}" target="${target}">
             <src path="src/main/resources"/>
             <classpath refid="docx4all.classpath"/>
-        </javac>    	
+        </javac>  
+        
+        <!--  Force ant to compile package-info.java.
+              Without these, you'll get JAXB "unexpected element" errors.
+        	  This is necessary because of a dubious change in ant behaviour, 
+              starting with 1.7.1 (see javac task doc, and ant bug 43114).  
+              
+			  "In Ant 1.7.1 the package-info.java will only be compiled if:
+				
+				   1. If a package-info.class file exists and is older than the package-info.java file.
+				   2. If the directory for the package-info.class file does not exist.
+				   3. If the directory for the package-info.class file exists, and has an older modification 
+				   time than the the package-info.java file. In this case <javac> will touch the corresponding 
+				   .class directory on successful compilation."              
+              -->
+        <sleep seconds="2"/> <!--  wait a little, so our modifications times are newer -->
+        <touch><fileset dir="${src.main.java.dir}" includes="**/package-info.java" /></touch>        
+        <javac  bootclasspathref="jre.libs" includeJavaRuntime="yes" 
+        	debug="true" debuglevel="${debuglevel}" destdir="build/classes" source="${source}" target="${target}"
+        	srcdir="${src.main.java.dir}">
+        	<include name="**/package-info.java"/>
+            <classpath refid="docx4all.classpath"/>        	
+        </javac>
+        
+          	
     </target>
     
     <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
@@ -172,6 +201,18 @@
             <classpath refid="run.docx4all.classpath"/>
         </java>
     </target>
+    
+    
+	<target name="javadoc">
+	
+        <delete dir="javadoc"/>
+        <mkdir dir="javadoc"/>
+	
+			<javadoc sourcepath="src/main/java" destdir="javadoc"/>
+		
+	
+	</target>
+    
     
   <!-- The Ant Web Start task 
   
