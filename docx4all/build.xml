@@ -320,5 +320,29 @@
                 <jw:application mainclass="org.docx4all.ui.main.WordMLEditor" jar="docx4all.jar"/>
         </jw:jnlpwar>
     </target>	
+
+    <!-- Add .unpacked to the jar names  -->
+    <target name="webstart-apache">
+    
+    	<!--  Copy and unzip the war -->
+        <delete dir="tmp"/>
+		<mkdir dir="tmp"/>
+        <!-- copy file="docx4all.war" todir="tmp"/-->	
+        <unzip src="docx4all.war" dest="tmp"/>	
+        
+    
+    	<!-- Add .unpacked to the jar names  -->
+    	<move todir="tmp/application" includeemptydirs="false">
+    		<fileset dir="tmp/application">
+    			<exclude name="**/*.gz"/>
+    			<exclude name="**/*.jnlp"/>
+    		</fileset>
+    		<mapper type="glob" from="*" to="*.unpacked"/>
+    	</move>
+    	
+    	<!--  Zip it up again -->
+    	<jar destfile="docx4all-apache.war"
+    		 basedir="tmp"/>
+    </target>	
     
 </project>
