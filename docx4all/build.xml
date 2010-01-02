@@ -76,7 +76,7 @@
         <pathelement location="${m2Repository}/org/apache/avalon/framework/avalon-framework-api/4.3.1/avalon-framework-api-4.3.1.jar"/>
         <pathelement location="${m2Repository}/org/apache/avalon/framework/avalon-framework-impl/4.3.1/avalon-framework-impl-4.3.1.jar"/>
          
-        <pathelement location="${m2Repository}/docx4j/fop-patched/0.95.756436/fop-patched-0.95.756436.jar"/> <!--  without Class-Path in MANIFEST -->
+        <pathelement location="${m2Repository}/docx4j/fop-patched/0.95.756437/fop-patched-0.95.756437.jar"/> <!--  without Class-Path in MANIFEST -->
         <pathelement location="${m2Repository}/org/apache/commons/commons-vfs-patched/1.9.1/commons-vfs-patched-1.9.1.jar"/>
          
         <pathelement location="${m2Repository}/org/jdesktop/application/appframework/1.0.3/appframework-1.0.3.jar"/>
@@ -268,7 +268,7 @@
 			<zipfileset src="${lib}/xmlgraphics-commons-1.3.757686.jar" 
 				excludes="META-INF/MANIFEST.MF META-INF/ALIAS.* META-INF/*.txt META-INF/*.SERIALIZER META-INF/LICENSE META-INF/NOTICE"
 				includes="META-INF/**"/>
-			<zipfileset src="${lib}/fop-patched-0.95.756436.jar" 
+			<zipfileset src="${lib}/fop-patched-0.95.756437.jar" 
 				excludes="META-INF/MANIFEST.MF META-INF/ALIAS.* META-INF/*.txt META-INF/*.SERIALIZER META-INF/LICENSE META-INF/NOTICE
 				META-INF/services/org.apache.xmlgraphics.*"
 				includes="META-INF/**"/> <!--  2 copies of xmlgraphics causes unpack task to fail -->
