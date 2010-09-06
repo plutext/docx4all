@@ -243,7 +243,7 @@
   <version>2.9.1</version>
 </dependency>
 
-<dependency>
+<dependency> 
 	<!--  see also http://m2-javafxc.sourceforge.net/ 
 	      and http://axzy.wordpress.com/2008/02/06/just-have-requested-a-room-to-commit-maven-plugin-in-openjfx/ -->
   <groupId>net.java.dev.openjfx</groupId>
@@ -251,19 +251,20 @@
   <version>1.0</version>
 </dependency>
 
-<dependency>
+<dependency> 
   <groupId>org.bounce</groupId>
   <artifactId>bounce-xmleditorkit-patched</artifactId>
   <version>0.11</version>
 </dependency>
 
-<!-- 
+
+<!-- why commented out? --> 
 <dependency>
   <groupId>net.sf.vfsjfilechooser</groupId>
   <artifactId>VFSJFileChooser-patched</artifactId>
   <version>0.0.32</version>
 </dependency> 
- -->
+
  
 <!--  mvn deploy:deploy-file -f wagon-svn-pom.xml -Dfile=VFSJFileChooser-patched.jar -DgroupId=net.sf.vfsjfilechooser -DartifactId=VFSJFileChooser-patched -Dversion=0.0.32 -Dpackaging=jar -DrepositoryId=docx4all -Durl=svn:http://dev.plutext.org/svn/docx4all/trunk/docx4all/m2
  -->
