@@ -299,10 +299,14 @@
   <groupId>org.docx4j</groupId>
   <artifactId>docx4j</artifactId>
   <version>2.2.2</version> 
+  		<exclusions>
+  			<exclusion>
+   				<groupId>xalan</groupId>
+   				<artifactId>xalan</artifactId>
+  			</exclusion>
   <!-- Uncomment this if you want to run in Eclipse without
        including -Djava.endorsed.dirs=/usr/lib/jvm/java-6-sun/jre/lib/endorsed
        in the run dialog 
-  		<exclusions>
   			<exclusion>
    				<groupId>javax.xml.bind</groupId>
    				<artifactId>jaxb-api</artifactId>
@@ -311,8 +315,23 @@
    				<groupId>com.sun.xml.bind</groupId>
    				<artifactId>jaxb-impl</artifactId>
   			</exclusion>
-  		</exclusions>  -->
+-->
+  		</exclusions> 
 </dependency>
+
+		<dependency>
+			<groupId>xalan</groupId>
+			<artifactId>xalan-patched</artifactId>
+			<version>2.7.0</version>
+			<!-- we use a patched copy as a workaround
+				for http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6396599
+				
+				remove META-INF/services from the xalan jar to prevent xalan 
+				being picked up as the default provider for jaxp transform. (why?)
+				
+				6396599 has been fixed in the on-going release JDK7. 
+				6396599 has also been committed to backport to 6u release 6u10 -->
+		</dependency>
 
 		<dependency>
 			<groupId>org.jvnet.jaxb2_commons.ppp</groupId>
