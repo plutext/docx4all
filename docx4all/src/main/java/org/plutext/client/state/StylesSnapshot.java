@@ -169,7 +169,7 @@ import org.plutext.client.wrappedTransforms.TransformAbstract;
         	
         	// Collect the styles in this SdtBlock
         	HashMap stylesInUse = new HashMap();        	
-        	traverseRecursive(cc.getSdtContent().getEGContentBlockContent(), stylesInUse);
+        	traverseRecursive(cc.getSdtContent().getContent(), stylesInUse);
         	
             StringBuilder result = new StringBuilder();
 
@@ -259,7 +259,7 @@ import org.plutext.client.wrappedTransforms.TransformAbstract;
     				
     				// Don't bother looking in SdtPr
     				
-    				traverseRecursive(sdt.getSdtContent().getEGContentBlockContent(),
+    				traverseRecursive(sdt.getSdtContent().getContent(),
     						stylesInUse);
     				
     				

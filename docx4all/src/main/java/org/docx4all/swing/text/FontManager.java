@@ -306,6 +306,8 @@ public class FontManager {
 		return getFontInAction(family, style, size);
 	}
     
+    private boolean defaultTried = false;
+    
 	public Font getFontInAction(String fontname, int style, int size) {
 		_fontTableKey.setValue(fontname, style, size);
 		Font theFont = _fontTable.get(_fontTableKey);
@@ -358,8 +360,14 @@ public class FontManager {
 					log.warn(".. found a mapping, but getEmbeddedFile returned null!");					
 				}
 					
-				log.info("Using Docx4all default font.");
-				theFont = getFontInAction(getDocx4AllDefaultFontFamilyName(), Font.PLAIN, getDocx4AllDefaultFontSize());
+				if (defaultTried) {
+					log.info("Failed to get default font; using first available");	
+					return _fontTable.values().iterator().next();
+				} else {
+					log.info("Using Docx4all default font.");
+					defaultTried = true;
+					theFont = getFontInAction(getDocx4AllDefaultFontFamilyName(), Font.PLAIN, getDocx4AllDefaultFontSize());
+				}
 			}
 		}
 		

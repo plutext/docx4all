@@ -70,8 +70,8 @@ import org.docx4j.XmlUtils;
 import org.docx4j.convert.in.FlatOpcXmlImporter;
 import org.docx4j.convert.out.flatOpcXml.FlatOpcXmlCreator;
 import org.docx4j.convert.out.html.AbstractHtmlExporter;
-import org.docx4j.convert.out.html.HtmlExporter;
-import org.docx4j.convert.out.html.HtmlExporterNG;
+//import org.docx4j.convert.out.html.HtmlExporter;
+import org.docx4j.convert.out.html.HtmlExporterNG2;
 import org.docx4j.convert.out.pdf.PdfConversion;
 import org.docx4j.jaxb.Context;
 import org.docx4j.jaxb.NamespacePrefixMapperUtils;
@@ -731,7 +731,7 @@ public class FileMenu extends UIMenu {
 			// //15kb
 			// OutputStream os = newOutputStream(buf);
 		
-			PdfConversion c = new org.docx4j.convert.out.pdf.viaHTML.Conversion(wordMLPackage);
+			PdfConversion c = new org.docx4j.convert.out.pdf.viaXSLFO.Conversion(wordMLPackage);
 				// can change from viaHTML to viaIText or viaXSLFO
 			c.output(os);
 
@@ -1042,7 +1042,7 @@ public class FileMenu extends UIMenu {
        			javax.xml.transform.stream.StreamResult result = 
 					new javax.xml.transform.stream.StreamResult(fos);
        			//wmlPackage.html(result);
-    			AbstractHtmlExporter exporter = new HtmlExporter(); 			       			
+    			AbstractHtmlExporter exporter = new HtmlExporterNG2(); 			       			
     			exporter.html(wmlPackage, result, saveAsFilePath + "_files");
        			       			
 				try {

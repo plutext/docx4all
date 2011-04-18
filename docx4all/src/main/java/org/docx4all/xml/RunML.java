@@ -239,7 +239,7 @@ public class RunML extends ElementML {
 						(org.docx4j.wml.Drawing) value;
 					List<Object> list = drawing.getAnchorOrInline();
 					for (Object item: list) {
-						if (item instanceof org.docx4j.dml.Inline) {
+						if (item instanceof org.docx4j.dml.wordprocessingDrawing.Inline) {
 							child = new InlineDrawingML(drawing, this.isDummy);
 						} else {
 							//Anchor is not supported yet.

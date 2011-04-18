@@ -165,7 +165,7 @@ public class SdtBlockML extends ElementML {
 		} else {
 			org.docx4j.wml.SdtBlock sdtBlock = 
 				(org.docx4j.wml.SdtBlock) JAXBIntrospector.getValue(this.docxObject);
-			theChildren = sdtBlock.getSdtContent().getEGContentBlockContent();
+			theChildren = sdtBlock.getSdtContent().getContent();
 		}
 
 		return theChildren;
@@ -214,7 +214,7 @@ public class SdtBlockML extends ElementML {
 			return;
 		}
 
-		List<Object> list = sdtBlock.getSdtContent().getEGContentBlockContent();
+		List<Object> list = sdtBlock.getSdtContent().getContent();
 		if (!list.isEmpty()) {
 			this.children = new ArrayList<ElementML>(list.size());
 			for (Object obj : list) {

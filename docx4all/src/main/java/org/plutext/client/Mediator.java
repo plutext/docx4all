@@ -1857,7 +1857,7 @@ private void updateDocx4jPart(
 	        if (t.getPlutextId().equals(SECTPR_MAGIC_ID ))
 	        {
 	            // Get the sectPr
-	        	org.docx4j.wml.P p = (org.docx4j.wml.P)t.getSdt().getSdtContent().getEGContentBlockContent().get(0);
+	        	org.docx4j.wml.P p = (org.docx4j.wml.P)t.getSdt().getSdtContent().getContent().get(0);
 	        	org.docx4j.wml.SectPr sectPr = (org.docx4j.wml.SectPr)p.getPPr().getSectPr();
 	        	
 	            replaceDocumentSectPr(sectPr);
@@ -2827,7 +2827,13 @@ private void updateDocx4jPart(
         + "<w:sdtContent><w:p><w:pPr>"+ sectPrString + "</w:pPr></w:p></w:sdtContent>" 
      	+ "</w:sdt>"; 
 
-        org.docx4j.wml.SdtBlock sdt = (org.docx4j.wml.SdtBlock)org.docx4j.XmlUtils.unmarshalString(sdtStr);
+        org.docx4j.wml.SdtBlock sdt=null;
+		try {
+			sdt = (org.docx4j.wml.SdtBlock)org.docx4j.XmlUtils.unmarshalString(sdtStr);
+		} catch (JAXBException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
         // and create a transform 
         

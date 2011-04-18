@@ -1,0 +1,412 @@
+Index: pom.xml
+===================================================================
+--- pom.xml	(revision 1318)
++++ pom.xml	(working copy)
+@@ -76,6 +76,7 @@
+   			http://dev.plutext.org/svn/docx4all/trunk/docx4all/m2
+   		</url>
+   	</repository>
++ 
+   	<repository>
+   		<id>docx4j</id>
+   		<name>docx4j Maven 2 repository</name>
+@@ -295,6 +296,7 @@
+ 			
+ 		-->
+ 
++<!-- 
+ <dependency>
+   <groupId>org.docx4j</groupId>
+   <artifactId>docx4j</artifactId>
+@@ -304,6 +306,9 @@
+    				<groupId>xalan</groupId>
+    				<artifactId>xalan</artifactId>
+   			</exclusion>
++  		</exclusions> 
++</dependency>
++ -->
+   <!-- Uncomment this if you want to run in Eclipse without
+        including -Djava.endorsed.dirs=/usr/lib/jvm/java-6-sun/jre/lib/endorsed
+        in the run dialog 
+@@ -316,8 +321,6 @@
+    				<artifactId>jaxb-impl</artifactId>
+   			</exclusion>
+ -->
+-  		</exclusions> 
+-</dependency>
+ 
+ 		<dependency>
+ 			<groupId>xalan</groupId>
+Index: src/main/java/org/docx4all/swing/text/FontManager.java
+===================================================================
+--- src/main/java/org/docx4all/swing/text/FontManager.java	(revision 1316)
++++ src/main/java/org/docx4all/swing/text/FontManager.java	(working copy)
+@@ -306,6 +306,8 @@
+ 		return getFontInAction(family, style, size);
+ 	}
+     
++    private boolean defaultTried = false;
++    
+ 	public Font getFontInAction(String fontname, int style, int size) {
+ 		_fontTableKey.setValue(fontname, style, size);
+ 		Font theFont = _fontTable.get(_fontTableKey);
+@@ -358,8 +360,14 @@
+ 					log.warn(".. found a mapping, but getEmbeddedFile returned null!");					
+ 				}
+ 					
+-				log.info("Using Docx4all default font.");
+-				theFont = getFontInAction(getDocx4AllDefaultFontFamilyName(), Font.PLAIN, getDocx4AllDefaultFontSize());
++				if (defaultTried) {
++					log.info("Failed to get default font; using first available");	
++					return _fontTable.values().iterator().next();
++				} else {
++					log.info("Using Docx4all default font.");
++					defaultTried = true;
++					theFont = getFontInAction(getDocx4AllDefaultFontFamilyName(), Font.PLAIN, getDocx4AllDefaultFontSize());
++				}
+ 			}
+ 		}
+ 		
+Index: src/main/java/org/docx4all/swing/text/NumberingView.java
+===================================================================
+--- src/main/java/org/docx4all/swing/text/NumberingView.java	(revision 1316)
++++ src/main/java/org/docx4all/swing/text/NumberingView.java	(working copy)
+@@ -67,7 +67,7 @@
+ 	}
+ 	
+     public boolean isBullet() {
+-    	return this.numbering.isBullet();
++    	return this.numbering.getBullet()!=null;
+     }
+     
+     public float getAlignment(int axis) {
+@@ -108,7 +108,7 @@
+         boolean intersect = clip.intersects(r);
+     	
+         if (intersect) {
+-        	if (this.numbering.isBullet() 
++        	if (this.numbering.getBullet()!=null 
+         		&& "Symbol".equalsIgnoreCase(this.numbering.getNumFont())) {
+         		drawBullet(g, r.x, r.y, r.width, r.height, getAlignment(Y_AXIS));        		
+         	} else {
+Index: src/main/java/org/docx4all/swing/text/WordMLEditorKit.java
+===================================================================
+--- src/main/java/org/docx4all/swing/text/WordMLEditorKit.java	(revision 1316)
++++ src/main/java/org/docx4all/swing/text/WordMLEditorKit.java	(working copy)
+@@ -66,6 +66,7 @@
+ import javax.swing.text.TextAction;
+ import javax.swing.text.View;
+ import javax.swing.text.DefaultStyledDocument.ElementSpec;
++import javax.xml.bind.JAXBException;
+ import javax.xml.transform.stream.StreamResult;
+ import javax.xml.transform.stream.StreamSource;
+ 
+@@ -1290,8 +1291,13 @@
+             			
+             			temp = result.getOutputStream().toString();
+             			
+-            			ElementML newPara = 
+-            				new ParagraphML(org.docx4j.XmlUtils.unmarshalString(temp));
++            			ElementML newPara = null;
++						try {
++							newPara = new ParagraphML(org.docx4j.XmlUtils.unmarshalString(temp));
++						} catch (JAXBException e1) {
++							// TODO Auto-generated catch block
++							e1.printStackTrace();
++						}
+             			boolean notEmpty = 
+             				(XmlUtil.getLastRunContentML(newPara) != null);
+             			if (notEmpty) {
+@@ -1376,8 +1382,13 @@
+             			
+             			temp = result.getOutputStream().toString();
+             			
+-            			ElementML newPara = 
+-            				new ParagraphML(org.docx4j.XmlUtils.unmarshalString(temp));
++            			ElementML newPara = null;
++						try {
++							newPara = new ParagraphML(org.docx4j.XmlUtils.unmarshalString(temp));
++						} catch (JAXBException e1) {
++							// TODO Auto-generated catch block
++							e1.printStackTrace();
++						}
+             			boolean notEmpty = 
+             				(XmlUtil.getLastRunContentML(newPara) != null);
+             			if (notEmpty) {
+Index: src/main/java/org/docx4all/ui/menu/ContentControlMenu.java
+===================================================================
+--- src/main/java/org/docx4all/ui/menu/ContentControlMenu.java	(revision 1316)
++++ src/main/java/org/docx4all/ui/menu/ContentControlMenu.java	(working copy)
+@@ -336,11 +336,11 @@
+     				&& source == wmlEditor.getView(wmlEditor.getEditorViewTabTitle())
+     				&& ((WordMLTextPane) source).getWordMLEditorKit().getPlutextClient() == null) {
+     				WordMLDocument doc = (WordMLDocument) source.getDocument();
+-    				if (DocUtil.getChunkingStrategy(doc) != null) {
++    				//if (DocUtil.getChunkingStrategy(doc) != null) {
+     					int start = Math.min(caretEvent.getDot(), caretEvent.getMark());
+     					int end =  Math.max(caretEvent.getDot(), caretEvent.getMark());
+     					isEnabled = DocUtil.canChangeIntoSdt(doc, start, (end-start));
+-    				}
++    				//}
+     			}
+     		}
+     		return isEnabled;
+@@ -383,11 +383,11 @@
+     			if (source != null
+     					&& source == wmlEditor.getView(wmlEditor.getEditorViewTabTitle())) {
+     				WordMLDocument doc = (WordMLDocument) source.getDocument();
+-    				if (DocUtil.getChunkingStrategy(doc) != null) {
++    				//if (DocUtil.getChunkingStrategy(doc) != null) {
+     					int dot = caretEvent.getDot();
+     					int mark = caretEvent.getMark();
+     					isEnabled = (dot == mark); //no selection
+-    				}
++    				//}
+     			}
+     		}
+     		return isEnabled;
+@@ -458,7 +458,8 @@
+     				wmlEditor.getView(wmlEditor.getEditorViewTabTitle());
+     			if (source != null	&& source == editorView) {
+     				WordMLDocument doc = (WordMLDocument) source.getDocument();
+-    				isEnabled = (DocUtil.getChunkingStrategy(doc) == null);
++    				//isEnabled = (DocUtil.getChunkingStrategy(doc) == null);
++    				isEnabled = true;
+     			}
+     		}
+     		return isEnabled;
+@@ -479,9 +480,10 @@
+     				&& source == wmlEditor.getView(wmlEditor.getEditorViewTabTitle())
+         			&& ((WordMLTextPane) source).getWordMLEditorKit().getPlutextClient() == null) {
+     				WordMLDocument doc = (WordMLDocument) source.getDocument();
+-    				if (DocUtil.getChunkingStrategy(doc) != null) {
+-    					isEnabled = DocUtil.hasSdt(doc, 0, doc.getLength());
+-    				}
++    				//if (DocUtil.getChunkingStrategy(doc) != null) {
++    				//	isEnabled = DocUtil.hasSdt(doc, 0, doc.getLength());
++    				//}
++    				isEnabled = true;
+     			}
+     		} //if (caretEvent != null)
+     		return isEnabled;
+Index: src/main/java/org/docx4all/ui/menu/FileMenu.java
+===================================================================
+--- src/main/java/org/docx4all/ui/menu/FileMenu.java	(revision 1316)
++++ src/main/java/org/docx4all/ui/menu/FileMenu.java	(working copy)
+@@ -70,8 +70,8 @@
+ import org.docx4j.convert.in.FlatOpcXmlImporter;
+ import org.docx4j.convert.out.flatOpcXml.FlatOpcXmlCreator;
+ import org.docx4j.convert.out.html.AbstractHtmlExporter;
+-import org.docx4j.convert.out.html.HtmlExporter;
+-import org.docx4j.convert.out.html.HtmlExporterNG;
++//import org.docx4j.convert.out.html.HtmlExporter;
++import org.docx4j.convert.out.html.HtmlExporterNG2;
+ import org.docx4j.convert.out.pdf.PdfConversion;
+ import org.docx4j.jaxb.Context;
+ import org.docx4j.jaxb.NamespacePrefixMapperUtils;
+@@ -731,7 +731,7 @@
+ 			// //15kb
+ 			// OutputStream os = newOutputStream(buf);
+ 		
+-			PdfConversion c = new org.docx4j.convert.out.pdf.viaHTML.Conversion(wordMLPackage);
++			PdfConversion c = new org.docx4j.convert.out.pdf.viaXSLFO.Conversion(wordMLPackage);
+ 				// can change from viaHTML to viaIText or viaXSLFO
+ 			c.output(os);
+ 
+@@ -1042,7 +1042,7 @@
+        			javax.xml.transform.stream.StreamResult result = 
+ 					new javax.xml.transform.stream.StreamResult(fos);
+        			//wmlPackage.html(result);
+-    			AbstractHtmlExporter exporter = new HtmlExporter(); 			       			
++    			AbstractHtmlExporter exporter = new HtmlExporterNG2(); 			       			
+     			exporter.html(wmlPackage, result, saveAsFilePath + "_files");
+        			       			
+ 				try {
+Index: src/main/java/org/docx4all/util/XmlUtil.java
+===================================================================
+--- src/main/java/org/docx4all/util/XmlUtil.java	(revision 1316)
++++ src/main/java/org/docx4all/util/XmlUtil.java	(working copy)
+@@ -155,8 +155,8 @@
+ 
+ 			ContentTypeManager ctm = new ContentTypeManager();
+ 			
+-			Part tmpDocPart = xmlPackage.getRawPart(ctm,  "/word/document.xml");
+-			Part tmpStylesPart = xmlPackage.getRawPart(ctm,  "/word/styles.xml");
++			Part tmpDocPart = xmlPackage.getRawPart(ctm,  "/word/document.xml", null);
++			Part tmpStylesPart = xmlPackage.getRawPart(ctm,  "/word/styles.xml", null);
+ 			
+ //			org.docx4j.wml.Document wmlDocument = null;
+ //			org.docx4j.wml.Styles wmlStyles = null;
+@@ -654,7 +654,7 @@
+     	List<SdtBlock> theChunks = new ArrayList<SdtBlock>();
+ 		theChunks.add(copy);
+     	
+-    	List<Object> children = copy.getSdtContent().getEGContentBlockContent();
++    	List<Object> children = copy.getSdtContent().getContent();
+     	if (children.size() > 1) {
+         	List<Object> childrenToChunk = new ArrayList<Object>();
+     		for (int i=1; i < children.size(); i++) {
+@@ -670,7 +670,7 @@
+     		for (Object o: childrenToChunk) {
+     			children.remove(o);
+     			SdtBlock newChunk = createSdtBlock();
+-    			newChunk.getSdtContent().getEGContentBlockContent().add(o);
++    			newChunk.getSdtContent().getContent().add(o);
+     			theChunks.add(newChunk);
+     		}
+     	}
+@@ -719,8 +719,8 @@
+ 		Calendar changeDate = null;
+ 
+ 		Differencer pd = new Differencer();
+-		pd.diff(leftSdt.getSdtContent(), rightSdt
+-				.getSdtContent(), result, changeset.getModifier(), changeDate,
++		pd.diff( (org.docx4j.wml.SdtContentBlock)leftSdt.getSdtContent(), 
++				(org.docx4j.wml.SdtContentBlock)rightSdt.getSdtContent(), result, changeset.getModifier(), changeDate,
+ 				new RelationshipsPart(), new RelationshipsPart() );
+ 			// TODO - feed it the correct relationships parts!
+ 
+Index: src/main/java/org/docx4all/xml/InlineDrawingML.java
+===================================================================
+--- src/main/java/org/docx4all/xml/InlineDrawingML.java	(revision 1316)
++++ src/main/java/org/docx4all/xml/InlineDrawingML.java	(working copy)
+@@ -26,6 +26,7 @@
+ import org.docx4all.ui.main.Constants;
+ import org.docx4all.xml.drawing.Graphic;
+ import org.docx4all.xml.drawing.type.CTEffectExtent;
++//import org.docx4all.xml.drawing.type.CTEffectExtent;
+ import org.docx4j.XmlUtils;
+ 
+ /**
+@@ -82,10 +83,10 @@
+ 		return new InlineDrawingML(obj, this.isDummy);
+ 	}
+ 	
+-	protected org.docx4j.dml.Inline getInline() {
++	protected org.docx4j.dml.wordprocessingDrawing.Inline getInline() {
+ 		org.docx4j.wml.Drawing drawing =
+ 			(org.docx4j.wml.Drawing) this.docxObject;
+-		return (org.docx4j.dml.Inline) drawing.getAnchorOrInline().get(0);
++		return (org.docx4j.dml.wordprocessingDrawing.Inline) drawing.getAnchorOrInline().get(0);
+ 	}
+ 	
+ 	protected void init(Object docxObject) {
+@@ -100,7 +101,7 @@
+ 			org.docx4j.wml.Drawing drawing = (org.docx4j.wml.Drawing) docxObject;
+ 			List<Object> list = drawing.getAnchorOrInline();
+ 			if (list.size() != 1
+-				|| !(list.get(0) instanceof org.docx4j.dml.Inline)) {
++				|| !(list.get(0) instanceof org.docx4j.dml.wordprocessingDrawing.Inline)) {
+ 				//There should not be an Anchor in 'list'
+ 				//because it is not being supported and 
+ 				//RunML.initChildren() prevents it from
+@@ -109,7 +110,7 @@
+ 				throw new IllegalArgumentException("Unsupported Docx Object = " + docxObject);			
+ 			}
+ 			
+-			org.docx4j.dml.Inline inline = (org.docx4j.dml.Inline) list.get(0);
++			org.docx4j.dml.wordprocessingDrawing.Inline inline = (org.docx4j.dml.wordprocessingDrawing.Inline) list.get(0);
+ 			if (inline.getExtent() != null) {
+ 				int cx = Long.valueOf(inline.getExtent().getCx()).intValue();
+ 				cx = StyleSheet.emuToPixels(cx);
+Index: src/main/java/org/docx4all/xml/RunML.java
+===================================================================
+--- src/main/java/org/docx4all/xml/RunML.java	(revision 1316)
++++ src/main/java/org/docx4all/xml/RunML.java	(working copy)
+@@ -239,7 +239,7 @@
+ 						(org.docx4j.wml.Drawing) value;
+ 					List<Object> list = drawing.getAnchorOrInline();
+ 					for (Object item: list) {
+-						if (item instanceof org.docx4j.dml.Inline) {
++						if (item instanceof org.docx4j.dml.wordprocessingDrawing.Inline) {
+ 							child = new InlineDrawingML(drawing, this.isDummy);
+ 						} else {
+ 							//Anchor is not supported yet.
+Index: src/main/java/org/docx4all/xml/SdtBlockML.java
+===================================================================
+--- src/main/java/org/docx4all/xml/SdtBlockML.java	(revision 1316)
++++ src/main/java/org/docx4all/xml/SdtBlockML.java	(working copy)
+@@ -165,7 +165,7 @@
+ 		} else {
+ 			org.docx4j.wml.SdtBlock sdtBlock = 
+ 				(org.docx4j.wml.SdtBlock) JAXBIntrospector.getValue(this.docxObject);
+-			theChildren = sdtBlock.getSdtContent().getEGContentBlockContent();
++			theChildren = sdtBlock.getSdtContent().getContent();
+ 		}
+ 
+ 		return theChildren;
+@@ -214,7 +214,7 @@
+ 			return;
+ 		}
+ 
+-		List<Object> list = sdtBlock.getSdtContent().getEGContentBlockContent();
++		List<Object> list = sdtBlock.getSdtContent().getContent();
+ 		if (!list.isEmpty()) {
+ 			this.children = new ArrayList<ElementML>(list.size());
+ 			for (Object obj : list) {
+Index: src/main/java/org/docx4all/xml/drawing/type/CTEffectExtent.java
+===================================================================
+--- src/main/java/org/docx4all/xml/drawing/type/CTEffectExtent.java	(revision 1316)
++++ src/main/java/org/docx4all/xml/drawing/type/CTEffectExtent.java	(working copy)
+@@ -25,9 +25,9 @@
+  *	@author Jojada Tirtowidjojo - 17/12/2008
+  */
+ public class CTEffectExtent {
+-	private org.docx4j.dml.CTEffectExtent ctEffectExtent;
++	private org.docx4j.dml.wordprocessingDrawing.CTEffectExtent ctEffectExtent;
+ 	
+-	public CTEffectExtent(org.docx4j.dml.CTEffectExtent ctEffectExtent) {
++	public CTEffectExtent(org.docx4j.dml.wordprocessingDrawing.CTEffectExtent ctEffectExtent) {
+ 		this.ctEffectExtent = ctEffectExtent;
+ 	}
+ 	
+Index: src/main/java/org/plutext/client/Mediator.java
+===================================================================
+--- src/main/java/org/plutext/client/Mediator.java	(revision 1316)
++++ src/main/java/org/plutext/client/Mediator.java	(working copy)
+@@ -1857,7 +1857,7 @@
+ 	        if (t.getPlutextId().equals(SECTPR_MAGIC_ID ))
+ 	        {
+ 	            // Get the sectPr
+-	        	org.docx4j.wml.P p = (org.docx4j.wml.P)t.getSdt().getSdtContent().getEGContentBlockContent().get(0);
++	        	org.docx4j.wml.P p = (org.docx4j.wml.P)t.getSdt().getSdtContent().getContent().get(0);
+ 	        	org.docx4j.wml.SectPr sectPr = (org.docx4j.wml.SectPr)p.getPPr().getSectPr();
+ 	        	
+ 	            replaceDocumentSectPr(sectPr);
+@@ -2827,7 +2827,13 @@
+         + "<w:sdtContent><w:p><w:pPr>"+ sectPrString + "</w:pPr></w:p></w:sdtContent>" 
+      	+ "</w:sdt>"; 
+ 
+-        org.docx4j.wml.SdtBlock sdt = (org.docx4j.wml.SdtBlock)org.docx4j.XmlUtils.unmarshalString(sdtStr);
++        org.docx4j.wml.SdtBlock sdt=null;
++		try {
++			sdt = (org.docx4j.wml.SdtBlock)org.docx4j.XmlUtils.unmarshalString(sdtStr);
++		} catch (JAXBException e) {
++			// TODO Auto-generated catch block
++			e.printStackTrace();
++		}
+ 
+         // and create a transform 
+         
+Index: src/main/java/org/plutext/client/state/StylesSnapshot.java
+===================================================================
+--- src/main/java/org/plutext/client/state/StylesSnapshot.java	(revision 1316)
++++ src/main/java/org/plutext/client/state/StylesSnapshot.java	(working copy)
+@@ -169,7 +169,7 @@
+         	
+         	// Collect the styles in this SdtBlock
+         	HashMap stylesInUse = new HashMap();        	
+-        	traverseRecursive(cc.getSdtContent().getEGContentBlockContent(), stylesInUse);
++        	traverseRecursive(cc.getSdtContent().getContent(), stylesInUse);
+         	
+             StringBuilder result = new StringBuilder();
+ 
+@@ -259,7 +259,7 @@
+     				
+     				// Don't bother looking in SdtPr
+     				
+-    				traverseRecursive(sdt.getSdtContent().getEGContentBlockContent(),
++    				traverseRecursive(sdt.getSdtContent().getContent(),
+     						stylesInUse);
+     				
+     				

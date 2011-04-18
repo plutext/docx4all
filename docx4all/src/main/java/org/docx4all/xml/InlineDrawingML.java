@@ -26,6 +26,7 @@ import org.docx4all.swing.text.StyleSheet;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.xml.drawing.Graphic;
 import org.docx4all.xml.drawing.type.CTEffectExtent;
+//import org.docx4all.xml.drawing.type.CTEffectExtent;
 import org.docx4j.XmlUtils;
 
 /**
@@ -82,10 +83,10 @@ public class InlineDrawingML extends RunContentML {
 		return new InlineDrawingML(obj, this.isDummy);
 	}
 	
-	protected org.docx4j.dml.Inline getInline() {
+	protected org.docx4j.dml.wordprocessingDrawing.Inline getInline() {
 		org.docx4j.wml.Drawing drawing =
 			(org.docx4j.wml.Drawing) this.docxObject;
-		return (org.docx4j.dml.Inline) drawing.getAnchorOrInline().get(0);
+		return (org.docx4j.dml.wordprocessingDrawing.Inline) drawing.getAnchorOrInline().get(0);
 	}
 	
 	protected void init(Object docxObject) {
@@ -100,7 +101,7 @@ public class InlineDrawingML extends RunContentML {
 			org.docx4j.wml.Drawing drawing = (org.docx4j.wml.Drawing) docxObject;
 			List<Object> list = drawing.getAnchorOrInline();
 			if (list.size() != 1
-				|| !(list.get(0) instanceof org.docx4j.dml.Inline)) {
+				|| !(list.get(0) instanceof org.docx4j.dml.wordprocessingDrawing.Inline)) {
 				//There should not be an Anchor in 'list'
 				//because it is not being supported and 
 				//RunML.initChildren() prevents it from
@@ -109,7 +110,7 @@ public class InlineDrawingML extends RunContentML {
 				throw new IllegalArgumentException("Unsupported Docx Object = " + docxObject);			
 			}
 			
-			org.docx4j.dml.Inline inline = (org.docx4j.dml.Inline) list.get(0);
+			org.docx4j.dml.wordprocessingDrawing.Inline inline = (org.docx4j.dml.wordprocessingDrawing.Inline) list.get(0);
 			if (inline.getExtent() != null) {
 				int cx = Long.valueOf(inline.getExtent().getCx()).intValue();
 				cx = StyleSheet.emuToPixels(cx);

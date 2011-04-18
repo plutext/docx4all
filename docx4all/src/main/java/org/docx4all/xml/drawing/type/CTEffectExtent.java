@@ -25,9 +25,9 @@ import org.docx4all.swing.text.StyleSheet;
  *	@author Jojada Tirtowidjojo - 17/12/2008
  */
 public class CTEffectExtent {
-	private org.docx4j.dml.CTEffectExtent ctEffectExtent;
+	private org.docx4j.dml.wordprocessingDrawing.CTEffectExtent ctEffectExtent;
 	
-	public CTEffectExtent(org.docx4j.dml.CTEffectExtent ctEffectExtent) {
+	public CTEffectExtent(org.docx4j.dml.wordprocessingDrawing.CTEffectExtent ctEffectExtent) {
 		this.ctEffectExtent = ctEffectExtent;
 	}
 	

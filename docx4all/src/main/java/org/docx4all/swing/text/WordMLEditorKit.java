@@ -66,6 +66,7 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.TextAction;
 import javax.swing.text.View;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
+import javax.xml.bind.JAXBException;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
@@ -1290,8 +1291,13 @@ public class WordMLEditorKit extends DefaultEditorKit {
             			
             			temp = result.getOutputStream().toString();
             			
-            			ElementML newPara = 
-            				new ParagraphML(org.docx4j.XmlUtils.unmarshalString(temp));
+            			ElementML newPara = null;
+						try {
+							newPara = new ParagraphML(org.docx4j.XmlUtils.unmarshalString(temp));
+						} catch (JAXBException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
             			boolean notEmpty = 
             				(XmlUtil.getLastRunContentML(newPara) != null);
             			if (notEmpty) {
@@ -1376,8 +1382,13 @@ public class WordMLEditorKit extends DefaultEditorKit {
             			
             			temp = result.getOutputStream().toString();
             			
-            			ElementML newPara = 
-            				new ParagraphML(org.docx4j.XmlUtils.unmarshalString(temp));
+            			ElementML newPara = null;
+						try {
+							newPara = new ParagraphML(org.docx4j.XmlUtils.unmarshalString(temp));
+						} catch (JAXBException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
             			boolean notEmpty = 
             				(XmlUtil.getLastRunContentML(newPara) != null);
             			if (notEmpty) {

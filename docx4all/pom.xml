@@ -76,6 +76,7 @@
   			http://dev.plutext.org/svn/docx4all/trunk/docx4all/m2
   		</url>
   	</repository>
+ 
   	<repository>
   		<id>docx4j</id>
   		<name>docx4j Maven 2 repository</name>
@@ -295,6 +296,7 @@
 			
 		-->
 
+<!-- 
 <dependency>
   <groupId>org.docx4j</groupId>
   <artifactId>docx4j</artifactId>
@@ -304,6 +306,9 @@
    				<groupId>xalan</groupId>
    				<artifactId>xalan</artifactId>
   			</exclusion>
+  		</exclusions> 
+</dependency>
+ -->
   <!-- Uncomment this if you want to run in Eclipse without
        including -Djava.endorsed.dirs=/usr/lib/jvm/java-6-sun/jre/lib/endorsed
        in the run dialog 
@@ -316,8 +321,6 @@
    				<artifactId>jaxb-impl</artifactId>
   			</exclusion>
 -->
-  		</exclusions> 
-</dependency>
 
 		<dependency>
 			<groupId>xalan</groupId>

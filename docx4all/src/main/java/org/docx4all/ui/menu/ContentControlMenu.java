@@ -336,11 +336,11 @@ public class ContentControlMenu extends UIMenu {
     				&& source == wmlEditor.getView(wmlEditor.getEditorViewTabTitle())
     				&& ((WordMLTextPane) source).getWordMLEditorKit().getPlutextClient() == null) {
     				WordMLDocument doc = (WordMLDocument) source.getDocument();
-    				if (DocUtil.getChunkingStrategy(doc) != null) {
+    				//if (DocUtil.getChunkingStrategy(doc) != null) {
     					int start = Math.min(caretEvent.getDot(), caretEvent.getMark());
     					int end =  Math.max(caretEvent.getDot(), caretEvent.getMark());
     					isEnabled = DocUtil.canChangeIntoSdt(doc, start, (end-start));
-    				}
+    				//}
     			}
     		}
     		return isEnabled;
@@ -383,11 +383,11 @@ public class ContentControlMenu extends UIMenu {
     			if (source != null
     					&& source == wmlEditor.getView(wmlEditor.getEditorViewTabTitle())) {
     				WordMLDocument doc = (WordMLDocument) source.getDocument();
-    				if (DocUtil.getChunkingStrategy(doc) != null) {
+    				//if (DocUtil.getChunkingStrategy(doc) != null) {
     					int dot = caretEvent.getDot();
     					int mark = caretEvent.getMark();
     					isEnabled = (dot == mark); //no selection
-    				}
+    				//}
     			}
     		}
     		return isEnabled;
@@ -458,7 +458,8 @@ public class ContentControlMenu extends UIMenu {
     				wmlEditor.getView(wmlEditor.getEditorViewTabTitle());
     			if (source != null	&& source == editorView) {
     				WordMLDocument doc = (WordMLDocument) source.getDocument();
-    				isEnabled = (DocUtil.getChunkingStrategy(doc) == null);
+    				//isEnabled = (DocUtil.getChunkingStrategy(doc) == null);
+    				isEnabled = true;
     			}
     		}
     		return isEnabled;
@@ -479,9 +480,10 @@ public class ContentControlMenu extends UIMenu {
     				&& source == wmlEditor.getView(wmlEditor.getEditorViewTabTitle())
         			&& ((WordMLTextPane) source).getWordMLEditorKit().getPlutextClient() == null) {
     				WordMLDocument doc = (WordMLDocument) source.getDocument();
-    				if (DocUtil.getChunkingStrategy(doc) != null) {
-    					isEnabled = DocUtil.hasSdt(doc, 0, doc.getLength());
-    				}
+    				//if (DocUtil.getChunkingStrategy(doc) != null) {
+    				//	isEnabled = DocUtil.hasSdt(doc, 0, doc.getLength());
+    				//}
+    				isEnabled = true;
     			}
     		} //if (caretEvent != null)
     		return isEnabled;

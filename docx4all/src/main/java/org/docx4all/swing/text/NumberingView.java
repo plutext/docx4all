@@ -67,7 +67,7 @@ public class NumberingView extends View {
 	}
 	
     public boolean isBullet() {
-    	return this.numbering.isBullet();
+    	return this.numbering.getBullet()!=null;
     }
     
     public float getAlignment(int axis) {
@@ -108,7 +108,7 @@ public class NumberingView extends View {
         boolean intersect = clip.intersects(r);
     	
         if (intersect) {
-        	if (this.numbering.isBullet() 
+        	if (this.numbering.getBullet()!=null 
         		&& "Symbol".equalsIgnoreCase(this.numbering.getNumFont())) {
         		drawBullet(g, r.x, r.y, r.width, r.height, getAlignment(Y_AXIS));        		
         	} else {

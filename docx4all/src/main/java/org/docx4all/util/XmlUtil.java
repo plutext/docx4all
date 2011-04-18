@@ -155,8 +155,8 @@ public class XmlUtil {
 
 			ContentTypeManager ctm = new ContentTypeManager();
 			
-			Part tmpDocPart = xmlPackage.getRawPart(ctm,  "/word/document.xml");
-			Part tmpStylesPart = xmlPackage.getRawPart(ctm,  "/word/styles.xml");
+			Part tmpDocPart = xmlPackage.getRawPart(ctm,  "/word/document.xml", null);
+			Part tmpStylesPart = xmlPackage.getRawPart(ctm,  "/word/styles.xml", null);
 			
 //			org.docx4j.wml.Document wmlDocument = null;
 //			org.docx4j.wml.Styles wmlStyles = null;
@@ -654,7 +654,7 @@ public class XmlUtil {
     	List<SdtBlock> theChunks = new ArrayList<SdtBlock>();
 		theChunks.add(copy);
     	
-    	List<Object> children = copy.getSdtContent().getEGContentBlockContent();
+    	List<Object> children = copy.getSdtContent().getContent();
     	if (children.size() > 1) {
         	List<Object> childrenToChunk = new ArrayList<Object>();
     		for (int i=1; i < children.size(); i++) {
@@ -670,7 +670,7 @@ public class XmlUtil {
     		for (Object o: childrenToChunk) {
     			children.remove(o);
     			SdtBlock newChunk = createSdtBlock();
-    			newChunk.getSdtContent().getEGContentBlockContent().add(o);
+    			newChunk.getSdtContent().getContent().add(o);
     			theChunks.add(newChunk);
     		}
     	}
@@ -719,8 +719,8 @@ public class XmlUtil {
 		Calendar changeDate = null;
 
 		Differencer pd = new Differencer();
-		pd.diff(leftSdt.getSdtContent(), rightSdt
-				.getSdtContent(), result, changeset.getModifier(), changeDate,
+		pd.diff( (org.docx4j.wml.SdtContentBlock)leftSdt.getSdtContent(), 
+				(org.docx4j.wml.SdtContentBlock)rightSdt.getSdtContent(), result, changeset.getModifier(), changeDate,
 				new RelationshipsPart(), new RelationshipsPart() );
 			// TODO - feed it the correct relationships parts!
 
