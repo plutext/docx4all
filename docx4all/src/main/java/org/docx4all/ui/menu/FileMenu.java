@@ -73,6 +73,7 @@ import org.docx4j.convert.out.html.AbstractHtmlExporter;
 //import org.docx4j.convert.out.html.HtmlExporter;
 import org.docx4j.convert.out.html.HtmlExporterNG2;
 import org.docx4j.convert.out.pdf.PdfConversion;
+import org.docx4j.convert.out.pdf.viaXSLFO.PdfSettings;
 import org.docx4j.jaxb.Context;
 import org.docx4j.jaxb.NamespacePrefixMapperUtils;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
@@ -733,7 +734,8 @@ public class FileMenu extends UIMenu {
 		
 			PdfConversion c = new org.docx4j.convert.out.pdf.viaXSLFO.Conversion(wordMLPackage);
 				// can change from viaHTML to viaIText or viaXSLFO
-			c.output(os);
+			PdfSettings settings = new PdfSettings(); 
+			c.output(os, settings);
 
 			os.close();
 
