@@ -228,13 +228,7 @@
 
 --> 
 
-  	 
-<!--  2008 10 07 
 
-		commons-vfs-patched - we use the one from webdavclient4j's .m2 repository,
-		which should be the same as the one VFSJFileChooser is using.
-		
--->
 
 <dependency>
   <groupId>org.jdesktop.application</groupId>
@@ -345,11 +339,19 @@
 			<artifactId>parent-pointer-plugin</artifactId>
 			<version>1.0</version>
 		</dependency>
+		
+  	 
+<!--  2008 10 07 
+
+		commons-vfs-patched - we use the one from webdavclient4j's .m2 repository,
+		which should be the same as the one VFSJFileChooser is using.
+		
+-->		
 
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-vfs-patched</artifactId>
-			<version>1.1a</version>
+			<version>1.1a</version> <!-- or 1.9.1? -->
 		</dependency>
  
 		<dependency>
@@ -360,13 +362,21 @@
 
 
 		<!-- end of svn:http://dev.plutext.org/svn/docx4j/trunk/docx4j/m2 -->
+		
+		<!-- Oddly, the below seems to be required for ant, but not maven?!
+		<dependency>
+		    <groupId>javax.xml.rpc</groupId>
+		    <artifactId>javax.xml.rpc-api</artifactId>
+		    <version>1.1.1</version>
+		</dependency>
+		 -->
 
   </dependencies>
    <distributionManagement>
     <repository>
       <uniqueVersion>false</uniqueVersion>
       <id>docx4all</id>
-      <url>http://dev.plutext.org/svn/docx4all/trunk/docx4all/m2</url>
+      <url>https://github.com/plutext/docx4all/tree/master/docx4all/m2</url>
     </repository>
   </distributionManagement>
 

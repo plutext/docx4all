@@ -13,10 +13,11 @@
 	        mvn install
 	        
 	     That will put all the jars referenced below in your local maven2 repository.
+
 	     
 	     -->	
 	
-	<property name="m2Repository" value="../../.m2/repository"/>
+	<property name="m2Repository" value="../../../.m2/repository"/>
 	
 	<property name="plugins.javafx.lib" value="../../.eclipse/org.eclipse.platform_3.3.0_1606436040/configuration/eclipse/plugins/javafx.eclipse.f3editor_0.0.2/lib"/>
     
@@ -24,60 +25,92 @@
        Hmmm, pom for AppFramework-1.03 should specify jre/lib/javaws.jar and swing-worker.jar
     -->
 	
-    <path id="MavenDependencies.libraryclasspath">
+    <path id="docx4j.deps">
+        <pathelement location="${m2Repository}/org/docx4j/docx4j/3.2.0/docx4j-3.2.0.jar"/>
+        <pathelement location="${m2Repository}/org/docx4j/xhtmlrenderer/3.0.0/xhtmlrenderer-3.0.0.jar"/>
+        <pathelement location="${m2Repository}/com/lowagie/itext/2.1.7/itext-2.1.7.jar"/>
+        <pathelement location="${m2Repository}/org/slf4j/slf4j-api/1.7.5/slf4j-api-1.7.5.jar"/>
+        <pathelement location="${m2Repository}/org/slf4j/slf4j-log4j12/1.7.5/slf4j-log4j12-1.7.5.jar"/>
+        <pathelement location="${m2Repository}/log4j/log4j/1.2.17/log4j-1.2.17.jar"/>
+    <!--<pathelement location="${m2Repository}/javax/mail/mail/1.4/mail-1.4.jar"/>
+        <pathelement location="${m2Repository}/javax/activation/activation/1.1/activation-1.1.jar"/>
+         -->
+        <pathelement location="${m2Repository}/org/plutext/jaxb-svg11/1.0.2/jaxb-svg11-1.0.2.jar"/>
+        <pathelement location="${m2Repository}/org/plutext/jaxb-xslfo/1.0.1/jaxb-xslfo-1.0.1.jar"/>
+        <pathelement location="${m2Repository}/org/plutext/jaxb-xmldsig-core/1.0.0/jaxb-xmldsig-core-1.0.0.jar"/>
+        
+        <pathelement location="${m2Repository}/net/engio/mbassador/1.1.10/mbassador-1.1.10.jar"/>
+        
+        <pathelement location="${m2Repository}/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"/>
+        <pathelement location="${m2Repository}/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar"/>
+        <pathelement location="${m2Repository}/commons-codec/commons-codec/1.3/commons-codec-1.3.jar"/>
+        <pathelement location="${m2Repository}/commons-io/commons-io/1.3.1/commons-io-1.3.1.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/xmlgraphics-commons/1.5/xmlgraphics-commons-1.5.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/fop/1.1/fop-1.1.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-svg-dom/1.7/batik-svg-dom-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-anim/1.7/batik-anim-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-css/1.7/batik-css-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-dom/1.7/batik-dom-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-parser/1.7/batik-parser-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-util/1.7/batik-util-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-bridge/1.7/batik-bridge-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-script/1.7/batik-script-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-js/1.7/batik-js-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-xml/1.7/batik-xml-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-awt-util/1.7/batik-awt-util-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-gvt/1.7/batik-gvt-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-transcoder/1.7/batik-transcoder-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-svggen/1.7/batik-svggen-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-extension/1.7/batik-extension-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-ext/1.7/batik-ext-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/avalon/framework/avalon-framework-api/4.3.1/avalon-framework-api-4.3.1.jar"/>
+        <pathelement location="${m2Repository}/org/apache/avalon/framework/avalon-framework-impl/4.3.1/avalon-framework-impl-4.3.1.jar"/>
+        <pathelement location="${m2Repository}/xalan/xalan/2.7.1/xalan-2.7.1.jar"/>
+        <pathelement location="${m2Repository}/xalan/serializer/2.7.1/serializer-2.7.1.jar"/>
+        <pathelement location="${m2Repository}/net/arnx/wmf2svg/0.9.0/wmf2svg-0.9.0.jar"/>
+        <pathelement location="${m2Repository}/org/apache/poi/poi-scratchpad/3.8/poi-scratchpad-3.8.jar"/>
+        <pathelement location="${m2Repository}/org/apache/poi/poi/3.8/poi-3.8.jar"/>
+        <pathelement location="${m2Repository}/org/antlr/antlr-runtime/3.3/antlr-runtime-3.3.jar"/>
+        <pathelement location="${m2Repository}/org/antlr/stringtemplate/3.2.1/stringtemplate-3.2.1.jar"/>
+        <pathelement location="${m2Repository}/antlr/antlr/2.7.7/antlr-2.7.7.jar"/>
+        
+        <pathelement location="${m2Repository}/com/google/guava/guava/17.0/guava-17.0.jar"/>
+        
+        <!-- <pathelement location="${m2Repository}/xml-apis/xml-apis/2.0.2/xml-apis-2.0.2.jar"/> -->
+        
+    </path>
+    	
+    <path id="jaxen.deps">
         <pathelement location="${m2Repository}/dom4j/dom4j/1.6.1/dom4j-1.6.1.jar"/>
-        <!-- pathelement location="${m2Repository}/xml-apis/xml-apis/1.0.b2/xml-apis-1.0.b2.jar"/ -->
-        <pathelement location="${m2Repository}/log4j/log4j/1.2.13/log4j-1.2.13.jar"/>
         <pathelement location="${m2Repository}/jaxen/jaxen/1.1.1/jaxen-1.1.1.jar"/>
         <pathelement location="${m2Repository}/jdom/jdom/1.0/jdom-1.0.jar"/>
-        <pathelement location="${m2Repository}/commons-logging/commons-logging-api/1.1/commons-logging-api-1.1.jar"/>
-        <pathelement location="${m2Repository}/commons-io/commons-io/1.3.1/commons-io-1.3.1.jar"/>
-        <pathelement location="${m2Repository}/commons-httpclient/commons-httpclient/3.1/commons-httpclient-3.1.jar"/>
-        <pathelement location="${m2Repository}/junit/junit/3.8.1/junit-3.8.1.jar"/>
-        <pathelement location="${m2Repository}/commons-codec/commons-codec/1.2/commons-codec-1.2.jar"/>
+    </path>
+
+    
+    <path id="axis.deps">
         <pathelement location="${m2Repository}/axis/axis/1.4/axis-1.4.jar"/>
-        <pathelement location="${m2Repository}/axis/axis-jaxrpc/1.4/axis-jaxrpc-1.4.jar"/>
-        <pathelement location="${m2Repository}/axis/axis-saaj/1.4/axis-saaj-1.4.jar"/>
+        <pathelement location="${m2Repository}/org/apache/axis/axis-jaxrpc/1.4/axis-jaxrpc-1.4.jar"/> 
+        <pathelement location="${m2Repository}/org/apache/axis/axis-saaj/1.4/axis-saaj-1.4.jar"/>
         <pathelement location="${m2Repository}/axis/axis-wsdl4j/1.5.1/axis-wsdl4j-1.5.1.jar"/>
         <pathelement location="${m2Repository}/commons-discovery/commons-discovery/0.2/commons-discovery-0.2.jar"/>
+        <pathelement location="${m2Repository}/javax/xml/rpc/javax.xml.rpc-api/1.1.1/javax.xml.rpc-api-1.1.1.jar" /><!--  ant needs this -->
+    </path>
+    
+    <path id="misc.deps">
+        
+        <pathelement location="${m2Repository}/commons-httpclient/commons-httpclient/3.1/commons-httpclient-3.1.jar"/>
         <pathelement location="${m2Repository}/wss4j/wss4j/1.5.0/wss4j-1.5.0.jar"/>
         <pathelement location="${m2Repository}/com/jhlabs/filters/2.0.235/filters-2.0.235.jar"/>
         <pathelement location="${m2Repository}/org/swinglabs/swing-worker/1.1/swing-worker-1.1.jar"/>
         <pathelement location="${m2Repository}/org/swinglabs/swing-layout/1.0.3/swing-layout-1.0.3.jar"/>
         <pathelement location="${m2Repository}/xfire/opensaml/1.0.1/opensaml-1.0.1.jar"/>  
-
-        <pathelement location="../docx4j/dist/docx4j.jar"/>
-<!--               
-        <pathelement location="${m2Repository}/org/docx4j/docx4j/2.2.2/docx4j-2.2.2.jar"/>
--->        
-        <pathelement location="${m2Repository}/javax/jcr/jcr/1.0/jcr-1.0.jar"/>
-        <pathelement location="${m2Repository}/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar"/>
-    	<pathelement location="${m2Repository}/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"/>        
-<!-- 
-        <pathelement location="${m2Repository}/org/apache/xmlgraphics/xmlgraphics-commons/1.3/xmlgraphics-commons-1.3.jar"/>
-         -->
-        <pathelement location="${m2Repository}/org/apache/xmlgraphics/xmlgraphics-commons/1.3.757686/xmlgraphics-commons-1.3.757686.jar"/>
-        
-        <pathelement location="${m2Repository}/com/lowagie/itext-unsigned/2.0.8/itext-unsigned-2.0.8.jar"/>
-    	<!-- iText 2.0.8 pom dependencies:
-        <pathelement location="${m2Repository}/bouncycastle/bcmail-jdk14/138/bcmail-jdk14-138.jar"/>
-        <pathelement location="${m2Repository}/bouncycastle/bcprov-jdk14/138/bcprov-jdk14-138.jar"/> -->
+<!-- 	<pathelement location="${m2Repository}/javax/jcr/jcr/1.0/jcr-1.0.jar"/>
         <pathelement location="${m2Repository}/xalan/xalan-patched/2.7.0/xalan-patched-2.7.0.jar"/>
+ -->        
         <pathelement location="${m2Repository}/webdavclient4j/webdavclient4j-vfs/0.9.3/webdavclient4j-vfs-0.9.3.jar"/>
         <pathelement location="${m2Repository}/webdavclient4j/webdavclient4j-core/0.92/webdavclient4j-core-0.92.jar"/>
         <pathelement location="${m2Repository}/pdf-renderer/pdf-renderer/0.2007/pdf-renderer-0.2007.jar"/>
-        <pathelement location="${m2Repository}/org/jvnet/jaxb2_commons/ppp/parent-pointer-plugin/1.0/parent-pointer-plugin-1.0.jar"/>
-        <pathelement location="${m2Repository}/xhtmlrenderer/minium/0.1/minium-0.1.jar"/>
-        <pathelement location="${m2Repository}/xhtmlrenderer/core-renderer/R8pre2/core-renderer-R8pre2.jar"/>
-<!--         
-        <pathelement location="${m2Repository}/docx4j/fop-fonts/0.2.0/fop-fonts-0.2.0.jar"/>
-        <pathelement location="${m2Repository}/org/apache/commons/commons-vfs-patched/1.1/commons-vfs-patched-1.1.jar"/>
-         -->
-        <pathelement location="${m2Repository}/org/apache/avalon/framework/avalon-framework-api/4.3.1/avalon-framework-api-4.3.1.jar"/>
-        <pathelement location="${m2Repository}/org/apache/avalon/framework/avalon-framework-impl/4.3.1/avalon-framework-impl-4.3.1.jar"/>
-         
-        <pathelement location="${m2Repository}/docx4j/fop-patched/0.95.756437/fop-patched-0.95.756437.jar"/> <!--  without Class-Path in MANIFEST -->
-        <pathelement location="${m2Repository}/org/apache/commons/commons-vfs-patched/1.9.1/commons-vfs-patched-1.9.1.jar"/>
+        <pathelement location="${m2Repository}/org/apache/commons/commons-vfs-patched/1.1a/commons-vfs-patched-1.1a.jar"/>
          
         <pathelement location="${m2Repository}/org/jdesktop/application/appframework/1.0.3/appframework-1.0.3.jar"/>
         <pathelement location="${m2Repository}/alfresco/community/alfresco-web-service-client-patched/2.9.1/alfresco-web-service-client-patched-2.9.1.jar"/>
@@ -90,16 +123,16 @@
         <pathelement location="${m2Repository}/xml-security/xmlsec/1.4.1/xmlsec-1.4.1.jar"/>
         <pathelement location="${m2Repository}/bouncycastle/bcprov-jdk16-unsigned/136/bcprov-jdk16-unsigned-136.jar"/>
 
-		<!-- we need this for com.sun.xml.bind.marshaller.NamespacePrefixMapper  
-        <pathelement location="/home/dev/workspace/Alfresco/HEAD/root/projects/3rd-party/lib/jaxb-api-2.1.jar"/>
-        <pathelement location="/home/dev/workspace/Alfresco/HEAD/root/projects/3rd-party/lib/jaxb-impl-2.1.7.jar"/>
-        -->
     </path>
 	
     <path id="docx4all.classpath">
         <pathelement location="build/classes"/>
-        <path refid="MavenDependencies.libraryclasspath"/>
-    </path>
+        <path refid="docx4j.deps"/>
+        <path refid="jaxen.deps"/>
+        <path refid="axis.deps"/>
+        <path refid="misc.deps"/>
+   </path>
+   
     <path id="run.docx4all.classpath">
         <path refid="docx4all.classpath"/>
         <path refid="MavenDependencies.libraryclasspath"/>
@@ -139,6 +172,7 @@
         <javac bootclasspathref="jre.libs" includeJavaRuntime="yes"
     			debug="true" debuglevel="${debuglevel}" 
         	destdir="build/classes" source="${source}" target="${target}">
+            
         	<!-- bootclasspathref="jre.libs" includeJavaRuntime="yes"
         	     are necessary (except with Apple's Java6 on OSX) to get around:
         	     
@@ -148,7 +182,8 @@
         	     
         	     See comment in org.docx4all.util.XmlUtil -->
             <src path="${src.main.java.dir}"/>
-            <classpath refid="docx4all.classpath"/>        	
+            <classpath refid="docx4all.classpath"/>            
+            	
         </javac>
         
         <javac debug="true" debuglevel="${debuglevel}" destdir="build/classes" source="${source}" target="${target}">
@@ -224,8 +259,12 @@
        (which handles if-modifies-since properly)
        
        
+       Get the task from http://sourceforge.net/projects/ant-jnlp-war/?source=typ_redirect
+       
+       Add ant-jnlp-war-0.9.jar and ant-jnlp-war_deps-0.9.jar to ant\lib
+       
   -->
-    <typedef resource="org/unintelligible/antjnlpwar/antjnlpwar.xml" format="xml" uri="org.unintelligible.antjnlpwar"/>
+    <typedef resource="org/unintelligible/antjnlpwar/antjnlpwar.xml" format="xml" uri="org.unintelligible.antjnlpwar" />
     <target name="webstart"  depends="clean, build-project" >
 		
 		<property name="lib" value="./build/lib"/>
@@ -261,14 +300,20 @@
 				excludes="META-INF/MANIFEST.MF META-INF/ALIAS.* META-INF/*.txt META-INF/*.SERIALIZER META-INF/LICENSE META-INF/NOTICE"
 				includes="META-INF/**"/>
 			<!--  services/com.sun.tools.xjc.Plugin -->
+			
+			
+			<!-- 
 			<zipfileset src="${lib}/parent-pointer-plugin-1.0.jar" 
 				excludes="META-INF/MANIFEST.MF META-INF/ALIAS.* META-INF/*.txt META-INF/*.SERIALIZER META-INF/LICENSE META-INF/NOTICE"
 				includes="META-INF/**"/>
+				 -->
+				 
+				 
 			<!--  services/blagh blagh -->
-			<zipfileset src="${lib}/xmlgraphics-commons-1.3.757686.jar" 
+			<zipfileset src="${lib}/xmlgraphics-commons-1.5.jar" 
 				excludes="META-INF/MANIFEST.MF META-INF/ALIAS.* META-INF/*.txt META-INF/*.SERIALIZER META-INF/LICENSE META-INF/NOTICE"
 				includes="META-INF/**"/>
-			<zipfileset src="${lib}/fop-patched-0.95.756437.jar" 
+			<zipfileset src="${lib}/fop-1.1.jar" 
 				excludes="META-INF/MANIFEST.MF META-INF/ALIAS.* META-INF/*.txt META-INF/*.SERIALIZER META-INF/LICENSE META-INF/NOTICE
 				META-INF/services/org.apache.xmlgraphics.*"
 				includes="META-INF/**"/> <!--  2 copies of xmlgraphics causes unpack task to fail -->
