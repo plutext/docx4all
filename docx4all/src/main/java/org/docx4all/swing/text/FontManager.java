@@ -23,7 +23,6 @@ import java.awt.Font;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -33,8 +32,6 @@ import java.util.Set;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.StyleConstants;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4j.fonts.BestMatchingMapper;
@@ -43,6 +40,9 @@ import org.docx4j.fonts.microsoft.MicrosoftFonts;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.FontTablePart;
 import org.jdesktop.application.ResourceMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  *	@author Jojada Tirtowidjojo - 05/03/2008
@@ -339,13 +339,37 @@ public class FontManager {
 					if (path.toLowerCase().endsWith(".otf") || path.toLowerCase().endsWith(".pfb")) {
 						fontFormat = Font.TYPE1_FONT;
 					}
+					
+					/* per http://elliotth.blogspot.com.au/2007/04/far-east-asian-fonts-with-java-7-on.html
+					 * 
+					 * If you call StyleContext.getDefaultStyleContext.getFont instead of new Font, you'll 
+					 * get a composite font. The only thing to watch out for is that StyleContext's so-called 
+					 * "cache" doesn't have an eviction policy. So if you're creating lots of randomized fonts, 
+					 * this might cause problems.
+					 * 
+					 * Obviously, returning a composite font isn't documented behavior of this method, but it 
+					 * would hurt Swing to regress, so it's unlikely to be broken. And you can always 
+					 * reflect FontManager.getCompositeFontUIResource if the worst comes to the worst. 
+					*/
+					theFont = javax.swing.text.StyleContext.getDefaultStyleContext().getFont(fontname, style, size);
+
+					/* OR, but requires JDK 7
+					
 					theFont = Font.createFont(fontFormat, new File(path));
 					theFont = theFont.deriveFont(style, size);
+										
+					// JDK 7 way; see https://github.com/openjdk-mirror/jdk7u-jdk/blob/master/src/share/classes/sun/font/FontUtilities.java
+					if (!sun.font.FontUtilities.fontSupportsDefaultEncoding(theFont)) {
+						theFont = sun.font.FontUtilities.getCompositeFontUIResource(theFont);
+					}
 					
-		            if (! sun.font.FontManager.fontSupportsDefaultEncoding(theFont)) {
-		            	theFont = sun.font.FontManager.getCompositeFontUIResource(theFont);
-		            }
-		            
+					// the old way, but recent javac give error (Eclipse is ok) 
+			        //    if (! sun.font.FontManager.fontSupportsDefaultEncoding(theFont)) {
+			        //    	theFont = sun.font.FontManager.getCompositeFontUIResource(theFont);
+			        //    }
+		            //
+		            */
+					
 		            FontTableKey key = new FontTableKey(fontname, style, size);
 					_fontTable.put(key, theFont);
 
@@ -374,7 +398,7 @@ public class FontManager {
 		
 		return theFont;
 	}
-	
+		
     /**
      * key for TableFont
      */
