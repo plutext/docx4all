@@ -1558,7 +1558,13 @@ private void updateDocx4jPart(
 			log.error(partName + " does not exist .. creating");
 			PartName pn = new PartName(partName);
 		       if (partName.equals("/word/_rels/document.xml.rels")) {
-		    	   jPart = new RelationshipsPart( pn );
+		    	   
+		    	   // In 3.2.0, can't do:
+		    	   //    jPart = new RelationshipsPart( pn );
+		    	   
+		    	   MainDocumentPart mdp = (MainDocumentPart)docx4jParts.get( new PartName("/word/document.xml") );
+		    	   jPart = mdp.getRelationshipsPart(true);
+		    	   
 		        } else if (partName.equals("/word/comments.xml")) {	
 		        	jPart = new CommentsPart( pn );
 		        } else if (partName.equals("/word/footnotes.xml")) {	        	        	

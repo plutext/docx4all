@@ -72,6 +72,7 @@ import org.docx4j.convert.out.flatOpcXml.FlatOpcXmlCreator;
 import org.docx4j.convert.out.html.AbstractHtmlExporter;
 //import org.docx4j.convert.out.html.HtmlExporter;
 import org.docx4j.convert.out.html.HtmlExporterNG2;
+import org.docx4j.convert.out.html.AbstractHtmlExporter.HtmlSettings;
 import org.docx4j.convert.out.pdf.PdfConversion;
 import org.docx4j.convert.out.pdf.viaXSLFO.PdfSettings;
 import org.docx4j.jaxb.Context;
@@ -1044,8 +1045,16 @@ public class FileMenu extends UIMenu {
        			javax.xml.transform.stream.StreamResult result = 
 					new javax.xml.transform.stream.StreamResult(fos);
        			//wmlPackage.html(result);
-    			AbstractHtmlExporter exporter = new HtmlExporterNG2(); 			       			
-    			exporter.html(wmlPackage, result, saveAsFilePath + "_files");
+    			AbstractHtmlExporter exporter = new HtmlExporterNG2(); 	
+    			
+    			// .. the HtmlSettings object
+    	    	HtmlSettings htmlSettings = new HtmlSettings();
+    	    	htmlSettings.setImageDirPath(saveAsFilePath + "_files");
+    	    	htmlSettings.setImageTargetUri(saveAsFilePath.substring(saveAsFilePath.lastIndexOf("/")+1)
+    	    			+ "_files");
+    			
+    			
+    			exporter.html(wmlPackage, result, htmlSettings);
        			       			
 				try {
 					//just in case

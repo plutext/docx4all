@@ -39,7 +39,10 @@ import javax.xml.namespace.QName;
 
 import org.apache.log4j.Logger;
 import org.docx4all.xml.ObjectFactory;
+import org.docx4j.XmlUtils;
+import org.docx4j.fonts.RunFontSelector;
 import org.docx4j.jaxb.Context;
+import org.docx4j.model.PropertyResolver;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.BooleanDefaultTrue;
 import org.docx4j.wml.CTHeight;
@@ -71,6 +74,7 @@ import org.docx4j.wml.TrPr;
 import org.docx4j.wml.U;
 import org.docx4j.wml.PPrBase.PStyle;
 import org.docx4j.wml.Styles.LatentStyles.LsdException;
+import org.w3c.dom.Document;
 
 /**
  *	@author Jojada Tirtowidjojo - 19/02/2008
@@ -882,7 +886,18 @@ public class StyleSheet extends StyleContext {
 			
 			//Override font family name setting with that provided by Docx4j.
 			//Docx4j tries to mimic the algorithm of MS Word 2007 in finding font name from style.
-			String tmpStr = getWordprocessingMLPackage().getMainDocumentPart().getPropertyResolver().getFontnameFromStyle(st);
+			//String tmpStr = getWordprocessingMLPackage().getMainDocumentPart().getPropertyResolver().getFontnameFromStyle(st);
+			
+			String tmpStr = null;
+    		RPr pRPr = getWordprocessingMLPackage().getMainDocumentPart().getPropertyResolver().getEffectiveRPr(st.getStyleId());
+			if (pRPr!=null
+					&& pRPr.getRFonts()!=null) {
+				
+				// 3.2.0 simple approach for now
+				tmpStr= pRPr.getRFonts().getAscii();
+			}
+			
+			
 			if (tmpStr != null) {
 				StyleConstants.setFontFamily(tmpStyle, tmpStr);
 			}

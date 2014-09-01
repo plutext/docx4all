@@ -3,7 +3,7 @@
   <groupId>org.docx4all</groupId>
   <artifactId>docx4all</artifactId>
   <name>docx4all</name>
-  <version>0.1-SNAPSHOT</version>
+  <version>3.2.0</version>
   <description>docx4all is a WYSIWYG word processor for OOXML WordprocessingML (docx) documents.</description>
   <url>http://dev.plutext.org/</url>
   <prerequisites />
@@ -112,7 +112,7 @@
 	 <dependency>
 		  <groupId>org.docx4j</groupId>
 		  <artifactId>docx4j</artifactId>
-		  <version>2.7.1</version> 
+		  <version>3.2.0</version> 
 	</dependency>
   	<dependency>
   		<groupId>dom4j</groupId>

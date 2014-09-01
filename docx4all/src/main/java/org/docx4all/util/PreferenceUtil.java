@@ -30,8 +30,13 @@ public class PreferenceUtil {
 		if (System.getProperty("os.name").toLowerCase().indexOf("linux")>-1
 				&& System.getProperty("java.version").startsWith("1.6")
 				&& System.getProperty("java.vendor").startsWith("Sun") ) {
-			System.setProperty("javax.xml.transform.TransformerFactory", 
-					XmlUtils.TRANSFORMER_FACTORY_ORIGINAL);  
+			
+
+			/* Shouldn't be necessary with modern docx4j? 
+			 * 
+				System.setProperty("javax.xml.transform.TransformerFactory", 
+						XmlUtils.TRANSFORMER_FACTORY_ORIGINAL);  
+			 */
 			
 			System.setProperty("javax.xml.parsers.SAXParserFactory", 
 					"com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl");

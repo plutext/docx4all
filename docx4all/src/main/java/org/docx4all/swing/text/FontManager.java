@@ -28,6 +28,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.swing.text.AttributeSet;
 import javax.swing.text.StyleConstants;
@@ -127,10 +128,10 @@ public class FontManager {
         log.info("Initialising substituter.");
 		mapper = new BestMatchingMapper();
 
-		Map<String, String> fontsInUse = 
-			new HashMap<String, String>(nameList.size());
+		Set<String> fontsInUse = 
+				new java.util.HashSet<String>(nameList.size());
 		for (String s : nameList) {
-			fontsInUse.put(s, s);
+			fontsInUse.add(s);
 		}
 
 		try {
@@ -231,7 +232,7 @@ public class FontManager {
 		
 		log.info("");
 		
-		Map fontsInUse = docPackage.getMainDocumentPart().fontsInUse();
+		Set fontsInUse = docPackage.getMainDocumentPart().fontsInUse();
 		FontTablePart fontTablePart = docPackage.getMainDocumentPart().getFontTablePart();
 		
 		try {
@@ -316,8 +317,7 @@ public class FontManager {
 			//Not in cache.
 			//Derive from Substituter.FontMapping
 //			String fmKey = SubstituterImplPanose.normalise(family);
-			PhysicalFont pf = 
-				(PhysicalFont) mapper.getFontMappings().get(fontname);
+			PhysicalFont pf = mapper.get(fontname);
 			String path = null;
 			if (pf != null  
 					&& pf.getEmbeddedFile() != null) {

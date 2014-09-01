@@ -34,7 +34,6 @@ import org.apache.log4j.Logger;
 import org.docx4j.utils.VFSUtils;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.io.Load;
-import org.docx4j.openpackaging.io.LoadFromZipFile;
 import org.docx4j.openpackaging.packages.OpcPackage;
 
 
@@ -58,14 +57,14 @@ public class LoadFromVFSZipFile extends Load {
 		loader.get(filepath);		
 	}
 
-	private LoadFromZipFile _loadFromZipFile;
+	private LoadFromZipNG _loadFromZipFile;
 
 	public LoadFromVFSZipFile() {
 		this(true);
 	}
 	
 	public LoadFromVFSZipFile(boolean loadExternalTargets) {
-		_loadFromZipFile = new LoadFromZipFile();
+		_loadFromZipFile = new LoadFromZipNG();
 		_loadFromZipFile.loadExternalTargets(loadExternalTargets);
 	}
 
