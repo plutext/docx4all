@@ -46,7 +46,8 @@ import javax.swing.text.StyleConstants;
 
 import net.sf.vfsjfilechooser.utils.VFSUtils;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.datatransfer.WordMLTransferable;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.event.InputAttributeEvent;
@@ -66,7 +67,7 @@ import org.plutext.client.Mediator;
 public class ToolBarStates extends InternalFrameAdapter 
 	implements FocusListener, DocumentListener, InputAttributeListener, FlavorListener, CaretListener {
 	
-	private static Logger log = Logger.getLogger(ToolBarStates.class);
+	private static Logger log = LoggerFactory.getLogger(ToolBarStates.class);
 	
 	/**
 	 * The binding key used for this ToolBarStates object 

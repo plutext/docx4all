@@ -25,7 +25,8 @@ import java.util.List;
 import javax.xml.bind.JAXBIntrospector;
 import javax.xml.namespace.QName;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4j.XmlUtils;
 import org.docx4j.jaxb.Context;
 
@@ -33,7 +34,7 @@ import org.docx4j.jaxb.Context;
  *	@author Jojada Tirtowidjojo - 16/04/2008
  */
 public class SdtBlockML extends ElementML {
-	private static Logger log = Logger.getLogger(SdtBlockML.class);
+	private static Logger log = LoggerFactory.getLogger(SdtBlockML.class);
 
 	private SdtPrML sdtPr;
 	

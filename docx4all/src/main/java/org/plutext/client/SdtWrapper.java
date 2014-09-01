@@ -2,7 +2,8 @@ package org.plutext.client;
 
 import java.util.HashMap;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4j.model.sdt.QueryString;
 import org.docx4j.wml.ObjectFactory;
 import org.docx4j.wml.SdtBlock;
@@ -28,7 +29,7 @@ import org.docx4j.wml.Tag;
  */
 public class SdtWrapper {
 	
-	private static Logger log = Logger.getLogger(SdtWrapper.class);
+	private static Logger log = LoggerFactory.getLogger(SdtWrapper.class);
 	
 	public final static String PLUTEXT_ID     ="p:id";
 	public final static String PLUTEXT_VERSION="p:v";

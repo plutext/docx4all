@@ -21,7 +21,8 @@ package org.plutext.client.wrappedTransforms;
 
 import java.util.HashMap;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.plutext.client.Mediator;
 import org.plutext.client.state.StateChunk;
 import org.plutext.transforms.Changesets.Changeset;
@@ -32,7 +33,7 @@ import org.plutext.transforms.Transforms.T;
      * update which was attempted, but which failed. */
 public class TransformFailed extends TransformAbstract
 {
-	private static Logger log = Logger.getLogger(TransformFailed.class);
+	private static Logger log = LoggerFactory.getLogger(TransformFailed.class);
 
     public TransformFailed(T t)
     {

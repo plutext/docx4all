@@ -25,7 +25,8 @@ import java.util.List;
 import javax.xml.bind.JAXBIntrospector;
 import javax.xml.namespace.QName;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
 import org.docx4j.jaxb.Context;
@@ -34,7 +35,7 @@ import org.docx4j.jaxb.Context;
  *	@author Jojada Tirtowidjojo - 11/07/2009
  */
 public class InlineTransparentML extends ElementML {
-	private static Logger log = Logger.getLogger(InlineTransparentML.class);
+	private static Logger log = LoggerFactory.getLogger(InlineTransparentML.class);
 
 	public InlineTransparentML(Object docxObject) {
 		this(docxObject, false);

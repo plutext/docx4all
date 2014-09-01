@@ -30,7 +30,8 @@ import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.commons.vfs.FileObject;
 import org.apache.commons.vfs.FileSystemException;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.ui.menu.FileMenu;
 import org.docx4all.ui.menu.HyperlinkMenu;
 import org.docx4all.util.PreferenceUtil;
@@ -42,7 +43,7 @@ import org.jdesktop.application.ResourceMap;
  *	@author Jojada Tirtowidjojo - 24/09/2008
  */
 public class WordMLApplet extends JApplet {
-	private static Logger log = Logger.getLogger(WordMLApplet.class);
+	private static Logger log = LoggerFactory.getLogger(WordMLApplet.class);
 
 	public void init() {
 		System.out.println("Applet initialising");

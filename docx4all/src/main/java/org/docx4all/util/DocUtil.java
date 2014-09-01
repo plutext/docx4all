@@ -46,7 +46,8 @@ import javax.swing.text.Segment;
 import javax.swing.text.Style;
 import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.BadSelectionException;
 import org.docx4all.swing.text.DocumentElement;
@@ -82,7 +83,7 @@ import org.plutext.client.Mediator;
  *	@author Jojada Tirtowidjojo - 27/11/2007
  */
 public class DocUtil {
-	private static Logger log = Logger.getLogger(DocUtil.class);
+	private static Logger log = LoggerFactory.getLogger(DocUtil.class);
 
 	private final static String TAB = "    ";
 	
@@ -1370,7 +1371,7 @@ public class DocUtil {
 		StringBuffer sb = new StringBuffer(leftMargin);
 		sb.append("===== Element Class: ");
 		sb.append(elem.getClass().getSimpleName());
-		log.debug(sb);
+		log.debug(sb.toString());
 
 		//====== Display the Element offset position ======
 		int startOffset = elem.getStartOffset();
@@ -1381,7 +1382,7 @@ public class DocUtil {
 		sb.append(", ");
 		sb.append(endOffset);
 		sb.append("]");
-		log.debug(sb);
+		log.debug(sb.toString());
 
 		//====== Display the Element Attributes ======
 		AttributeSet attr = elem.getAttributes();
@@ -1389,13 +1390,13 @@ public class DocUtil {
 
 		sb = new StringBuffer(leftMargin);
 		sb.append("ATTRIBUTES:");
-		log.debug(sb);
+		log.debug(sb.toString());
 
 		while (nameEnum.hasMoreElements()) {
 			sb = new StringBuffer(leftMargin);
 			Object attrName = nameEnum.nextElement();
 			sb.append(" (" + attrName + ", " + attr.getAttribute(attrName) + ")");
-			log.debug(sb);
+			log.debug(sb.toString());
 		}
 
 		//====== Display text content for a leaf element ======
@@ -1416,7 +1417,7 @@ public class DocUtil {
 					sb.append(text);
 				}
 				sb.append("]");
-				log.debug(sb);
+				log.debug(sb.toString());
 			} catch (BadLocationException ex) {
 			}
 		}

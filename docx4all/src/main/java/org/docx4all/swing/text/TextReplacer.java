@@ -24,13 +24,14 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.DocumentFilter.FilterBypass;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *	@author Jojada Tirtowidjojo - 12/02/2008
  */
 public class TextReplacer implements TextProcessor {
-	private static Logger log = Logger.getLogger(TextReplacer.class);
+	private static Logger log = LoggerFactory.getLogger(TextReplacer.class);
 
 	private final FilterBypass filterBypass;
 	private final int offset;

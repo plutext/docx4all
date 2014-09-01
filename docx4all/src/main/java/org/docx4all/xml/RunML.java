@@ -26,7 +26,8 @@ import javax.swing.text.AttributeSet;
 import javax.xml.bind.JAXBIntrospector;
 import javax.xml.namespace.QName;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
 import org.docx4j.jaxb.Context;
@@ -37,7 +38,7 @@ import org.w3c.dom.Node;
  *	@author Jojada Tirtowidjojo - 30/11/2007
  */
 public class RunML extends ElementML {
-	private static Logger log = Logger.getLogger(RunML.class);
+	private static Logger log = LoggerFactory.getLogger(RunML.class);
 	
 	private RunPropertiesML rPr;
 	private org.docx4j.wml.FldChar fldChar;

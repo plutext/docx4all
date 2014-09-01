@@ -11,7 +11,8 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4j.XmlUtils;
 import org.docx4j.convert.out.flatOpcXml.FlatOpcXmlCreator;
 import org.docx4j.jaxb.Context;
@@ -24,7 +25,7 @@ import org.xml.sax.InputSource;
 public class Part {
 	
 	
-	private static Logger log = Logger.getLogger(Part.class);
+	private static Logger log = LoggerFactory.getLogger(Part.class);
 
 	/*
 	 * We need to be able to create this Part wrapper from:
@@ -128,7 +129,7 @@ public class Part {
 					new InputSource(
 							new StringReader(partXml)));
 		} catch (Exception e) {
-			log.error(e);
+			log.error(e.getMessage(), e);
 		}
     	
         log.debug("documentElemnet: " + doc.getDocumentElement().getNodeName() );

@@ -23,7 +23,8 @@ import java.math.BigInteger;
 
 import javax.swing.text.StyleConstants;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.openpackaging.parts.WordprocessingML.StyleDefinitionsPart;
@@ -36,7 +37,7 @@ import org.docx4j.wml.JcEnumeration;
  */
 public class ObjectFactory {
 	
-	protected static Logger log = Logger.getLogger(ObjectFactory.class);
+	protected static Logger log = LoggerFactory.getLogger(ObjectFactory.class);
 	
 	private final static org.docx4j.wml.ObjectFactory _jaxbFactory = 
 		new org.docx4j.wml.ObjectFactory();

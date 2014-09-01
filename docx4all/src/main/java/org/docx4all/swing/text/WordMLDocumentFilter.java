@@ -26,7 +26,8 @@ import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.event.WordMLDocumentEvent;
 import org.docx4j.wml.SdtBlock;
 
@@ -34,7 +35,7 @@ import org.docx4j.wml.SdtBlock;
  *	@author Jojada Tirtowidjojo - 10/12/2007
  */
 public class WordMLDocumentFilter extends DocumentFilter {
-	private static Logger log = Logger.getLogger(WordMLDocumentFilter.class);
+	private static Logger log = LoggerFactory.getLogger(WordMLDocumentFilter.class);
 	private boolean enabled = true;
 	
 	public void setEnabled(boolean enabled) {

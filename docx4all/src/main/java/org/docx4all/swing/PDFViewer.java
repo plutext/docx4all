@@ -24,13 +24,14 @@ import java.net.URL;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *	@author Jojada Tirtowidjojo - 05/12/2008
  */
 public class PDFViewer extends com.sun.pdfview.PDFViewer {
-	private static Logger log = Logger.getLogger(PDFViewer.class);
+	private static Logger log = LoggerFactory.getLogger(PDFViewer.class);
 	
     public PDFViewer(boolean useThumbs) {
     	super(useThumbs);

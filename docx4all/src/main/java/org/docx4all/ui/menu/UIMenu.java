@@ -27,7 +27,8 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JSeparator;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.ui.main.WordMLEditor;
 import org.jdesktop.application.ApplicationContext;
 import org.jdesktop.application.ResourceMap;
@@ -36,7 +37,7 @@ import org.jdesktop.application.ResourceMap;
  *	@author Jojada Tirtowidjojo - 27/11/2007
  */
 public abstract class UIMenu {
-	private static Logger log = Logger.getLogger(UIMenu.class);
+	private static Logger log = LoggerFactory.getLogger(UIMenu.class);
 	
 	public final static String SEPARATOR_CODE = "---";
 	

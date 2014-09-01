@@ -21,7 +21,8 @@ package org.docx4all.xml.drawing;
 
 import java.awt.Toolkit;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.BinaryPartAbstractImage;
 
@@ -30,7 +31,7 @@ import org.docx4j.openpackaging.parts.WordprocessingML.BinaryPartAbstractImage;
  */
 public class Graphic {
 	
-	private static Logger log = Logger.getLogger(Graphic.class);
+	private static Logger log = LoggerFactory.getLogger(Graphic.class);
 	
 	private org.docx4j.dml.Graphic graphic;
 	

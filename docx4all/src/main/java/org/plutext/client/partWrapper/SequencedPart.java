@@ -3,7 +3,8 @@ package org.plutext.client.partWrapper;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4j.openpackaging.parts.JaxbXmlPart;
 import org.plutext.client.Mediator;
 import org.w3c.dom.Node;
@@ -25,7 +26,7 @@ public class SequencedPart extends Part {
      * or any other semantics.
      */
 
-    	private static Logger log = Logger.getLogger(SequencedPart.class);
+    	private static Logger log = LoggerFactory.getLogger(SequencedPart.class);
 
 
         public SequencedPart()

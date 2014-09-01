@@ -27,10 +27,11 @@ import javax.swing.text.CompositeView;
 import javax.swing.text.Element;
 import javax.swing.text.View;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RunView extends CompositeView {
-	private static Logger log = Logger.getLogger(RunView.class);
+	private static Logger log = LoggerFactory.getLogger(RunView.class);
 
 	public RunView(Element elem) {
 		super(elem);

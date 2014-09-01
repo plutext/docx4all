@@ -38,7 +38,8 @@ import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.xml.bind.JAXBIntrospector;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.event.WordMLDocumentEvent;
 import org.docx4all.swing.event.WordMLDocumentListener;
 import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
@@ -64,7 +65,7 @@ import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.SdtBlock;
 
 public class WordMLDocument extends DefaultStyledDocument {
-	private static Logger log = Logger.getLogger(WordMLDocument.class);
+	private static Logger log = LoggerFactory.getLogger(WordMLDocument.class);
 
 	public final static String FILE_PATH_PROPERTY = "filePathProperty";
 	

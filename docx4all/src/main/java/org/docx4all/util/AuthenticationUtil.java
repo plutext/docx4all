@@ -34,7 +34,8 @@ import org.apache.commons.vfs.provider.webdav.WebdavClientFactory;
 import org.apache.commons.vfs.provider.webdav.WebdavFileObject;
 import org.apache.commons.vfs.provider.webdav.WebdavFileSystemConfigBuilder;
 import org.apache.commons.vfs.provider.webdav.WebdavMethodRetryHandler;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.UserAuthenticationDialog;
 import org.docx4all.ui.main.WordMLEditor;
 import org.jdesktop.application.ResourceMap;
@@ -43,7 +44,7 @@ import org.jdesktop.application.ResourceMap;
  *	@author Jojada Tirtowidjojo - 03/12/2008
  */
 public class AuthenticationUtil {
-	private static Logger log = Logger.getLogger(AuthenticationUtil.class);
+	private static Logger log = LoggerFactory.getLogger(AuthenticationUtil.class);
 
 	/**
 	 * Display a user authentication form dialog.

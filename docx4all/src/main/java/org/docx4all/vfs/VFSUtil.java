@@ -29,13 +29,14 @@ import net.sf.vfsjfilechooser.accessories.bookmarks.TitledURLEntry;
 import net.sf.vfsjfilechooser.accessories.connection.Protocol;
 import net.sf.vfsjfilechooser.utils.VFSURIParser;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *	@author Jojada Tirtowidjojo - 10/12/2008
  */
 public class VFSUtil {
-	private static Logger log = Logger.getLogger(VFSUtil.class);
+	private static Logger log = LoggerFactory.getLogger(VFSUtil.class);
 
 	/**
 	 * This method searches for all username and password pairs in bookmark entries

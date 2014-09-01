@@ -28,7 +28,8 @@ import javax.xml.bind.JAXBElement;
 
 import org.docx4j.wml.Style;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4j.wml.SdtBlock;
 
 import org.docx4j.XmlUtils;
@@ -74,7 +75,7 @@ import org.plutext.client.wrappedTransforms.TransformAbstract;
 // TODO - consider how this relates to org.docx4all.swing.text.StyleSheet  
 // and to org.docx4j.openpackaging.parts.WordprocessingML.StyleDefinitionsPart
     	
-    	private static Logger log = Logger.getLogger(StylesSnapshot.class);
+    	private static Logger log = LoggerFactory.getLogger(StylesSnapshot.class);
     	
         /*
          * 

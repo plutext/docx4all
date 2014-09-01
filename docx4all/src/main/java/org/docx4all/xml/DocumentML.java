@@ -24,7 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.text.StyleSheet;
 import org.docx4j.XmlUtils;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
@@ -34,7 +35,7 @@ import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
  *	@author Jojada Tirtowidjojo - 30/11/2007
  */
 public class DocumentML extends ElementML {
-	private static Logger log = Logger.getLogger(DocumentML.class);
+	private static Logger log = LoggerFactory.getLogger(DocumentML.class);
 	
 	private final WordprocessingMLPackage docPackage;
 	private StyleSheet styleSheet;

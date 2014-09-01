@@ -33,7 +33,8 @@ import java.util.Set;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.StyleConstants;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.ui.main.WordMLEditor;
 import org.docx4j.fonts.BestMatchingMapper;
@@ -47,7 +48,7 @@ import org.jdesktop.application.ResourceMap;
  *	@author Jojada Tirtowidjojo - 05/03/2008
  */
 public class FontManager {
-	private static Logger log = Logger.getLogger(FontManager.class);
+	private static Logger log = LoggerFactory.getLogger(FontManager.class);
 	
 	public final static String UNKNOWN_FONT_NAME = "<Not Known>";
 	public final static String UNKNOWN_FONT_SIZE = "##";

@@ -27,7 +27,8 @@ import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.text.StyleSheet;
 import org.docx4all.swing.text.WordMLStyleConstants;
 import org.docx4j.XmlUtils;
@@ -40,7 +41,7 @@ import org.docx4j.wml.RPr;
  *	@author Jojada Tirtowidjojo - 30/11/2007
  */
 public class RunPropertiesML extends ElementML implements PropertiesContainerML {
-	private static Logger log = Logger.getLogger(RunPropertiesML.class);
+	private static Logger log = LoggerFactory.getLogger(RunPropertiesML.class);
 	
 	private MutableAttributeSet attrs;
 	

@@ -48,7 +48,8 @@ import net.sf.vfsjfilechooser.utils.VFSUtils;
 import org.apache.commons.vfs.FileObject;
 import org.apache.commons.vfs.FileSystemException;
 import org.apache.commons.vfs.provider.UriParser;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.NewShareDialog;
 import org.docx4all.swing.PDFViewer;
 import org.docx4all.swing.WordMLTextPane;
@@ -87,7 +88,7 @@ import org.jdesktop.application.ResourceMap;
  *	@author Jojada Tirtowidjojo - 27/11/2007
  */
 public class FileMenu extends UIMenu {
-	private static Logger log = Logger.getLogger(FileMenu.class);
+	private static Logger log = LoggerFactory.getLogger(FileMenu.class);
 	
 	private final static FileMenu _instance = new FileMenu();
 	
@@ -1029,7 +1030,7 @@ public class FileMenu extends UIMenu {
 					
 					m.setProperty("jaxb.formatted.output", true);
 				} catch (javax.xml.bind.PropertyException cnfe) {
-					log.error(cnfe);
+					log.error(cnfe.getMessage(), cnfe);
 				}
 				m.marshal(flatOPC, fos);
 				try {

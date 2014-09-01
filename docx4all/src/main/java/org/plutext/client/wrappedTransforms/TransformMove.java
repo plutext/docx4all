@@ -21,7 +21,8 @@ package org.plutext.client.wrappedTransforms;
 
 import java.util.HashMap;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.xml.ElementML;
@@ -33,7 +34,7 @@ import org.plutext.transforms.Changesets.Changeset;
 import org.plutext.transforms.Transforms.T;
 
 public class TransformMove extends TransformAbstract {
-	private static Logger log = Logger.getLogger(TransformMove.class);
+	private static Logger log = LoggerFactory.getLogger(TransformMove.class);
 
 	public TransformMove(T t) {
 		super(t);

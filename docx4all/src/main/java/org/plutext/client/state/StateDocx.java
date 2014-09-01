@@ -25,7 +25,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.xml.DocumentML;
@@ -48,7 +49,7 @@ import org.w3c.dom.Document;
  */
 public class StateDocx {
 
-	private static Logger log = Logger.getLogger(StateDocx.class);
+	private static Logger log = LoggerFactory.getLogger(StateDocx.class);
 
 	public StateDocx(WordMLDocument doc) {
     	init(doc);		

@@ -74,7 +74,8 @@ import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.commons.vfs.FileObject;
 import org.apache.commons.vfs.FileSystemException;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.event.InputAttributeEvent;
 import org.docx4all.swing.event.InputAttributeListener;
@@ -98,7 +99,7 @@ import org.plutext.client.Mediator;
 import org.plutext.client.Util;
 
 public class WordMLEditorKit extends DefaultEditorKit {
-	private static Logger log = Logger.getLogger(WordMLEditorKit.class);
+	private static Logger log = LoggerFactory.getLogger(WordMLEditorKit.class);
 
     /**
      * Name of the action to place a soft line break into

@@ -28,7 +28,8 @@ import javax.swing.text.Document;
 import javax.swing.text.EditorKit;
 import javax.swing.text.MutableAttributeSet;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.swing.text.WordMLEditorKit;
 import org.docx4all.swing.text.WordMLFragment;
@@ -40,7 +41,7 @@ import org.jdesktop.application.ResourceMap;
  *	@author Jojada Tirtowidjojo - 22/01/2008
  */
 public class WordMLTextPane extends JEditorPane {
-	private static Logger log = Logger.getLogger(WordMLTextPane.class);
+	private static Logger log = LoggerFactory.getLogger(WordMLTextPane.class);
 
 	private boolean _filterApplied;
 	

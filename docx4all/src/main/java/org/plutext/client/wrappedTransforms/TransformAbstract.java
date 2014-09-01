@@ -22,7 +22,8 @@ package org.plutext.client.wrappedTransforms;
 import java.math.BigInteger;
 import java.util.HashMap;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
 import org.docx4j.wml.Tag;
@@ -34,7 +35,7 @@ import org.plutext.transforms.Transforms.T;
 
 public abstract class TransformAbstract {
 
-	private static Logger log = Logger.getLogger(TransformAbstract.class);
+	private static Logger log = LoggerFactory.getLogger(TransformAbstract.class);
 
 	protected SdtBlock sdt = null;
 	protected org.docx4j.wml.SdtBlock markedUpSdt = null;

@@ -2,7 +2,8 @@ package org.plutext.client.partWrapper;
 
 import java.util.HashMap;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -47,7 +48,7 @@ FIXED_RELS_SUFFIX:
          * 
          */
 
-    	private static Logger log = Logger.getLogger(SequencedPartRels.class);
+    	private static Logger log = LoggerFactory.getLogger(SequencedPartRels.class);
 
         public SequencedPartRels(org.w3c.dom.Document doc)
         {

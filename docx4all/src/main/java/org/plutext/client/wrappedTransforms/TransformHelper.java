@@ -19,11 +19,12 @@
 
 package org.plutext.client.wrappedTransforms;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.plutext.transforms.Transforms.T;
 
 public class TransformHelper {
-	private static Logger log = Logger.getLogger(TransformHelper.class);
+	private static Logger log = LoggerFactory.getLogger(TransformHelper.class);
 
 	public static TransformAbstract construct(T t) {
 

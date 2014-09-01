@@ -22,7 +22,8 @@ package org.docx4all.xml;
 import java.math.BigInteger;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4j.XmlUtils;
 import org.docx4j.wml.Id;
 import org.plutext.client.SdtWrapper;
@@ -31,7 +32,7 @@ import org.plutext.client.SdtWrapper;
  *	@author Jojada Tirtowidjojo - 16/04/2008
  */
 public class SdtPrML  extends ElementML {
-	private static Logger log = Logger.getLogger(SdtPrML.class);
+	private static Logger log = LoggerFactory.getLogger(SdtPrML.class);
 
 	public SdtPrML(org.docx4j.wml.SdtPr sdtPr) {
 		this(sdtPr, false);

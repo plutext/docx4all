@@ -27,7 +27,8 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.ui.main.WordMLEditor;
 import org.jdesktop.application.ResourceMap;
@@ -36,7 +37,7 @@ import org.jdesktop.application.ResourceMap;
  *	@author Jojada Tirtowidjojo - 14/11/2007
  */
 public class FxScriptEngine {
-	private static Logger log = Logger.getLogger(FxScriptEngine.class);
+	private static Logger log = LoggerFactory.getLogger(FxScriptEngine.class);
 	
 	private String _scriptDir;
 

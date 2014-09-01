@@ -27,7 +27,8 @@ import javax.swing.text.Element;
 
 import net.sf.vfsjfilechooser.utils.VFSUtils;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.FetchRemoteEditsWorker;
 import org.docx4all.swing.ProgressBarDialog;
 import org.docx4all.swing.TransmitLocalEditsWorker;
@@ -45,7 +46,7 @@ import org.plutext.client.Mediator;
  * @author Jojada Tirtowidjojo - 10/07/2008
  */
 public class PlutextMenu extends UIMenu {
-	private static Logger log = Logger.getLogger(PlutextMenu.class);
+	private static Logger log = LoggerFactory.getLogger(PlutextMenu.class);
 	
 	private final static PlutextMenu _instance = new PlutextMenu();
 

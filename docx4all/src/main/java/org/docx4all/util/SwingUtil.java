@@ -39,7 +39,8 @@ import javax.swing.plaf.basic.BasicTextUI;
 import javax.swing.text.Position;
 import javax.swing.text.View;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.ImpliedParagraphView;
 import org.docx4all.swing.text.SdtBlockView;
@@ -49,7 +50,7 @@ import org.docx4all.swing.text.TableView;
  *	@author Jojada Tirtowidjojo - 30/11/2007
  */
 public class SwingUtil {
-	private static Logger log = Logger.getLogger(SwingUtil.class);
+	private static Logger log = LoggerFactory.getLogger(SwingUtil.class);
 	
 	public final static JMenuItem getMenuItem(JMenu menu, String menuItemText) {
 		JMenuItem theItem = null;

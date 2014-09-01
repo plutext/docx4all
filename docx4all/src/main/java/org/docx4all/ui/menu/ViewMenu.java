@@ -25,7 +25,8 @@ import javax.swing.JEditorPane;
 import javax.swing.JMenuItem;
 import javax.swing.event.CaretEvent;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.ui.main.ToolBarStates;
 import org.docx4all.ui.main.WordMLEditor;
@@ -37,7 +38,7 @@ import org.jdesktop.application.Action;
  *	@author Jojada Tirtowidjojo - 27/02/2008
  */
 public class ViewMenu extends UIMenu {
-	private static Logger log = Logger.getLogger(ViewMenu.class);
+	private static Logger log = LoggerFactory.getLogger(ViewMenu.class);
 	
 	private final static ViewMenu _instance = new ViewMenu();
 	

@@ -11,7 +11,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPathFactory;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 //import org.dom4j.Document;
 //import org.dom4j.Element;
@@ -46,7 +47,7 @@ public class PartVersionList {
 		    </pkg:xmlData>
      */
 
-    	private static Logger log = Logger.getLogger(PartVersionList.class);        
+    	private static Logger log = LoggerFactory.getLogger(PartVersionList.class);        
     	
         static List<String> sequenceableParts;
         public static List<String> getSequenceableParts()

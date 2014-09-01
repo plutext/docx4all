@@ -45,7 +45,8 @@ import javax.xml.xpath.XPathFactory;
 import org.alfresco.webservice.authentication.AuthenticationFault;
 import org.alfresco.webservice.util.AuthenticationDetails;
 import org.alfresco.webservice.util.AuthenticationUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.CheckinCommentDialog;
 import org.docx4all.swing.FetchRemoteEditsWorker;
 import org.docx4all.swing.TransmitLocalEditsWorker;
@@ -146,7 +147,7 @@ public class Mediator {
 	 * 
 	 */
 
-	private static Logger log = Logger.getLogger(Mediator.class);
+	private static Logger log = LoggerFactory.getLogger(Mediator.class);
 
 	private static final Long CANT_OVERWRITE = Long.valueOf(0);
 
@@ -282,10 +283,10 @@ public class Mediator {
 			}
 
 		} catch (AuthenticationFault exc) {
-			log.error(exc);
+			log.error(exc.getMessage(), exc);
 			throw new ServiceException("Service Connection failure.", exc);
 		} catch ( Exception e) {
-			log.error(e);
+			log.error(e.getMessage(), e);
         	throw new ServiceException("Service Connection failure.", e);			
 		}
 	}
@@ -1482,7 +1483,7 @@ private void updateSequencedParts(//Pkg pkg, Map<String, StateChunk> currentStat
 	            // Remove all the children 
 	            for (int i2 = listParent.getChildNodes().getLength(); i2 > 0; i2--)
 	            {
-	                log.debug(i2);
+	                log.debug(""+i2);
 	                Node deletion = listParent.getChildNodes().item(i2 - 1);
 	                listParent.removeChild(deletion);
 	            }
@@ -1490,7 +1491,7 @@ private void updateSequencedParts(//Pkg pkg, Map<String, StateChunk> currentStat
 
 	        for (int j2 = 0; j2 < (constructedContent[i]).size(); j2++)
 	        {
-	            log.debug(j2);
+	            log.debug(""+j2);
 	            Node n = (Node)constructedContent[i].get(j2);
 	            Node importedNode = parent.getOwnerDocument().importNode(n, true);  // pkgB.PkgXmlDocument.ImportNode(n, true);
 	            listParent.appendChild(importedNode);
@@ -2594,7 +2595,7 @@ private void updateDocx4jPart(
 	        try {
 	        	otherUpdates = transmitOtherUpdates(); // TODO - move this, since its a separate ws call.			
 			} catch (Exception e1) {
-				log.error(e1);
+				log.error(e1.getMessage(), e1);
 				e1.printStackTrace();
 				throw e1;
 			}

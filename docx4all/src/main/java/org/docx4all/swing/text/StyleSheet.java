@@ -37,7 +37,8 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBIntrospector;
 import javax.xml.namespace.QName;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.xml.ObjectFactory;
 import org.docx4j.XmlUtils;
 import org.docx4j.fonts.RunFontSelector;
@@ -80,7 +81,7 @@ import org.w3c.dom.Document;
  *	@author Jojada Tirtowidjojo - 19/02/2008
  */
 public class StyleSheet extends StyleContext {
-	private static Logger log = Logger.getLogger(StyleSheet.class);
+	private static Logger log = LoggerFactory.getLogger(StyleSheet.class);
 
 	public final static String LATENT_STYLES = "latentStyles";
 	public final static String LSD_EXCEPTIONS = "lsdExceptions";

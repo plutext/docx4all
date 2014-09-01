@@ -39,7 +39,8 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 import javax.swing.text.View;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.xml.ElementML;
 import org.docx4j.model.listnumbering.Emulator;
 import org.docx4j.model.listnumbering.Emulator.ResultTriple;
@@ -51,7 +52,7 @@ import sun.swing.SwingUtilities2;
  *	@author Jojada Tirtowidjojo - 10/01/2009
  */
 public class NumberingView extends View {
-	private static Logger log = Logger.getLogger(NumberingView.class);
+	private static Logger log = LoggerFactory.getLogger(NumberingView.class);
 	
 	private final static int DEFAULT_BULLET_WIDTH = 8;
 	private final static int DEFAULT_BULLET_HEIGHT = 8;

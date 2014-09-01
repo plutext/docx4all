@@ -28,7 +28,8 @@ import javax.xml.transform.Source;
 import javax.xml.transform.Templates;
 import javax.xml.transform.stream.StreamSource;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.ui.main.Constants;
@@ -51,7 +52,7 @@ import org.plutext.client.partWrapper.SequencedPart;
 
 public class Util {
 
-	private static Logger log = Logger.getLogger(Util.class);
+	private static Logger log = LoggerFactory.getLogger(Util.class);
 
 	public static String getCustomDocumentProperty(
 			DocPropsCustomPart docPropsCustomPart, String propName) {

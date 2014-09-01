@@ -19,13 +19,14 @@
 
 package org.docx4all.xml;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
  */
 public class AttributeML {
-	private static Logger log = Logger.getLogger(AttributeML.class);
+	private static Logger log = LoggerFactory.getLogger(AttributeML.class);
 	
 	private final WordML.Attribute key;
 	private final String value;

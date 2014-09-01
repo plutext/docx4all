@@ -28,7 +28,8 @@ import java.util.Set;
 import javax.xml.bind.JAXBIntrospector;
 import javax.xml.namespace.QName;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4j.XmlUtils;
 import org.docx4j.jaxb.Context;
 
@@ -36,7 +37,7 @@ import org.docx4j.jaxb.Context;
  *	@author Jojada Tirtowidjojo - 08/01/2008
  */
 public class BodyML extends ElementML {
-	private static Logger log = Logger.getLogger(BodyML.class);
+	private static Logger log = LoggerFactory.getLogger(BodyML.class);
 	
 	Set<BigInteger> sdtBlockIdSet = new HashSet<BigInteger>();
 	

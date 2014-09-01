@@ -21,13 +21,14 @@ package org.docx4all.xml;
 
 import java.util.Stack;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *	@author Jojada Tirtowidjojo - 30/11/2007
  */
 public class ElementMLIterator {
-	private static Logger log = Logger.getLogger(ElementMLIterator.class);
+	private static Logger log = LoggerFactory.getLogger(ElementMLIterator.class);
 
 	private final ElementML root;
 	

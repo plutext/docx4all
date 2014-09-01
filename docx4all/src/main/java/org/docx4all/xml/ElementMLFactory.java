@@ -27,7 +27,8 @@ import javax.swing.text.AttributeSet;
 import javax.xml.bind.Unmarshaller;
 
 import org.apache.commons.vfs.FileObject;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
@@ -46,7 +47,7 @@ import org.plutext.client.SdtWrapper;
  */
 public class ElementMLFactory {
 	
-	private static Logger log = Logger.getLogger(ElementMLFactory.class);		
+	private static Logger log = LoggerFactory.getLogger(ElementMLFactory.class);		
 	
 	public final static DocumentML createEmptyDocumentML() {
 		WordprocessingMLPackage docPackage = ObjectFactory.createEmptyDocumentPackage();

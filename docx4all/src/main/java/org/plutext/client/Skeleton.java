@@ -26,7 +26,8 @@ import java.util.Map;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.plutext.Context;
 import org.plutext.client.diffengine.DiffEngine;
 import org.plutext.client.diffengine.DiffEngineLevel;
@@ -35,7 +36,7 @@ import org.plutext.client.diffengine.IDiffList;
 import org.plutext.server.transitions.Transitions;
 
 public class Skeleton implements IDiffList<TextLine> {
-	private static Logger log = Logger.getLogger(Skeleton.class);
+	private static Logger log = LoggerFactory.getLogger(Skeleton.class);
 
 	private static void TextDiff(Skeleton source, Skeleton dest) {
 

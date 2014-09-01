@@ -21,7 +21,8 @@ package org.plutext.client;
 
 import java.util.HashMap;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.xml.ElementML;
@@ -38,7 +39,7 @@ import org.plutext.client.state.StateChunk;
  */
 public class Pkg implements Cloneable {
 
-	private static Logger log = Logger.getLogger(Pkg.class);
+	private static Logger log = LoggerFactory.getLogger(Pkg.class);
 
 	//private Map<String, StateChunk> stateChunks = null;
 	private Skeleton skeleton = new Skeleton();

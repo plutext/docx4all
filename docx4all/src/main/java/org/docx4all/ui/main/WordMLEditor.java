@@ -74,7 +74,8 @@ import net.sf.vfsjfilechooser.utils.VFSUtils;
 import org.apache.commons.vfs.FileObject;
 import org.apache.commons.vfs.FileSystemException;
 import org.apache.commons.vfs.provider.webdav.WebdavFileObject;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.bounce.text.xml.XMLDocument;
 import org.bounce.text.xml.XMLEditorKit;
 import org.bounce.text.xml.XMLStyleConstants;
@@ -112,7 +113,7 @@ import org.plutext.client.Mediator;
  *	@author Jojada Tirtowidjojo - 13/11/2007
  */
 public class WordMLEditor extends SingleFrameApplication {
-	private static Logger log = Logger.getLogger(WordMLEditor.class);
+	private static Logger log = LoggerFactory.getLogger(WordMLEditor.class);
 	
 	private ViewManager _viewManager;
 	private JDesktopPane _desktop;

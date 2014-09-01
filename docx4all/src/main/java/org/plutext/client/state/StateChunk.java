@@ -27,7 +27,8 @@ import javax.xml.transform.Templates;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.stream.StreamSource;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4j.XmlUtils;
 import org.docx4j.wml.Id;
 import org.docx4j.wml.SdtBlock;
@@ -46,7 +47,7 @@ import org.plutext.client.SdtWrapper;
 public class StateChunk 
 {
 	
-	private static Logger log = Logger.getLogger(StateChunk.class);
+	private static Logger log = LoggerFactory.getLogger(StateChunk.class);
 
     public StateChunk(SdtBlock cc) {
 		this.cc = cc;

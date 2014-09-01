@@ -36,7 +36,8 @@ import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.commons.vfs.FileObject;
 import org.apache.commons.vfs.FileSystemException;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.ExternalHyperlinkDialog;
 import org.docx4all.swing.WordMLTextPane;
 import org.docx4all.swing.text.DocumentElement;
@@ -66,7 +67,7 @@ import org.jdesktop.application.ResourceMap;
  * @author Jojada Tirtowidjojo - 21/11/2008
  */
 public class HyperlinkMenu extends UIMenu {
-	private static Logger log = Logger.getLogger(HyperlinkMenu.class);
+	private static Logger log = LoggerFactory.getLogger(HyperlinkMenu.class);
 
 	private final static HyperlinkMenu _instance = new HyperlinkMenu();
 

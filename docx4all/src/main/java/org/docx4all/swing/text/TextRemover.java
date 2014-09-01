@@ -24,7 +24,8 @@ import java.util.List;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter.FilterBypass;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.util.DocUtil;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.RunContentML;
@@ -33,7 +34,7 @@ import org.docx4all.xml.RunContentML;
  *	@author Jojada Tirtowidjojo - 10/01/2008
  */
 public class TextRemover implements TextProcessor {
-	private static Logger log = Logger.getLogger(TextRemover.class);
+	private static Logger log = LoggerFactory.getLogger(TextRemover.class);
 
 	private TextSelector textSelector;
 	private FilterBypass filterBypass;

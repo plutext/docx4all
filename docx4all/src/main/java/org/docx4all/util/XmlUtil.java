@@ -41,7 +41,8 @@ import javax.xml.transform.Templates;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.stream.StreamSource;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.ElementMLIterator;
@@ -76,7 +77,7 @@ public class XmlUtil {
     	new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 	
     
-	protected static Logger log = Logger.getLogger(XmlUtil.class);
+	protected static Logger log = LoggerFactory.getLogger(XmlUtil.class);
 		
     
 	/**

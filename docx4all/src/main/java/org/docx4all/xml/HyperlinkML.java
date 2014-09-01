@@ -31,7 +31,8 @@ import net.sf.vfsjfilechooser.utils.VFSUtils;
 
 import org.apache.commons.vfs.FileObject;
 import org.apache.commons.vfs.FileSystemException;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.text.WordMLStyleConstants;
 import org.docx4all.util.XmlUtil;
 import org.docx4j.XmlUtils;
@@ -42,7 +43,7 @@ import org.docx4j.openpackaging.parts.relationships.Namespaces;
  */
 public class HyperlinkML extends ElementML {
 	
-	private static Logger log = Logger.getLogger(HyperlinkML.class);	
+	private static Logger log = LoggerFactory.getLogger(HyperlinkML.class);	
 	
 	public final static String encodeTarget(
 		HyperlinkML ml, FileObject sourceFile, boolean inFriendlyFormat) {

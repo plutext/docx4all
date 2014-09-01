@@ -25,14 +25,15 @@ import javax.swing.text.Element;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.View;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.xml.ElementML;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.NumberingDefinitionsPart;
 import org.docx4j.wml.PPrBase;
 
 public class ParagraphView extends BoxView {
-	private static Logger log = Logger.getLogger(ParagraphView.class);
+	private static Logger log = LoggerFactory.getLogger(ParagraphView.class);
 
 	private static short DEFAULT_INTER_PARAGRAPH_SPACE = 200;//twips
 	

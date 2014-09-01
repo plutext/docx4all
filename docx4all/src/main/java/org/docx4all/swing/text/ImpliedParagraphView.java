@@ -50,7 +50,8 @@ import javax.swing.text.TabableView;
 import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.xml.ElementML;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.NumberingDefinitionsPart;
@@ -61,7 +62,7 @@ import org.docx4j.wml.PPrBase;
  * <a href="http://download.java.net/openjdk/jdk7/">OpenJDK Source Releases</a>
  */
 public class ImpliedParagraphView extends FlowView implements TabExpander {
-	private static Logger log = Logger.getLogger(ImpliedParagraphView.class);
+	private static Logger log = LoggerFactory.getLogger(ImpliedParagraphView.class);
 	
 	public ImpliedParagraphView(Element elem) {
 		super(elem, View.Y_AXIS);

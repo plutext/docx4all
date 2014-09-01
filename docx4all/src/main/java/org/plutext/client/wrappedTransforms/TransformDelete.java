@@ -22,7 +22,8 @@ package org.plutext.client.wrappedTransforms;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.text.DocumentElement;
 import org.docx4all.swing.text.WordMLDocument;
 import org.docx4all.util.XmlUtil;
@@ -37,7 +38,7 @@ import org.plutext.transforms.Transforms.T;
 
 public class TransformDelete extends TransformAbstract {
 
-	private static Logger log = Logger.getLogger(TransformDelete.class);
+	private static Logger log = LoggerFactory.getLogger(TransformDelete.class);
 
 	private org.docx4j.wml.SdtBlock markedUpSdt;
 	

@@ -19,7 +19,8 @@
 
 package org.plutext.client;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.plutext.client.state.StateDocx;
 import org.docx4j.wml.SdtBlock;
 import java.util.ArrayList;
@@ -29,10 +30,10 @@ import java.util.ArrayList;
 public class Chunker
 {
 
-	private static Logger log = Logger.getLogger(Chunker.class);
+	private static Logger log = LoggerFactory.getLogger(Chunker.class);
 
 	public static boolean containsMultipleBlocks(org.docx4j.wml.SdtContentBlock sdtContent) {
-		log.info(sdtContent.getEGContentBlockContent().size());
+		log.info(""+sdtContent.getEGContentBlockContent().size());
 		
 		// TODO - In addition to P, getEGContentBlockContent() can contain things
 		// like Tbl, RunTrackChange etc.  Consider what to do with those.

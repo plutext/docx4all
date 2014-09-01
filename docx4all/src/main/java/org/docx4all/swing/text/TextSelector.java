@@ -25,7 +25,8 @@ import java.util.List;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.swing.text.WordMLFragment.ElementMLRecord;
 import org.docx4all.util.DocUtil;
 
@@ -33,7 +34,7 @@ import org.docx4all.util.DocUtil;
  *	@author Jojada Tirtowidjojo - 19/12/2007
  */
 public class TextSelector {
-	private static Logger log = Logger.getLogger(TextSelector.class);
+	private static Logger log = LoggerFactory.getLogger(TextSelector.class);
 
 	protected final WordMLDocument _doc;
 	protected final int _offset, _length;

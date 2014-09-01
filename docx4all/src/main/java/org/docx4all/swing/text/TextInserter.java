@@ -27,7 +27,8 @@ import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.DocumentFilter.FilterBypass;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.ui.main.Constants;
 import org.docx4all.util.DocUtil;
 import org.docx4all.xml.ElementML;
@@ -41,7 +42,7 @@ import org.docx4all.xml.RunML;
  *	@author Jojada Tirtowidjojo - 07/02/2008
  */
 public class TextInserter implements TextProcessor {
-	private static Logger log = Logger.getLogger(TextInserter.class);
+	private static Logger log = LoggerFactory.getLogger(TextInserter.class);
 
 	private final FilterBypass filterBypass;
 	private final int offset;

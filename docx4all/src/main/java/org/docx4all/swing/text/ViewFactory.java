@@ -24,7 +24,8 @@ import javax.swing.text.BoxView;
 import javax.swing.text.Element;
 import javax.swing.text.View;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.docx4all.xml.ElementML;
 import org.docx4all.xml.InlineDrawingML;
 import org.docx4all.xml.ParagraphML;
@@ -36,7 +37,7 @@ import org.docx4all.xml.TableML;
 import org.docx4all.xml.TableRowML;
 
 public class ViewFactory implements javax.swing.text.ViewFactory {
-	private static Logger log = Logger.getLogger(ViewFactory.class);
+	private static Logger log = LoggerFactory.getLogger(ViewFactory.class);
 	
 	private TableView tableView;
 	
